@@ -3,16 +3,32 @@ class TitleScene extends Phaser.Scene {
         super({ key: 'TitleScene' });
     }
 
+    preload() {
+        this.load.image('title-bg', 'magustitle.png');
+    }
+
     create() {
+        // Set background color to match the image's dark background
+        this.cameras.main.setBackgroundColor('#0c0f16');
+        
+        // Add background image with proper aspect ratio
+        const bg = this.add.image(400, 300, 'title-bg');
+        
+        // Calculate proper scale to fit while maintaining aspect ratio
+        const imgWidth = bg.width;
+        const imgHeight = bg.height;
+        const scaleX = 800 / imgWidth;
+        const scaleY = 600 / imgHeight;
+        const scale = Math.min(scaleX, scaleY);
+        
+        bg.setScale(scale);
+        
         const title = this.add.text(400, 200, 'WIZBIZ', {
             fontSize: '72px',
             color: '#ffdd44',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-
-        const subtitle = this.add.text(400, 280, 'A Magical Adventure', {
-            fontSize: '24px',
-            color: '#ffffff'
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 6
         }).setOrigin(0.5);
 
         const startText = this.add.text(400, 400, 'Press SPACE or A to Start', {
@@ -53,20 +69,85 @@ class GameOverScene extends Phaser.Scene {
     constructor() {
         super({ key: 'GameOverScene' });
     }
+    
+    init(data) {
+        this.survivalTime = data.survivalTime || 0;
+        this.enemiesKilled = data.enemiesKilled || { tree: 0, slime: 0, golem: 0, elite: 0 };
+        this.itemsCollected = data.itemsCollected || { jewels: 0, muffins: 0, elements: 0 };
+        this.won = data.won || false;
+    }
 
     create() {
-        const gameOver = this.add.text(400, 200, 'GAME OVER', {
+        // Title
+        const title = this.add.text(400, 80, this.won ? 'VICTORY!' : 'GAME OVER', {
             fontSize: '64px',
-            color: '#ff4444',
+            color: this.won ? '#ffd700' : '#ff4444',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        
+        // Survival time
+        const totalSeconds = Math.floor(this.survivalTime / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        const timeText = this.add.text(400, 150, `Survived: ${minutes}:${seconds.toString().padStart(2, '0')}`, {
+            fontSize: '28px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        
+        // Stats background
+        const statsBg = this.add.rectangle(400, 300, 600, 250, 0x000000, 0.8);
+        statsBg.setStrokeStyle(2, 0xffffff);
+        
+        // Enemy kills
+        const killsTitle = this.add.text(250, 200, 'Enemies Defeated:', {
+            fontSize: '20px',
+            color: '#ffdd44',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        
+        let killsText = '';
+        if (this.enemiesKilled.tree > 0) killsText += `Trees: ${this.enemiesKilled.tree}\n`;
+        if (this.enemiesKilled.slime > 0) killsText += `Slimes: ${this.enemiesKilled.slime}\n`;
+        if (this.enemiesKilled.golem > 0) killsText += `Golems: ${this.enemiesKilled.golem}\n`;
+        if (this.enemiesKilled.elite > 0) killsText += `Elites: ${this.enemiesKilled.elite}\n`;
+        
+        const killsList = this.add.text(250, 240, killsText || 'None', {
+            fontSize: '16px',
+            color: '#ffffff',
+            align: 'center'
+        }).setOrigin(0.5, 0);
+        
+        // Items collected
+        const itemsTitle = this.add.text(550, 200, 'Items Collected:', {
+            fontSize: '20px',
+            color: '#44ff44',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        
+        const itemsText = `Jewels: ${this.itemsCollected.jewels}\nMuffins: ${this.itemsCollected.muffins}\nElements: ${this.itemsCollected.elements}`;
+        
+        const itemsList = this.add.text(550, 240, itemsText, {
+            fontSize: '16px',
+            color: '#ffffff',
+            align: 'center'
+        }).setOrigin(0.5, 0);
+        
+        // Total score
+        const totalKills = this.enemiesKilled.tree + this.enemiesKilled.slime + this.enemiesKilled.golem + this.enemiesKilled.elite * 3;
+        const score = totalKills * 100 + this.itemsCollected.jewels * 10 + Math.floor(totalSeconds) * 5;
+        
+        const scoreText = this.add.text(400, 380, `Score: ${score}`, {
+            fontSize: '32px',
+            color: '#ffd700',
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        const restartText = this.add.text(400, 350, 'Press SPACE to Try Again', {
+        const restartText = this.add.text(400, 450, 'Press SPACE to Try Again', {
             fontSize: '24px',
             color: '#ffffff'
         }).setOrigin(0.5);
 
-        const menuText = this.add.text(400, 400, 'Press ESC for Main Menu', {
+        const menuText = this.add.text(400, 490, 'Press ESC for Main Menu', {
             fontSize: '24px',
             color: '#ffffff'
         }).setOrigin(0.5);
@@ -172,10 +253,26 @@ class GameScene extends Phaser.Scene {
         this.load.image('tree', 'foliage.png');
         
         // Load element symbols sprite sheet (3x3 grid)
+        // elements.png is 819x819, so each frame is 273x273
         this.load.spritesheet('element-symbols', 'elements.png', {
-            frameWidth: 32,  // Assuming each symbol is 32x32
-            frameHeight: 32
+            frameWidth: 273,  // 819/3 = 273
+            frameHeight: 273
         });
+        
+        // Load second element symbols sprite sheet  
+        // elements2.PNG is 1024x1024, so each frame is approximately 341x341
+        this.load.spritesheet('element-symbols2', 'elements2.PNG', {
+            frameWidth: 341,  // 1024/3 ≈ 341
+            frameHeight: 341
+        });
+        
+        // Load third element symbols sprite sheet
+        // elements3.PNG appears to be a 3x3 grid similar to elements2
+        this.load.spritesheet('element-symbols3', 'elements3.PNG', {
+            frameWidth: 341,  // Assuming same size as elements2
+            frameHeight: 341
+        });
+        
         
         // Load slime sprites
         for (let i = 0; i < 4; i++) {
@@ -220,6 +317,12 @@ class GameScene extends Phaser.Scene {
         this.lastEnemySpawn = 0;
         this.survivalTime = 0;
         this.difficultyMultiplier = 1.0;
+        this.spawnRateMultiplier = 1.0;
+        this.lastMinute = 0;
+        this.enemiesKilled = { tree: 0, slime: 0, golem: 0, elite: 0 };
+        this.itemsCollected = { jewels: 0, muffins: 0, elements: 0 };
+        this.eliteEnemies = [];
+        this.chests = this.physics.add.group();
         this.playerXP = 0;
         this.playerLevel = 1;
         this.xpToNextLevel = 10;
@@ -243,18 +346,79 @@ class GameScene extends Phaser.Scene {
         this.isPaused = false;
         this.pauseMenu = null;
         this.invulnerable = false; // Reset invulnerability flag
+        this.discoveredElements = new Set(); // Track discovered elements
+        this.elementsMenuOpen = false;
+        this.elementsMenu = null;
         
-        // Element configuration - 9 elements with sprite frames and colors
+        
+        // Element configuration - 18 elements with sprite frames and colors
         this.elementConfig = {
-            fire: { frame: 0, color: 0xff4444, name: 'Fire' },
-            water: { frame: 1, color: 0x4444ff, name: 'Water' },
-            earth: { frame: 2, color: 0x44ff44, name: 'Earth' },
-            rock: { frame: 3, color: 0x8b4513, name: 'Rock' },
-            air: { frame: 4, color: 0xcccccc, name: 'Air' },
-            lightning: { frame: 5, color: 0xffff44, name: 'Lightning' },
-            holy: { frame: 6, color: 0xffdd00, name: 'Holy' },
-            arcane: { frame: 7, color: 0xff44ff, name: 'Arcane' },
-            dust: { frame: 8, color: 0xcc9966, name: 'Dust' }
+            // First sprite sheet (elements.png)
+            fire: { frame: 0, color: 0xff4444, name: 'Fire', sheet: 'element-symbols' },
+            water: { frame: 1, color: 0x4444ff, name: 'Water', sheet: 'element-symbols' },
+            earth: { frame: 2, color: 0x44ff44, name: 'Earth', sheet: 'element-symbols' },
+            rock: { frame: 3, color: 0x8b4513, name: 'Rock', sheet: 'element-symbols' },
+            air: { frame: 4, color: 0xcccccc, name: 'Air', sheet: 'element-symbols' },
+            lightning: { frame: 5, color: 0xffff44, name: 'Lightning', sheet: 'element-symbols' },
+            holy: { frame: 6, color: 0xffdd00, name: 'Holy', sheet: 'element-symbols' },
+            arcane: { frame: 7, color: 0xff44ff, name: 'Arcane', sheet: 'element-symbols' },
+            dust: { frame: 8, color: 0xcc9966, name: 'Dust', sheet: 'element-symbols' },
+            
+            // Second sprite sheet (elements2.PNG)
+            lava: { frame: 0, color: 0xff6600, name: 'Lava', sheet: 'element-symbols2' },
+            steam: { frame: 1, color: 0xaabbcc, name: 'Steam', sheet: 'element-symbols2' },
+            poison: { frame: 2, color: 0x00ff00, name: 'Poison', sheet: 'element-symbols2' },
+            volcano: { frame: 3, color: 0xcc3300, name: 'Volcano', sheet: 'element-symbols2' },
+            ice: { frame: 4, color: 0x00ddff, name: 'Ice', sheet: 'element-symbols2' },
+            meteor: { frame: 5, color: 0xff8800, name: 'Meteor', sheet: 'element-symbols2' },
+            mud: { frame: 6, color: 0x664422, name: 'Mud', sheet: 'element-symbols2' },
+            thunder: { frame: 7, color: 0xffff00, name: 'Thunder', sheet: 'element-symbols2' },
+            crystal: { frame: 8, color: 0xffaaff, name: 'Crystal', sheet: 'element-symbols2' },
+            
+            // Third sprite sheet (elements3.PNG)
+            death: { frame: 0, color: 0x333333, name: 'Death', sheet: 'element-symbols3' },
+            time: { frame: 1, color: 0xffd700, name: 'Time', sheet: 'element-symbols3' },
+            sand: { frame: 2, color: 0xf4a460, name: 'Sand', sheet: 'element-symbols3' },
+            gravity: { frame: 3, color: 0x4b0082, name: 'Gravity', sheet: 'element-symbols3' },
+            sun: { frame: 4, color: 0xffeb3b, name: 'Sun', sheet: 'element-symbols3' },
+            smoke: { frame: 5, color: 0x696969, name: 'Smoke', sheet: 'element-symbols3' },
+            wave: { frame: 6, color: 0x00bcd4, name: 'Wave', sheet: 'element-symbols3' },
+            star: { frame: 7, color: 0xffffff, name: 'Star', sheet: 'element-symbols3' },
+            moon: { frame: 8, color: 0xe0e0e0, name: 'Moon', sheet: 'element-symbols3' }
+        };
+        
+        // Define primary elements (can drop from enemies)
+        this.primaryElements = ['fire', 'water', 'earth', 'air', 'lightning', 'holy', 'arcane', 'rock', 'dust'];
+        
+        // Element descriptions for the discovery menu
+        this.elementDescriptions = {
+            fire: 'Creates burning projectiles that leave fire pools. Basic offensive element.',
+            water: 'Spawns protective orbs that orbit around you. Defensive element.',
+            earth: 'Directional earthquake that damages enemies in a line. Area control.',
+            rock: 'Heavy projectiles that stun enemies on impact. Crowd control.',
+            air: 'Creates wind blasts that push enemies away. Knockback element.',
+            lightning: 'Homing projectiles that seek out enemies. Precision element.',
+            holy: 'Healing aura that damages enemies and heals the wizard. Support magic.',
+            arcane: 'Mysterious homing magic that tracks targets. Pure magical energy.',
+            dust: 'Blinds and slows enemies in a large area. Debuff element.',
+            lava: 'Molten projectiles that create burning pools on impact. Destructive fire.',
+            steam: 'Explosive bursts that push enemies back violently. Pressure element.',
+            poison: 'Applies damage over time to enemies. Lethal toxin.',
+            volcano: 'Erupts with multiple lava projectiles in all directions. Explosive earth.',
+            ice: 'Slows enemies and reduces their movement speed. Frost magic.',
+            meteor: 'Calls down meteors from above with area damage. Celestial destruction.',
+            mud: 'Creates slowing puddles that trap enemies. Terrain control.',
+            thunder: 'Instant lightning strikes on random enemies. Divine punishment.',
+            crystal: 'Creates solid impassable crystals that shatter after 2 seconds with area damage.',
+            death: 'Dark magic that instantly destroys weakened enemies. Finisher element.',
+            time: 'Slows down time for enemies in an area. Temporal manipulation.',
+            sand: 'Creates sandstorms that blind and damage enemies. Desert magic.',
+            gravity: 'Pulls enemies together into a crushing singularity. Force element.',
+            sun: 'Radiates intense heat and light, burning all nearby enemies. Solar power.',
+            smoke: 'Obscures vision and causes choking damage. Suffocation element.',
+            wave: 'Powerful water surge that knocks back groups of enemies. Tidal force.',
+            star: 'Calls down starlight beams from the cosmos. Celestial magic.',
+            moon: 'Lunar energy that heals allies and curses enemies. Night magic.'
         };
         
         this.createForestBackground();
@@ -279,9 +443,10 @@ class GameScene extends Phaser.Scene {
         this.wizard.setAlpha(1.0);
         
         // Make camera follow the wizard
-        this.cameras.main.startFollow(this.wizard);
+        this.cameras.main.startFollow(this.wizard, true, 0.1, 0.1);
         this.cameras.main.setZoom(1);
         this.cameras.main.roundPixels = true; // Prevent sub-pixel rendering gaps
+        this.cameras.main.setDeadzone(50, 50); // Small deadzone for smoother following
 
         this.cursors = this.input.keyboard.createCursorKeys();
         this.elementKeys = {
@@ -293,6 +458,7 @@ class GameScene extends Phaser.Scene {
         this.escKey = this.input.keyboard.addKey('ESC');
         this.spaceKey = this.input.keyboard.addKey('SPACE');
         this.pKey = this.input.keyboard.addKey('P');
+        this.tabKey = this.input.keyboard.addKey('TAB');
         
         // Controller mapping info - create this BEFORE using it
         this.controllerInfo = this.add.text(20, 100, '', {
@@ -306,7 +472,7 @@ class GameScene extends Phaser.Scene {
         this.input.gamepad.once('connected', (pad) => {
             console.log('Gamepad connected:', pad.id);
             this.gamepad = pad;
-            this.controllerInfo.setText('Controller Connected');
+            // Removed controller connected text
         });
         
         // Check if gamepad already connected
@@ -314,7 +480,7 @@ class GameScene extends Phaser.Scene {
             this.gamepad = this.input.gamepad.getPad(0);
             if (this.gamepad) {
                 console.log('Gamepad already connected:', this.gamepad.id);
-                this.controllerInfo.setText('Controller Connected');
+                // Removed controller connected text
             }
         }
 
@@ -330,6 +496,7 @@ class GameScene extends Phaser.Scene {
         this.physics.add.overlap(this.wizard, this.jewels, this.collectJewel, null, this);
         this.physics.add.overlap(this.wizard, this.muffins, this.collectMuffin, null, this);
         this.physics.add.overlap(this.wizard, this.elementOrbs, this.collectElementOrb, null, this);
+        this.physics.add.overlap(this.wizard, this.chests, this.openChest, null, this);
         
         // Add collisions with trees
         this.physics.add.collider(this.wizard, this.trees);
@@ -344,10 +511,11 @@ class GameScene extends Phaser.Scene {
 
         this.createChargeUI();
         this.createSpellbookUI();
-        this.createHealthBar();
+        // this.createHealthBar(); // Removed - using wizard health bar only
+        this.createWizardHealthBar();
         this.createPauseMenu();
+        this.createElementsMenu();
         
-        // Removed test muffin spawn
         
         // Create wizard animations
         // Full idle animation (plays once)
@@ -569,38 +737,36 @@ class GameScene extends Phaser.Scene {
     }
 
     createChargeUI() {
-        const chargeLabel = this.add.text(350, 20, 'CHARGES', {
+        // Create secondary timer display where charges label was
+        this.secondaryTimer = this.add.text(350, 20, '0:00', {
             fontSize: '16px',
             color: '#ffffff'
         });
-        chargeLabel.setScrollFactor(0); // Fix to camera
-        chargeLabel.setDepth(60); // Above everything
+        this.secondaryTimer.setScrollFactor(0); // Fix to camera
+        this.secondaryTimer.setDepth(60); // Above everything
         
-        const shootHint = this.add.text(350, 70, 'Auto-shooting enabled', {
-            fontSize: '12px',
-            color: '#aaaaaa'
-        });
-        shootHint.setScrollFactor(0);
-        shootHint.setDepth(60);
+        // Removed auto-shooting text
         
-        // Controller button guide
-        const controllerGuide = this.add.text(600, 480, 'Controller:\nMove: Left Stick\nPause/Link: Start\nSpellbook: ESC', {
-            fontSize: '11px',
-            color: '#888888',
-            align: 'left'
-        });
-        controllerGuide.setScrollFactor(0);
-        controllerGuide.setDepth(60);
+        // Controller and keyboard guides removed for cleaner UI
+        // const controllerGuide = this.add.text(600, 460, 'Controller:\nMove: Left Stick\nPause/Link: Start\nElements: Select', {
+        //     fontSize: '11px',
+        //     color: '#888888',
+        //     align: 'left'
+        // });
+        // controllerGuide.setScrollFactor(0);
+        // controllerGuide.setDepth(60);
         
-        // Keyboard guide
-        const keyboardGuide = this.add.text(600, 540, 'Keyboard:\nMove: Arrows\nPause/Link: P\nSpellbook: ESC', {
-            fontSize: '11px',
-            color: '#888888',
-            align: 'left'
-        });
-        keyboardGuide.setScrollFactor(0);
-        keyboardGuide.setDepth(60);
+        // const keyboardGuide = this.add.text(600, 520, 'Keyboard:\nMove: Arrows\nPause/Link: P\nElements: TAB\nSpells: ESC', {
+        //     fontSize: '11px',
+        //     color: '#888888',
+        //     align: 'left'
+        // });
+        // keyboardGuide.setScrollFactor(0);
+        // keyboardGuide.setDepth(60);
 
+        // Initialize charge indicators array
+        this.chargeIndicators = [];
+        
         // Create 4 charge indicators using sprites
         for (let i = 0; i < 4; i++) {
             // Background slot
@@ -610,12 +776,12 @@ class GameScene extends Phaser.Scene {
             slotBg.setDepth(61);
             slotBg.setVisible(i < this.maxCharges);
             
-            // Element sprite indicator
+            // Element sprite indicator (default to first sheet)
             const indicator = this.add.sprite(380 + (i * 35), 50, 'element-symbols', 0);
             indicator.setScrollFactor(0);
             indicator.setDepth(62);
             indicator.setVisible(false);
-            indicator.setScale(0.8); // Scale down to fit UI
+            indicator.setScale(0.1); // Scale down much more since frames are huge
             
             this.chargeIndicators.push({ bg: slotBg, sprite: indicator });
         }
@@ -652,8 +818,14 @@ class GameScene extends Phaser.Scene {
                 const element = this.charges[index];
                 const config = this.elementConfig[element];
                 if (config) {
-                    indicator.sprite.setFrame(config.frame);
+                    // Update texture if needed
+                    if (indicator.sprite.texture.key !== config.sheet) {
+                        indicator.sprite.setTexture(config.sheet, config.frame);
+                    } else {
+                        indicator.sprite.setFrame(config.frame);
+                    }
                     indicator.sprite.setVisible(true);
+                    indicator.sprite.setAlpha(1);
                 } else {
                     indicator.sprite.setVisible(false);
                 }
@@ -689,8 +861,48 @@ class GameScene extends Phaser.Scene {
         
         this.spellbookUI.add([background, title, this.spellList, closeText]);
         this.spellbookUI.setVisible(false);
-        this.spellbookUI.setDepth(100);
+        this.spellbookUI.setDepth(300);
         this.spellbookUI.setScrollFactor(0); // Fix to camera
+    }
+
+    createElementsMenu() {
+        this.elementsMenu = this.add.container(400, 300);
+        
+        const background = this.add.rectangle(0, 0, 700, 500, 0x1a0f2e);
+        background.setStrokeStyle(4, 0x8b6914);
+        
+        const title = this.add.text(0, -220, 'DISCOVERED ELEMENTS', {
+            fontSize: '32px',
+            color: '#ffdd44',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        
+        // Create scrollable content area
+        this.elementsListContainer = this.add.container(0, -50);
+        this.elementsListText = this.add.text(0, 0, '', {
+            fontSize: '14px',
+            color: '#ffffff',
+            align: 'left',
+            lineSpacing: 8,
+            wordWrap: { width: 650 }
+        }).setOrigin(0.5, 0);
+        
+        this.elementsListContainer.add(this.elementsListText);
+        
+        const closeText = this.add.text(0, 220, 'Press TAB or SELECT to close', {
+            fontSize: '16px',
+            color: '#aaaaaa'
+        }).setOrigin(0.5);
+        
+        const instructionText = this.add.text(0, 200, 'Collect element orbs from defeated enemies to discover new elements!', {
+            fontSize: '12px',
+            color: '#888888'
+        }).setOrigin(0.5);
+        
+        this.elementsMenu.add([background, title, this.elementsListContainer, closeText, instructionText]);
+        this.elementsMenu.setVisible(false);
+        this.elementsMenu.setDepth(300);
+        this.elementsMenu.setScrollFactor(0);
     }
 
     createHealthBar() {
@@ -711,38 +923,78 @@ class GameScene extends Phaser.Scene {
         healthLabel.setScrollFactor(0); // Fix to camera
         healthLabel.setDepth(101); // Render above background
         
-        // Add difficulty indicator
-        this.difficultyText = this.add.text(650, 20, 'Difficulty: 1.0x', {
-            fontSize: '16px',
-            color: '#ffaa44'
-        });
+        // Add timer display in top middle
+        this.difficultyText = this.add.text(400, 20, 'Timer: 0:00', {
+            fontSize: '20px',
+            color: '#ffaa44',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
         this.difficultyText.setScrollFactor(0);
         this.difficultyText.setDepth(60);
         
-        this.survivalText = this.add.text(650, 45, 'Time: 0:00', {
-            fontSize: '14px',
-            color: '#ffffff'
-        });
-        this.survivalText.setScrollFactor(0);
-        this.survivalText.setDepth(60);
+        // Removed duplicate timer - using difficultyText only
+        // this.survivalText = this.add.text(650, 45, 'Time: 0:00', {
+        //     fontSize: '14px',
+        //     color: '#ffffff'
+        // });
+        // this.survivalText.setScrollFactor(0);
+        // this.survivalText.setDepth(60);
         
         this.updateHealthBar();
+        
+        // Spawn initial wave of enemies after a short delay to ensure animations work
+        this.time.delayedCall(100, () => {
+            const initialEnemies = 4;
+            for (let i = 0; i < initialEnemies; i++) {
+                this.spawnEnemy();
+            }
+        });
     }
 
+    createWizardHealthBar() {
+        // Create health bar that floats above wizard
+        this.wizardHealthBarBg = this.add.rectangle(0, -50, 40, 6, 0x333333);
+        this.wizardHealthBarBg.setStrokeStyle(1, 0x000000);
+        this.wizardHealthBarBg.setDepth(15);
+        
+        this.wizardHealthBar = this.add.rectangle(-20, -50, 40, 6, 0x44ff44);
+        this.wizardHealthBar.setOrigin(0, 0.5);
+        this.wizardHealthBar.setDepth(16);
+        
+        // Add to wizard container or update position in update loop
+        this.updateWizardHealthBar();
+    }
+    
     updateHealthBar() {
+        // Bottom health bar removed - only updating wizard health bar
+        return;
+    }
+    
+    updateWizardHealthBar() {
+        if (!this.wizardHealthBar || !this.wizardHealthBarBg) return;
+        
+        // Update position to follow wizard
+        this.wizardHealthBarBg.x = this.wizard.x;
+        this.wizardHealthBarBg.y = this.wizard.y - 50;
+        this.wizardHealthBar.x = this.wizard.x - 20;
+        this.wizardHealthBar.y = this.wizard.y - 50;
+        
+        // Update health display
         const healthPercent = Math.max(0, this.playerHealth / this.maxHealth);
-        this.healthBar.width = 150 * healthPercent;
+        this.wizardHealthBar.width = 40 * healthPercent;
         
         if (healthPercent > 0.6) {
-            this.healthBar.setFillStyle(0x44ff44);
+            this.wizardHealthBar.setFillStyle(0x44ff44);
         } else if (healthPercent > 0.3) {
-            this.healthBar.setFillStyle(0xffff44);
+            this.wizardHealthBar.setFillStyle(0xffff44);
         } else {
-            this.healthBar.setFillStyle(0xff4444);
+            this.wizardHealthBar.setFillStyle(0xff4444);
         }
         
+        // Hide if dead
         if (healthPercent === 0) {
-            this.healthBar.setVisible(false);
+            this.wizardHealthBar.setVisible(false);
+            this.wizardHealthBarBg.setVisible(false);
         }
     }
 
@@ -752,30 +1004,50 @@ class GameScene extends Phaser.Scene {
             this.gamepad = this.input.gamepad.getPad(0);
             if (this.gamepad) {
                 console.log('Gamepad connected in update:', this.gamepad.id);
-                this.controllerInfo.setText('Controller Connected');
+                // Removed controller connected text
             }
         } else if (this.gamepad && !this.gamepad.connected) {
             this.gamepad = null;
-            this.controllerInfo.setText('');
+            // Removed controller text
         }
         
-        // Update survival time and difficulty
-        this.survivalTime += delta;
-        const thirtySecondsPassed = Math.floor(this.survivalTime / 30000);
-        if (thirtySecondsPassed > 0) {
-            this.difficultyMultiplier = Math.pow(1.1, thirtySecondsPassed);
+        // Update survival time (only when not paused and no menus open)
+        if (this.time.timeScale > 0 && !this.isPaused && !this.spellbookOpen && !this.elementsMenuOpen && !this.chestSelectionActive) {
+            this.survivalTime += delta;
         }
         
-        // Update UI texts
+        // Update spawn rate over time (every minute)
+        const currentMinute = Math.floor(this.survivalTime / 60000);
+        if (currentMinute > this.lastMinute) {
+            this.lastMinute = currentMinute;
+            this.spawnRateMultiplier = 1 + (currentMinute * 0.5); // 50% faster each minute
+            
+            // Spawn elite enemy
+            if (currentMinute > 0) {
+                this.spawnEliteEnemy();
+            }
+        }
+        
+        // Update timer displays
+        const totalSeconds = Math.floor(this.survivalTime / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
         if (this.difficultyText) {
-            this.difficultyText.setText(`Difficulty: ${this.difficultyMultiplier.toFixed(1)}x`);
+            this.difficultyText.setText(`Timer: ${timeString}`);
         }
-        if (this.survivalText) {
-            const totalSeconds = Math.floor(this.survivalTime / 1000);
-            const minutes = Math.floor(totalSeconds / 60);
-            const seconds = totalSeconds % 60;
-            this.survivalText.setText(`Time: ${minutes}:${seconds.toString().padStart(2, '0')}`);
+        
+        // Update secondary timer (no label)
+        if (this.secondaryTimer) {
+            this.secondaryTimer.setText(timeString);
         }
+        
+        // Check win condition (10 minutes)
+        if (minutes >= 10) {
+            this.gameWon();
+        }
+        // Removed duplicate timer update
         
         // Initialize gamepad button tracking
         if (!this.gamepadButtonStates) {
@@ -793,15 +1065,20 @@ class GameScene extends Phaser.Scene {
             this.togglePause();
         }
         
-        // ESC key or Select button (button 8) for spellbook
+        // ESC key for spellbook
+        if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
+            this.toggleSpellbook();
+        }
+        
+        // TAB key or Select button (button 8) for elements menu
         let selectPressed = false;
         if (this.gamepad && this.gamepad.buttons[8]) {
             selectPressed = this.gamepad.buttons[8].pressed;
         }
         
-        if (Phaser.Input.Keyboard.JustDown(this.escKey) ||
+        if (Phaser.Input.Keyboard.JustDown(this.tabKey) ||
             (selectPressed && !this.gamepadButtonStates[8])) {
-            this.toggleSpellbook();
+            this.toggleElementsMenu();
         }
         
         // Update gamepad button states for next frame
@@ -811,7 +1088,13 @@ class GameScene extends Phaser.Scene {
             });
         }
 
-        if (this.spellbookOpen || this.playerHealth <= 0) {
+        if (this.spellbookOpen || this.elementsMenuOpen || this.playerHealth <= 0) {
+            return;
+        }
+        
+        // Handle chest selection controller input
+        if (this.chestSelectionActive && this.chestUI) {
+            this.handleChestSelectionController();
             return;
         }
         
@@ -1000,11 +1283,15 @@ class GameScene extends Phaser.Scene {
             // Calculate spawn delay based on difficulty
             // Start at 6 seconds, decrease to minimum of 2 seconds at high difficulty
             const baseSpawnDelay = 6000; // 6 seconds (slower spawn)
-            const minSpawnDelay = 2000; // 2 seconds
-            const spawnDelay = Math.max(minSpawnDelay, baseSpawnDelay / this.difficultyMultiplier);
+            const minSpawnDelay = 1000; // 1 second minimum
+            const spawnDelay = Math.max(minSpawnDelay, baseSpawnDelay / this.spawnRateMultiplier);
             
             if (time > this.lastEnemySpawn + spawnDelay) {
-                this.spawnEnemy();
+                // Spawn multiple enemies at once around the perimeter
+                const enemiesToSpawn = Math.floor(2 + Math.floor(this.spawnRateMultiplier));
+                for (let i = 0; i < enemiesToSpawn; i++) {
+                    this.spawnEnemy();
+                }
                 this.lastEnemySpawn = time;
             }
         }
@@ -1016,32 +1303,42 @@ class GameScene extends Phaser.Scene {
             
             // Teleport enemy if too far from wizard (beyond 800 pixels)
             if (distance > 800) {
-                // Find a random position closer to wizard
-                const angle = Math.random() * Math.PI * 2;
-                const teleportDistance = 300 + Math.random() * 200; // 300-500 pixels away
-                const newX = this.wizard.x + Math.cos(angle) * teleportDistance;
-                const newY = this.wizard.y + Math.sin(angle) * teleportDistance;
+                // Teleport to outside viewport
+                const camera = this.cameras.main;
+                const viewportWidth = camera.width;
+                const viewportHeight = camera.height;
+                const spawnMargin = 50;
+                
+                // Calculate spawn position outside current viewport
+                const side = Phaser.Math.Between(0, 3);
+                switch(side) {
+                    case 0: // Top
+                        enemy.x = camera.scrollX + Phaser.Math.Between(0, viewportWidth);
+                        enemy.y = camera.scrollY - spawnMargin;
+                        break;
+                    case 1: // Right
+                        enemy.x = camera.scrollX + viewportWidth + spawnMargin;
+                        enemy.y = camera.scrollY + Phaser.Math.Between(0, viewportHeight);
+                        break;
+                    case 2: // Bottom
+                        enemy.x = camera.scrollX + Phaser.Math.Between(0, viewportWidth);
+                        enemy.y = camera.scrollY + viewportHeight + spawnMargin;
+                        break;
+                    case 3: // Left
+                        enemy.x = camera.scrollX - spawnMargin;
+                        enemy.y = camera.scrollY + Phaser.Math.Between(0, viewportHeight);
+                        break;
+                }
                 
                 // Clamp to world bounds
-                enemy.x = Phaser.Math.Clamp(newX, 50, 3950);
-                enemy.y = Phaser.Math.Clamp(newY, 50, 2110);
-                
-                // Teleport effect
-                const teleportEffect = this.add.circle(enemy.x, enemy.y, 30, 0x8800ff, 0.6);
-                teleportEffect.setDepth(10);
-                this.tweens.add({
-                    targets: teleportEffect,
-                    scale: { from: 0, to: 2 },
-                    alpha: { from: 0.8, to: 0 },
-                    duration: 300,
-                    onComplete: () => teleportEffect.destroy()
-                });
+                enemy.x = Phaser.Math.Clamp(enemy.x, 50, 3950);
+                enemy.y = Phaser.Math.Clamp(enemy.y, 50, 2110);
             }
             
             // Only update velocity if not being knocked back, not stunned, and not blinded
             if (Math.abs(enemy.body.velocity.x) < 100 && Math.abs(enemy.body.velocity.y) < 100 && !enemy.stunned && !enemy.blinded) {
                 // Get enemy speed based on type
-                const moveSpeed = enemy.moveSpeed || 60;
+                const moveSpeed = enemy.moveSpeed || (enemy.enemyType === 'tree' ? 48 : 60);
                 
                 // Stop moving if within attack range (40 pixels)
                 const stopDistance = 40;
@@ -1109,6 +1406,9 @@ class GameScene extends Phaser.Scene {
             if (enemy.active) enemy.setDepth(enemy.y / 10);
         });
         
+        // Update wizard health bar position
+        this.updateWizardHealthBar();
+        
         // Attract jewels to wizard when close
         this.jewels.children.entries.forEach(jewel => {
             const distance = Phaser.Math.Distance.Between(jewel.x, jewel.y, this.wizard.x, this.wizard.y);
@@ -1157,9 +1457,14 @@ class GameScene extends Phaser.Scene {
         // Update water orbs to orbit around wizard
         this.waterOrbs.forEach((orb, index) => {
             if (orb.active) {
-                const angle = orb.startAngle + (time - orb.startTime) * 0.002;
-                orb.x = this.wizard.x + Math.cos(angle) * orb.orbitRadius;
-                orb.y = this.wizard.y + Math.sin(angle) * orb.orbitRadius;
+                // Store current angle if not set
+                if (orb.currentAngle === undefined) {
+                    orb.currentAngle = orb.startAngle;
+                }
+                // Increment angle continuously
+                orb.currentAngle += 0.002 * delta;
+                orb.x = this.wizard.x + Math.cos(orb.currentAngle) * orb.orbitRadius;
+                orb.y = this.wizard.y + Math.sin(orb.currentAngle) * orb.orbitRadius;
             }
         });
         
@@ -1318,6 +1623,53 @@ class GameScene extends Phaser.Scene {
         
         this.spellList.setText(spellText);
     }
+    
+    updateElementsMenu() {
+        if (!this.elementsListText) return;
+        
+        // Clear previous element sprites if any
+        if (this.elementSprites) {
+            this.elementSprites.forEach(sprite => sprite.destroy());
+        }
+        this.elementSprites = [];
+        
+        let elementsText = '';
+        const sortedElements = Array.from(this.discoveredElements).sort();
+        
+        if (sortedElements.length === 0) {
+            elementsText = 'No elements discovered yet.\nDefeat enemies to find element orbs!';
+        } else {
+            elementsText = `Discovered: ${sortedElements.length}/${Object.keys(this.elementConfig).length} Elements\n\n`;
+            
+            let yOffset = 30; // Start position for first element
+            
+            sortedElements.forEach((element, index) => {
+                const config = this.elementConfig[element];
+                const description = this.elementDescriptions[element] || 'Mysterious element with unknown properties.';
+                
+                // Create element sprite
+                const sprite = this.add.sprite(-325, yOffset, config.sheet, config.frame);
+                sprite.setScale(0.1);
+                sprite.setDepth(301); // Above menu background
+                sprite.setScrollFactor(0);
+                this.elementsListContainer.add(sprite);
+                this.elementSprites.push(sprite);
+                
+                // Add padding for text to account for sprite
+                elementsText += `      ${config.name.toUpperCase()}\n`;
+                elementsText += `      ${description}\n`;
+                
+                if (index < sortedElements.length - 1) {
+                    elementsText += '\n';
+                }
+                
+                // Update y position for next element (3 lines per element)
+                yOffset += 56; // Adjust spacing based on font size and line spacing
+            });
+        }
+        
+        this.elementsListText.setText(elementsText);
+    }
 
     createPauseMenu() {
         this.pauseMenu = this.add.container(400, 300);
@@ -1330,6 +1682,8 @@ class GameScene extends Phaser.Scene {
         this.pauseMenuCursorIndex = 0;
         this.pauseMenuSelectedCharge = -1;
         this.pauseMenuCursor = null;
+        this.linkMode = false; // Track if we're in link mode
+        this.linkCursorIndex = 0; // Which link we're hovering over in link mode
         
         // Background - make it interactive to block clicks to game underneath
         const bg = this.add.rectangle(0, 0, 700, 500, 0x000000, 0.9);
@@ -1337,14 +1691,14 @@ class GameScene extends Phaser.Scene {
         bg.setInteractive(); // This blocks clicks from going through
         
         // Title
-        const title = this.add.text(0, -200, 'CHARGE MANAGEMENT', {
+        const title = this.add.text(0, -200, 'ELEMENT MANAGEMENT', {
             fontSize: '28px',
             color: '#ffdd44',
             fontStyle: 'bold'
         }).setOrigin(0.5);
         
         // Instructions
-        const instructions = this.add.text(0, -150, 'Drag charges to rearrange • Click X to discard • Click between slots to link', {
+        const instructions = this.add.text(0, -150, 'Drag elements to rearrange • Click X to discard • Click between slots to link', {
             fontSize: '16px',
             color: '#ffffff'
         }).setOrigin(0.5);
@@ -1370,10 +1724,10 @@ class GameScene extends Phaser.Scene {
             slotBg.setData('slotIndex', i);
             slotBg.setInteractive({ dropZone: true });
             
-            // Charge indicator using sprite (make it draggable)
+            // Charge indicator using sprite (make it draggable) - default to first sheet
             const chargeSprite = this.add.sprite(slotStartX + i * slotSpacing, slotY, 'element-symbols', 0);
             chargeSprite.setVisible(false);
-            chargeSprite.setScale(1.5); // Make it bigger in the menu
+            chargeSprite.setScale(0.2); // Scale down since frames are huge
             chargeSprite.setInteractive({ 
                 draggable: true,
                 hitArea: new Phaser.Geom.Rectangle(-16, -16, 32, 32),
@@ -1448,7 +1802,7 @@ class GameScene extends Phaser.Scene {
         }).setOrigin(0.5);
         
         // Controller instructions
-        const controllerText = this.add.text(0, 170, 'Controller: D-pad to navigate • A to select/place • B to cancel • Y to link', {
+        const controllerText = this.add.text(0, 170, 'Controller: D-pad to navigate • A to select/place • B to cancel • Y for link mode', {
             fontSize: '14px',
             color: '#888888'
         }).setOrigin(0.5);
@@ -1466,7 +1820,7 @@ class GameScene extends Phaser.Scene {
         });
         
         this.pauseMenu.setVisible(false);
-        this.pauseMenu.setDepth(200);
+        this.pauseMenu.setDepth(300);
         this.pauseMenu.setScrollFactor(0);
         
         // Set up drag events - we need to remove old listeners first to avoid duplicates
@@ -1548,8 +1902,9 @@ class GameScene extends Phaser.Scene {
             console.log('Pause menu opened');
             // Update pause menu display FIRST
             this.updatePauseMenuDisplay();
-            // Pause physics
+            // Pause physics and all timers
             this.physics.pause();
+            this.time.timeScale = 0;
             
             // Initialize controller cursor
             this.pauseMenuCursorIndex = 0;
@@ -1561,6 +1916,8 @@ class GameScene extends Phaser.Scene {
             this.prevPauseAPressed = false;
             this.prevPauseBPressed = false;
             this.prevPauseYPressed = false;
+            this.linkMode = false;
+            this.linkCursorIndex = 0;
             
             // Create cursor indicator for controller
             if (!this.pauseMenuCursor) {
@@ -1777,8 +2134,9 @@ class GameScene extends Phaser.Scene {
                 this.tempInteractiveElements = [];
             }
             
-            // Resume physics
+            // Resume physics and timers
             this.physics.resume();
+            this.time.timeScale = 1;
             // Update charge groups based on links
             this.updateChargeGroups();
         }
@@ -1824,7 +2182,12 @@ class GameScene extends Phaser.Scene {
                 const element = this.charges[i];
                 const config = this.elementConfig[element];
                 if (config) {
-                    this.pauseChargeSlots[i].circle.setFrame(config.frame);
+                    // Update texture if needed
+                    if (this.pauseChargeSlots[i].circle.texture.key !== config.sheet) {
+                        this.pauseChargeSlots[i].circle.setTexture(config.sheet, config.frame);
+                    } else {
+                        this.pauseChargeSlots[i].circle.setFrame(config.frame);
+                    }
                     this.pauseChargeSlots[i].circle.setVisible(true);
                     this.pauseChargeSlots[i].discardBtn.setVisible(true);
                     
@@ -2058,23 +2421,37 @@ class GameScene extends Phaser.Scene {
     updatePauseMenuCursor() {
         if (!this.pauseMenuCursor || !this.pauseMenu.visible) return;
         
-        // Position cursor based on current index
-        if (this.pauseMenuCursorIndex < 4) {
-            // Hovering over a charge slot
-            const slot = this.pauseChargeSlots[this.pauseMenuCursorIndex];
-            this.pauseMenuCursor.x = this.pauseMenu.x + slot.x;
-            this.pauseMenuCursor.y = this.pauseMenu.y + slot.y;
-            // Reset to normal size for slots
-            this.pauseMenuCursor.setSize(85, 85);
-        } else {
-            // Hovering over a link button
-            const linkIndex = this.pauseMenuCursorIndex - 4;
-            if (linkIndex < this.linkButtons.length) {
-                const link = this.linkButtons[linkIndex];
+        if (this.linkMode) {
+            // In link mode, position cursor over the current link
+            if (this.linkCursorIndex < this.linkButtons.length) {
+                const link = this.linkButtons[this.linkCursorIndex];
                 this.pauseMenuCursor.x = this.pauseMenu.x + link.btn.x;
                 this.pauseMenuCursor.y = this.pauseMenu.y + link.btn.y;
-                // Make cursor smaller for link buttons
+                // Make cursor smaller for link buttons and change color
                 this.pauseMenuCursor.setSize(35, 25);
+                this.pauseMenuCursor.setStrokeStyle(3, 0xffff00, 1); // Yellow for link mode
+            }
+        } else {
+            // Normal mode cursor positioning
+            this.pauseMenuCursor.setStrokeStyle(3, 0x00ff00, 1); // Green for normal mode
+            
+            if (this.pauseMenuCursorIndex < 4) {
+                // Hovering over a charge slot
+                const slot = this.pauseChargeSlots[this.pauseMenuCursorIndex];
+                this.pauseMenuCursor.x = this.pauseMenu.x + slot.x;
+                this.pauseMenuCursor.y = this.pauseMenu.y + slot.y;
+                // Reset to normal size for slots
+                this.pauseMenuCursor.setSize(85, 85);
+            } else {
+                // Hovering over a link button
+                const linkIndex = this.pauseMenuCursorIndex - 4;
+                if (linkIndex < this.linkButtons.length) {
+                    const link = this.linkButtons[linkIndex];
+                    this.pauseMenuCursor.x = this.pauseMenu.x + link.btn.x;
+                    this.pauseMenuCursor.y = this.pauseMenu.y + link.btn.y;
+                    // Make cursor smaller for link buttons
+                    this.pauseMenuCursor.setSize(35, 25);
+                }
             }
         }
     }
@@ -2111,45 +2488,72 @@ class GameScene extends Phaser.Scene {
         
         // Check for just pressed (not held)
         if (leftPressed && !this.prevPauseLeftPressed) {
-            this.pauseMenuCursorIndex--;
-            if (this.pauseMenuCursorIndex < 0) {
-                this.pauseMenuCursorIndex = 6; // 4 slots + 3 links - 1
+            if (this.linkMode) {
+                // Navigate between link buttons in link mode
+                this.linkCursorIndex--;
+                if (this.linkCursorIndex < 0) {
+                    this.linkCursorIndex = this.linkButtons.length - 1;
+                }
+            } else {
+                // Normal navigation
+                this.pauseMenuCursorIndex--;
+                if (this.pauseMenuCursorIndex < 0) {
+                    this.pauseMenuCursorIndex = 6; // 4 slots + 3 links - 1
+                }
             }
             this.updatePauseMenuCursor();
         }
         
         if (rightPressed && !this.prevPauseRightPressed) {
-            this.pauseMenuCursorIndex++;
-            if (this.pauseMenuCursorIndex > 6) {
-                this.pauseMenuCursorIndex = 0;
+            if (this.linkMode) {
+                // Navigate between link buttons in link mode
+                this.linkCursorIndex++;
+                if (this.linkCursorIndex >= this.linkButtons.length) {
+                    this.linkCursorIndex = 0;
+                }
+            } else {
+                // Normal navigation
+                this.pauseMenuCursorIndex++;
+                if (this.pauseMenuCursorIndex > 6) {
+                    this.pauseMenuCursorIndex = 0;
+                }
             }
             this.updatePauseMenuCursor();
         }
         
-        // A button - select/place charge
+        // A button - select/place charge or toggle link
         const aPressed = this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed;
         if (aPressed && !this.prevPauseAPressed) {
-            if (this.pauseMenuCursorIndex < 4) {
-                // Charge slot
-                const slotIndex = this.pauseMenuCursorIndex;
-                
-                if (this.pauseMenuSelectedCharge === -1) {
-                    // Pick up charge if there is one
-                    if (slotIndex < this.charges.length) {
-                        this.pauseMenuSelectedCharge = slotIndex;
-                        // Visual feedback
-                        this.pauseChargeSlots[slotIndex].circle.setScale(1.2);
-                        this.pauseChargeSlots[slotIndex].circle.setAlpha(0.5);
+            if (this.linkMode) {
+                // Toggle link at current link cursor position
+                if (this.linkCursorIndex < this.linkButtons.length) {
+                    this.toggleLink(this.linkCursorIndex);
+                    this.updatePauseMenuDisplay();
+                }
+            } else {
+                // Normal charge selection/placement
+                if (this.pauseMenuCursorIndex < 4) {
+                    // Charge slot
+                    const slotIndex = this.pauseMenuCursorIndex;
+                    
+                    if (this.pauseMenuSelectedCharge === -1) {
+                        // Pick up charge if there is one
+                        if (slotIndex < this.charges.length) {
+                            this.pauseMenuSelectedCharge = slotIndex;
+                            // Visual feedback
+                            this.pauseChargeSlots[slotIndex].circle.setScale(0.25); // Adjusted for new scale
+                            this.pauseChargeSlots[slotIndex].circle.setAlpha(0.5);
+                        }
+                    } else {
+                        // Place charge
+                        if (slotIndex !== this.pauseMenuSelectedCharge) {
+                            this.swapCharges(this.pauseMenuSelectedCharge, slotIndex);
+                        }
+                        // Reset selection
+                        this.pauseChargeSlots[this.pauseMenuSelectedCharge].circle.setScale(0.2);
+                        this.pauseChargeSlots[this.pauseMenuSelectedCharge].circle.setAlpha(1);
+                        this.pauseMenuSelectedCharge = -1;
                     }
-                } else {
-                    // Place charge
-                    if (slotIndex !== this.pauseMenuSelectedCharge) {
-                        this.swapCharges(this.pauseMenuSelectedCharge, slotIndex);
-                    }
-                    // Reset selection
-                    this.pauseChargeSlots[this.pauseMenuSelectedCharge].circle.setScale(1);
-                    this.pauseChargeSlots[this.pauseMenuSelectedCharge].circle.setAlpha(1);
-                    this.pauseMenuSelectedCharge = -1;
                 }
             }
         }
@@ -2168,16 +2572,18 @@ class GameScene extends Phaser.Scene {
             }
         }
         
-        // Y button - toggle link
+        // Y button - toggle link mode
         const yPressed = this.gamepad.buttons[3] && this.gamepad.buttons[3].pressed;
         if (yPressed && !this.prevPauseYPressed) {
-            if (this.pauseMenuCursorIndex >= 4) {
-                const linkIndex = this.pauseMenuCursorIndex - 4;
-                if (linkIndex < this.linkButtons.length) {
-                    this.toggleLink(linkIndex);
-                    this.updatePauseMenuDisplay();
-                }
+            this.linkMode = !this.linkMode;
+            if (this.linkMode) {
+                // Entering link mode - set cursor to first available link
+                this.linkCursorIndex = 0;
+                // Entering link mode
+            } else {
+                // Exiting link mode
             }
+            this.updatePauseMenuCursor();
         }
         
         // Store previous states
@@ -2192,6 +2598,32 @@ class GameScene extends Phaser.Scene {
         this.spellbookOpen = !this.spellbookOpen;
         this.spellbookUI.setVisible(this.spellbookOpen);
         this.updateSpellbookText();
+        
+        if (this.spellbookOpen) {
+            // Pause physics and all timers
+            this.physics.pause();
+            this.time.timeScale = 0;
+        } else {
+            // Resume physics and timers
+            this.physics.resume();
+            this.time.timeScale = 1;
+        }
+    }
+    
+    toggleElementsMenu() {
+        this.elementsMenuOpen = !this.elementsMenuOpen;
+        this.elementsMenu.setVisible(this.elementsMenuOpen);
+        
+        if (this.elementsMenuOpen) {
+            // Pause game and all timers when menu is open
+            this.physics.pause();
+            this.time.timeScale = 0;
+            this.updateElementsMenu();
+        } else {
+            // Resume game and timers when menu is closed
+            this.physics.resume();
+            this.time.timeScale = 1;
+        }
     }
     
     killEnemy(enemy) {
@@ -2213,6 +2645,11 @@ class GameScene extends Phaser.Scene {
             enemy.once('animationcomplete', () => {
                 // Only split if not already too small (max 2 splits)
                 if (generation < 2) {
+                    // Drop chest if this is an elite's first split
+                    if (enemy.isElite && generation === 0) {
+                        this.dropChest(enemyX, enemyY);
+                    }
+                    
                     // Spawn 2 smaller slimes
                     const offset = 20;
                     this.spawnSplitSlime(enemyX - offset, enemyY, generation + 1, this.difficultyMultiplier);
@@ -2238,9 +2675,27 @@ class GameScene extends Phaser.Scene {
                     }
                 }
                 
+                this.enemiesKilled[enemy.enemyType]++;
                 enemy.destroy();
             });
+        } else if (enemy.isElite) {
+            // Elite enemy death - drop chest
+            enemy.setVelocity(0, 0);
+            this.tweens.add({
+                targets: enemy,
+                scale: 0,
+                alpha: 0,
+                duration: 500,
+                onComplete: () => {
+                    // Drop chest
+                    this.dropChest(enemyX, enemyY);
+                    this.enemiesKilled.elite++;
+                    enemy.destroy();
+                }
+            });
         } else if (enemy.enemyType === 'golem') {
+            // Mark as dying to prevent further updates
+            enemy.isDying = true;
             // Play golem death animation
             enemy.play(`golem-${enemy.golemColor}-die`);
             enemy.setVelocity(0, 0); // Stop movement
@@ -2251,6 +2706,7 @@ class GameScene extends Phaser.Scene {
             
             // Wait for animation to complete
             enemy.once('animationcomplete', () => {
+                if (!enemy || !enemy.active) return; // Safety check
                 if (isLevelUpGolem) {
                     // Level-up golems always drop charge expansion
                     this.dropChargeExpansion(enemyX, enemyY);
@@ -2262,21 +2718,20 @@ class GameScene extends Phaser.Scene {
                         this.dropJewel(enemyX + offsetX, enemyY + offsetY);
                     }
                 } else {
-                    // Regular golem drops (shouldn't happen anymore but keeping for safety)
+                    // Regular golem always drops 1 random element
                     this.dropJewel(enemyX, enemyY);
                     this.dropJewel(enemyX + 20, enemyY);
                     
-                    if (Math.random() < 0.4) {
-                        const elements = ['fire', 'lightning', 'water', 'earth'];
-                        const element = elements[Math.floor(Math.random() * elements.length)];
-                        this.dropElementOrb(enemyX, enemyY, element);
-                    }
+                    // Always drop 1 random primary element
+                    const element = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
+                    this.dropElementOrb(enemyX, enemyY, element);
                     
                     if (Math.random() < 0.3) {
                         this.dropMuffin(enemyX, enemyY);
                     }
                 }
                 
+                this.enemiesKilled.golem++;
                 enemy.destroy();
             });
         } else {
@@ -2295,6 +2750,9 @@ class GameScene extends Phaser.Scene {
                         this.dropMuffin(enemyX, enemyY);
                     }
                     
+                    // Trees no longer drop elements
+                    
+                    this.enemiesKilled[enemy.enemyType]++;
                     enemy.destroy();
                 }
             });
@@ -2449,13 +2907,34 @@ class GameScene extends Phaser.Scene {
     }
 
     spawnEnemy() {
-        // Spawn enemies near the wizard but within world bounds
-        const spawnRadius = 400;
-        const angle = Phaser.Math.Between(0, 360) * Math.PI / 180;
-        const distance = Phaser.Math.Between(200, spawnRadius);
+        // Spawn enemies just outside viewport
+        const camera = this.cameras.main;
+        const viewportWidth = camera.width;
+        const viewportHeight = camera.height;
+        const spawnMargin = 50; // How far outside viewport to spawn
         
-        let x = this.wizard.x + Math.cos(angle) * distance;
-        let y = this.wizard.y + Math.sin(angle) * distance;
+        // Calculate spawn position outside current viewport
+        const side = Phaser.Math.Between(0, 3); // 0=top, 1=right, 2=bottom, 3=left
+        let x, y;
+        
+        switch(side) {
+            case 0: // Top
+                x = camera.scrollX + Phaser.Math.Between(0, viewportWidth);
+                y = camera.scrollY - spawnMargin;
+                break;
+            case 1: // Right
+                x = camera.scrollX + viewportWidth + spawnMargin;
+                y = camera.scrollY + Phaser.Math.Between(0, viewportHeight);
+                break;
+            case 2: // Bottom
+                x = camera.scrollX + Phaser.Math.Between(0, viewportWidth);
+                y = camera.scrollY + viewportHeight + spawnMargin;
+                break;
+            case 3: // Left
+                x = camera.scrollX - spawnMargin;
+                y = camera.scrollY + Phaser.Math.Between(0, viewportHeight);
+                break;
+        }
         
         // Clamp to world bounds
         x = Phaser.Math.Clamp(x, 50, 3950);  // Updated for wider world
@@ -2475,28 +2954,29 @@ class GameScene extends Phaser.Scene {
         if (enemyType === 'tree') {
             const enemy = this.physics.add.sprite(x, y, 'enemy-walk', 0);
             
-            const scaleFactor = 1.2 * this.difficultyMultiplier;
+            const scaleFactor = 1.2;
             enemy.setScale(scaleFactor);
-            enemy.health = Math.floor(9 * Math.pow(this.difficultyMultiplier, 2));  // 3x health (was 3, now 9)
+            enemy.health = 4;  // Fixed health
             enemy.maxHealth = enemy.health;
             enemy.enemyType = 'tree';
             enemy.play('enemy-walking');
-            enemy.body.setSize(30 * this.difficultyMultiplier, 50 * this.difficultyMultiplier);
+            enemy.body.setSize(20, 30);
+            enemy.body.setOffset(5, 15); // Center narrower hitbox and move down
             
             this.enemies.add(enemy);
         } else if (enemyType === 'slime') {
             // Spawn slime enemy
             const slime = this.physics.add.sprite(x, y, 'slime-idle-0');
             
-            const scaleFactor = 1.5 * this.difficultyMultiplier; // Slimes are a bit bigger
+            const scaleFactor = 1.5; // Slimes are a bit bigger
             slime.setScale(scaleFactor);
-            slime.health = Math.floor(6 * Math.pow(this.difficultyMultiplier, 2)); // 3x health (was 2, now 6)
+            slime.health = 3; // Fixed health
             slime.maxHealth = slime.health;
             slime.enemyType = 'slime';
             slime.moveSpeed = 32; // Slimes are 20% slower (was 40, now 32)
             slime.generation = 0; // Track slime generation (0 = original, 1 = first split, etc.)
             slime.play('slime-idle');
-            slime.body.setSize(32 * this.difficultyMultiplier, 24 * this.difficultyMultiplier);
+            slime.body.setSize(32, 24);
             slime.body.setOffset(0, 8); // Adjust hitbox for slime shape
             
             this.enemies.add(slime);
@@ -2523,7 +3003,7 @@ class GameScene extends Phaser.Scene {
         // Scale based on level, not difficulty
         const scaleFactor = 3.0 + (this.playerLevel * 0.1); // Gets slightly bigger with level
         golem.setScale(scaleFactor);
-        golem.health = Math.floor(15 + (this.playerLevel * 6)); // 3x health (was 5 + 2/level, now 15 + 6/level)
+        golem.health = Math.floor(7.5 + (this.playerLevel * 3)); // 50% reduction
         golem.maxHealth = golem.health;
         golem.enemyType = 'golem';
         golem.golemColor = golemColor;
@@ -2677,7 +3157,7 @@ class GameScene extends Phaser.Scene {
         slime.setScale(scaleFactor);
         
         // Each generation has less health (scaled 3x)
-        slime.health = Math.floor((6 * Math.pow(difficultyMultiplier, 2)) / Math.pow(2, generation));
+        slime.health = Math.floor((3 * Math.pow(difficultyMultiplier, 2)) / Math.pow(2, generation));
         slime.maxHealth = slime.health;
         slime.enemyType = 'slime';
         slime.moveSpeed = 32 + (generation * 8); // Split slimes are faster but 20% slower base
@@ -2706,6 +3186,7 @@ class GameScene extends Phaser.Scene {
         // Don't destroy enemy on contact, just damage player
         this.playerHealth -= 10;
         this.updateHealthBar();
+        this.updateWizardHealthBar();
         
         // Visual feedback only - no knockback
         wizard.setTint(0xff0000);
@@ -2729,7 +3210,12 @@ class GameScene extends Phaser.Scene {
                 // Clear any pending timers before changing scene
                 this.time.removeAllEvents();
                 this.tweens.killAll();
-                this.scene.start('GameOverScene');
+                this.scene.start('GameOverScene', {
+                    survivalTime: this.survivalTime,
+                    enemiesKilled: this.enemiesKilled,
+                    itemsCollected: this.itemsCollected,
+                    won: false
+                });
             });
         }
     }
@@ -2740,13 +3226,15 @@ class GameScene extends Phaser.Scene {
         const damage = baseDamage * (projectile.damage || 1);
         enemy.health -= damage;
         
-        // Apply knockback
-        const angle = Phaser.Math.Angle.Between(projectile.x, projectile.y, enemy.x, enemy.y);
-        const knockbackForce = projectile.isExplosive ? 500 : 300;
-        enemy.setVelocity(
-            Math.cos(angle) * knockbackForce,
-            Math.sin(angle) * knockbackForce
-        );
+        // Apply knockback (unless elite with no stagger)
+        if (!enemy.noStagger) {
+            const angle = Phaser.Math.Angle.Between(projectile.x, projectile.y, enemy.x, enemy.y);
+            const knockbackForce = projectile.isExplosive ? 500 : 300;
+            enemy.setVelocity(
+                Math.cos(angle) * knockbackForce,
+                Math.sin(angle) * knockbackForce
+            );
+        }
         
         // Apply stun from rock projectile
         if (projectile.element === 'rock' && projectile.stunDuration) {
@@ -2840,8 +3328,64 @@ class GameScene extends Phaser.Scene {
         
         // Handle fire projectiles that create pools
         if (projectile.createFirePool) {
-            this.createFirePool(projectile.x, projectile.y);
+            this.createFirePool(projectile.x, projectile.y, projectile.linkedCount || 1);
         }
+        
+        // Handle lava projectiles that leave lava pools
+        if (projectile.leavesLavaPool) {
+            this.createFirePool(projectile.x, projectile.y); // Reuse fire pool for lava
+        }
+        
+        // Handle poison damage over time
+        if (projectile.element === 'poison' && projectile.poisonDamage) {
+            enemy.poisoned = true;
+            enemy.poisonDamage = projectile.poisonDamage;
+            enemy.setTint(0x00ff00);
+            
+            // Apply poison damage over time
+            let poisonTicks = 3;
+            const poisonInterval = this.time.addEvent({
+                delay: 500,
+                callback: () => {
+                    if (enemy.active && enemy.poisoned) {
+                        enemy.health -= projectile.poisonDamage / 3;
+                        enemy.setTint(0x00ff00);
+                        this.time.delayedCall(100, () => {
+                            if (enemy.active) enemy.setTint(0x00ff00);
+                        });
+                        
+                        if (enemy.health <= 0) {
+                            this.killEnemy(enemy);
+                        }
+                        
+                        poisonTicks--;
+                        if (poisonTicks <= 0) {
+                            enemy.poisoned = false;
+                            if (enemy.active) enemy.clearTint();
+                            poisonInterval.destroy();
+                        }
+                    }
+                },
+                loop: true
+            });
+        }
+        
+        // Handle ice slowing effect
+        if (projectile.element === 'ice' && projectile.slowDuration) {
+            enemy.slowed = true;
+            enemy.originalSpeed = enemy.moveSpeed || 40;
+            enemy.moveSpeed = enemy.originalSpeed * 0.3;
+            enemy.setTint(0x00ddff);
+            
+            this.time.delayedCall(projectile.slowDuration, () => {
+                if (enemy.active) {
+                    enemy.slowed = false;
+                    enemy.moveSpeed = enemy.originalSpeed;
+                    enemy.clearTint();
+                }
+            });
+        }
+        
         
         // Don't destroy water orbs on hit, they keep orbiting
         if (projectile.element === 'water' && this.waterOrbs.includes(projectile)) {
@@ -3077,7 +3621,9 @@ class GameScene extends Phaser.Scene {
         // Heal 30% of max health
         const healAmount = Math.floor(this.maxHealth * 0.3);
         this.playerHealth = Math.min(this.playerHealth + healAmount, this.maxHealth);
+        this.itemsCollected.muffins++;
         this.updateHealthBar();
+        this.updateWizardHealthBar();
         
         // Visual feedback
         const healText = this.add.text(wizard.x, wizard.y - 30, `+${healAmount} HP`, {
@@ -3108,6 +3654,7 @@ class GameScene extends Phaser.Scene {
         // Add XP
         const xpGain = Math.ceil(2 * this.difficultyMultiplier);
         this.playerXP += xpGain;
+        this.itemsCollected.jewels++;
         
         // Check for level up
         while (this.playerXP >= this.xpToNextLevel) {
@@ -3148,13 +3695,22 @@ class GameScene extends Phaser.Scene {
     
     dropElementOrb(x, y, element) {
         const config = this.elementConfig[element];
-        if (!config) return; // Invalid element
+        if (!config) {
+            console.log('Invalid element:', element);
+            return; // Invalid element
+        }
         
-        // Create orb using the element sprite
-        const orb = this.physics.add.sprite(x, y, 'element-symbols', config.frame);
+        
+        // Create orb using the element sprite from the correct sheet
+        const orb = this.physics.add.sprite(x, y, config.sheet, config.frame);
         orb.element = element;
         orb.setDepth(25);
         orb.body.setVelocity(0, 0);
+        orb.setScale(0.1); // Double the size of dropped elements
+        orb.setAlpha(1); // Ensure full opacity
+        orb.setVisible(true); // Explicitly set visible
+        orb.setTint(config.color); // Add color tint to make more visible
+        
         
         // Add floating animation
         this.tweens.add({
@@ -3169,7 +3725,7 @@ class GameScene extends Phaser.Scene {
         // Add glow effect
         this.tweens.add({
             targets: orb,
-            scale: { from: 1, to: 1.2 },
+            scale: { from: 0.1, to: 0.12 },
             alpha: { from: 1, to: 0.8 },
             duration: 500,
             yoyo: true,
@@ -3183,15 +3739,25 @@ class GameScene extends Phaser.Scene {
         if (this.charges.length < this.maxCharges) {
             this.charges.push(orb.element);
             this.updateChargeUI();
+            this.itemsCollected.elements++;
             
             // Update charge groups immediately so new elements start firing
             this.updateChargeGroups();
             
+            // Discover the element
+            const wasNewDiscovery = !this.discoveredElements.has(orb.element);
+            this.discoveredElements.add(orb.element);
+            
             // Visual feedback
             const config = this.elementConfig[orb.element];
-            const elementText = this.add.text(wizard.x, wizard.y - 30, `+${config.name}`, {
+            let displayText = `+${config.name}`;
+            if (wasNewDiscovery) {
+                displayText += ' (NEW!)';
+            }
+            
+            const elementText = this.add.text(wizard.x, wizard.y - 30, displayText, {
                 fontSize: '18px',
-                color: `#${config.color.toString(16).padStart(6, '0')}`,
+                color: wasNewDiscovery ? '#ffdd44' : `#${config.color.toString(16).padStart(6, '0')}`,
                 fontStyle: 'bold'
             });
             elementText.setOrigin(0.5);
@@ -3224,7 +3790,7 @@ class GameScene extends Phaser.Scene {
             const element = currentGroup[0];
             switch(element) {
                 case 'fire':
-                    this.fireFireProjectile();
+                    this.fireFireProjectile(currentGroup);
                     break;
                 case 'water':
                     this.createWaterOrb();
@@ -3250,6 +3816,33 @@ class GameScene extends Phaser.Scene {
                     break;
                 case 'dust':
                     this.createDustCloud();
+                    break;
+                case 'lava':
+                    this.fireLavaProjectile();
+                    break;
+                case 'steam':
+                    this.createSteamBurst();
+                    break;
+                case 'poison':
+                    this.firePoisonProjectile();
+                    break;
+                case 'volcano':
+                    this.createVolcanicEruption();
+                    break;
+                case 'ice':
+                    this.fireIceProjectile();
+                    break;
+                case 'meteor':
+                    this.fireMeteorProjectile();
+                    break;
+                case 'mud':
+                    this.createMudPuddle();
+                    break;
+                case 'thunder':
+                    this.fireThunderBolt();
+                    break;
+                case 'crystal':
+                    this.fireCrystalProjectile();
                     break;
             }
         } else if (currentGroup.length === 2) {
@@ -3300,7 +3893,7 @@ class GameScene extends Phaser.Scene {
                 const element = elements[0];
                 switch(element) {
                     case 'fire':
-                        this.fireFireProjectile();
+                        this.fireFireProjectile(currentGroup);
                         break;
                     case 'water':
                         this.createWaterOrb();
@@ -3310,6 +3903,10 @@ class GameScene extends Phaser.Scene {
                         break;
                     case 'earth':
                         this.fireEarthSpike();
+                        break;
+                    default:
+                        // For new elements, use their basic attack
+                        this.fireBasicElementProjectile(element);
                         break;
                 }
         }
@@ -3336,7 +3933,7 @@ class GameScene extends Phaser.Scene {
             elements.forEach(element => {
                 switch(element) {
                     case 'fire':
-                        this.fireFireProjectile();
+                        this.fireFireProjectile(currentGroup);
                         break;
                     case 'water':
                         this.createWaterOrb();
@@ -3357,7 +3954,7 @@ class GameScene extends Phaser.Scene {
         this.createElementalStorm();
     }
     
-    fireFireProjectile() {
+    fireFireProjectile(currentGroup = ['fire']) {
         if (!this.textures.exists('fire-auto-proj')) {
             const graphics = this.add.graphics();
             graphics.fillStyle(0xff4444, 1);
@@ -3380,6 +3977,7 @@ class GameScene extends Phaser.Scene {
         
         // When projectile hits enemy, create fire pool
         projectile.createFirePool = true;
+        projectile.linkedCount = currentGroup.length; // Pass linked count
     }
     
     createWaterOrb() {
@@ -3405,6 +4003,7 @@ class GameScene extends Phaser.Scene {
         orb.damage = 2;
         orb.setDepth(5);
         orb.startAngle = Math.random() * Math.PI * 2;
+        orb.currentAngle = orb.startAngle; // Store current angle
         orb.orbitRadius = 60;
         orb.startTime = this.time.now;
         orb.lifespan = 5000; // Water orb lasts 5 seconds
@@ -3532,8 +4131,8 @@ class GameScene extends Phaser.Scene {
             this.time.delayedCall(i * 50, () => {
                 this.createEarthZone(x, y);
                 
-                // Create visual spike
-                const spike = this.add.triangle(x, y + 15, 0, 15, 7, 0, 15, 15, 0x44ff44);
+                // Create visual spike - brown earth color for earth-earth combo
+                const spike = this.add.triangle(x, y + 15, 0, 15, 7, 0, 15, 15, 0x8B4513);
                 spike.setDepth(4);
                 spike.setOrigin(0.5, 1);
                 
@@ -3674,6 +4273,7 @@ class GameScene extends Phaser.Scene {
         // Heal wizard
         this.playerHealth = Math.min(this.playerHealth + 10, this.maxHealth);
         this.updateHealthBar();
+        this.updateWizardHealthBar();
         
         // Pulse animation
         this.tweens.add({
@@ -3753,7 +4353,7 @@ class GameScene extends Phaser.Scene {
         });
     }
     
-    createFirePool(x, y) {
+    createFirePool(x, y, linkedCount = 1) {
         if (!this.textures.exists('fire-pool')) {
             const graphics = this.add.graphics();
             graphics.fillStyle(0xff4444, 0.6);
@@ -3766,6 +4366,7 @@ class GameScene extends Phaser.Scene {
         pool.setDepth(1);
         pool.body.setSize(30, 30);
         pool.startTime = this.time.now;
+        pool.linkedCount = linkedCount; // Store linked fire count
         
         // Burning animation
         this.tweens.add({
@@ -3779,11 +4380,44 @@ class GameScene extends Phaser.Scene {
         
         this.firePools.push(pool);
         
-        // Remove after 3 seconds
+        // Auto-explode after 3 seconds
         this.time.delayedCall(3000, () => {
-            pool.destroy();
-            const index = this.firePools.indexOf(pool);
-            if (index > -1) this.firePools.splice(index, 1);
+            if (pool.active) {
+                // Create explosion effect with size based on linked charges
+                const explosionRadius = 40 + (linkedCount - 1) * 20; // Base 40, +20 per extra fire
+                const explosion = this.add.circle(pool.x, pool.y, explosionRadius, 0xff6644, 0.8);
+                explosion.setDepth(4);
+                
+                this.tweens.add({
+                    targets: explosion,
+                    scale: { from: 0.5, to: 1.5 },
+                    alpha: { from: 0.8, to: 0 },
+                    duration: 300,
+                    onComplete: () => explosion.destroy()
+                });
+                
+                // Damage enemies in explosion radius
+                this.enemies.children.entries.forEach(enemy => {
+                    if (enemy.active) {
+                        const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, pool.x, pool.y);
+                        if (dist < explosionRadius) {
+                            enemy.health -= 3 + linkedCount; // Damage scales with linked fires
+                            enemy.setTint(0xff0000);
+                            this.time.delayedCall(200, () => {
+                                if (enemy.active) enemy.clearTint();
+                            });
+                            
+                            if (enemy.health <= 0) {
+                                this.killEnemy(enemy);
+                            }
+                        }
+                    }
+                });
+                
+                pool.destroy();
+                const index = this.firePools.indexOf(pool);
+                if (index > -1) this.firePools.splice(index, 1);
+            }
         });
     }
     
@@ -4399,7 +5033,7 @@ class GameScene extends Phaser.Scene {
                 
                 switch(element) {
                     case 'fire':
-                        this.createFirePool(x, y);
+                        this.createFirePool(x, y, 1);
                         break;
                     case 'lightning':
                         // Lightning strike
@@ -4463,6 +5097,1426 @@ class GameScene extends Phaser.Scene {
         this.time.delayedCall(3000, () => {
             storm.destroy();
             spawnInterval.destroy();
+        });
+    }
+    
+    // New element implementations for elements2.PNG
+    fireLavaProjectile() {
+        // Lava element - leaves burning pools
+        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'element-symbols2', 0);
+        projectile.element = 'lava';
+        projectile.damage = 2;
+        projectile.setDepth(5);
+        projectile.setScale(1.2);
+        
+        const speed = 250;
+        const angle = Math.random() * Math.PI * 2;
+        projectile.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+        
+        this.projectiles.add(projectile);
+        
+        // Leave lava pools on impact
+        projectile.leavesLavaPool = true;
+    }
+    
+    createSteamBurst() {
+        // Steam element - burst of steam that pushes enemies back
+        const burst = this.add.circle(this.wizard.x, this.wizard.y, 50, 0xaabbcc, 0.6);
+        burst.setDepth(4);
+        
+        this.tweens.add({
+            targets: burst,
+            scale: { from: 0.5, to: 3 },
+            alpha: { from: 0.8, to: 0 },
+            duration: 500,
+            onComplete: () => burst.destroy()
+        });
+        
+        // Push enemies away
+        this.enemies.children.entries.forEach(enemy => {
+            const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
+            if (distance < 150) {
+                const angle = Phaser.Math.Angle.Between(this.wizard.x, this.wizard.y, enemy.x, enemy.y);
+                const force = (150 - distance) * 3;
+                enemy.setVelocity(Math.cos(angle) * force, Math.sin(angle) * force);
+                enemy.health -= 1;
+                if (enemy.health <= 0) {
+                    this.killEnemy(enemy);
+                }
+            }
+        });
+    }
+    
+    firePoisonProjectile() {
+        // Poison element - damage over time
+        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'element-symbols2', 2);
+        projectile.element = 'poison';
+        projectile.damage = 1;
+        projectile.poisonDamage = 3; // Total poison damage
+        projectile.setDepth(5);
+        projectile.setTint(0x00ff00);
+        
+        const speed = 300;
+        const angle = Math.random() * Math.PI * 2;
+        projectile.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+        
+        this.projectiles.add(projectile);
+    }
+    
+    createVolcanicEruption() {
+        // Volcano element - eruption at wizard location
+        const eruption = this.add.circle(this.wizard.x, this.wizard.y, 20, 0xcc3300);
+        eruption.setDepth(3);
+        
+        // Expand and spawn lava projectiles
+        this.tweens.add({
+            targets: eruption,
+            scale: { from: 1, to: 4 },
+            alpha: { from: 1, to: 0.3 },
+            duration: 1000,
+            onComplete: () => eruption.destroy()
+        });
+        
+        // Spawn multiple lava projectiles
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 / 8) * i;
+            const lava = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'element-symbols2', 3);
+            lava.setScale(0.8);
+            lava.damage = 2;
+            lava.setDepth(5);
+            
+            const speed = 200;
+            lava.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+            
+            this.projectiles.add(lava);
+            
+            // Destroy after 1 second
+            this.time.delayedCall(1000, () => {
+                if (lava.active) lava.destroy();
+            });
+        }
+    }
+    
+    fireIceProjectile() {
+        // Ice element - slows enemies
+        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'element-symbols2', 4);
+        projectile.element = 'ice';
+        projectile.damage = 1;
+        projectile.setDepth(5);
+        projectile.slowDuration = 2000; // Slow for 2 seconds
+        
+        const speed = 350;
+        const angle = Math.random() * Math.PI * 2;
+        projectile.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+        
+        // Add ice trail
+        this.tweens.add({
+            targets: projectile,
+            scale: { from: 1, to: 0.8 },
+            duration: 200,
+            yoyo: true,
+            repeat: -1
+        });
+        
+        this.projectiles.add(projectile);
+    }
+    
+    fireMeteorProjectile() {
+        // Meteor element - falls from above on nearest enemy
+        let nearestEnemy = null;
+        let minDistance = Infinity;
+        
+        this.enemies.children.entries.forEach(enemy => {
+            if (enemy.active) {
+                const distance = Phaser.Math.Distance.Between(this.wizard.x, this.wizard.y, enemy.x, enemy.y);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestEnemy = enemy;
+                }
+            }
+        });
+        
+        if (nearestEnemy) {
+            const targetX = nearestEnemy.x;
+            const targetY = nearestEnemy.y;
+            
+            // Create meteor high above target
+            const meteor = this.physics.add.sprite(targetX, targetY - 300, 'element-symbols2', 5);
+            meteor.setScale(2);
+            meteor.damage = 4;
+            meteor.setDepth(5);
+            
+            // Fall animation
+            this.tweens.add({
+                targets: meteor,
+                y: targetY,
+                duration: 500,
+                ease: 'Power2',
+                onComplete: () => {
+                    // Explosion effect
+                    const explosion = this.add.circle(targetX, targetY, 60, 0xff8800, 0.8);
+                    explosion.setDepth(4);
+                    
+                    this.tweens.add({
+                        targets: explosion,
+                        scale: { from: 0, to: 1.5 },
+                        alpha: { from: 0.8, to: 0 },
+                        duration: 300,
+                        onComplete: () => explosion.destroy()
+                    });
+                    
+                    // Damage all enemies in area
+                    this.enemies.children.entries.forEach(enemy => {
+                        if (enemy.active) {
+                            const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, targetX, targetY);
+                            if (dist < 80) {
+                                enemy.health -= 4;
+                                if (enemy.health <= 0) {
+                                    this.killEnemy(enemy);
+                                }
+                            }
+                        }
+                    });
+                    
+                    meteor.destroy();
+                }
+            });
+        }
+    }
+    
+    createMudPuddle() {
+        // Mud element - creates slowing area
+        const puddle = this.add.ellipse(this.wizard.x, this.wizard.y, 100, 60, 0x664422, 0.7);
+        puddle.setDepth(1);
+        
+        // Store for collision checking
+        if (!this.mudPuddles) this.mudPuddles = [];
+        puddle.startTime = this.time.now;
+        this.mudPuddles.push(puddle);
+        
+        // Remove after 5 seconds
+        this.time.delayedCall(5000, () => {
+            puddle.destroy();
+            const index = this.mudPuddles.indexOf(puddle);
+            if (index > -1) this.mudPuddles.splice(index, 1);
+        });
+        
+        // Check for enemies in mud
+        this.time.addEvent({
+            delay: 100,
+            callback: () => {
+                if (puddle.active) {
+                    this.enemies.children.entries.forEach(enemy => {
+                        if (enemy.active) {
+                            const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, puddle.x, puddle.y);
+                            if (dist < 50) {
+                                // Slow enemy
+                                enemy.setVelocity(
+                                    enemy.body.velocity.x * 0.3,
+                                    enemy.body.velocity.y * 0.3
+                                );
+                                enemy.setTint(0x664422);
+                                
+                                // Clear tint when out of mud
+                                this.time.delayedCall(200, () => {
+                                    if (enemy.active && dist > 50) enemy.clearTint();
+                                });
+                            }
+                        }
+                    });
+                }
+            },
+            repeat: 49
+        });
+    }
+    
+    fireThunderBolt() {
+        // Thunder element - instant strike on random enemy
+        const activeEnemies = this.enemies.children.entries.filter(e => e.active);
+        if (activeEnemies.length > 0) {
+            const target = activeEnemies[Math.floor(Math.random() * activeEnemies.length)];
+            
+            // Lightning strike effect
+            const strike = this.add.rectangle(target.x, target.y - 150, 4, 300, 0xffff00);
+            strike.setOrigin(0.5, 0);
+            strike.setDepth(10);
+            strike.setAlpha(0.9);
+            
+            // Flash animation
+            this.tweens.add({
+                targets: strike,
+                scaleX: { from: 1, to: 3 },
+                alpha: { from: 0.9, to: 0 },
+                duration: 200,
+                onComplete: () => strike.destroy()
+            });
+            
+            // Thunder sound effect visual
+            const flash = this.add.rectangle(400, 300, 800, 600, 0xffffff, 0.3);
+            flash.setScrollFactor(0);
+            flash.setDepth(100);
+            this.tweens.add({
+                targets: flash,
+                alpha: 0,
+                duration: 100,
+                onComplete: () => flash.destroy()
+            });
+            
+            // Damage target
+            target.health -= 5;
+            if (target.health <= 0) {
+                this.killEnemy(target);
+            } else {
+                target.setTint(0xffff00);
+                this.time.delayedCall(200, () => {
+                    if (target.active) target.clearTint();
+                });
+            }
+        }
+    }
+    
+    fireCrystalProjectile() {
+        // Crystal element - creates solid impassable crystal that explodes after 2 seconds
+        const crystalX = this.wizard.x;
+        const crystalY = this.wizard.y;
+        
+        // Create crystal sprite
+        const crystal = this.physics.add.staticSprite(crystalX, crystalY, 'element-symbols2', 8);
+        crystal.setScale(0.3);
+        crystal.setDepth(5);
+        crystal.setTint(0xffaaff);
+        
+        // Make it impassable by setting up collision
+        crystal.body.setSize(60, 60); // Collision area
+        
+        // Add collision with wizard and enemies
+        this.physics.add.collider(this.wizard, crystal);
+        this.physics.add.collider(this.enemies, crystal);
+        this.physics.add.collider(this.projectiles, crystal);
+        
+        // Sparkle effect
+        this.tweens.add({
+            targets: crystal,
+            alpha: { from: 1, to: 0.7 },
+            duration: 200,
+            yoyo: true,
+            repeat: -1
+        });
+        
+        // Store crystal for cleanup
+        if (!this.crystals) this.crystals = [];
+        this.crystals.push(crystal);
+        
+        // Shatter after 2 seconds
+        this.time.delayedCall(2000, () => {
+            if (crystal.active) {
+                // Create explosion effect
+                const explosion = this.add.circle(crystalX, crystalY, 80, 0xffaaff, 0.8);
+                explosion.setDepth(6);
+                
+                this.tweens.add({
+                    targets: explosion,
+                    scale: { from: 0.5, to: 2 },
+                    alpha: { from: 0.8, to: 0 },
+                    duration: 500,
+                    onComplete: () => explosion.destroy()
+                });
+                
+                // Damage all enemies in explosion radius
+                this.enemies.children.entries.forEach(enemy => {
+                    if (enemy.active) {
+                        const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, crystalX, crystalY);
+                        if (distance < 100) {
+                            enemy.health -= 4;
+                            enemy.setTint(0xffaaff);
+                            this.time.delayedCall(200, () => {
+                                if (enemy.active) enemy.clearTint();
+                            });
+                            
+                            if (enemy.health <= 0) {
+                                this.killEnemy(enemy);
+                            }
+                        }
+                    }
+                });
+                
+                // Remove crystal from array
+                const index = this.crystals.indexOf(crystal);
+                if (index > -1) this.crystals.splice(index, 1);
+                
+                // Destroy the crystal
+                crystal.destroy();
+            }
+        });
+    }
+    
+    fireBasicElementProjectile(element) {
+        // Generic projectile for elements without specific implementation
+        const config = this.elementConfig[element];
+        if (!config) return;
+        
+        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, config.sheet, config.frame);
+        projectile.element = element;
+        projectile.damage = 1;
+        projectile.setDepth(5);
+        
+        const speed = 300;
+        const angle = Math.random() * Math.PI * 2;
+        projectile.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+        
+        this.projectiles.add(projectile);
+    }
+    
+    spawnEliteEnemy() {
+        // Randomly choose enemy type
+        const types = ['tree', 'slime', 'golem'];
+        const eliteType = types[Math.floor(Math.random() * types.length)];
+        
+        // Spawn outside viewport
+        const camera = this.cameras.main;
+        const viewportWidth = camera.width;
+        const viewportHeight = camera.height;
+        const spawnMargin = 100;
+        
+        let x, y;
+        const side = Phaser.Math.Between(0, 3);
+        switch(side) {
+            case 0: // Top
+                x = camera.scrollX + Phaser.Math.Between(0, viewportWidth);
+                y = camera.scrollY - spawnMargin;
+                break;
+            case 1: // Right
+                x = camera.scrollX + viewportWidth + spawnMargin;
+                y = camera.scrollY + Phaser.Math.Between(0, viewportHeight);
+                break;
+            case 2: // Bottom
+                x = camera.scrollX + Phaser.Math.Between(0, viewportWidth);
+                y = camera.scrollY + viewportHeight + spawnMargin;
+                break;
+            case 3: // Left
+                x = camera.scrollX - spawnMargin;
+                y = camera.scrollY + Phaser.Math.Between(0, viewportHeight);
+                break;
+        }
+        
+        // Clamp to world bounds
+        x = Phaser.Math.Clamp(x, 100, 3900);
+        y = Phaser.Math.Clamp(y, 100, 2060);
+        
+        let elite;
+        if (eliteType === 'tree') {
+            elite = this.physics.add.sprite(x, y, 'enemy-walk', 0);
+            elite.setScale(1.8); // 50% larger
+            elite.health = 12; // 300% health
+            elite.enemyType = 'tree';
+            elite.play('enemy-walking');
+            elite.body.setSize(30, 45);
+            elite.body.setOffset(7, 22);
+        } else if (eliteType === 'slime') {
+            elite = this.physics.add.sprite(x, y, 'slime-idle-0');
+            elite.setScale(2.25); // 50% larger
+            elite.health = 9; // 300% health
+            elite.enemyType = 'slime';
+            elite.moveSpeed = 32;
+            elite.generation = 0;
+            elite.play('slime-idle');
+            elite.body.setSize(48, 36);
+            elite.body.setOffset(0, 12);
+        } else {
+            const golemColor = Math.random() < 0.5 ? 'orange' : 'blue';
+            elite = this.physics.add.sprite(x, y, `golem-${golemColor}-walk`, 0);
+            elite.setScale(4.5); // 50% larger than base 3.0
+            elite.health = 24; // ~300% of base 7.5
+            elite.enemyType = 'golem';
+            elite.golemColor = golemColor;
+            elite.moveSpeed = 25;
+            elite.play(`golem-${golemColor}-walk`);
+            elite.body.setSize(45, 60);
+            elite.body.setOffset(45, 30);
+        }
+        
+        elite.isElite = true;
+        elite.noStagger = true; // Cannot be staggered
+        elite.setTint(0xff00ff); // Purple tint for elites
+        elite.maxHealth = elite.health;
+        
+        this.enemies.add(elite);
+        
+        // Announcement
+        const eliteText = this.add.text(this.wizard.x, this.wizard.y - 100, 'ELITE ENEMY SPAWNED!', {
+            fontSize: '28px',
+            color: '#ff00ff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        eliteText.setOrigin(0.5);
+        eliteText.setDepth(100);
+        
+        this.tweens.add({
+            targets: eliteText,
+            y: this.wizard.y - 150,
+            alpha: 0,
+            duration: 2000,
+            onComplete: () => eliteText.destroy()
+        });
+    }
+    
+    dropChest(x, y) {
+        if (!this.textures.exists('chest')) {
+            const graphics = this.add.graphics();
+            graphics.fillStyle(0x8b4513, 1);
+            graphics.fillRect(0, 5, 30, 20);
+            graphics.fillStyle(0xffd700, 1);
+            graphics.fillRect(12, 0, 6, 10);
+            graphics.generateTexture('chest', 30, 25);
+            graphics.destroy();
+        }
+        
+        const chest = this.physics.add.sprite(x, y, 'chest');
+        chest.setDepth(25);
+        chest.body.setVelocity(0, 0);
+        chest.setScale(1.5);
+        
+        // Floating animation
+        this.tweens.add({
+            targets: chest,
+            y: y - 15,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Glow effect
+        this.tweens.add({
+            targets: chest,
+            scale: { from: 1.5, to: 1.8 },
+            alpha: { from: 1, to: 0.8 },
+            duration: 500,
+            yoyo: true,
+            repeat: -1
+        });
+        
+        this.chests.add(chest);
+    }
+    
+    openChest(wizard, chest) {
+        // Pause physics immediately
+        this.physics.pause();
+        
+        // Store chest selection state
+        this.chestSelectionActive = true;
+        this.chestCursorIndex = 0;
+        this.chestRewardType = null;
+        
+        // Create reward selection UI
+        const selectionBg = this.add.rectangle(400, 300, 750, 450, 0x000000, 0.9);
+        selectionBg.setStrokeStyle(3, 0xffd700);
+        selectionBg.setScrollFactor(0);
+        selectionBg.setDepth(200);
+        
+        const title = this.add.text(400, 120, 'Choose Your Reward!', {
+            fontSize: '32px',
+            color: '#ffd700',
+            fontStyle: 'bold'
+        });
+        title.setOrigin(0.5);
+        title.setScrollFactor(0);
+        title.setDepth(201);
+        
+        const controlHint = this.add.text(400, 480, 'Use LEFT/RIGHT to select, A/SPACE to confirm', {
+            fontSize: '14px',
+            color: '#aaaaaa'
+        });
+        controlHint.setOrigin(0.5);
+        controlHint.setScrollFactor(0);
+        controlHint.setDepth(201);
+        
+        // Create three reward type buttons
+        const buttons = [];
+        const rewardTypes = [
+            {
+                type: 'link',
+                title: 'LINK SLOT',
+                icon: '🔗',
+                description: 'Add a link between element slots',
+                color: 0x44ff44
+            },
+            {
+                type: 'element',
+                title: 'PRIMARY ELEMENT',
+                icon: '⚡',
+                description: 'Choose from 3 primary elements',
+                color: 0x4444ff
+            },
+            {
+                type: 'fusion',
+                title: 'FUSION RITUAL',
+                icon: '🔮',
+                description: 'Combine 2 elements into a new one',
+                color: 0xff44ff
+            }
+        ];
+        
+        for (let i = 0; i < 3; i++) {
+            const xPos = 180 + i * 220;
+            const reward = rewardTypes[i];
+            
+            const button = this.add.container(xPos, 280);
+            button.setScrollFactor(0);
+            button.setDepth(202);
+            
+            const bg = this.add.rectangle(0, 0, 200, 280, 0x333333);
+            bg.setStrokeStyle(3, i === 0 ? 0xffff00 : 0xffffff);
+            bg.setInteractive();
+            
+            // Icon representation
+            const iconBg = this.add.circle(0, -80, 40, reward.color, 0.8);
+            iconBg.setStrokeStyle(3, reward.color);
+            
+            const icon = this.add.text(0, -80, reward.icon, {
+                fontSize: '48px'
+            });
+            icon.setOrigin(0.5);
+            
+            const name = this.add.text(0, -20, reward.title, {
+                fontSize: '18px',
+                color: '#ffffff',
+                fontStyle: 'bold'
+            });
+            name.setOrigin(0.5);
+            
+            const description = this.add.text(0, 40, reward.description, {
+                fontSize: '14px',
+                color: '#cccccc',
+                align: 'center',
+                wordWrap: { width: 180 }
+            });
+            description.setOrigin(0.5);
+            
+            button.add([bg, iconBg, icon, name, description]);
+            buttons.push({ container: button, type: reward.type, bg: bg });
+            
+            bg.on('pointerdown', () => {
+                this.selectChestReward(reward.type, chest);
+            });
+            
+            bg.on('pointerover', () => {
+                bg.setFillStyle(0x555555);
+            });
+            
+            bg.on('pointerout', () => {
+                bg.setFillStyle(0x333333);
+            });
+        }
+        
+        // Store UI elements for controller handling
+        this.chestUI = {
+            bg: selectionBg,
+            title: title,
+            controlHint: controlHint,
+            buttons: buttons,
+            mainMenu: true,
+            chest: chest
+        };
+    }
+    
+    selectChestReward(rewardType, chest) {
+        // Clear existing UI
+        if (this.chestUI) {
+            this.chestUI.bg.destroy();
+            this.chestUI.title.destroy();
+            this.chestUI.controlHint.destroy();
+            this.chestUI.buttons.forEach(btn => btn.container.destroy());
+        }
+        
+        if (rewardType === 'link') {
+            this.showLinkReward();
+            chest.destroy();
+        } else if (rewardType === 'element') {
+            this.showElementReward();
+            chest.destroy();
+        } else if (rewardType === 'fusion') {
+            this.showFusionReward();
+            chest.destroy();
+        }
+    }
+    
+    showLinkReward() {
+        // Check if we can add more links
+        const currentLinks = this.linkButtons ? this.linkButtons.filter(l => l.linked).length : 0;
+        const maxLinks = Math.max(0, this.maxCharges - 1);
+        
+        if (currentLinks >= maxLinks) {
+            // All links already active
+            const message = this.add.text(400, 300, 'All links already active!', {
+                fontSize: '24px',
+                color: '#ff6666'
+            });
+            message.setOrigin(0.5);
+            message.setScrollFactor(0);
+            message.setDepth(210);
+            
+            this.time.delayedCall(2000, () => {
+                message.destroy();
+                this.closeChestUI();
+            });
+            return;
+        }
+        
+        // Add a random link
+        const availableLinks = [];
+        for (let i = 0; i < this.linkButtons.length && i < this.maxCharges - 1; i++) {
+            if (!this.linkButtons[i].linked && i < this.charges.length - 1 && (i + 1) < this.charges.length) {
+                availableLinks.push(i);
+            }
+        }
+        
+        if (availableLinks.length > 0) {
+            const linkIndex = availableLinks[Math.floor(Math.random() * availableLinks.length)];
+            this.linkButtons[linkIndex].linked = true;
+            
+            // Visual feedback
+            const message = this.add.text(400, 300, `Link added between slots ${linkIndex + 1} and ${linkIndex + 2}!`, {
+                fontSize: '24px',
+                color: '#44ff44',
+                fontStyle: 'bold'
+            });
+            message.setOrigin(0.5);
+            message.setScrollFactor(0);
+            message.setDepth(210);
+            
+            this.time.delayedCall(2000, () => {
+                message.destroy();
+                this.closeChestUI();
+            });
+            
+            // Update charge groups
+            this.updateChargeGroups();
+        } else {
+            // No available links
+            const message = this.add.text(400, 300, 'No valid link positions available!', {
+                fontSize: '24px',
+                color: '#ff6666'
+            });
+            message.setOrigin(0.5);
+            message.setScrollFactor(0);
+            message.setDepth(210);
+            
+            this.time.delayedCall(2000, () => {
+                message.destroy();
+                this.closeChestUI();
+            });
+        }
+    }
+    
+    showElementReward() {
+        // Create new UI for element selection
+        const selectionBg = this.add.rectangle(400, 300, 700, 400, 0x000000, 0.9);
+        selectionBg.setStrokeStyle(3, 0xffd700);
+        selectionBg.setScrollFactor(0);
+        selectionBg.setDepth(200);
+        
+        const title = this.add.text(400, 130, 'Choose a Primary Element!', {
+            fontSize: '28px',
+            color: '#ffd700',
+            fontStyle: 'bold'
+        });
+        title.setOrigin(0.5);
+        title.setScrollFactor(0);
+        title.setDepth(201);
+        
+        // Generate 3 random primary elements
+        const choices = [];
+        while (choices.length < 3) {
+            const element = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
+            if (!choices.includes(element)) {
+                choices.push(element);
+            }
+        }
+        
+        this.setupElementSelection(selectionBg, title, choices);
+    }
+    
+    showFusionReward() {
+        // Check if player has at least 2 elements
+        if (this.charges.length < 2) {
+            const message = this.add.text(400, 300, 'Need at least 2 elements to fuse!', {
+                fontSize: '24px',
+                color: '#ff6666'
+            });
+            message.setOrigin(0.5);
+            message.setScrollFactor(0);
+            message.setDepth(210);
+            
+            this.time.delayedCall(2000, () => {
+                message.destroy();
+                this.closeChestUI();
+            });
+            return;
+        }
+        
+        // Create fusion UI
+        const fusionBg = this.add.rectangle(400, 300, 700, 450, 0x000000, 0.9);
+        fusionBg.setStrokeStyle(3, 0xff44ff);
+        fusionBg.setScrollFactor(0);
+        fusionBg.setDepth(200);
+        
+        const title = this.add.text(400, 100, 'FUSION RITUAL', {
+            fontSize: '32px',
+            color: '#ff44ff',
+            fontStyle: 'bold'
+        });
+        title.setOrigin(0.5);
+        title.setScrollFactor(0);
+        title.setDepth(201);
+        
+        const instruction = this.add.text(400, 140, 'Select two elements to combine', {
+            fontSize: '16px',
+            color: '#ffffff'
+        });
+        instruction.setOrigin(0.5);
+        instruction.setScrollFactor(0);
+        instruction.setDepth(201);
+        
+        // Show current elements for selection
+        const elementButtons = [];
+        const selectedElements = [];
+        
+        for (let i = 0; i < this.charges.length; i++) {
+            const element = this.charges[i];
+            const config = this.elementConfig[element];
+            const xPos = 200 + (i % 4) * 100;
+            const yPos = 220 + Math.floor(i / 4) * 100;
+            
+            const container = this.add.container(xPos, yPos);
+            container.setScrollFactor(0);
+            container.setDepth(202);
+            
+            const bg = this.add.circle(0, 0, 40, 0x333333);
+            bg.setStrokeStyle(2, 0xffffff);
+            bg.setInteractive();
+            
+            const sprite = this.add.sprite(0, 0, config.sheet, config.frame);
+            sprite.setScale(0.2);
+            
+            const name = this.add.text(0, 50, config.name, {
+                fontSize: '12px',
+                color: '#ffffff'
+            });
+            name.setOrigin(0.5);
+            
+            container.add([bg, sprite, name]);
+            elementButtons.push({ container, element, bg, selected: false });
+            
+            bg.on('pointerdown', () => {
+                if (!elementButtons[i].selected && selectedElements.length < 2) {
+                    // Select element
+                    elementButtons[i].selected = true;
+                    selectedElements.push(element);
+                    bg.setFillStyle(0xff44ff, 0.5);
+                    bg.setStrokeStyle(3, 0xff44ff);
+                    
+                    if (selectedElements.length === 2) {
+                        // Show fusion button
+                        this.showFusionButton(fusionBg, title, instruction, elementButtons, selectedElements);
+                    }
+                } else if (elementButtons[i].selected) {
+                    // Deselect element
+                    elementButtons[i].selected = false;
+                    const index = selectedElements.indexOf(element);
+                    if (index > -1) selectedElements.splice(index, 1);
+                    bg.setFillStyle(0x333333);
+                    bg.setStrokeStyle(2, 0xffffff);
+                    
+                    // Remove fusion button if exists
+                    if (this.fusionButton) {
+                        this.fusionButton.destroy();
+                        this.fusionButton = null;
+                    }
+                }
+            });
+            
+            bg.on('pointerover', () => {
+                if (!elementButtons[i].selected) {
+                    bg.setFillStyle(0x555555);
+                }
+            });
+            
+            bg.on('pointerout', () => {
+                if (!elementButtons[i].selected) {
+                    bg.setFillStyle(0x333333);
+                }
+            });
+        }
+        
+        // Cancel button
+        const cancelBtn = this.add.text(400, 450, 'Cancel', {
+            fontSize: '18px',
+            color: '#ff6666',
+            backgroundColor: '#333333',
+            padding: { x: 20, y: 10 }
+        });
+        cancelBtn.setOrigin(0.5);
+        cancelBtn.setScrollFactor(0);
+        cancelBtn.setDepth(202);
+        cancelBtn.setInteractive();
+        
+        cancelBtn.on('pointerdown', () => {
+            fusionBg.destroy();
+            title.destroy();
+            instruction.destroy();
+            elementButtons.forEach(btn => btn.container.destroy());
+            cancelBtn.destroy();
+            if (this.fusionButton) this.fusionButton.destroy();
+            this.closeChestUI();
+        });
+        
+        cancelBtn.on('pointerover', () => {
+            cancelBtn.setScale(1.1);
+        });
+        
+        cancelBtn.on('pointerout', () => {
+            cancelBtn.setScale(1);
+        });
+        
+        // Store for cleanup
+        this.fusionUI = {
+            bg: fusionBg,
+            title,
+            instruction,
+            buttons: elementButtons,
+            cancelBtn
+        };
+    }
+    
+    showFusionButton(fusionBg, title, instruction, elementButtons, selectedElements) {
+        this.fusionButton = this.add.text(400, 380, 'FUSE!', {
+            fontSize: '24px',
+            color: '#ffffff',
+            backgroundColor: '#ff44ff',
+            padding: { x: 30, y: 15 }
+        });
+        this.fusionButton.setOrigin(0.5);
+        this.fusionButton.setScrollFactor(0);
+        this.fusionButton.setDepth(203);
+        this.fusionButton.setInteractive();
+        
+        this.fusionButton.on('pointerdown', () => {
+            this.performFusion(selectedElements);
+        });
+        
+        this.fusionButton.on('pointerover', () => {
+            this.fusionButton.setScale(1.1);
+        });
+        
+        this.fusionButton.on('pointerout', () => {
+            this.fusionButton.setScale(1);
+        });
+    }
+    
+    performFusion(elements) {
+        // For now, create a random non-primary element
+        const nonPrimaryElements = Object.keys(this.elementConfig).filter(e => !this.primaryElements.includes(e));
+        const result = nonPrimaryElements[Math.floor(Math.random() * nonPrimaryElements.length)];
+        
+        // Remove the two elements from charges
+        elements.forEach(element => {
+            const index = this.charges.indexOf(element);
+            if (index > -1) {
+                this.charges.splice(index, 1);
+            }
+        });
+        
+        // Add the result
+        this.charges.push(result);
+        this.updateChargeUI();
+        this.updateChargeGroups();
+        
+        // Add to discovered elements
+        if (!this.discoveredElements.has(result)) {
+            this.discoveredElements.add(result);
+        }
+        
+        // Visual feedback
+        const config = this.elementConfig[result];
+        const successText = this.add.text(400, 300, `Fusion successful! Created ${config.name}!`, {
+            fontSize: '28px',
+            color: config.color,
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        successText.setOrigin(0.5);
+        successText.setScrollFactor(0);
+        successText.setDepth(250);
+        
+        // Clean up fusion UI
+        if (this.fusionUI) {
+            this.fusionUI.bg.destroy();
+            this.fusionUI.title.destroy();
+            this.fusionUI.instruction.destroy();
+            this.fusionUI.buttons.forEach(btn => btn.container.destroy());
+            this.fusionUI.cancelBtn.destroy();
+            if (this.fusionButton) this.fusionButton.destroy();
+        }
+        
+        this.time.delayedCall(2500, () => {
+            successText.destroy();
+            this.closeChestUI();
+        });
+    }
+    
+    setupElementSelection(selectionBg, title, choices) {
+        const chargesFull = this.charges.length >= this.maxCharges;
+        const hintText = chargesFull ? 
+            'Elements full! Use LEFT/RIGHT to select, A/SPACE to replace element' : 
+            'Use LEFT/RIGHT to select, A/SPACE to confirm';
+        
+        const controlHint = this.add.text(400, 470, hintText, {
+            fontSize: '14px',
+            color: '#aaaaaa'
+        });
+        controlHint.setOrigin(0.5);
+        controlHint.setScrollFactor(0);
+        controlHint.setDepth(201);
+        
+        // Show current charges if full
+        let chargeDisplay = null;
+        if (chargesFull) {
+            chargeDisplay = this.add.container(400, 370);
+            chargeDisplay.setScrollFactor(0);
+            chargeDisplay.setDepth(201);
+            
+            const chargeLabel = this.add.text(0, -20, 'Current elements (select one to replace):', {
+                fontSize: '12px',
+                color: '#ffaa44'
+            });
+            chargeLabel.setOrigin(0.5);
+            chargeDisplay.add(chargeLabel);
+            
+            // Show current charges
+            const chargeButtons = [];
+            for (let i = 0; i < this.charges.length; i++) {
+                const charge = this.charges[i];
+                const chargeConfig = this.elementConfig[charge];
+                
+                const xPos = -60 + i * 40;
+                const chargeSprite = this.add.sprite(xPos, 0, chargeConfig.sheet, chargeConfig.frame);
+                chargeSprite.setScale(0.15);
+                chargeSprite.setInteractive();
+                
+                // Add selection ring
+                const selectionRing = this.add.graphics();
+                selectionRing.lineStyle(3, 0xff0000, 1);
+                selectionRing.strokeCircle(xPos, 0, 25);
+                selectionRing.setVisible(false);
+                chargeDisplay.add(selectionRing);
+                
+                chargeSprite.on('pointerover', () => {
+                    chargeSprite.setScale(0.2);
+                    chargeSprite.setTint(0xff6666);
+                });
+                
+                chargeSprite.on('pointerout', () => {
+                    if (this.selectedChargeToReplace !== i) {
+                        chargeSprite.setScale(0.15);
+                        chargeSprite.clearTint();
+                    }
+                });
+                
+                chargeSprite.on('pointerdown', () => {
+                    this.selectedChargeToReplace = i;
+                    chargeButtons.forEach((btn, idx) => {
+                        const ring = chargeDisplay.list[chargeDisplay.list.indexOf(btn) + 1];
+                        if (idx === i) {
+                            btn.setScale(0.2);
+                            btn.setTint(0xff0000);
+                            if (ring && ring.type === 'Graphics') {
+                                ring.setVisible(true);
+                            }
+                        } else {
+                            btn.setScale(0.15);
+                            btn.clearTint();
+                            if (ring && ring.type === 'Graphics') {
+                                ring.setVisible(false);
+                            }
+                        }
+                    });
+                });
+                
+                chargeButtons.push(chargeSprite);
+                chargeDisplay.add(chargeSprite);
+            }
+            
+            this.chestChargeButtons = chargeButtons;
+            this.chestSelectionRings = [];
+            for (let i = 1; i < chargeDisplay.list.length; i += 2) {
+                if (chargeDisplay.list[i] && chargeDisplay.list[i].type === 'Graphics') {
+                    this.chestSelectionRings.push(chargeDisplay.list[i]);
+                }
+            }
+        }
+        
+        // Create element buttons
+        const buttons = [];
+        for (let i = 0; i < 3; i++) {
+            const xPos = 180 + i * 220;
+            const element = choices[i];
+            const config = this.elementConfig[element];
+            
+            const button = this.add.container(xPos, 280);
+            button.setScrollFactor(0);
+            button.setDepth(202);
+            
+            const bg = this.add.rectangle(0, 0, 200, 280, 0x333333);
+            bg.setStrokeStyle(3, i === 0 ? 0xffff00 : 0xffffff);
+            bg.setInteractive();
+            
+            const sprite = this.add.sprite(0, -80, config.sheet, config.frame);
+            sprite.setScale(0.4);
+            
+            const name = this.add.text(0, -20, config.name.toUpperCase(), {
+                fontSize: '18px',
+                color: '#ffffff',
+                fontStyle: 'bold'
+            });
+            name.setOrigin(0.5);
+            
+            const description = this.add.text(0, 40, this.elementDescriptions[element], {
+                fontSize: '12px',
+                color: '#cccccc',
+                align: 'center',
+                wordWrap: { width: 180 }
+            });
+            description.setOrigin(0.5);
+            
+            button.add([bg, sprite, name, description]);
+            buttons.push({ container: button, element: element, bg: bg });
+            
+            bg.on('pointerdown', () => {
+                this.selectChestElement(element, config, selectionBg, title, controlHint, buttons);
+            });
+            
+            bg.on('pointerover', () => {
+                bg.setFillStyle(0x555555);
+            });
+            
+            bg.on('pointerout', () => {
+                bg.setFillStyle(0x333333);
+            });
+        }
+        
+        // Store UI elements
+        this.chestUI = {
+            bg: selectionBg,
+            title: title,
+            controlHint: controlHint,
+            buttons: buttons,
+            choices: choices,
+            chargeDisplay: chargeDisplay,
+            chargesFull: chargesFull,
+            mainMenu: false
+        };
+        
+        this.selectedChargeToReplace = -1;
+        this.chestChargeSelectMode = false;
+        this.chestCursorIndex = 0;
+    }
+    
+    closeChestUI() {
+        this.chestSelectionActive = false;
+        this.chestUI = null;
+        this.physics.resume();
+    }
+    
+    selectChestElement(element, config, selectionBg, title, controlHint, buttons) {
+        // Make sure we have config
+        if (!config) {
+            config = this.elementConfig[element];
+        }
+        
+        // Check if we need to replace a charge
+        if (this.charges.length >= this.maxCharges) {
+            // Must have selected a charge to replace
+            if (this.selectedChargeToReplace === -1) {
+                // Flash the charge display to indicate selection needed
+                if (this.chestUI && this.chestUI.chargeDisplay) {
+                    this.tweens.add({
+                        targets: this.chestUI.chargeDisplay,
+                        alpha: 0.3,
+                        duration: 200,
+                        yoyo: true,
+                        repeat: 2
+                    });
+                }
+                return; // Don't proceed without selection
+            }
+            
+            // Replace the selected charge
+            this.charges[this.selectedChargeToReplace] = element;
+            this.updateChargeUI();
+            this.updateChargeGroups();
+            
+            // Check for new discovery
+            if (!this.discoveredElements.has(element)) {
+                this.discoveredElements.add(element);
+                
+                // Show discovery notification
+                const discoveryText = this.add.text(this.wizard.x, this.wizard.y - 50, `${config.name} discovered!`, {
+                    fontSize: '20px',
+                    color: config.color,
+                    fontStyle: 'bold'
+                });
+                discoveryText.setOrigin(0.5);
+                
+                this.tweens.add({
+                    targets: discoveryText,
+                    y: this.wizard.y - 100,
+                    alpha: 0,
+                    duration: 2000,
+                    onComplete: () => discoveryText.destroy()
+                });
+            }
+        } else {
+            // Add element to charges normally
+            this.charges.push(element);
+            this.updateChargeUI();
+            this.updateChargeGroups();
+            
+            // Add to discovered elements
+            if (!this.discoveredElements.has(element)) {
+                this.discoveredElements.add(element);
+                
+                // Show discovery notification
+                const discoveryText = this.add.text(this.wizard.x, this.wizard.y - 50, `${config.name} discovered!`, {
+                    fontSize: '20px',
+                    color: config.color,
+                    fontStyle: 'bold'
+                });
+                discoveryText.setOrigin(0.5);
+                
+                this.tweens.add({
+                    targets: discoveryText,
+                    y: this.wizard.y - 100,
+                    alpha: 0,
+                    duration: 2000,
+                    onComplete: () => discoveryText.destroy()
+                });
+            }
+        }
+        
+        // Clean up UI
+        selectionBg.destroy();
+        title.destroy();
+        controlHint.destroy();
+        buttons.forEach(btn => btn.container.destroy());
+        if (this.chestUI && this.chestUI.chargeDisplay) {
+            this.chestUI.chargeDisplay.destroy();
+        }
+        
+        // Clean up charge buttons references
+        if (this.chestChargeButtons) {
+            this.chestChargeButtons = null;
+        }
+        if (this.chestSelectionRings) {
+            this.chestSelectionRings = null;
+        }
+        this.selectedChargeToReplace = -1;
+        this.chestChargeSelectMode = false;
+        
+        // Reset state and resume
+        this.chestSelectionActive = false;
+        this.chestUI = null;
+        this.physics.resume();
+    }
+    
+    handleChestSelectionController() {
+        if (!this.gamepad || !this.chestUI) return;
+        
+        // Check for left/right navigation
+        const leftPressed = this.cursors.left.isDown || (this.gamepad.leftStick.x < -0.5);
+        const rightPressed = this.cursors.right.isDown || (this.gamepad.leftStick.x > 0.5);
+        const upPressed = this.cursors.up.isDown || (this.gamepad.leftStick.y < -0.5);
+        const downPressed = this.cursors.down.isDown || (this.gamepad.leftStick.y > 0.5);
+        const confirmPressed = this.spaceKey.isDown || (this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed);
+        const switchModePressed = this.gamepad.buttons[2] && this.gamepad.buttons[2].pressed; // Y button
+        
+        // Initialize previous states if not set
+        if (!this.prevChestLeftPressed) this.prevChestLeftPressed = false;
+        if (!this.prevChestRightPressed) this.prevChestRightPressed = false;
+        if (!this.prevChestUpPressed) this.prevChestUpPressed = false;
+        if (!this.prevChestDownPressed) this.prevChestDownPressed = false;
+        if (!this.prevChestConfirmPressed) this.prevChestConfirmPressed = false;
+        if (!this.prevChestSwitchPressed) this.prevChestSwitchPressed = false;
+        
+        // Handle main menu selection for new chest system
+        if (this.chestUI.mainMenu) {
+            // Navigate left
+            if (leftPressed && !this.prevChestLeftPressed) {
+                if (this.chestCursorIndex > 0) {
+                    // Update border colors
+                    this.chestUI.buttons[this.chestCursorIndex].bg.setStrokeStyle(3, 0xffffff);
+                    this.chestCursorIndex--;
+                    this.chestUI.buttons[this.chestCursorIndex].bg.setStrokeStyle(3, 0xffff00);
+                }
+            }
+            
+            // Navigate right
+            if (rightPressed && !this.prevChestRightPressed) {
+                if (this.chestCursorIndex < 2) {
+                    // Update border colors
+                    this.chestUI.buttons[this.chestCursorIndex].bg.setStrokeStyle(3, 0xffffff);
+                    this.chestCursorIndex++;
+                    this.chestUI.buttons[this.chestCursorIndex].bg.setStrokeStyle(3, 0xffff00);
+                }
+            }
+            
+            // Confirm selection
+            if (confirmPressed && !this.prevChestConfirmPressed) {
+                const selectedReward = this.chestUI.buttons[this.chestCursorIndex];
+                if (selectedReward && selectedReward.type) {
+                    this.selectChestReward(selectedReward.type, this.chestUI.chest);
+                }
+            }
+        } else if (this.chestUI.chargesFull && switchModePressed && !this.prevChestSwitchPressed) {
+            // Handle element selection sub-menu mode switching
+            this.chestChargeSelectMode = !this.chestChargeSelectMode;
+            // Update hint text
+            if (this.chestChargeSelectMode) {
+                this.chestUI.controlHint.setText('Select a charge to replace with UP/DOWN, press Y to return');
+            } else {
+                this.chestUI.controlHint.setText('Use LEFT/RIGHT to select element, Y to select charge to replace');
+            }
+        }
+        
+        if (this.chestChargeSelectMode && this.chestUI.chargesFull) {
+            // Charge selection mode
+            if (upPressed && !this.prevChestUpPressed) {
+                if (this.selectedChargeToReplace > 0) {
+                    // Clear previous selection
+                    if (this.chestChargeButtons) {
+                        this.chestChargeButtons[this.selectedChargeToReplace].setScale(0.15);
+                        this.chestChargeButtons[this.selectedChargeToReplace].clearTint();
+                        if (this.chestSelectionRings && this.chestSelectionRings[this.selectedChargeToReplace]) {
+                            this.chestSelectionRings[this.selectedChargeToReplace].setVisible(false);
+                        }
+                    }
+                    this.selectedChargeToReplace--;
+                    // Highlight new selection
+                    if (this.chestChargeButtons) {
+                        this.chestChargeButtons[this.selectedChargeToReplace].setScale(0.2);
+                        this.chestChargeButtons[this.selectedChargeToReplace].setTint(0xff0000);
+                        if (this.chestSelectionRings && this.chestSelectionRings[this.selectedChargeToReplace]) {
+                            this.chestSelectionRings[this.selectedChargeToReplace].setVisible(true);
+                        }
+                    }
+                }
+            }
+            
+            if (downPressed && !this.prevChestDownPressed) {
+                if (this.selectedChargeToReplace < this.charges.length - 1) {
+                    // Clear previous selection
+                    if (this.chestChargeButtons && this.selectedChargeToReplace >= 0) {
+                        this.chestChargeButtons[this.selectedChargeToReplace].setScale(0.15);
+                        this.chestChargeButtons[this.selectedChargeToReplace].clearTint();
+                        if (this.chestSelectionRings && this.chestSelectionRings[this.selectedChargeToReplace]) {
+                            this.chestSelectionRings[this.selectedChargeToReplace].setVisible(false);
+                        }
+                    }
+                    this.selectedChargeToReplace++;
+                    // Highlight new selection
+                    if (this.chestChargeButtons) {
+                        this.chestChargeButtons[this.selectedChargeToReplace].setScale(0.2);
+                        this.chestChargeButtons[this.selectedChargeToReplace].setTint(0xff0000);
+                        if (this.chestSelectionRings && this.chestSelectionRings[this.selectedChargeToReplace]) {
+                            this.chestSelectionRings[this.selectedChargeToReplace].setVisible(true);
+                        }
+                    }
+                }
+            }
+        } else {
+            // Element selection mode
+            // Navigate left
+            if (leftPressed && !this.prevChestLeftPressed) {
+                if (this.chestCursorIndex > 0) {
+                    // Update border colors
+                    this.chestUI.buttons[this.chestCursorIndex].bg.setStrokeStyle(3, 0xffffff);
+                    this.chestCursorIndex--;
+                    this.chestUI.buttons[this.chestCursorIndex].bg.setStrokeStyle(3, 0xffff00);
+                }
+            }
+            
+            // Navigate right
+            if (rightPressed && !this.prevChestRightPressed) {
+                if (this.chestCursorIndex < 2) {
+                    // Update border colors
+                    this.chestUI.buttons[this.chestCursorIndex].bg.setStrokeStyle(3, 0xffffff);
+                    this.chestCursorIndex++;
+                    this.chestUI.buttons[this.chestCursorIndex].bg.setStrokeStyle(3, 0xffff00);
+                }
+            }
+        }
+        
+        // Confirm selection for element sub-menu
+        if (!this.chestUI.mainMenu && confirmPressed && !this.prevChestConfirmPressed) {
+            if (this.chestUI.choices) {
+                const selectedElement = this.chestUI.choices[this.chestCursorIndex];
+                const config = this.elementConfig[selectedElement];
+                this.selectChestElement(
+                    selectedElement, 
+                    config,
+                    this.chestUI.bg,
+                    this.chestUI.title,
+                    this.chestUI.controlHint,
+                    this.chestUI.buttons
+                );
+            }
+        }
+        
+        // Store previous states
+        this.prevChestLeftPressed = leftPressed;
+        this.prevChestRightPressed = rightPressed;
+        this.prevChestUpPressed = upPressed;
+        this.prevChestDownPressed = downPressed;
+        this.prevChestConfirmPressed = confirmPressed;
+        this.prevChestSwitchPressed = switchModePressed;
+    }
+    
+    gameWon() {
+        // Stop the game
+        this.physics.pause();
+        this.time.removeAllEvents();
+        this.tweens.killAll();
+        
+        // Victory effect
+        const victoryText = this.add.text(400, 200, 'VICTORY!', {
+            fontSize: '72px',
+            color: '#ffd700',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 6
+        });
+        victoryText.setOrigin(0.5);
+        victoryText.setScrollFactor(0);
+        victoryText.setDepth(300);
+        
+        this.tweens.add({
+            targets: victoryText,
+            scale: { from: 0, to: 1 },
+            duration: 1000,
+            ease: 'Bounce.easeOut',
+            onComplete: () => {
+                this.time.delayedCall(2000, () => {
+                    this.scene.start('GameOverScene', {
+                        survivalTime: this.survivalTime,
+                        enemiesKilled: this.enemiesKilled,
+                        itemsCollected: this.itemsCollected,
+                        won: true
+                    });
+                });
+            }
         });
     }
 }
