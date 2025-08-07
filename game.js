@@ -1,10 +1,157 @@
-class TitleScene extends Phaser.Scene {
+class LoadingScene extends Phaser.Scene {
     constructor() {
-        super({ key: 'TitleScene' });
+        super({ key: 'LoadingScene' });
     }
 
     preload() {
+        // Load the loading screen image
+        this.load.image('loading-bg', 'loading.png');
+
+        // Load all game assets here
         this.load.image('title-bg', 'magustitle.png');
+
+        // Load wizard sprites
+        this.load.spritesheet('wizard-idle', 'wizmove/newiz/wizard idle.png', {
+            frameWidth: 80,
+            frameHeight: 80
+        });
+        this.load.spritesheet('wizard-fly', 'wizmove/newiz/wizard fly forward.png', {
+            frameWidth: 80,
+            frameHeight: 80
+        });
+        this.load.spritesheet('wizard-death', 'wizmove/newiz/wizard death.png', {
+            frameWidth: 80,
+            frameHeight: 80
+        });
+
+        // Load enemy sprites
+        this.load.spritesheet('enemy-walk', 'tree/tronchungo3/walking-sheet.png', {
+            frameWidth: 48,
+            frameHeight: 60
+        });
+
+        // Load tiles and environment
+        this.load.image('dirt-tiles', 'TopDownFantasy_Forest_v1/TopDownFantasy-Forest/Tiles/dirt.png');
+        this.load.image('tree', 'foliage.png');
+
+        // Load element symbols sprite sheets
+        this.load.spritesheet('element-symbols', 'elements.png', {
+            frameWidth: 273,
+            frameHeight: 273
+        });
+        this.load.spritesheet('element-symbols2', 'elements2.PNG', {
+            frameWidth: 341,
+            frameHeight: 341
+        });
+        this.load.spritesheet('element-symbols3', 'elements3.PNG', {
+            frameWidth: 341,
+            frameHeight: 341
+        });
+
+        // Load slime sprites
+        for (let i = 0; i < 4; i++) {
+            this.load.image(`slime-idle-${i}`, `Slime/Individual Sprites/slime-idle-${i}.png`);
+            this.load.image(`slime-die-${i}`, `Slime/Individual Sprites/slime-die-${i}.png`);
+        }
+
+        // Load golem sprites - Orange
+        this.load.spritesheet('golem-orange-walk', 'Golem_1/Orange/No_Swoosh_VFX/Golem_1_walk.png', {
+            frameWidth: 90,
+            frameHeight: 64
+        });
+        this.load.spritesheet('golem-orange-hurt', 'Golem_1/Orange/No_Swoosh_VFX/Golem_1_hurt.png', {
+            frameWidth: 90,
+            frameHeight: 64
+        });
+        this.load.spritesheet('golem-orange-die', 'Golem_1/Orange/No_Swoosh_VFX/Golem_1_die.png', {
+            frameWidth: 90,
+            frameHeight: 64
+        });
+
+        // Load golem sprites - Blue
+        this.load.spritesheet('golem-blue-walk', 'Golem_1/Blue/No_Swoosh_VFX/Golem_1_walk.png', {
+            frameWidth: 90,
+            frameHeight: 64
+        });
+        this.load.spritesheet('golem-blue-hurt', 'Golem_1/Blue/No_Swoosh_VFX/Golem_1_hurt.png', {
+            frameWidth: 90,
+            frameHeight: 64
+        });
+        this.load.spritesheet('golem-blue-die', 'Golem_1/Blue/No_Swoosh_VFX/Golem_1_die.png', {
+            frameWidth: 90,
+            frameHeight: 64
+        });
+
+        // Load sorcerer enemy sprites
+        for (let i = 0; i < 10; i++) {
+            this.load.image(`sorcerer-attack-${i}`, `newenemies/sorcerer villain/sorcerer attack_Animation 1_${i}.png`);
+        }
+
+        // Load spell effect sprites
+        this.load.spritesheet('fire-spell', 'spells/fire1.png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+
+        // Load bat enemy sprite
+        this.load.spritesheet('bat-fly', 'bateye/Flight.png', {
+            frameWidth: 150,
+            frameHeight: 150
+        });
+
+        // Load mushroom enemy sprite
+        this.load.spritesheet('mushroom-run', 'mushroom/Run.png', {
+            frameWidth: 150, // 1200 / 8 frames
+            frameHeight: 150
+        });
+
+        // Load fire worm enemy sprite
+        this.load.spritesheet('fireworm-walk', 'fireworm/Walk.png', {
+            frameWidth: 90, // 810 / 9 frames
+            frameHeight: 90
+        });
+    }
+
+    create() {
+        // Set black background
+        this.cameras.main.setBackgroundColor('#000000');
+
+        // Add loading background image
+        const loadingBg = this.add.image(400, 300, 'loading-bg');
+
+        // Scale to fit
+        const scaleX = 800 / loadingBg.width;
+        const scaleY = 600 / loadingBg.height;
+        const scale = Math.min(scaleX, scaleY) * 0.8; // 80% of screen size
+        loadingBg.setScale(scale);
+
+        // Add loading text
+        const loadingText = this.add.text(400, 500, 'Loading...', {
+            fontSize: '32px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+
+        // Fade in animation
+        this.cameras.main.fadeIn(500);
+
+        // Wait at least 1 second before proceeding
+        this.time.delayedCall(1000, () => {
+            this.scene.start('TitleScene');
+        });
+    }
+}
+
+class TitleScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'TitleScene' });
+        this.debugEnabled = localStorage.getItem('debugMode') === 'true';
+    }
+
+    preload() {
+        // Assets are already loaded in LoadingScene
     }
 
     create() {
@@ -44,6 +191,80 @@ class TitleScene extends Phaser.Scene {
             repeat: -1
         });
 
+        // Debug mode checkbox
+        const debugCheckboxBg = this.add.rectangle(635, 550, 20, 20, 0xffffff, 0.8);
+        debugCheckboxBg.setStrokeStyle(2, 0xffffff);
+
+        // Checkbox checkmark (visible when debug is enabled)
+        this.debugCheckmark = this.add.text(635, 550, '✓', {
+            fontSize: '16px',
+            color: '#00ff00',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.debugCheckmark.setVisible(this.debugEnabled);
+
+        const debugLabel = this.add.text(660, 550, 'Debug Mode', {
+            fontSize: '16px',
+            color: '#ffffff'
+        }).setOrigin(0, 0.5);
+
+        // Make checkbox interactive
+        debugCheckboxBg.setInteractive({ useHandCursor: true });
+        debugCheckboxBg.on('pointerdown', () => {
+            this.debugEnabled = !this.debugEnabled;
+            this.debugCheckmark.setVisible(this.debugEnabled);
+            localStorage.setItem('debugMode', this.debugEnabled.toString());
+
+            // Update the game physics debug setting
+            if (this.game.config.physics.arcade) {
+                this.game.config.physics.arcade.debug = this.debugEnabled;
+            }
+
+            // Update the actual physics debug renderer for all active scenes
+            this.game.scene.scenes.forEach(scene => {
+                if (scene.physics && scene.physics.world && scene.physics.world.debugGraphic) {
+                    scene.physics.world.debugGraphic.setVisible(this.debugEnabled);
+                }
+                if (scene.physics && scene.physics.world) {
+                    scene.physics.world.drawDebug = this.debugEnabled;
+                }
+            });
+
+            // Toggle debug directional line in GameScene
+            const gameScene = this.scene.get('GameScene');
+            if (gameScene && gameScene.debugDirectionLine) {
+                gameScene.debugDirectionLine.setVisible(this.debugEnabled);
+            }
+        });
+
+        // Keyboard shortcut for debug toggle (D key)
+        this.input.keyboard.on('keydown-D', () => {
+            this.debugEnabled = !this.debugEnabled;
+            this.debugCheckmark.setVisible(this.debugEnabled);
+            localStorage.setItem('debugMode', this.debugEnabled.toString());
+
+            // Update the game physics debug setting
+            if (this.game.config.physics.arcade) {
+                this.game.config.physics.arcade.debug = this.debugEnabled;
+            }
+
+            // Update the actual physics debug renderer for all active scenes
+            this.game.scene.scenes.forEach(scene => {
+                if (scene.physics && scene.physics.world && scene.physics.world.debugGraphic) {
+                    scene.physics.world.debugGraphic.setVisible(this.debugEnabled);
+                }
+                if (scene.physics && scene.physics.world) {
+                    scene.physics.world.drawDebug = this.debugEnabled;
+                }
+            });
+
+            // Toggle debug directional line in GameScene
+            const gameScene = this.scene.get('GameScene');
+            if (gameScene && gameScene.debugDirectionLine) {
+                gameScene.debugDirectionLine.setVisible(this.debugEnabled);
+            }
+        });
+
         this.input.keyboard.once('keydown-SPACE', () => {
             this.scene.start('GameScene');
         });
@@ -72,7 +293,7 @@ class GameOverScene extends Phaser.Scene {
 
     init(data) {
         this.survivalTime = data.survivalTime || 0;
-        this.enemiesKilled = data.enemiesKilled || { tree: 0, slime: 0, golem: 0, elite: 0 };
+        this.enemiesKilled = data.enemiesKilled || { tree: 0, slime: 0, golem: 0, elite: 0, bat: 0, sorcerer: 0, mushroom: 0, fireworm: 0 };
         this.itemsCollected = data.itemsCollected || { jewels: 0, muffins: 0, elements: 0 };
         this.won = data.won || false;
     }
@@ -230,87 +451,11 @@ class GameScene extends Phaser.Scene {
         this.chargeGroups = [];
         this.isPaused = false;
         this.pauseMenu = null;
+        this.activeFlames = []; // Track active fire spell effects
     }
 
     preload() {
-        // Load new wizard sprites with transparency
-        // Note: Grey background color is approximately #808080
-        this.load.spritesheet('wizard-idle', 'wizmove/newiz/wizard idle.png', {
-            frameWidth: 80,
-            frameHeight: 80
-        });
-        this.load.spritesheet('wizard-fly', 'wizmove/newiz/wizard fly forward.png', {
-            frameWidth: 80,
-            frameHeight: 80
-        });
-        this.load.spritesheet('wizard-death', 'wizmove/newiz/wizard death.png', {
-            frameWidth: 80,
-            frameHeight: 80
-        });
-
-        this.load.spritesheet('enemy-walk', 'tree/tronchungo3/walking-sheet.png', {
-            frameWidth: 48,
-            frameHeight: 60
-        });
-
-        this.load.image('dirt-tiles', 'TopDownFantasy_Forest_v1/TopDownFantasy-Forest/Tiles/dirt.png');
-        this.load.image('tree', 'foliage.png');
-
-        // Load element symbols sprite sheet (3x3 grid)
-        // elements.png is 819x819, so each frame is 273x273
-        this.load.spritesheet('element-symbols', 'elements.png', {
-            frameWidth: 273,  // 819/3 = 273
-            frameHeight: 273
-        });
-
-        // Load second element symbols sprite sheet  
-        // elements2.PNG is 1024x1024, so each frame is approximately 341x341
-        this.load.spritesheet('element-symbols2', 'elements2.PNG', {
-            frameWidth: 341,  // 1024/3 ≈ 341
-            frameHeight: 341
-        });
-
-        // Load third element symbols sprite sheet
-        // elements3.PNG appears to be a 3x3 grid similar to elements2
-        this.load.spritesheet('element-symbols3', 'elements3.PNG', {
-            frameWidth: 341,  // Assuming same size as elements2
-            frameHeight: 341
-        });
-
-
-        // Load slime sprites
-        for (let i = 0; i < 4; i++) {
-            this.load.image(`slime-idle-${i}`, `Slime/Individual Sprites/slime-idle-${i}.png`);
-            this.load.image(`slime-die-${i}`, `Slime/Individual Sprites/slime-die-${i}.png`);
-        }
-
-        // Load golem sprites - Orange (90x64 per frame)
-        this.load.spritesheet('golem-orange-walk', 'Golem_1/Orange/No_Swoosh_VFX/Golem_1_walk.png', {
-            frameWidth: 90,
-            frameHeight: 64
-        });
-        this.load.spritesheet('golem-orange-hurt', 'Golem_1/Orange/No_Swoosh_VFX/Golem_1_hurt.png', {
-            frameWidth: 90,
-            frameHeight: 64
-        });
-        this.load.spritesheet('golem-orange-die', 'Golem_1/Orange/No_Swoosh_VFX/Golem_1_die.png', {
-            frameWidth: 90,
-            frameHeight: 64
-        });
-
-        // Load golem sprites - Blue (90x64 per frame)
-        this.load.spritesheet('golem-blue-walk', 'Golem_1/Blue/No_Swoosh_VFX/Golem_1_walk.png', {
-            frameWidth: 90,
-            frameHeight: 64
-        });
-        this.load.spritesheet('golem-blue-hurt', 'Golem_1/Blue/No_Swoosh_VFX/Golem_1_hurt.png', {
-            frameWidth: 90,
-            frameHeight: 64
-        });
-        this.load.spritesheet('golem-blue-die', 'Golem_1/Blue/No_Swoosh_VFX/Golem_1_die.png', {
-            frameWidth: 90,
-            frameHeight: 64
-        });
+        // All assets are loaded in LoadingScene
     }
 
     create() {
@@ -318,14 +463,14 @@ class GameScene extends Phaser.Scene {
         this.playerHealth = 100;
         this.gameStarted = false; // Will be set to true after countdown
         console.log('GameScene created, gameStarted set to false');
-        this.charges = [];
+        this.charges = ['fire']; // Start with fire charge for testing
         this.orbitingOrbs = [];
         this.lastEnemySpawn = 0;
         this.survivalTime = 0;
         this.difficultyMultiplier = 1.0;
         this.spawnRateMultiplier = 1.0;
         this.lastEliteSpawn = 0; // Changed from lastMinute to track 30-second intervals
-        this.enemiesKilled = { tree: 0, slime: 0, golem: 0, elite: 0 };
+        this.enemiesKilled = { tree: 0, slime: 0, golem: 0, elite: 0, bat: 0, sorcerer: 0, mushroom: 0, fireworm: 0 };
         this.itemsCollected = { jewels: 0, muffins: 0, elements: 0 };
         this.eliteEnemies = [];
         this.chests = this.physics.add.group();
@@ -394,7 +539,7 @@ class GameScene extends Phaser.Scene {
         };
 
         // Define primary elements (can drop from enemies)
-        this.primaryElements = ['fire', 'water', 'earth', 'air', 'lightning', 'holy', 'arcane', 'rock', 'dust'];
+        this.primaryElements = ['fire', 'water', 'earth', 'air', 'lightning', 'arcane'];
 
         // Element descriptions for the discovery menu
         this.elementDescriptions = {
@@ -452,6 +597,11 @@ class GameScene extends Phaser.Scene {
         this.cameras.main.startFollow(this.wizard, true, 0.1, 0.1);
         this.cameras.main.setZoom(1);
         this.cameras.main.roundPixels = true; // Prevent sub-pixel rendering gaps
+
+        // Create debug directional line
+        this.debugDirectionLine = this.add.graphics();
+        this.debugDirectionLine.setDepth(100);
+        this.debugDirectionLine.setVisible(false); // Only visible in debug mode
         this.cameras.main.setDeadzone(50, 50); // Small deadzone for smoother following
 
         this.cursors = this.input.keyboard.createCursorKeys();
@@ -465,6 +615,7 @@ class GameScene extends Phaser.Scene {
         this.spaceKey = this.input.keyboard.addKey('SPACE');
         this.pKey = this.input.keyboard.addKey('P');
         this.tabKey = this.input.keyboard.addKey('TAB');
+        this.debugKey = this.input.keyboard.addKey('D');
 
         // Controller mapping info - create this BEFORE using it
         this.controllerInfo = this.add.text(20, 100, '', {
@@ -571,6 +722,14 @@ class GameScene extends Phaser.Scene {
             repeat: 0
         });
 
+        // Create fire spell animation
+        this.anims.create({
+            key: 'fire-spell-anim',
+            frames: this.anims.generateFrameNumbers('fire-spell', { start: 0, end: 11 }),
+            frameRate: 12,
+            repeat: -1
+        });
+
         // Create enemy walking animation
         this.anims.create({
             key: 'enemy-walking',
@@ -648,8 +807,51 @@ class GameScene extends Phaser.Scene {
             repeat: 0
         });
 
+        // Create bat enemy animation
+        this.anims.create({
+            key: 'bat-flying',
+            frames: this.anims.generateFrameNumbers('bat-fly', { start: 0, end: 7 }),
+            frameRate: 12,
+            repeat: -1
+        });
+
+        // Mushroom animation
+        this.anims.create({
+            key: 'mushroom-running',
+            frames: this.anims.generateFrameNumbers('mushroom-run', { start: 0, end: 7 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        // Fire worm animation
+        this.anims.create({
+            key: 'fireworm-walking',
+            frames: this.anims.generateFrameNumbers('fireworm-walk', { start: 0, end: 8 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        // Create sorcerer animation
+        this.anims.create({
+            key: 'sorcerer-attack',
+            frames: [
+                { key: 'sorcerer-attack-0' },
+                { key: 'sorcerer-attack-1' },
+                { key: 'sorcerer-attack-2' },
+                { key: 'sorcerer-attack-3' },
+                { key: 'sorcerer-attack-4' },
+                { key: 'sorcerer-attack-5' },
+                { key: 'sorcerer-attack-6' },
+                { key: 'sorcerer-attack-7' },
+                { key: 'sorcerer-attack-8' },
+                { key: 'sorcerer-attack-9' }
+            ],
+            frameRate: 10,
+            repeat: -1
+        });
+
         console.log('About to call startGameSequence');
-        
+
         // Start game sequence with countdown
         try {
             this.startGameSequence();
@@ -768,12 +970,12 @@ class GameScene extends Phaser.Scene {
                     console.log('Countdown finished - starting resurrection animation');
                     // Countdown finished - play death animation in reverse
                     this.countdownText.destroy();
-                    
+
                     // Play wizard death animation in reverse to show resurrection
                     const deathAnim = this.anims.get('wizard-death');
                     const totalFrames = deathAnim.frames.length;
                     let currentFrame = totalFrames - 1;
-                    
+
                     const reverseTimer = this.time.addEvent({
                         delay: 100, // 10 FPS reversed
                         repeat: totalFrames - 1,
@@ -916,7 +1118,7 @@ class GameScene extends Phaser.Scene {
     updateChargeUI() {
         // Clean up charge fire times array to match current charges
         this.chargeLastFireTimes = this.chargeLastFireTimes.slice(0, this.charges.length);
-        
+
         this.chargeIndicators.forEach((indicator, index) => {
             // Update visibility based on max charges
             indicator.bg.setVisible(index < this.maxCharges);
@@ -954,22 +1156,52 @@ class GameScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        this.spellList = this.add.text(0, -100, '', {
+        // Create a mask for the scrollable area
+        const maskShape = this.add.graphics();
+        maskShape.fillStyle(0xffffff);
+        maskShape.fillRect(100, 130, 600, 280); // Scrollable area bounds
+        const mask = maskShape.createGeometryMask();
+
+        // Create scrollable container for spell list
+        this.spellListContainer = this.add.container(0, -100);
+        this.spellListContainer.setMask(mask);
+
+        this.spellList = this.add.text(0, 0, '', {
             fontSize: '18px',
             color: '#ffffff',
             align: 'center',
             lineSpacing: 10
         }).setOrigin(0.5, 0);
 
-        const closeText = this.add.text(0, 170, 'Press ESC to close', {
+        this.spellListContainer.add(this.spellList);
+
+        // Scroll position tracking
+        this.spellScrollY = 0;
+        this.spellMaxScrollY = 0;
+
+        const closeText = this.add.text(0, 170, 'Press ESC to close (UP/DOWN to scroll)', {
             fontSize: '14px',
             color: '#aaaaaa'
         }).setOrigin(0.5);
 
-        this.spellbookUI.add([background, title, this.spellList, closeText]);
+        // Add close button for mouse users
+        const closeButton = this.add.text(280, -170, 'X', {
+            fontSize: '24px',
+            color: '#ff6666',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        closeButton.setInteractive({ useHandCursor: true });
+        closeButton.on('pointerover', () => closeButton.setColor('#ff9999'));
+        closeButton.on('pointerout', () => closeButton.setColor('#ff6666'));
+        closeButton.on('pointerdown', () => this.toggleSpellbook());
+
+        this.spellbookUI.add([background, title, this.spellListContainer, closeText, closeButton]);
         this.spellbookUI.setVisible(false);
         this.spellbookUI.setDepth(300);
         this.spellbookUI.setScrollFactor(0); // Fix to camera
+
+        // Hide mask shape
+        maskShape.setVisible(false);
     }
 
     createElementsMenu() {
@@ -996,7 +1228,7 @@ class GameScene extends Phaser.Scene {
 
         this.elementsListContainer.add(this.elementsListText);
 
-        const closeText = this.add.text(0, 220, 'Press TAB or SELECT to close', {
+        const closeText = this.add.text(0, 220, 'Press TAB or SELECT to close (Scroll with mouse wheel)', {
             fontSize: '16px',
             color: '#aaaaaa'
         }).setOrigin(0.5);
@@ -1006,7 +1238,30 @@ class GameScene extends Phaser.Scene {
             color: '#888888'
         }).setOrigin(0.5);
 
-        this.elementsMenu.add([background, title, this.elementsListContainer, closeText, instructionText]);
+        // Add close button for mouse users
+        const closeButton = this.add.text(330, -220, 'X', {
+            fontSize: '24px',
+            color: '#ff6666',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        closeButton.setInteractive({ useHandCursor: true });
+        closeButton.on('pointerover', () => closeButton.setColor('#ff9999'));
+        closeButton.on('pointerout', () => closeButton.setColor('#ff6666'));
+        closeButton.on('pointerdown', () => this.toggleElementsMenu());
+
+        // Create mask for scrollable area
+        const maskShape = this.add.graphics();
+        maskShape.fillStyle(0xffffff);
+        maskShape.fillRect(50, 80, 700, 340); // Scrollable area bounds
+        const mask = maskShape.createGeometryMask();
+        this.elementsListContainer.setMask(mask);
+        maskShape.setVisible(false);
+
+        // Initialize scroll tracking
+        this.elementsScrollY = 0;
+        this.elementsMaxScrollY = 0;
+
+        this.elementsMenu.add([background, title, this.elementsListContainer, closeText, instructionText, closeButton]);
         this.elementsMenu.setVisible(false);
         this.elementsMenu.setDepth(300);
         this.elementsMenu.setScrollFactor(0);
@@ -1075,6 +1330,16 @@ class GameScene extends Phaser.Scene {
         }
 
         console.log('Game fully started!');
+
+        // Update charge indicators to show starting fire charge
+        if (this.charges.length > 0 && this.chargeIndicators.length > 0) {
+            const element = this.charges[0];
+            const config = this.elementConfig[element];
+            if (config) {
+                this.chargeIndicators[0].sprite.setTexture(config.sheet, config.frame);
+                this.chargeIndicators[0].sprite.setVisible(true);
+            }
+        }
     }
 
     createWizardHealthBar() {
@@ -1144,11 +1409,12 @@ class GameScene extends Phaser.Scene {
 
         // Update spawn rate over time (every minute)
         const currentMinute = Math.floor(this.survivalTime / 60000);
-        this.spawnRateMultiplier = 1 + (currentMinute * 0.5); // 50% faster each minute
-        
-        // Spawn elite enemy every 30 seconds
+        // Start slower and ramp up more gradually
+        this.spawnRateMultiplier = 1 + (currentMinute * 0.3); // 30% faster each minute instead of 50%
+
+        // Spawn elite enemy every 30 seconds, but start after 1 minute
         const current30Seconds = Math.floor(this.survivalTime / 30000);
-        if (current30Seconds > this.lastEliteSpawn && this.survivalTime > 30000) {
+        if (current30Seconds > this.lastEliteSpawn && this.survivalTime > 60000) {
             this.lastEliteSpawn = current30Seconds;
             this.spawnEliteEnemy();
         }
@@ -1185,13 +1451,16 @@ class GameScene extends Phaser.Scene {
             startPressed = this.gamepad.buttons[9].pressed;
         }
 
-        if (Phaser.Input.Keyboard.JustDown(this.pKey) ||
-            (startPressed && !this.gamepadButtonStates[9])) {
+        // Only open pause menu if no other menus are active
+        if ((Phaser.Input.Keyboard.JustDown(this.pKey) ||
+            (startPressed && !this.gamepadButtonStates[9])) &&
+            !this.spellbookOpen && !this.elementsMenuOpen && !this.chestSelectionActive && !this.fusionUI) {
             this.togglePause();
         }
 
-        // ESC key for spellbook
-        if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
+        // Only open spellbook if no other menus are active  
+        if (Phaser.Input.Keyboard.JustDown(this.escKey) &&
+            !this.isPaused && !this.elementsMenuOpen && !this.chestSelectionActive && !this.fusionUI) {
             this.toggleSpellbook();
         }
 
@@ -1201,9 +1470,45 @@ class GameScene extends Phaser.Scene {
             selectPressed = this.gamepad.buttons[8].pressed;
         }
 
-        if (Phaser.Input.Keyboard.JustDown(this.tabKey) ||
-            (selectPressed && !this.gamepadButtonStates[8])) {
+        // Only open elements menu if no other menus are active
+        if ((Phaser.Input.Keyboard.JustDown(this.tabKey) ||
+            (selectPressed && !this.gamepadButtonStates[8])) &&
+            !this.isPaused && !this.spellbookOpen && !this.chestSelectionActive && !this.fusionUI) {
             this.toggleElementsMenu();
+        }
+
+        // D key for debug mode toggle
+        if (Phaser.Input.Keyboard.JustDown(this.debugKey) &&
+            !this.isPaused && !this.spellbookOpen && !this.elementsMenuOpen && !this.chestSelectionActive && !this.fusionUI) {
+            // Toggle debug mode
+            const debugEnabled = localStorage.getItem('debugMode') === 'true';
+            const newDebugState = !debugEnabled;
+            localStorage.setItem('debugMode', newDebugState.toString());
+
+            // Update physics debug
+            if (this.physics.world) {
+                this.physics.world.drawDebug = newDebugState;
+                if (this.physics.world.debugGraphic) {
+                    this.physics.world.debugGraphic.setVisible(newDebugState);
+                }
+            }
+
+            // Show feedback
+            const debugText = this.add.text(400, 50, `Debug Mode: ${newDebugState ? 'ON' : 'OFF'}`, {
+                fontSize: '20px',
+                color: newDebugState ? '#00ff00' : '#ff0000',
+                stroke: '#000000',
+                strokeThickness: 3
+            }).setOrigin(0.5);
+            debugText.setScrollFactor(0);
+            debugText.setDepth(1000);
+
+            this.tweens.add({
+                targets: debugText,
+                alpha: 0,
+                duration: 1500,
+                onComplete: () => debugText.destroy()
+            });
         }
 
         // Update gamepad button states for next frame
@@ -1218,8 +1523,70 @@ class GameScene extends Phaser.Scene {
             this.handleFusionController();
             return;
         }
-        
-        if (this.spellbookOpen || this.elementsMenuOpen || this.playerHealth <= 0) {
+
+        // Handle spellbook scrolling
+        if (this.spellbookOpen) {
+            const scrollSpeed = 10;
+
+            // Keyboard scrolling
+            if (this.cursors.up.isDown) {
+                this.spellScrollY = Math.max(0, this.spellScrollY - scrollSpeed);
+                this.spellListContainer.y = -100 + this.spellScrollY;
+            } else if (this.cursors.down.isDown) {
+                this.spellScrollY = Math.min(this.spellMaxScrollY, this.spellScrollY + scrollSpeed);
+                this.spellListContainer.y = -100 + this.spellScrollY;
+            }
+
+            // Gamepad scrolling
+            if (this.gamepad) {
+                const leftStickY = this.gamepad.leftStick.y;
+                const dpadUp = this.gamepad.up;
+                const dpadDown = this.gamepad.down;
+
+                if (leftStickY < -0.5 || dpadUp) {
+                    this.spellScrollY = Math.max(0, this.spellScrollY - scrollSpeed);
+                    this.spellListContainer.y = -100 + this.spellScrollY;
+                } else if (leftStickY > 0.5 || dpadDown) {
+                    this.spellScrollY = Math.min(this.spellMaxScrollY, this.spellScrollY + scrollSpeed);
+                    this.spellListContainer.y = -100 + this.spellScrollY;
+                }
+            }
+
+            return;
+        }
+
+        // Handle elements menu scrolling
+        if (this.elementsMenuOpen) {
+            const scrollSpeed = 10;
+
+            // Keyboard scrolling
+            if (this.cursors.up.isDown) {
+                this.elementsScrollY = Math.max(0, this.elementsScrollY - scrollSpeed);
+                this.elementsListContainer.y = -50 + this.elementsScrollY;
+            } else if (this.cursors.down.isDown) {
+                this.elementsScrollY = Math.min(this.elementsMaxScrollY, this.elementsScrollY + scrollSpeed);
+                this.elementsListContainer.y = -50 + this.elementsScrollY;
+            }
+
+            // Gamepad scrolling
+            if (this.gamepad) {
+                const leftStickY = this.gamepad.leftStick.y;
+                const dpadUp = this.gamepad.up;
+                const dpadDown = this.gamepad.down;
+
+                if (leftStickY < -0.5 || dpadUp) {
+                    this.elementsScrollY = Math.max(0, this.elementsScrollY - scrollSpeed);
+                    this.elementsListContainer.y = -50 + this.elementsScrollY;
+                } else if (leftStickY > 0.5 || dpadDown) {
+                    this.elementsScrollY = Math.min(this.elementsMaxScrollY, this.elementsScrollY + scrollSpeed);
+                    this.elementsListContainer.y = -50 + this.elementsScrollY;
+                }
+            }
+
+            return;
+        }
+
+        if (this.playerHealth <= 0) {
             return;
         }
 
@@ -1371,6 +1738,32 @@ class GameScene extends Phaser.Scene {
 
         // Direction is preserved when not moving, no need to change it
 
+        // Update debug directional line
+        if (this.debugDirectionLine && this.debugDirectionLine.visible && this.debugDirectionLine.clear) {
+            this.debugDirectionLine.clear();
+            this.debugDirectionLine.lineStyle(2, 0xffff00, 1); // Yellow line
+
+            const directionAngles = {
+                'up': -Math.PI / 2,
+                'down': Math.PI / 2,
+                'left': Math.PI,
+                'right': 0,
+                'up-left': -3 * Math.PI / 4,
+                'up-right': -Math.PI / 4,
+                'down-left': 3 * Math.PI / 4,
+                'down-right': Math.PI / 4
+            };
+
+            const angle = directionAngles[this.wizard.lastDirection] || 0;
+            const lineLength = 100;
+            const endX = this.wizard.x + Math.cos(angle) * lineLength;
+            const endY = this.wizard.y + Math.sin(angle) * lineLength;
+
+            this.debugDirectionLine.moveTo(this.wizard.x, this.wizard.y);
+            this.debugDirectionLine.lineTo(endX, endY);
+            this.debugDirectionLine.stroke();
+        }
+
         // Play appropriate animation
         if (moving) {
             const currentAnim = this.wizard.anims.currentAnim?.key;
@@ -1405,12 +1798,12 @@ class GameScene extends Phaser.Scene {
                 const element = this.charges[i];
                 const elementConfig = this.elementConfig[element];
                 const fireRate = elementConfig.fireRate || 1000; // Default 1 second if not specified
-                
+
                 // Initialize last fire time if not set
                 if (this.chargeLastFireTimes[i] === undefined) {
                     this.chargeLastFireTimes[i] = 0;
                 }
-                
+
                 // Check if this charge is ready to fire
                 if (time > this.chargeLastFireTimes[i] + fireRate) {
                     this.fireIndividualCharge(i, element);
@@ -1425,22 +1818,22 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        // Check if any golems are currently alive
-        const golemAlive = this.enemies.children.entries.some(enemy =>
-            enemy.active && enemy.enemyType === 'golem'
+        // Check if any sorcerers are currently alive (replaced golems)
+        const sorcererAlive = this.enemies.children.entries.some(enemy =>
+            enemy.active && enemy.enemyType === 'sorcerer'
         );
 
-        // Only spawn regular enemies if no golem is alive and game has started
-        if (!golemAlive && this.gameStarted) {
+        // Only spawn regular enemies if no sorcerer is alive and game has started
+        if (!sorcererAlive && this.gameStarted) {
             // Calculate spawn delay based on difficulty
-            // Start at 6 seconds, decrease to minimum of 2 seconds at high difficulty
-            const baseSpawnDelay = 6000; // 6 seconds (slower spawn)
-            const minSpawnDelay = 1000; // 1 second minimum
+            // Start at 10 seconds for easier early game, decrease to minimum of 2 seconds
+            const baseSpawnDelay = 10000; // 10 seconds (much slower initial spawn)
+            const minSpawnDelay = 2000; // 2 second minimum
             const spawnDelay = Math.max(minSpawnDelay, baseSpawnDelay / this.spawnRateMultiplier);
 
             if (time > this.lastEnemySpawn + spawnDelay) {
-                // Spawn multiple enemies at once around the perimeter
-                const enemiesToSpawn = Math.floor(2 + Math.floor(this.spawnRateMultiplier));
+                // Spawn fewer enemies early on
+                const enemiesToSpawn = Math.floor(1 + Math.floor(this.spawnRateMultiplier * 0.5));
                 for (let i = 0; i < enemiesToSpawn; i++) {
                     this.spawnEnemy();
                 }
@@ -1448,13 +1841,16 @@ class GameScene extends Phaser.Scene {
             }
         }
 
+        // Safety check for enemies group
+        if (!this.enemies || !this.enemies.children || !this.enemies.children.entries) return;
+
         this.enemies.children.entries.forEach(enemy => {
-            if (!enemy.active || enemy.isDying) return;
+            if (!enemy || !enemy.active || enemy.isDying) return;
 
             const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
 
-            // Teleport enemy if too far from wizard (beyond 800 pixels)
-            if (distance > 800) {
+            // Teleport enemy if too far from wizard (beyond 800 pixels) - but not sorcerers
+            if (distance > 800 && enemy.enemyType !== 'sorcerer') {
                 // Teleport to outside viewport
                 const camera = this.cameras.main;
                 const viewportWidth = camera.width;
@@ -1487,8 +1883,27 @@ class GameScene extends Phaser.Scene {
                 enemy.y = Phaser.Math.Clamp(enemy.y, 50, 2110);
             }
 
+            // Handle sorcerer behavior separately
+            if (enemy.enemyType === 'sorcerer') {
+                // Sorcerers are completely stationary
+                enemy.body.setVelocity(0, 0);
+
+                // Face the wizard
+                if (this.wizard.x < enemy.x) {
+                    enemy.setFlipX(true); // Face left
+                } else {
+                    enemy.setFlipX(false); // Face right
+                }
+
+                // Fire projectiles at the wizard
+                if (!enemy.lastFireTime) enemy.lastFireTime = 0;
+                if (time > enemy.lastFireTime + enemy.fireRate) {
+                    this.fireSorcererProjectile(enemy);
+                    enemy.lastFireTime = time;
+                }
+            }
             // Only update velocity if not being knocked back, not stunned, and not blinded
-            if (Math.abs(enemy.body.velocity.x) < 100 && Math.abs(enemy.body.velocity.y) < 100 && !enemy.stunned && !enemy.blinded) {
+            else if (Math.abs(enemy.body.velocity.x) < 100 && Math.abs(enemy.body.velocity.y) < 100 && !enemy.stunned && !enemy.blinded) {
                 // Get enemy speed based on type
                 const moveSpeed = enemy.moveSpeed || (enemy.enemyType === 'tree' ? 48 : 60);
 
@@ -1532,8 +1947,8 @@ class GameScene extends Phaser.Scene {
                         }
                     }
                 }
-            } else {
-                // Gradually slow down knockback
+            } else if (enemy.enemyType !== 'sorcerer') {
+                // Gradually slow down knockback (but not for sorcerers)
                 enemy.setVelocity(
                     enemy.body.velocity.x * 0.85,
                     enemy.body.velocity.y * 0.85
@@ -1546,7 +1961,7 @@ class GameScene extends Phaser.Scene {
             if (projectile.updateParticles) {
                 projectile.updateParticles();
             }
-            
+
             // Use world bounds instead of fixed screen coordinates
             const bounds = this.physics.world.bounds;
             if (projectile.x < bounds.x - 50 ||
@@ -1556,6 +1971,15 @@ class GameScene extends Phaser.Scene {
                 projectile.destroy();
             }
         });
+
+        // Update spiral projectiles
+        if (this.spiralProjectiles) {
+            this.spiralProjectiles.forEach(projectile => {
+                if (projectile.active && projectile.update) {
+                    projectile.update(time, delta);
+                }
+            });
+        }
 
         // Update depths based on Y position
         this.wizard.setDepth(this.wizard.y / 10);
@@ -1624,6 +2048,9 @@ class GameScene extends Phaser.Scene {
                 orb.y = this.wizard.y + Math.sin(orb.currentAngle) * orb.orbitRadius;
             }
         });
+
+        // Active flames stay in their initial position and rotation
+        // No longer follow the wizard to prevent rotation abuse
 
         // Update lightning projectiles to home in on enemies
         this.projectiles.children.entries.forEach(projectile => {
@@ -1779,6 +2206,17 @@ class GameScene extends Phaser.Scene {
         }
 
         this.spellList.setText(spellText);
+
+        // Calculate max scroll based on text height
+        const textHeight = this.spellList.height;
+        const visibleHeight = 280; // Height of visible area
+        this.spellMaxScrollY = Math.max(0, textHeight - visibleHeight);
+
+        // Reset scroll position if text fits in view
+        if (this.spellMaxScrollY === 0) {
+            this.spellScrollY = 0;
+            this.spellListContainer.y = -100;
+        }
     }
 
     updateElementsMenu() {
@@ -1826,6 +2264,17 @@ class GameScene extends Phaser.Scene {
         }
 
         this.elementsListText.setText(elementsText);
+
+        // Calculate max scroll based on content height
+        const contentHeight = yOffset + 50; // Total height of all elements
+        const visibleHeight = 340; // Height of visible area
+        this.elementsMaxScrollY = Math.max(0, contentHeight - visibleHeight);
+
+        // Reset scroll position if content fits in view
+        if (this.elementsMaxScrollY === 0) {
+            this.elementsScrollY = 0;
+            this.elementsListContainer.y = -50;
+        }
     }
 
     createPauseMenu() {
@@ -2547,28 +2996,23 @@ class GameScene extends Phaser.Scene {
         confirmText.setDepth(301);
         confirmText.setScrollFactor(0);
 
-        const yesText = this.add.text(350, 320, 'Yes (A)', {
+        const yesText = this.add.text(350, 320, 'Yes (Y/Enter)', {
             fontSize: '16px',
             color: '#44ff44'
         }).setOrigin(0.5);
         yesText.setDepth(301);
         yesText.setScrollFactor(0);
+        yesText.setInteractive({ useHandCursor: true });
 
-        const noText = this.add.text(450, 320, 'No (B)', {
+        const noText = this.add.text(450, 320, 'No (N/Esc)', {
             fontSize: '16px',
             color: '#ff4444'
         }).setOrigin(0.5);
         noText.setDepth(301);
         noText.setScrollFactor(0);
+        noText.setInteractive({ useHandCursor: true });
 
-        // Store confirmation state
-        this.discardConfirmation = {
-            active: true,
-            index: index,
-            elements: [confirmBg, confirmText, yesText, noText]
-        };
-
-        // Add keyboard handlers for confirmation
+        // Define keyboard handler first so it can be referenced
         const handleKey = (event) => {
             if (!this.discardConfirmation || !this.discardConfirmation.active) return;
 
@@ -2585,6 +3029,38 @@ class GameScene extends Phaser.Scene {
                 this.discardConfirmation = null;
                 this.input.keyboard.off('keydown', handleKey);
             }
+        };
+
+        // Add mouse hover effects
+        yesText.on('pointerover', () => yesText.setScale(1.1));
+        yesText.on('pointerout', () => yesText.setScale(1));
+        noText.on('pointerover', () => noText.setScale(1.1));
+        noText.on('pointerout', () => noText.setScale(1));
+
+        // Add mouse click handlers
+        yesText.on('pointerdown', () => {
+            if (this.discardConfirmation && this.discardConfirmation.active) {
+                const idx = this.discardConfirmation.index;
+                this.discardConfirmation.elements.forEach(el => el.destroy());
+                this.discardConfirmation = null;
+                this.discardCharge(idx, true);
+                this.input.keyboard.off('keydown', handleKey);
+            }
+        });
+
+        noText.on('pointerdown', () => {
+            if (this.discardConfirmation && this.discardConfirmation.active) {
+                this.discardConfirmation.elements.forEach(el => el.destroy());
+                this.discardConfirmation = null;
+                this.input.keyboard.off('keydown', handleKey);
+            }
+        });
+
+        // Store confirmation state
+        this.discardConfirmation = {
+            active: true,
+            index: index,
+            elements: [confirmBg, confirmText, yesText, noText]
         };
 
         this.input.keyboard.on('keydown', handleKey);
@@ -2774,16 +3250,16 @@ class GameScene extends Phaser.Scene {
 
     showDiscardConfirmation(chargeIndex) {
         if (!this.pauseMenu || !this.pauseMenu.visible || chargeIndex >= this.charges.length) return;
-        
+
         const element = this.charges[chargeIndex];
         const config = this.elementConfig[element];
-        
+
         // Create confirmation dialog
         const confirmBg = this.add.rectangle(400, 300, 400, 200, 0x000000, 0.95);
         confirmBg.setStrokeStyle(3, 0xff4444);
         confirmBg.setScrollFactor(0);
         confirmBg.setDepth(400);
-        
+
         const confirmText = this.add.text(400, 250, `Discard ${config.name}?`, {
             fontSize: '24px',
             color: '#ffffff',
@@ -2792,23 +3268,84 @@ class GameScene extends Phaser.Scene {
         confirmText.setOrigin(0.5);
         confirmText.setScrollFactor(0);
         confirmText.setDepth(401);
-        
-        const yesText = this.add.text(320, 320, 'A: Yes', {
+
+        const yesText = this.add.text(320, 320, 'Yes (Y/A)', {
             fontSize: '18px',
             color: '#44ff44'
         });
         yesText.setOrigin(0.5);
         yesText.setScrollFactor(0);
         yesText.setDepth(401);
-        
-        const noText = this.add.text(480, 320, 'B: No', {
+        yesText.setInteractive({ useHandCursor: true });
+
+        const noText = this.add.text(480, 320, 'No (N/B)', {
             fontSize: '18px',
             color: '#ff4444'
         });
         noText.setOrigin(0.5);
         noText.setScrollFactor(0);
         noText.setDepth(401);
-        
+        noText.setInteractive({ useHandCursor: true });
+
+        // Define keyboard handler
+        const handleKey = (event) => {
+            if (!this.discardConfirmUI || !this.discardConfirmUI.active) return;
+
+            if (event.key === 'y' || event.key === 'Y' || event.key === 'Enter') {
+                // Confirm discard
+                const idx = this.discardConfirmUI.chargeIndex;
+                this.discardConfirmUI.bg.destroy();
+                this.discardConfirmUI.text.destroy();
+                this.discardConfirmUI.yes.destroy();
+                this.discardConfirmUI.no.destroy();
+                this.discardConfirmUI = null;
+                this.discardCharge(idx, true);
+                this.input.keyboard.off('keydown', handleKey);
+            } else if (event.key === 'n' || event.key === 'N' || event.key === 'Escape') {
+                // Cancel discard
+                this.discardConfirmUI.bg.destroy();
+                this.discardConfirmUI.text.destroy();
+                this.discardConfirmUI.yes.destroy();
+                this.discardConfirmUI.no.destroy();
+                this.discardConfirmUI = null;
+                this.input.keyboard.off('keydown', handleKey);
+            }
+        };
+
+        // Add mouse hover effects
+        yesText.on('pointerover', () => yesText.setScale(1.1));
+        yesText.on('pointerout', () => yesText.setScale(1));
+        noText.on('pointerover', () => noText.setScale(1.1));
+        noText.on('pointerout', () => noText.setScale(1));
+
+        // Add mouse click handlers
+        yesText.on('pointerdown', () => {
+            if (this.discardConfirmUI && this.discardConfirmUI.active) {
+                const idx = this.discardConfirmUI.chargeIndex;
+                this.discardConfirmUI.bg.destroy();
+                this.discardConfirmUI.text.destroy();
+                this.discardConfirmUI.yes.destroy();
+                this.discardConfirmUI.no.destroy();
+                this.discardConfirmUI = null;
+                this.discardCharge(idx, true);
+                this.input.keyboard.off('keydown', handleKey);
+            }
+        });
+
+        noText.on('pointerdown', () => {
+            if (this.discardConfirmUI && this.discardConfirmUI.active) {
+                this.discardConfirmUI.bg.destroy();
+                this.discardConfirmUI.text.destroy();
+                this.discardConfirmUI.yes.destroy();
+                this.discardConfirmUI.no.destroy();
+                this.discardConfirmUI = null;
+                this.input.keyboard.off('keydown', handleKey);
+            }
+        });
+
+        // Add keyboard listener
+        this.input.keyboard.on('keydown', handleKey);
+
         // Store confirmation UI
         this.discardConfirmUI = {
             bg: confirmBg,
@@ -2829,6 +3366,19 @@ class GameScene extends Phaser.Scene {
             // Pause physics and all timers
             this.physics.pause();
             this.time.timeScale = 0;
+
+            // Add mouse wheel scrolling
+            if (!this.spellbookWheelHandler) {
+                this.spellbookWheelHandler = (event) => {
+                    if (this.spellbookOpen) {
+                        const scrollAmount = event.deltaY > 0 ? 30 : -30;
+                        this.spellScrollY = Math.max(0, Math.min(this.spellMaxScrollY, this.spellScrollY + scrollAmount));
+                        this.spellListContainer.y = -100 + this.spellScrollY;
+                        event.preventDefault();
+                    }
+                };
+                this.input.manager.canvas.addEventListener('wheel', this.spellbookWheelHandler);
+            }
         } else {
             // Resume physics and timers
             this.physics.resume();
@@ -2845,6 +3395,19 @@ class GameScene extends Phaser.Scene {
             this.physics.pause();
             this.time.timeScale = 0;
             this.updateElementsMenu();
+
+            // Add mouse wheel scrolling
+            if (!this.elementsWheelHandler) {
+                this.elementsWheelHandler = (event) => {
+                    if (this.elementsMenuOpen) {
+                        const scrollAmount = event.deltaY > 0 ? 30 : -30;
+                        this.elementsScrollY = Math.max(0, Math.min(this.elementsMaxScrollY, this.elementsScrollY + scrollAmount));
+                        this.elementsListContainer.y = -50 + this.elementsScrollY;
+                        event.preventDefault();
+                    }
+                };
+                this.input.manager.canvas.addEventListener('wheel', this.elementsWheelHandler);
+            }
         } else {
             // Resume game and timers when menu is closed
             this.physics.resume();
@@ -2905,7 +3468,7 @@ class GameScene extends Phaser.Scene {
                 enemy.destroy();
             });
         } else if (enemy.isElite) {
-            // Elite enemy death - drop chest
+            // Elite enemy death - no chest drop
             enemy.setVelocity(0, 0);
             this.tweens.add({
                 targets: enemy,
@@ -2913,8 +3476,27 @@ class GameScene extends Phaser.Scene {
                 alpha: 0,
                 duration: 500,
                 onComplete: () => {
-                    // Drop chest
-                    this.dropChest(enemyX, enemyY);
+                    // Drop regular items instead of chest
+                    // Drop 3-5 jewels
+                    for (let i = 0; i < 3 + Math.floor(Math.random() * 3); i++) {
+                        const offsetX = (Math.random() - 0.5) * 40;
+                        const offsetY = (Math.random() - 0.5) * 40;
+                        this.dropJewel(enemyX + offsetX, enemyY + offsetY);
+                    }
+
+                    // Drop 1-2 random elements
+                    for (let i = 0; i < 1 + Math.floor(Math.random() * 2); i++) {
+                        const element = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
+                        const offsetX = (Math.random() - 0.5) * 30;
+                        const offsetY = (Math.random() - 0.5) * 30;
+                        this.dropElementOrb(enemyX + offsetX, enemyY + offsetY, element);
+                    }
+
+                    // 30% chance to drop muffin
+                    if (Math.random() < 0.3) {
+                        this.dropMuffin(enemyX, enemyY);
+                    }
+
                     this.enemiesKilled.elite++;
                     enemy.destroy();
                 }
@@ -2959,6 +3541,47 @@ class GameScene extends Phaser.Scene {
 
                 this.enemiesKilled.golem++;
                 enemy.destroy();
+            });
+        } else if (enemy.enemyType === 'sorcerer') {
+            // Mark as dying to prevent further updates
+            enemy.isDying = true;
+            enemy.setVelocity(0, 0);
+
+            // Death effect - fade out with purple flash
+            this.tweens.add({
+                targets: enemy,
+                alpha: 0,
+                scale: 1.5,
+                tint: 0x9933ff,
+                duration: 500,
+                onComplete: () => {
+                    if (enemy.isLevelUpSorcerer) {
+                        // Level-up sorcerers drop charge expansion
+                        this.dropChargeExpansion(enemyX, enemyY);
+
+                        // Also drop some jewels
+                        for (let i = 0; i < 3; i++) {
+                            const offsetX = (Math.random() - 0.5) * 40;
+                            const offsetY = (Math.random() - 0.5) * 40;
+                            this.dropJewel(enemyX + offsetX, enemyY + offsetY);
+                        }
+                    }
+
+                    // Always drop 1 random element
+                    const element = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
+                    this.dropElementOrb(enemyX, enemyY, element);
+
+                    // Drop 2-3 jewels
+                    for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) {
+                        const offsetX = (Math.random() - 0.5) * 30;
+                        const offsetY = (Math.random() - 0.5) * 30;
+                        this.dropJewel(enemyX + offsetX, enemyY + offsetY);
+                    }
+
+                    if (!this.enemiesKilled.sorcerer) this.enemiesKilled.sorcerer = 0;
+                    this.enemiesKilled.sorcerer++;
+                    enemy.destroy();
+                }
             });
         } else {
             // Original tree enemy death animation - spin and fade
@@ -3013,7 +3636,7 @@ class GameScene extends Phaser.Scene {
     fireEnhancedProjectile(element) {
         const config = this.elementConfig[element];
         if (!config) return;
-        
+
         // Create texture for this element if it doesn't exist
         const textureName = `${element}-proj`;
         if (!this.textures.exists(textureName)) {
@@ -3023,19 +3646,19 @@ class GameScene extends Phaser.Scene {
             graphics.generateTexture(textureName, 10, 10);
             graphics.destroy();
         }
-        
+
         const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, textureName);
         projectile.element = element;
         projectile.damage = 1.5; // Enhanced damage for non-primary elements
         projectile.setDepth(5);
-        
+
         // Random direction
         const angle = Math.random() * Math.PI * 2;
         const speed = 280;
         projectile.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
-        
+
         this.projectiles.add(projectile);
-        
+
         // Add particle trail
         const particles = this.add.particles(projectile.x, projectile.y, textureName, {
             scale: { start: 0.5, end: 0 },
@@ -3045,9 +3668,9 @@ class GameScene extends Phaser.Scene {
             alpha: { start: 0.8, end: 0 },
             tint: config.color
         });
-        
+
         projectile.particles = particles;
-        
+
         // Update particle position
         projectile.updateParticles = () => {
             if (projectile.particles) {
@@ -3055,7 +3678,7 @@ class GameScene extends Phaser.Scene {
                 projectile.particles.y = projectile.y;
             }
         };
-        
+
         // Clean up particles when projectile is destroyed
         projectile.on('destroy', () => {
             if (projectile.particles) {
@@ -3103,6 +3726,150 @@ class GameScene extends Phaser.Scene {
             projectile.setVelocity(fallbackDir.x, fallbackDir.y);
         } else {
             projectile.setVelocity(dir.x, dir.y);
+        }
+    }
+
+    fireSorcererProjectile(sorcerer) {
+        // Safety check - ensure sorcerer is valid and active
+        if (!sorcerer || !sorcerer.active || sorcerer.isDying) return;
+
+        // Create dark purple projectile texture if not exists (larger size)
+        if (!this.textures.exists('sorcerer-proj')) {
+            const graphics = this.add.graphics();
+            graphics.fillStyle(0x6633ff, 1);
+            graphics.fillCircle(12, 12, 12); // Doubled size
+            graphics.fillStyle(0x9966ff, 1);
+            graphics.fillCircle(12, 12, 6); // Doubled size
+            graphics.generateTexture('sorcerer-proj', 24, 24); // Doubled size
+            graphics.destroy();
+        }
+
+        // Calculate base angle to wizard
+        const baseAngle = Phaser.Math.Angle.Between(sorcerer.x, sorcerer.y, this.wizard.x, this.wizard.y);
+        const speed = 20; // 50% slower than before (was 40)
+
+        // Create two projectiles with slight angle offset
+        for (let i = 0; i < 2; i++) {
+            const projectile = this.physics.add.sprite(sorcerer.x, sorcerer.y - 10, 'sorcerer-proj');
+            projectile.isEnemyProjectile = true;
+            projectile.damage = 10;
+            projectile.body.setCollideWorldBounds(false);
+            projectile.setDepth(5);
+            projectile.setScale(1); // Keep normal scale since texture is already larger
+
+            // Store spiral data
+            projectile.spiralAngle = i * Math.PI; // Start 180 degrees apart
+            projectile.spiralRadius = 0;
+            projectile.baseAngle = baseAngle;
+            projectile.centerX = sorcerer.x;
+            projectile.centerY = sorcerer.y - 10;
+            projectile.spiralSpeed = 0.02; // Much smaller spiral expansion
+
+            // Initial velocity
+            projectile.setVelocity(
+                Math.cos(baseAngle) * speed,
+                Math.sin(baseAngle) * speed
+            );
+
+            // Add purple glow effect
+            this.tweens.add({
+                targets: projectile,
+                scale: { from: 0.8, to: 1.2 },
+                alpha: { from: 1, to: 0.6 },
+                duration: 400,
+                yoyo: true,
+                repeat: -1
+            });
+
+            // Update function for spiral movement
+            projectile.update = (time, delta) => {
+                if (!projectile.active) return;
+
+                // Increase spiral angle and radius
+                projectile.spiralAngle += 0.08; // Slower rotation for tighter spiral
+                projectile.spiralRadius += projectile.spiralSpeed * delta;
+
+                // Calculate spiral offset
+                const spiralX = Math.cos(projectile.spiralAngle) * projectile.spiralRadius;
+                const spiralY = Math.sin(projectile.spiralAngle) * projectile.spiralRadius;
+
+                // Update center position based on base velocity
+                projectile.centerX += Math.cos(projectile.baseAngle) * speed * delta / 1000;
+                projectile.centerY += Math.sin(projectile.baseAngle) * speed * delta / 1000;
+
+                // Set actual position
+                projectile.x = projectile.centerX + spiralX;
+                projectile.y = projectile.centerY + spiralY;
+
+                // Rotate projectile
+                projectile.rotation += 0.2;
+            };
+
+            // Add to projectiles group for collision detection
+            if (!this.enemyProjectiles || !this.enemyProjectiles.children) {
+                this.enemyProjectiles = this.physics.add.group();
+
+                // Set up collision with wizard
+                this.physics.add.overlap(this.wizard, this.enemyProjectiles, (wizard, projectile) => {
+                    if (!this.invulnerable) {
+                        this.playerHealth -= projectile.damage;
+                        this.updateHealthBar();
+                        this.updateWizardHealthBar();
+
+                        // Flash red when hit
+                        this.wizard.setTint(0xff0000);
+                        this.time.delayedCall(100, () => {
+                            this.wizard.clearTint();
+                        });
+
+                        // Brief invulnerability
+                        this.invulnerable = true;
+                        this.time.delayedCall(500, () => {
+                            this.invulnerable = false;
+                        });
+
+                        if (this.playerHealth <= 0) {
+                            // Play death animation
+                            this.wizard.play('wizard-death');
+                            this.wizard.setVelocity(0, 0); // Stop movement
+
+                            // Wait for death animation to complete
+                            this.wizard.once('animationcomplete', () => {
+                                // Clear any pending timers before changing scene
+                                this.time.removeAllEvents();
+                                this.tweens.killAll();
+                                this.scene.start('GameOverScene', {
+                                    survivalTime: this.survivalTime,
+                                    enemiesKilled: this.enemiesKilled,
+                                    itemsCollected: this.itemsCollected,
+                                    won: false
+                                });
+                            });
+                        }
+                    }
+
+                    projectile.destroy();
+                });
+            }
+
+            this.enemyProjectiles.add(projectile);
+
+            // Store in a list for updating
+            if (!this.spiralProjectiles) {
+                this.spiralProjectiles = [];
+            }
+            this.spiralProjectiles.push(projectile);
+
+            // Destroy projectile after 6 seconds
+            this.time.delayedCall(6000, () => {
+                if (projectile.active) {
+                    const index = this.spiralProjectiles.indexOf(projectile);
+                    if (index > -1) {
+                        this.spiralProjectiles.splice(index, 1);
+                    }
+                    projectile.destroy();
+                }
+            });
         }
     }
 
@@ -3220,88 +3987,138 @@ class GameScene extends Phaser.Scene {
         x = Phaser.Math.Clamp(x, 50, 3950);  // Updated for wider world
         y = Phaser.Math.Clamp(y, 50, 2110);  // Updated for taller world (2160 - 50)
 
-        // Randomly choose enemy type - weighted by difficulty
-        let enemyType;
+        // Randomly choose between enemy types
         const rand = Math.random();
-
-        // No more golems in regular spawning - only trees and slimes
-        if (rand < 0.5) {
-            enemyType = 'tree';
+        let enemyType;
+        if (rand < 0.25) {
+            enemyType = 'tree'; // 25%
+        } else if (rand < 0.5) {
+            enemyType = 'bat'; // 25%
+        } else if (rand < 0.75) {
+            enemyType = 'mushroom'; // 25%
         } else {
-            enemyType = 'slime';
+            enemyType = 'fireworm'; // 25%
         }
 
         if (enemyType === 'tree') {
             const enemy = this.physics.add.sprite(x, y, 'enemy-walk', 0);
-
             const scaleFactor = 1.2;
             enemy.setScale(scaleFactor);
-            enemy.health = 4;  // Fixed health
+            enemy.health = 6;  // Increased by 50% from 4
             enemy.maxHealth = enemy.health;
             enemy.enemyType = 'tree';
+            enemy.moveSpeed = 36; // Reduced by 25% from 48
             enemy.play('enemy-walking');
-            enemy.body.setSize(20, 30);
-            enemy.body.setOffset(5, 15); // Center narrower hitbox and move down
-
+            enemy.body.setSize(26, 39); // Widened by 30%
+            enemy.body.setOffset(3, 12); // Adjusted offset for wider hitbox
             this.enemies.add(enemy);
-        } else if (enemyType === 'slime') {
-            // Spawn slime enemy
-            const slime = this.physics.add.sprite(x, y, 'slime-idle-0');
+        } else {
+            // Spawn 2 bat enemies at once
+            for (let i = 0; i < 2; i++) {
+                // Slightly offset each bat spawn position
+                const offsetX = (Math.random() - 0.5) * 100;
+                const offsetY = (Math.random() - 0.5) * 100;
+                const batX = Phaser.Math.Clamp(x + offsetX, 50, 3950);
+                const batY = Phaser.Math.Clamp(y + offsetY, 50, 2110);
 
-            const scaleFactor = 1.5; // Slimes are a bit bigger
-            slime.setScale(scaleFactor);
-            slime.health = 3; // Fixed health
-            slime.maxHealth = slime.health;
-            slime.enemyType = 'slime';
-            slime.moveSpeed = 32; // Slimes are 20% slower (was 40, now 32)
-            slime.generation = 0; // Track slime generation (0 = original, 1 = first split, etc.)
-            slime.play('slime-idle');
-            slime.body.setSize(32, 24);
-            slime.body.setOffset(0, 8); // Adjust hitbox for slime shape
-
-            this.enemies.add(slime);
+                const bat = this.physics.add.sprite(batX, batY, 'bat-fly', 0);
+                bat.setScale(0.8); // 2x larger than 0.4
+                bat.health = 1; // Bats have only 1 health
+                bat.maxHealth = bat.health;
+                bat.enemyType = 'bat';
+                bat.play('bat-flying');
+                bat.body.setSize(60, 40);
+                bat.body.setOffset(45, 55);
+                bat.moveSpeed = 80; // Bats are faster than trees
+                bat.isFlying = true; // Bats can fly over obstacles
+                this.enemies.add(bat);
+            }
+        }
+        if (enemyType === 'mushroom') {
+            const mushroom = this.physics.add.sprite(x, y, 'mushroom-run', 0);
+            mushroom.setScale(0.7); // Scale to appropriate size
+            mushroom.health = 3; // Medium health
+            mushroom.maxHealth = mushroom.health;
+            mushroom.enemyType = 'mushroom';
+            mushroom.moveSpeed = 50; // Medium speed
+            mushroom.play('mushroom-running');
+            mushroom.body.setSize(80, 100);
+            mushroom.body.setOffset(35, 25);
+            this.enemies.add(mushroom);
+        } else if (enemyType === 'fireworm') {
+            const fireworm = this.physics.add.sprite(x, y, 'fireworm-walk', 0);
+            fireworm.setScale(1.2); // Scale up slightly
+            fireworm.health = 2; // Low-medium health
+            fireworm.maxHealth = fireworm.health;
+            fireworm.enemyType = 'fireworm';
+            fireworm.moveSpeed = 65; // Fast
+            fireworm.play('fireworm-walking');
+            fireworm.body.setSize(70, 50);
+            fireworm.body.setOffset(10, 20);
+            fireworm.element = 'fire'; // Fire worms have fire element
+            this.enemies.add(fireworm);
         }
     }
 
     spawnLevelUpGolem() {
-        // Spawn a golem near the wizard
+        // Now spawns a Sorcerer instead of golem
         const angle = Math.random() * Math.PI * 2;
-        const distance = 200; // Fixed distance from wizard
+        const distance = 250; // Slightly further than golem
 
         const x = this.wizard.x + Math.cos(angle) * distance;
         const y = this.wizard.y + Math.sin(angle) * distance;
 
         // Clamp to world bounds
         const spawnX = Phaser.Math.Clamp(x, 100, 3900);
-        const spawnY = Phaser.Math.Clamp(y, 100, 2060);  // Updated for taller world
+        const spawnY = Phaser.Math.Clamp(y, 100, 2060);
 
-        // Randomly choose color
-        const golemColor = Math.random() < 0.5 ? 'orange' : 'blue';
+        const sorcerer = this.physics.add.sprite(spawnX, spawnY, 'sorcerer-attack-0');
 
-        const golem = this.physics.add.sprite(spawnX, spawnY, `golem-${golemColor}-walk`, 0);
+        // Scale based on level (3 times smaller than before)
+        const scaleFactor = (2.0 + (this.playerLevel * 0.1)) / 3;
+        sorcerer.setScale(scaleFactor);
+        sorcerer.health = Math.floor(10 + (this.playerLevel * 2));
+        sorcerer.maxHealth = sorcerer.health;
+        sorcerer.enemyType = 'sorcerer';
+        sorcerer.moveSpeed = 0; // Sorcerer doesn't move
+        sorcerer.isLevelUpSorcerer = true; // Mark as special sorcerer that drops charge expansion
+        sorcerer.lastFireTime = 0;
+        sorcerer.fireRate = 2000; // Fire every 2 seconds
 
-        // Scale based on level, not difficulty
-        const scaleFactor = 3.0 + (this.playerLevel * 0.1); // Gets slightly bigger with level
-        golem.setScale(scaleFactor);
-        golem.health = Math.floor(7.5 + (this.playerLevel * 3)); // 50% reduction
-        golem.maxHealth = golem.health;
-        golem.enemyType = 'golem';
-        golem.golemColor = golemColor;
-        golem.moveSpeed = 25;
-        golem.isLevelUpGolem = true; // Mark as special golem that drops charge expansion
+        // Ensure enemies group exists before adding
+        if (!this.enemies || !this.enemies.children) {
+            this.enemies = this.physics.add.group();
+        }
 
-        // Start with walk animation
-        golem.play(`golem-${golemColor}-walk`);
+        // Add to enemies group first before modifying physics
+        this.enemies.add(sorcerer);
 
-        // Adjust physics body to match visual size better
-        // Golem sprite is 90x64, scaled by ~3x
-        golem.body.setSize(30, 40);
-        golem.body.setOffset(30, 20);
+        // Now set up physics body after it's in the group
+        if (sorcerer.body) {
+            sorcerer.body.enable = true;
+            sorcerer.body.immovable = false; // Allow collision responses
+            sorcerer.body.moves = true; // Allow physics system to track it
 
-        this.enemies.add(golem);
+            // Get sprite dimensions to center hitbox properly
+            const spriteWidth = sorcerer.width * sorcerer.scaleX;
+            const spriteHeight = sorcerer.height * sorcerer.scaleY;
 
-        // Special spawn effect
-        const spawnEffect = this.add.circle(spawnX, spawnY, 50, 0xffaa00, 0.8);
+            // Set hitbox size and center it
+            sorcerer.body.setSize(spriteWidth * 0.6, spriteHeight * 0.8);
+            sorcerer.body.setOffset(
+                (sorcerer.width - sorcerer.body.width) / 2,
+                (sorcerer.height - sorcerer.body.height) / 2
+            );
+
+            // Ensure it stays at spawn position
+            sorcerer.body.setVelocity(0, 0);
+        }
+
+        // Start attack animation
+        sorcerer.play('sorcerer-attack');
+
+        // Special spawn effect - purple for sorcerer
+        const spawnEffect = this.add.circle(spawnX, spawnY, 50, 0x9933ff, 0.8);
         spawnEffect.setDepth(10);
         this.tweens.add({
             targets: spawnEffect,
@@ -3311,31 +4128,7 @@ class GameScene extends Phaser.Scene {
             onComplete: () => spawnEffect.destroy()
         });
 
-        // Announcement text
-        const bossText = this.add.text(400, 200, 'GOLEM GUARDIAN APPEARS!', {
-            fontSize: '32px',
-            color: '#ff6666',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-        bossText.setScrollFactor(0);
-        bossText.setDepth(200);
-
-        this.tweens.add({
-            targets: bossText,
-            scale: { from: 0.5, to: 1.2 },
-            duration: 500,
-            yoyo: true,
-            onComplete: () => {
-                this.time.delayedCall(1000, () => {
-                    this.tweens.add({
-                        targets: bossText,
-                        alpha: 0,
-                        duration: 500,
-                        onComplete: () => bossText.destroy()
-                    });
-                });
-            }
-        });
+        // No announcement text for enemy spawns
     }
 
     dropChargeExpansion(x, y) {
@@ -3394,8 +4187,7 @@ class GameScene extends Phaser.Scene {
         this.updateChargeUI();
 
         // Add a random element orb as bonus
-        const elements = ['fire', 'water', 'earth', 'rock', 'air', 'lightning', 'holy', 'arcane', 'dust'];
-        const randomElement = elements[Math.floor(Math.random() * elements.length)];
+        const randomElement = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
         this.dropElementOrb(wizard.x, wizard.y - 50, randomElement);
 
         // Visual feedback
@@ -3664,6 +4456,11 @@ class GameScene extends Phaser.Scene {
 
         // Don't destroy water orbs on hit, they keep orbiting
         if (projectile.element === 'water' && this.waterOrbs.includes(projectile)) {
+            return;
+        }
+
+        // Don't destroy stationary flames on hit
+        if (projectile.isStationary) {
             return;
         }
 
@@ -3937,7 +4734,10 @@ class GameScene extends Phaser.Scene {
             this.playerLevel++;
             this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.5);
 
-            // Spawn a golem every 2 levels (2, 4, 6, etc.)
+            // Show chest reward selection directly on level up
+            this.openChest(wizard, null);
+
+            // Spawn a sorcerer every 2 levels (2, 4, 6, etc.)
             if (this.playerLevel % 2 === 0) {
                 this.spawnLevelUpGolem();
             }
@@ -4052,7 +4852,7 @@ class GameScene extends Phaser.Scene {
     fireIndividualCharge(chargeIndex, element) {
         // Check if charge is linked to others
         const linkedIndices = [chargeIndex];
-        
+
         // Check for links if we have link buttons
         if (this.linkButtons) {
             // Check link to the left
@@ -4068,10 +4868,10 @@ class GameScene extends Phaser.Scene {
                 this.chargeLastFireTimes[chargeIndex + 1] = this.time.now;
             }
         }
-        
+
         // Get all linked elements
         const linkedElements = linkedIndices.map(i => this.charges[i]).filter(e => e !== undefined);
-        
+
         // Fire based on number of linked elements
         if (linkedElements.length === 1) {
             // Single element effect
@@ -4201,6 +5001,10 @@ class GameScene extends Phaser.Scene {
         const combo = elements.sort().join('-');
 
         switch (combo) {
+            case 'fire-fire':
+                // Double-sized fire spell
+                this.fireFireProjectile(elements);
+                break;
             case 'fire-lightning':
                 // Explosive lightning bolt
                 this.fireExplosiveLightning();
@@ -4292,29 +5096,98 @@ class GameScene extends Phaser.Scene {
     }
 
     fireFireProjectile(currentGroup = ['fire']) {
-        if (!this.textures.exists('fire-auto-proj')) {
-            const graphics = this.add.graphics();
-            graphics.fillStyle(0xff4444, 1);
-            graphics.fillCircle(6, 6, 6);
-            graphics.generateTexture('fire-auto-proj', 12, 12);
-            graphics.destroy();
+        // Remove any existing flame for this charge
+        if (this.activeFlames[0]) {
+            this.activeFlames[0].destroy();
+            this.activeFlames[0] = null;
         }
 
-        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'fire-auto-proj');
-        projectile.element = 'fire';
-        projectile.damage = 1;
-        projectile.setDepth(5);
+        const direction = this.wizard.lastDirection || 'down';
+        const baseScale = 2.25; // 50% larger than 1.5
+        // Double the scale if linking fire+fire (currentGroup has 2 fires)
+        const scale = currentGroup.length === 2 && currentGroup.every(e => e === 'fire') 
+            ? baseScale * 2 
+            : baseScale + (currentGroup.length - 1) * 0.5;
 
-        // Random direction
-        const angle = Math.random() * Math.PI * 2;
-        const speed = 300;
-        projectile.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+        // Since the sprite is 32x32 and we're scaling it, calculate the actual size
+        const spriteSize = 32 * scale;
 
-        this.projectiles.add(projectile);
+        // Distance from wizard center to flame center along directional line
+        // Add extra spacing from wizard hitbox (wizard hitbox is 20x30)
+        const wizardHitboxRadius = 15; // Half of the larger hitbox dimension
+        const spacing = 10; // Additional space between wizard and flame
+        const distanceFromWizard = wizardHitboxRadius + spacing + (spriteSize * 0.5);
 
-        // When projectile hits enemy, create fire pool
-        projectile.createFirePool = true;
-        projectile.linkedCount = currentGroup.length; // Pass linked count
+        // Calculate directional offsets
+        const directionAngles = {
+            'up': -Math.PI / 2,
+            'down': Math.PI / 2,
+            'left': Math.PI,
+            'right': 0,
+            'up-left': -3 * Math.PI / 4,
+            'up-right': -Math.PI / 4,
+            'down-left': 3 * Math.PI / 4,
+            'down-right': Math.PI / 4
+        };
+
+        const angle = directionAngles[direction];
+        const offsets = {
+            [direction]: {
+                x: Math.cos(angle) * distanceFromWizard,
+                y: Math.sin(angle) * distanceFromWizard
+            }
+        };
+
+        const offset = offsets[direction];
+
+        // Create the fire sprite
+        const flame = this.physics.add.sprite(
+            this.wizard.x + offset.x,
+            this.wizard.y + offset.y,
+            'fire-spell'
+        );
+
+        // Set properties
+        flame.setDepth(5);
+        flame.setScale(scale); // Use the scale we already calculated
+
+        // Set rotation to match direction angle
+        // Default sprite orientation is down-left (3π/4 radians or 135 degrees)
+        // So we need to rotate from that default to the desired direction
+        const defaultAngle = 3 * Math.PI / 4; // down-left
+        flame.setRotation(angle - defaultAngle);
+        // Remove vertical flip to change which corner is the contact point
+        flame.setFlipY(false);
+
+        // Play animation
+        flame.play('fire-spell-anim');
+
+        // Set physics properties
+        // Scale collision box with sprite size
+        const isDoubleScale = currentGroup.length === 2 && currentGroup.every(e => e === 'fire');
+        const collisionSize = isDoubleScale ? 40 : 20;
+        flame.body.setSize(collisionSize, collisionSize); // Collision box
+        flame.element = 'fire';
+        // Double damage for fire+fire link
+        flame.damage = isDoubleScale ? 4 : currentGroup.length; // Damage scales with linked charges
+        flame.linkedCount = currentGroup.length;
+        flame.isStationary = true; // Mark as stationary effect
+
+        // Add to projectiles group for collision detection
+        this.projectiles.add(flame);
+
+        // Store reference
+        this.activeFlames[0] = flame;
+
+        // Auto-destroy after 3 seconds
+        this.time.delayedCall(3000, () => {
+            if (flame && flame.active) {
+                flame.destroy();
+                if (this.activeFlames[0] === flame) {
+                    this.activeFlames[0] = null;
+                }
+            }
+        });
     }
 
     createWaterOrb() {
@@ -4381,11 +5254,11 @@ class GameScene extends Phaser.Scene {
     createWindGust() {
         // Create a wind gust that pushes enemies away
         const windRadius = 150;
-        
+
         // Visual effect - expanding circle
         const windCircle = this.add.circle(this.wizard.x, this.wizard.y, 20, 0xcccccc, 0.3);
         windCircle.setDepth(15);
-        
+
         this.tweens.add({
             targets: windCircle,
             radius: windRadius,
@@ -4393,7 +5266,7 @@ class GameScene extends Phaser.Scene {
             duration: 500,
             onComplete: () => windCircle.destroy()
         });
-        
+
         // Create particle texture if it doesn't exist
         if (!this.textures.exists('wind-particle')) {
             const graphics = this.add.graphics();
@@ -4402,7 +5275,7 @@ class GameScene extends Phaser.Scene {
             graphics.generateTexture('wind-particle', 4, 4);
             graphics.destroy();
         }
-        
+
         // Create swirl particles
         const particles = this.add.particles(this.wizard.x, this.wizard.y, 'wind-particle', {
             speed: { min: 100, max: 200 },
@@ -4413,32 +5286,32 @@ class GameScene extends Phaser.Scene {
             alpha: { start: 0.6, end: 0 },
             tint: 0xcccccc
         });
-        
+
         this.time.delayedCall(500, () => particles.destroy());
-        
+
         // Push enemies away
         this.enemies.children.entries.forEach(enemy => {
             if (!enemy.active) return;
-            
+
             const dist = Phaser.Math.Distance.Between(
                 this.wizard.x, this.wizard.y,
                 enemy.x, enemy.y
             );
-            
+
             if (dist < windRadius) {
                 // Calculate push direction
                 const angle = Phaser.Math.Angle.Between(
                     this.wizard.x, this.wizard.y,
                     enemy.x, enemy.y
                 );
-                
+
                 const pushForce = (1 - dist / windRadius) * 500;
                 const pushX = Math.cos(angle) * pushForce;
                 const pushY = Math.sin(angle) * pushForce;
-                
+
                 enemy.setVelocity(pushX, pushY);
                 enemy.knockbackTime = this.time.now + 300;
-                
+
                 // Small damage
                 enemy.health -= 0.5;
                 if (enemy.health <= 0) {
@@ -4446,18 +5319,18 @@ class GameScene extends Phaser.Scene {
                 }
             }
         });
-        
+
         // Also push away projectiles from enemies
         this.enemies.children.entries.forEach(enemy => {
             if (enemy.projectiles) {
                 enemy.projectiles.children.entries.forEach(proj => {
                     if (!proj.active) return;
-                    
+
                     const dist = Phaser.Math.Distance.Between(
                         this.wizard.x, this.wizard.y,
                         proj.x, proj.y
                     );
-                    
+
                     if (dist < windRadius) {
                         proj.destroy();
                     }
@@ -5956,8 +6829,8 @@ class GameScene extends Phaser.Scene {
             elite.golemColor = golemColor;
             elite.moveSpeed = 25;
             elite.play(`golem-${golemColor}-walk`);
-            elite.body.setSize(45, 60);
-            elite.body.setOffset(45, 30);
+            elite.body.setSize(30, 40);
+            elite.body.setOffset(30, 20);
         }
 
         elite.isElite = true;
@@ -6094,6 +6967,7 @@ class GameScene extends Phaser.Scene {
         for (let i = 0; i < 3; i++) {
             const xPos = 180 + i * 220;
             const reward = rewardTypes[i];
+            const buttonIndex = i; // Capture i in closure
 
             const button = this.add.container(xPos, 280);
             button.setScrollFactor(0);
@@ -6101,7 +6975,7 @@ class GameScene extends Phaser.Scene {
 
             const bg = this.add.rectangle(0, 0, 200, 280, 0x333333);
             bg.setStrokeStyle(3, i === 0 ? 0xffff00 : 0xffffff);
-            bg.setInteractive();
+            bg.setInteractive({ useHandCursor: true });
 
             // Icon representation
             const iconBg = this.add.circle(0, -80, 40, reward.color, 0.8);
@@ -6131,11 +7005,18 @@ class GameScene extends Phaser.Scene {
             buttons.push({ container: button, type: reward.type, bg: bg });
 
             bg.on('pointerdown', () => {
+                console.log('Mouse clicked on reward:', reward.type);
                 this.selectChestReward(reward.type, chest);
             });
 
             bg.on('pointerover', () => {
                 bg.setFillStyle(0x555555);
+                // Update cursor index to match hover
+                this.chestCursorIndex = buttonIndex;
+                // Update all borders
+                buttons.forEach((btn, idx) => {
+                    btn.bg.setStrokeStyle(3, idx === buttonIndex ? 0xffff00 : 0xffffff);
+                });
             });
 
             bg.on('pointerout', () => {
@@ -6171,13 +7052,13 @@ class GameScene extends Phaser.Scene {
 
         if (rewardType === 'link') {
             this.showLinkReward();
-            chest.destroy();
+            if (chest) chest.destroy();
         } else if (rewardType === 'element') {
             this.showElementReward();
-            chest.destroy();
+            if (chest) chest.destroy();
         } else if (rewardType === 'fusion') {
             this.showFusionReward();
-            chest.destroy();
+            if (chest) chest.destroy();
         }
     }
 
@@ -6277,7 +7158,7 @@ class GameScene extends Phaser.Scene {
 
         // Reset controller states to prevent input carry-over
         this.prevChestConfirmPressed = true; // Prevent immediate selection
-        
+
         this.setupElementSelection(selectionBg, title, choices);
     }
 
@@ -6321,7 +7202,7 @@ class GameScene extends Phaser.Scene {
         instruction.setOrigin(0.5);
         instruction.setScrollFactor(0);
         instruction.setDepth(201);
-        
+
         const controlHint = this.add.text(400, 480, 'Use D-pad/Arrow keys to navigate, A/SPACE to select elements', {
             fontSize: '14px',
             color: '#aaaaaa'
@@ -6333,7 +7214,7 @@ class GameScene extends Phaser.Scene {
         // Show current elements for selection
         const elementButtons = [];
         const selectedElements = [];
-        
+
         // Reset controller states to prevent input carry-over
         this.prevChestConfirmPressed = true; // Prevent immediate selection
 
@@ -6415,7 +7296,7 @@ class GameScene extends Phaser.Scene {
             cursorIndex: 0,
             selectedElements: []
         };
-        
+
         console.log('Fusion UI created and active:', this.fusionUI.active);
     }
 
@@ -6449,22 +7330,22 @@ class GameScene extends Phaser.Scene {
         const cutsceneBg = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.95);
         cutsceneBg.setScrollFactor(0);
         cutsceneBg.setDepth(300);
-        
+
         // Get element configs
         const element1Config = this.elementConfig[elements[0]];
         const element2Config = this.elementConfig[elements[1]];
-        
+
         // Create sprites for the two elements
         const sprite1 = this.add.sprite(250, 300, element1Config.sheet, element1Config.frame);
         sprite1.setScale(0.5);
         sprite1.setScrollFactor(0);
         sprite1.setDepth(301);
-        
+
         const sprite2 = this.add.sprite(550, 300, element2Config.sheet, element2Config.frame);
         sprite2.setScale(0.5);
         sprite2.setScrollFactor(0);
         sprite2.setDepth(301);
-        
+
         // Clean up fusion UI first
         if (this.fusionUI) {
             this.fusionUI.active = false;
@@ -6476,7 +7357,7 @@ class GameScene extends Phaser.Scene {
             if (this.fusionButton) this.fusionButton.destroy();
             this.fusionUI = null;
         }
-        
+
         // Create fusion particles
         const particles = this.add.particles(400, 300, 'spark', {
             speed: { min: 100, max: 200 },
@@ -6487,7 +7368,7 @@ class GameScene extends Phaser.Scene {
         });
         particles.setScrollFactor(0);
         particles.setDepth(302);
-        
+
         // Animate sprites moving together
         this.tweens.add({
             targets: sprite1,
@@ -6495,14 +7376,14 @@ class GameScene extends Phaser.Scene {
             duration: 1000,
             ease: 'Power2'
         });
-        
+
         this.tweens.add({
             targets: sprite2,
             x: 400,
             duration: 1000,
             ease: 'Power2'
         });
-        
+
         // Rotate both sprites
         this.tweens.add({
             targets: [sprite1, sprite2],
@@ -6510,36 +7391,56 @@ class GameScene extends Phaser.Scene {
             duration: 1000,
             ease: 'Linear'
         });
-        
+
+        // Determine fusion result early to show name during animation
+        const nonPrimaryElements = Object.keys(this.elementConfig).filter(e => !this.primaryElements.includes(e));
+        const result = nonPrimaryElements[Math.floor(Math.random() * nonPrimaryElements.length)];
+        const resultConfig = this.elementConfig[result];
+
+        // Show "Fusing into..." text during animation
+        const fusingText = this.add.text(400, 200, `Fusing into ${resultConfig.name}...`, {
+            fontSize: '24px',
+            color: '#ffdd44',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+        fusingText.setOrigin(0.5);
+        fusingText.setScrollFactor(0);
+        fusingText.setDepth(301);
+        fusingText.setAlpha(0);
+
+        this.tweens.add({
+            targets: fusingText,
+            alpha: 1,
+            duration: 500
+        });
+
         // After 1 second, flash and show result
         this.time.delayedCall(1000, () => {
             // Flash effect
             const flash = this.add.rectangle(400, 300, 800, 600, 0xffffff, 0.8);
             flash.setScrollFactor(0);
             flash.setDepth(303);
-            
+
             this.tweens.add({
                 targets: flash,
                 alpha: 0,
                 duration: 500,
                 onComplete: () => flash.destroy()
             });
-            
-            // Hide original sprites
+
+            // Hide original sprites and fusing text
             sprite1.setVisible(false);
             sprite2.setVisible(false);
-            
-            // Determine fusion result
-            const nonPrimaryElements = Object.keys(this.elementConfig).filter(e => !this.primaryElements.includes(e));
-            const result = nonPrimaryElements[Math.floor(Math.random() * nonPrimaryElements.length)];
-            const resultConfig = this.elementConfig[result];
-            
+            fusingText.destroy();
+
             // Show result sprite
             const resultSprite = this.add.sprite(400, 300, resultConfig.sheet, resultConfig.frame);
             resultSprite.setScale(0);
             resultSprite.setScrollFactor(0);
             resultSprite.setDepth(301);
-            
+
             // Scale up result
             this.tweens.add({
                 targets: resultSprite,
@@ -6547,7 +7448,7 @@ class GameScene extends Phaser.Scene {
                 duration: 800,
                 ease: 'Back.easeOut'
             });
-            
+
             // Show success text
             const successText = this.add.text(400, 450, `${resultConfig.name} Created!`, {
                 fontSize: '32px',
@@ -6560,19 +7461,19 @@ class GameScene extends Phaser.Scene {
             successText.setScrollFactor(0);
             successText.setDepth(301);
             successText.setAlpha(0);
-            
+
             this.tweens.add({
                 targets: successText,
                 alpha: 1,
                 duration: 500,
                 delay: 300
             });
-            
+
             // Stop particles after a bit
             this.time.delayedCall(1500, () => {
                 particles.stop();
             });
-            
+
             // Update game state
             elements.forEach(element => {
                 const index = this.charges.indexOf(element);
@@ -6580,15 +7481,15 @@ class GameScene extends Phaser.Scene {
                     this.charges.splice(index, 1);
                 }
             });
-            
+
             this.charges.push(result);
             this.updateChargeUI();
             this.updateChargeGroups();
-            
+
             if (!this.discoveredElements.has(result)) {
                 this.discoveredElements.add(result);
             }
-            
+
             // Clean up after 3 seconds
             this.time.delayedCall(3000, () => {
                 sprite1.destroy();
@@ -6760,8 +7661,18 @@ class GameScene extends Phaser.Scene {
     }
 
     closeChestUI() {
+        // Reset charge indicators highlighting
+        if (this.chargeIndicators) {
+            this.chargeIndicators.forEach((indicator) => {
+                indicator.bg.setStrokeStyle(2, 0x222222);
+                indicator.sprite.setScale(0.1);
+            });
+        }
+        
         this.chestSelectionActive = false;
         this.chestUI = null;
+        this.chestChargeSelectMode = false;
+        this.selectedChargeToReplace = -1;
         this.physics.resume();
     }
 
@@ -6775,21 +7686,50 @@ class GameScene extends Phaser.Scene {
         if (this.charges.length >= this.maxCharges) {
             // Must have selected a charge to replace
             if (this.selectedChargeToReplace === -1) {
-                // Flash the charge display to indicate selection needed
-                if (this.chestUI && this.chestUI.chargeDisplay) {
-                    this.tweens.add({
-                        targets: this.chestUI.chargeDisplay,
-                        alpha: 0.3,
-                        duration: 200,
-                        yoyo: true,
-                        repeat: 2
+                // Activate charge selection mode
+                this.chestChargeSelectMode = true;
+                this.selectedChargeToReplace = 0; // Start with first charge selected
+                
+                // Highlight the charge indicators at the top of the screen
+                if (this.chargeIndicators && this.chargeIndicators.length > 0) {
+                    // Create selection highlight for main charge indicators
+                    this.chargeIndicators.forEach((indicator, i) => {
+                        if (i === 0) {
+                            // Highlight first charge
+                            indicator.bg.setStrokeStyle(3, 0xffff00);
+                            indicator.sprite.setScale(0.15);
+                        }
                     });
                 }
+                
+                // Also highlight in the chest UI if it exists
+                if (this.chestChargeButtons && this.chestChargeButtons.length > 0) {
+                    this.chestChargeButtons[0].setScale(0.2);
+                    this.chestChargeButtons[0].setTint(0xffff00);
+                    if (this.chestSelectionRings && this.chestSelectionRings[0]) {
+                        this.chestSelectionRings[0].setVisible(true);
+                    }
+                }
+                
+                // Update control hint
+                if (controlHint) {
+                    controlHint.setText('Up/Down: Select Charge to Replace | A: Confirm');
+                }
+                
                 return; // Don't proceed without selection
             }
 
             // Replace the selected charge
             this.charges[this.selectedChargeToReplace] = element;
+            
+            // Reset charge indicators highlighting
+            if (this.chargeIndicators) {
+                this.chargeIndicators.forEach((indicator) => {
+                    indicator.bg.setStrokeStyle(2, 0x222222);
+                    indicator.sprite.setScale(0.1);
+                });
+            }
+            
             this.updateChargeUI();
             this.updateChargeGroups();
 
@@ -6867,15 +7807,20 @@ class GameScene extends Phaser.Scene {
     }
 
     handleChestSelectionController() {
-        if (!this.gamepad || !this.chestUI) return;
+        if (!this.chestUI) return;
 
         // Check for left/right navigation (including D-pad)
-        const leftPressed = this.cursors.left.isDown || (this.gamepad.leftStick.x < -0.5) || (this.gamepad.buttons[14] && this.gamepad.buttons[14].pressed);
-        const rightPressed = this.cursors.right.isDown || (this.gamepad.leftStick.x > 0.5) || (this.gamepad.buttons[15] && this.gamepad.buttons[15].pressed);
-        const upPressed = this.cursors.up.isDown || (this.gamepad.leftStick.y < -0.5) || (this.gamepad.buttons[12] && this.gamepad.buttons[12].pressed);
-        const downPressed = this.cursors.down.isDown || (this.gamepad.leftStick.y > 0.5) || (this.gamepad.buttons[13] && this.gamepad.buttons[13].pressed);
-        const confirmPressed = this.spaceKey.isDown || (this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed);
-        const switchModePressed = this.gamepad.buttons[2] && this.gamepad.buttons[2].pressed; // Y button
+        const leftPressed = this.cursors.left.isDown ||
+            (this.gamepad && ((this.gamepad.leftStick.x < -0.5) || (this.gamepad.buttons[14] && this.gamepad.buttons[14].pressed)));
+        const rightPressed = this.cursors.right.isDown ||
+            (this.gamepad && ((this.gamepad.leftStick.x > 0.5) || (this.gamepad.buttons[15] && this.gamepad.buttons[15].pressed)));
+        const upPressed = this.cursors.up.isDown ||
+            (this.gamepad && ((this.gamepad.leftStick.y < -0.5) || (this.gamepad.buttons[12] && this.gamepad.buttons[12].pressed)));
+        const downPressed = this.cursors.down.isDown ||
+            (this.gamepad && ((this.gamepad.leftStick.y > 0.5) || (this.gamepad.buttons[13] && this.gamepad.buttons[13].pressed)));
+        const confirmPressed = this.spaceKey.isDown ||
+            (this.gamepad && this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed);
+        const switchModePressed = this.gamepad && this.gamepad.buttons[2] && this.gamepad.buttons[2].pressed; // Y button
 
         // Initialize previous states if not set
         if (!this.prevChestLeftPressed) this.prevChestLeftPressed = false;
@@ -6948,6 +7893,10 @@ class GameScene extends Phaser.Scene {
             if (upPressed && !this.prevChestUpPressed) {
                 if (this.selectedChargeToReplace > 0) {
                     // Clear previous selection
+                    if (this.chargeIndicators && this.chargeIndicators[this.selectedChargeToReplace]) {
+                        this.chargeIndicators[this.selectedChargeToReplace].bg.setStrokeStyle(2, 0x222222);
+                        this.chargeIndicators[this.selectedChargeToReplace].sprite.setScale(0.1);
+                    }
                     if (this.chestChargeButtons) {
                         this.chestChargeButtons[this.selectedChargeToReplace].setScale(0.15);
                         this.chestChargeButtons[this.selectedChargeToReplace].clearTint();
@@ -6957,9 +7906,13 @@ class GameScene extends Phaser.Scene {
                     }
                     this.selectedChargeToReplace--;
                     // Highlight new selection
+                    if (this.chargeIndicators && this.chargeIndicators[this.selectedChargeToReplace]) {
+                        this.chargeIndicators[this.selectedChargeToReplace].bg.setStrokeStyle(3, 0xffff00);
+                        this.chargeIndicators[this.selectedChargeToReplace].sprite.setScale(0.15);
+                    }
                     if (this.chestChargeButtons) {
                         this.chestChargeButtons[this.selectedChargeToReplace].setScale(0.2);
-                        this.chestChargeButtons[this.selectedChargeToReplace].setTint(0xff0000);
+                        this.chestChargeButtons[this.selectedChargeToReplace].setTint(0xffff00);
                         if (this.chestSelectionRings && this.chestSelectionRings[this.selectedChargeToReplace]) {
                             this.chestSelectionRings[this.selectedChargeToReplace].setVisible(true);
                         }
@@ -6970,6 +7923,10 @@ class GameScene extends Phaser.Scene {
             if (downPressed && !this.prevChestDownPressed) {
                 if (this.selectedChargeToReplace < this.charges.length - 1) {
                     // Clear previous selection
+                    if (this.chargeIndicators && this.chargeIndicators[this.selectedChargeToReplace]) {
+                        this.chargeIndicators[this.selectedChargeToReplace].bg.setStrokeStyle(2, 0x222222);
+                        this.chargeIndicators[this.selectedChargeToReplace].sprite.setScale(0.1);
+                    }
                     if (this.chestChargeButtons && this.selectedChargeToReplace >= 0) {
                         this.chestChargeButtons[this.selectedChargeToReplace].setScale(0.15);
                         this.chestChargeButtons[this.selectedChargeToReplace].clearTint();
@@ -6979,9 +7936,13 @@ class GameScene extends Phaser.Scene {
                     }
                     this.selectedChargeToReplace++;
                     // Highlight new selection
+                    if (this.chargeIndicators && this.chargeIndicators[this.selectedChargeToReplace]) {
+                        this.chargeIndicators[this.selectedChargeToReplace].bg.setStrokeStyle(3, 0xffff00);
+                        this.chargeIndicators[this.selectedChargeToReplace].sprite.setScale(0.15);
+                    }
                     if (this.chestChargeButtons) {
                         this.chestChargeButtons[this.selectedChargeToReplace].setScale(0.2);
-                        this.chestChargeButtons[this.selectedChargeToReplace].setTint(0xff0000);
+                        this.chestChargeButtons[this.selectedChargeToReplace].setTint(0xffff00);
                         if (this.chestSelectionRings && this.chestSelectionRings[this.selectedChargeToReplace]) {
                             this.chestSelectionRings[this.selectedChargeToReplace].setVisible(true);
                         }
@@ -7035,30 +7996,30 @@ class GameScene extends Phaser.Scene {
         this.prevChestConfirmPressed = confirmPressed;
         this.prevChestSwitchPressed = switchModePressed;
     }
-    
+
     handleFusionController() {
         if (!this.fusionUI) return;
-        
+
         console.log('handleFusionController called');
-        
+
         const leftPressed = this.cursors.left.isDown || (this.gamepad && ((this.gamepad.leftStick.x < -0.5) || (this.gamepad.buttons[14] && this.gamepad.buttons[14].pressed)));
         const rightPressed = this.cursors.right.isDown || (this.gamepad && ((this.gamepad.leftStick.x > 0.5) || (this.gamepad.buttons[15] && this.gamepad.buttons[15].pressed)));
         const upPressed = this.cursors.up.isDown || (this.gamepad && ((this.gamepad.leftStick.y < -0.5) || (this.gamepad.buttons[12] && this.gamepad.buttons[12].pressed)));
         const downPressed = this.cursors.down.isDown || (this.gamepad && ((this.gamepad.leftStick.y > 0.5) || (this.gamepad.buttons[13] && this.gamepad.buttons[13].pressed)));
         const confirmPressed = this.spaceKey.isDown || (this.gamepad && this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed);
-        
+
         // Initialize previous states if not set
         if (!this.prevFusionLeftPressed) this.prevFusionLeftPressed = false;
         if (!this.prevFusionRightPressed) this.prevFusionRightPressed = false;
         if (!this.prevFusionUpPressed) this.prevFusionUpPressed = false;
         if (!this.prevFusionDownPressed) this.prevFusionDownPressed = false;
         if (!this.prevFusionConfirmPressed) this.prevFusionConfirmPressed = false;
-        
+
         const totalButtons = this.fusionUI.buttons.length;
         const buttonsPerRow = 4;
         const currentRow = Math.floor(this.fusionUI.cursorIndex / buttonsPerRow);
         const currentCol = this.fusionUI.cursorIndex % buttonsPerRow;
-        
+
         // Navigate left
         if (leftPressed && !this.prevFusionLeftPressed) {
             if (currentCol > 0 || (currentRow > 0 && this.fusionUI.cursorIndex > 0)) {
@@ -7070,7 +8031,7 @@ class GameScene extends Phaser.Scene {
                 console.log('Fusion: Moved left to index', this.fusionUI.cursorIndex);
             }
         }
-        
+
         // Navigate right
         if (rightPressed && !this.prevFusionRightPressed) {
             if (this.fusionUI.cursorIndex < totalButtons - 1) {
@@ -7082,7 +8043,7 @@ class GameScene extends Phaser.Scene {
                 console.log('Fusion: Moved right to index', this.fusionUI.cursorIndex);
             }
         }
-        
+
         // Navigate up
         if (upPressed && !this.prevFusionUpPressed) {
             if (currentRow > 0) {
@@ -7093,7 +8054,7 @@ class GameScene extends Phaser.Scene {
                 this.fusionUI.buttons[this.fusionUI.cursorIndex].bg.setStrokeStyle(2, 0xffff00);
             }
         }
-        
+
         // Navigate down
         if (downPressed && !this.prevFusionDownPressed) {
             const nextIndex = this.fusionUI.cursorIndex + buttonsPerRow;
@@ -7105,18 +8066,18 @@ class GameScene extends Phaser.Scene {
                 this.fusionUI.buttons[this.fusionUI.cursorIndex].bg.setStrokeStyle(2, 0xffff00);
             }
         }
-        
+
         // Select/deselect element
         if (confirmPressed && !this.prevFusionConfirmPressed) {
             const button = this.fusionUI.buttons[this.fusionUI.cursorIndex];
-            
+
             if (!button.selected && this.fusionUI.selectedElements.length < 2) {
                 // Select element
                 button.selected = true;
                 this.fusionUI.selectedElements.push(button.element);
                 button.bg.setFillStyle(0xff44ff, 0.5);
                 button.bg.setStrokeStyle(3, 0xff44ff);
-                
+
                 if (this.fusionUI.selectedElements.length === 2) {
                     // Show fusion button
                     this.showFusionButton(this.fusionUI.bg, this.fusionUI.title, this.fusionUI.instruction, this.fusionUI.buttons, this.fusionUI.selectedElements);
@@ -7128,7 +8089,7 @@ class GameScene extends Phaser.Scene {
                 if (index > -1) this.fusionUI.selectedElements.splice(index, 1);
                 button.bg.setFillStyle(0x333333);
                 button.bg.setStrokeStyle(2, this.fusionUI.cursorIndex === button.index ? 0xffff00 : 0xffffff);
-                
+
                 // Remove fusion button if exists
                 if (this.fusionButton) {
                     this.fusionButton.destroy();
@@ -7136,12 +8097,12 @@ class GameScene extends Phaser.Scene {
                 }
             }
         }
-        
+
         // Handle fusion button confirmation
         if (this.fusionButton && confirmPressed && !this.prevFusionConfirmPressed && this.fusionUI.selectedElements.length === 2) {
             this.performFusion(this.fusionUI.selectedElements);
         }
-        
+
         // Store previous states
         this.prevFusionLeftPressed = leftPressed;
         this.prevFusionRightPressed = rightPressed;
@@ -7149,7 +8110,7 @@ class GameScene extends Phaser.Scene {
         this.prevFusionDownPressed = downPressed;
         this.prevFusionConfirmPressed = confirmPressed;
     }
-    
+
     closeFusionUI() {
         if (this.fusionUI) {
             this.fusionUI.active = false;
@@ -7215,13 +8176,13 @@ const config = {
         default: 'arcade',
         arcade: {
             gravity: { y: 0 },
-            debug: false
+            debug: localStorage.getItem('debugMode') === 'true'
         }
     },
     input: {
         gamepad: true
     },
-    scene: [TitleScene, GameScene, GameOverScene]
+    scene: [LoadingScene, TitleScene, GameScene, GameOverScene]
 };
 
 const game = new Phaser.Game(config);
