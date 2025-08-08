@@ -5,9 +5,27 @@ export default class TitleScene extends Phaser.Scene {
     }
 
     create() {
+        // Set background to black first
+        this.cameras.main.setBackgroundColor('#000000');
+        
+        // Create a black overlay that will fade out
+        const blackOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000);
+        blackOverlay.setDepth(1000);
+        
         // Add title background
         const bg = this.add.image(400, 300, 'title-bg');
         bg.setDisplaySize(800, 600);
+        
+        // Fade out the black overlay to reveal the scene
+        this.tweens.add({
+            targets: blackOverlay,
+            alpha: 0,
+            duration: 1500,
+            ease: 'Power2',
+            onComplete: () => {
+                blackOverlay.destroy();
+            }
+        });
 
         // Create start button
         const startButton = this.add.text(400, 450, 'START GAME', {
@@ -85,14 +103,16 @@ export default class TitleScene extends Phaser.Scene {
             });
         });
 
-        // Add some floating animation to the title
-        this.tweens.add({
-            targets: bg,
-            y: 310,
-            duration: 3000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
+        // Add some floating animation to the title after fade-in completes
+        this.time.delayedCall(1500, () => {
+            this.tweens.add({
+                targets: bg,
+                y: 310,
+                duration: 3000,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
         });
     }
 
@@ -101,8 +121,8 @@ export default class TitleScene extends Phaser.Scene {
         this.cameras.main.fadeOut(500);
         
         this.cameras.main.once('camerafadeoutcomplete', () => {
-            // Pass debug mode to game scene
-            this.scene.start('GameScene', { debugMode: this.debugMode });
+            // Go to stage select screen
+            this.scene.start('StageSelectScene', { debugMode: this.debugMode });
         });
     }
 }

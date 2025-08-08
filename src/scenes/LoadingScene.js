@@ -1,17 +1,27 @@
 export default class LoadingScene extends Phaser.Scene {
     constructor() {
         super({ key: 'LoadingScene' });
+        this.nextScene = 'TitleScene'; // Default next scene
+    }
+    
+    init(data) {
+        // Allow specifying next scene when starting this scene
+        this.nextScene = data?.nextScene || 'TitleScene';
+        this.sceneData = data?.data || {};
     }
 
     preload() {
         // Load the loading screen image
-        this.load.image('loading-bg', 'loading.png');
+        this.load.image('loading-bg', 'art1.png');
+        
+        // Only load other assets if this is the first time (initial load)
+        if (this.nextScene === 'TitleScene' && !this.textures.exists('title-bg')) {
 
-        // Create loading bar
-        const progressBar = this.add.graphics();
-        const progressBox = this.add.graphics();
-        progressBox.fillStyle(0x222222, 0.8);
-        progressBox.fillRect(240, 270, 320, 50);
+            // Create loading bar
+            const progressBar = this.add.graphics();
+            const progressBox = this.add.graphics();
+            progressBox.fillStyle(0x222222, 0.8);
+            progressBox.fillRect(240, 270, 320, 50);
 
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
@@ -54,6 +64,7 @@ export default class LoadingScene extends Phaser.Scene {
 
         // Load all game assets
         this.loadGameAssets();
+        }
     }
 
     loadGameAssets() {
@@ -82,6 +93,7 @@ export default class LoadingScene extends Phaser.Scene {
 
         // Tiles and environment
         this.load.image('dirt-tiles', 'TopDownFantasy_Forest_v1/TopDownFantasy-Forest/Tiles/dirt.png');
+        this.load.image('grass-tile', 'grass.PNG');
         this.load.image('tree', 'foliage.png');
 
         // Element symbols sprite sheets
@@ -199,7 +211,7 @@ export default class LoadingScene extends Phaser.Scene {
             frameWidth: 32,
             frameHeight: 32
         });
-        
+
         this.load.spritesheet('arcane-spell', 'spells/arcane1.png', {
             frameWidth: 32,
             frameHeight: 32
@@ -223,12 +235,41 @@ export default class LoadingScene extends Phaser.Scene {
     }
 
     create() {
+        // Set background to match the dark theme
+        this.cameras.main.setBackgroundColor('#11130d');
+
         // Display loading complete image
-        this.add.image(400, 300, 'loading-bg');
+        const loadingImage = this.add.image(400, 300, 'loading-bg');
         
-        // Transition to title screen after a short delay
-        this.time.delayedCall(1000, () => {
-            this.scene.start('TitleScene');
+        // If this is a transition (not initial load), we can proceed faster
+        const fadeDelay = this.nextScene === 'TitleScene' ? 1000 : 500;
+
+        // Create a black overlay for smooth transition
+        const blackOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000);
+        blackOverlay.setAlpha(0);
+
+        // Wait a bit before starting fade
+        this.time.delayedCall(fadeDelay, () => {
+            // First fade the loading image
+            this.tweens.add({
+                targets: loadingImage,
+                alpha: 0,
+                duration: 1000,
+                ease: 'Power2',
+                onComplete: () => {
+                    // Then fade in the black overlay
+                    this.tweens.add({
+                        targets: blackOverlay,
+                        alpha: 1,
+                        duration: 500,
+                        ease: 'Power2',
+                        onComplete: () => {
+                            // Start the next scene
+                            this.scene.start(this.nextScene, this.sceneData);
+                        }
+                    });
+                }
+            });
         });
     }
 }

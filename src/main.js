@@ -1,5 +1,6 @@
 import LoadingScene from './scenes/LoadingScene.js';
 import TitleScene from './scenes/TitleScene.js';
+import StageSelectScene from './scenes/StageSelectScene.js';
 import GameScene from './scenes/GameScene.js';
 import GameOverScene from './scenes/GameOverScene.js';
 import { GAME_CONFIG } from './data/GameConstants.js';
@@ -20,7 +21,7 @@ const config = {
     input: {
         gamepad: true
     },
-    scene: [LoadingScene, TitleScene, GameScene, GameOverScene]
+    scene: [LoadingScene, TitleScene, StageSelectScene, GameScene, GameOverScene]
 };
 
 // Create the game
