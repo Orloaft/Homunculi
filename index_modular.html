@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wizard Survivor - Modular Version</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #222;
+        }
+        
+        #game-container {
+            border: 2px solid #444;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        .info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h3>Wizard Survivor - Modular Version</h3>
+        <p>This version uses the new modular architecture</p>
+    </div>
+    
+    <div id="game-container"></div>
+    
+    <div class="controls">
+        <h4>Controls:</h4>
+        <p><strong>Movement:</strong> WASD or Arrow Keys</p>
+        <p><strong>Pause:</strong> P or Gamepad Start</p>
+        <p><strong>Menu:</strong> I or Gamepad Select</p>
+        <p><strong>Confirm:</strong> Space or Gamepad A</p>
+        <p><strong>Cancel:</strong> ESC or Gamepad B</p>
+    </div>
+    
+    <!-- Load Phaser -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    
+    <!-- Load game as module -->
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>

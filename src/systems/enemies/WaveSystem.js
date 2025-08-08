@@ -1,0 +1,244 @@
+import { WAVE_DEFINITIONS, getSpawnDelay, getEndlessEnemies } from '../../data/WaveConfig.js';
+import { ENEMY_SPAWN_CONFIG } from '../../data/GameConstants.js';
+
+export class WaveSystem {
+    constructor(scene) {
+        this.scene = scene;
+        
+        // Wave state
+        this.currentWave = 0;
+        this.waveStartTime = 0;
+        this.nextSpawnTime = 0;
+        this.enemySpawnQueue = [];
+        this.isEndless = false;
+        
+        // Spawn tracking
+        this.spawnedInWave = 0;
+        this.totalSpawned = 0;
+        
+        this.setupEventListeners();
+    }
+    
+    setupEventListeners() {
+        // Listen for wave control events
+        this.scene.events.on('startWave', (waveNumber) => {
+            this.startWave(waveNumber);
+        });
+        
+        this.scene.events.on('endWave', () => {
+            this.endCurrentWave();
+        });
+        
+        this.scene.events.on('startEndlessMode', () => {
+            this.startEndlessMode();
+        });
+    }
+    
+    startWave(waveNumber = null) {
+        if (waveNumber !== null) {
+            this.currentWave = waveNumber;
+        } else {
+            this.currentWave++;
+        }
+        
+        this.waveStartTime = this.scene.time.now;
+        this.spawnedInWave = 0;
+        
+        // Get wave definition
+        const waveIndex = Math.min(this.currentWave - 1, WAVE_DEFINITIONS.length - 1);
+        const wave = WAVE_DEFINITIONS[waveIndex];
+        
+        if (wave.enemies === 'dynamic') {
+            this.isEndless = true;
+            this.generateEndlessSpawns();
+        } else {
+            this.isEndless = false;
+            this.setupWaveSpawns(wave);
+        }
+        
+        // Emit wave start event
+        this.scene.events.emit('waveStarted', {
+            wave: this.currentWave,
+            name: wave.name,
+            duration: wave.duration
+        });
+        
+        console.log(`Wave ${this.currentWave} started: ${wave.name}`);
+    }
+    
+    setupWaveSpawns(wave) {
+        this.enemySpawnQueue = [];
+        
+        // Create spawn schedule
+        wave.enemies.forEach(enemyGroup => {
+            for (let i = 0; i < enemyGroup.count; i++) {
+                this.enemySpawnQueue.push({
+                    type: enemyGroup.type,
+                    variant: enemyGroup.variant,
+                    delay: enemyGroup.delay * (i + 1),
+                    spawned: false
+                });
+            }
+        });
+        
+        // Sort by delay
+        this.enemySpawnQueue.sort((a, b) => a.delay - b.delay);
+    }
+    
+    generateEndlessSpawns() {
+        const elapsedTime = this.scene.time.now - this.waveStartTime;
+        const playerLevel = this.scene.playerStats?.level || 1;
+        
+        // Generate new spawn batch
+        const enemies = getEndlessEnemies(elapsedTime, playerLevel);
+        
+        this.enemySpawnQueue = enemies.map(enemy => ({
+            type: enemy.type,
+            variant: enemy.variant,
+            delay: enemy.delay,
+            spawned: false
+        }));
+    }
+    
+    startEndlessMode() {
+        this.currentWave = WAVE_DEFINITIONS.length; // Set to endless wave
+        this.isEndless = true;
+        this.waveStartTime = this.scene.time.now;
+        this.spawnedInWave = 0;
+        
+        this.generateEndlessSpawns();
+        
+        this.scene.events.emit('endlessModeStarted');
+        console.log('Endless mode activated!');
+    }
+    
+    update(time, delta) {
+        if (!this.scene.gameStarted || this.currentWave === 0) return;
+        
+        const elapsedTime = time - this.waveStartTime;
+        
+        // Check for wave completion (non-endless)
+        if (!this.isEndless) {
+            const waveIndex = Math.min(this.currentWave - 1, WAVE_DEFINITIONS.length - 1);
+            const wave = WAVE_DEFINITIONS[waveIndex];
+            
+            if (wave.duration > 0 && elapsedTime > wave.duration) {
+                this.completeWave();
+                return;
+            }
+        }
+        
+        // Process spawn queue
+        this.processSpawnQueue(elapsedTime);
+        
+        // Generate new spawns for endless mode
+        if (this.isEndless && this.enemySpawnQueue.length === 0) {
+            this.generateEndlessSpawns();
+        }
+    }
+    
+    processSpawnQueue(elapsedTime) {
+        const wizard = this.scene.wizard;
+        if (!wizard || !wizard.active) return;
+        
+        // Check each enemy in queue
+        for (const spawn of this.enemySpawnQueue) {
+            if (!spawn.spawned && elapsedTime >= spawn.delay) {
+                this.spawnWaveEnemy(spawn.type, spawn.variant);
+                spawn.spawned = true;
+                this.spawnedInWave++;
+                this.totalSpawned++;
+            }
+        }
+        
+        // Remove spawned enemies from queue
+        this.enemySpawnQueue = this.enemySpawnQueue.filter(spawn => !spawn.spawned);
+    }
+    
+    spawnWaveEnemy(type, variant) {
+        const wizard = this.scene.wizard;
+        if (!wizard) return;
+        
+        // Calculate spawn position
+        const spawnPos = this.calculateSpawnPosition(wizard.x, wizard.y);
+        
+        // Emit spawn event
+        this.scene.events.emit('spawnEnemy', {
+            type: type,
+            x: spawnPos.x,
+            y: spawnPos.y,
+            variant: variant
+        });
+    }
+    
+    calculateSpawnPosition(targetX, targetY) {
+        const minDist = ENEMY_SPAWN_CONFIG.spawnDistance;
+        const maxDist = ENEMY_SPAWN_CONFIG.maxSpawnDistance;
+        
+        // Random angle
+        const angle = Math.random() * Math.PI * 2;
+        
+        // Random distance between min and max
+        const distance = minDist + Math.random() * (maxDist - minDist);
+        
+        // Calculate position
+        let x = targetX + Math.cos(angle) * distance;
+        let y = targetY + Math.sin(angle) * distance;
+        
+        // Clamp to world bounds
+        const bounds = this.scene.physics.world.bounds;
+        x = Phaser.Math.Clamp(x, 100, bounds.width - 100);
+        y = Phaser.Math.Clamp(y, 100, bounds.height - 100);
+        
+        return { x, y };
+    }
+    
+    completeWave() {
+        // Emit wave complete event
+        this.scene.events.emit('waveCompleted', {
+            wave: this.currentWave,
+            enemiesSpawned: this.spawnedInWave,
+            timeElapsed: this.scene.time.now - this.waveStartTime
+        });
+        
+        console.log(`Wave ${this.currentWave} completed!`);
+        
+        // Auto-start next wave after delay
+        this.scene.time.delayedCall(3000, () => {
+            if (this.currentWave < WAVE_DEFINITIONS.length - 1) {
+                this.startWave();
+            } else {
+                this.startEndlessMode();
+            }
+        });
+    }
+    
+    endCurrentWave() {
+        this.enemySpawnQueue = [];
+        this.spawnedInWave = 0;
+    }
+    
+    getCurrentWaveInfo() {
+        const waveIndex = Math.min(this.currentWave - 1, WAVE_DEFINITIONS.length - 1);
+        const wave = WAVE_DEFINITIONS[waveIndex];
+        
+        return {
+            number: this.currentWave,
+            name: wave.name,
+            duration: wave.duration,
+            elapsed: this.scene.time.now - this.waveStartTime,
+            spawned: this.spawnedInWave,
+            isEndless: this.isEndless
+        };
+    }
+    
+    reset() {
+        this.currentWave = 0;
+        this.waveStartTime = 0;
+        this.nextSpawnTime = 0;
+        this.enemySpawnQueue = [];
+        this.isEndless = false;
+        this.spawnedInWave = 0;
+        this.totalSpawned = 0;
+    }
+}

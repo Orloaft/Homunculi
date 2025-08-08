@@ -1,0 +1,113 @@
+import { PLAYER_CONFIG } from '../../data/GameConstants.js';
+
+export class PlayerController {
+    constructor(scene, wizard) {
+        this.scene = scene;
+        this.wizard = wizard;
+        this.moveSpeed = PLAYER_CONFIG.moveSpeed;
+        this.lastDirection = 'down';
+        this.isMoving = false;
+        this.isDead = false;
+    }
+    
+    update(inputManager) {
+        if (this.isDead || !this.wizard.active) return;
+        
+        // Get movement input
+        const movement = inputManager.getMovement();
+        this.isMoving = movement.x !== 0 || movement.y !== 0;
+        
+        // Apply movement
+        if (this.isMoving) {
+            this.wizard.setVelocity(
+                movement.x * this.moveSpeed,
+                movement.y * this.moveSpeed
+            );
+            
+            // Update animation direction
+            this.updateAnimation(movement);
+            
+            // Store last direction
+            if (Math.abs(movement.x) > Math.abs(movement.y)) {
+                this.lastDirection = movement.x > 0 ? 'right' : 'left';
+            } else if (movement.y !== 0) {
+                this.lastDirection = movement.y > 0 ? 'down' : 'up';
+            }
+        } else {
+            this.wizard.setVelocity(0, 0);
+            
+            // Play idle animation
+            if (this.wizard.anims && !this.wizard.anims.isPlaying || 
+                this.wizard.anims.currentAnim.key !== 'wizard-idle-loop') {
+                this.wizard.play('wizard-idle-loop');
+            }
+        }
+        
+        // Update wizard flip based on direction
+        if (this.lastDirection === 'left') {
+            this.wizard.setFlipX(true);
+        } else if (this.lastDirection === 'right') {
+            this.wizard.setFlipX(false);
+        }
+    }
+    
+    updateAnimation(movement) {
+        // Determine animation based on movement direction
+        let animKey = 'wizard-fly';
+        
+        if (this.wizard.anims && (!this.wizard.anims.isPlaying || 
+            this.wizard.anims.currentAnim.key === 'wizard-idle-loop')) {
+            this.wizard.play(animKey);
+        }
+    }
+    
+    takeDamage(amount = 1) {
+        if (this.isDead) return;
+        
+        // Emit damage event for other systems to handle
+        this.scene.events.emit('playerDamaged', amount);
+    }
+    
+    die() {
+        if (this.isDead) return;
+        
+        this.isDead = true;
+        this.wizard.setVelocity(0, 0);
+        
+        // Play death animation
+        this.wizard.play('wizard-death');
+        
+        // Emit death event
+        this.scene.events.emit('playerDied');
+    }
+    
+    respawn() {
+        this.isDead = false;
+        
+        // Play respawn animation
+        this.wizard.play('wizard-idle-full');
+        this.wizard.once('animationcomplete', () => {
+            this.wizard.play('wizard-idle-loop');
+        });
+    }
+    
+    getPosition() {
+        return {
+            x: this.wizard.x,
+            y: this.wizard.y
+        };
+    }
+    
+    getDirection() {
+        return this.lastDirection;
+    }
+    
+    setPosition(x, y) {
+        this.wizard.setPosition(x, y);
+    }
+    
+    // Get angle to a target position
+    getAngleTo(targetX, targetY) {
+        return Math.atan2(targetY - this.wizard.y, targetX - this.wizard.x);
+    }
+}

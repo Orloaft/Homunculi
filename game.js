@@ -9,6 +9,7 @@ class LoadingScene extends Phaser.Scene {
 
         // Load all game assets here
         this.load.image('title-bg', 'magustitle.png');
+        this.load.image('gameover-bg', 'gameover.png');
 
         // Load wizard sprites
         this.load.spritesheet('wizard-idle', 'wizmove/newiz/wizard idle.png', {
@@ -32,6 +33,9 @@ class LoadingScene extends Phaser.Scene {
 
         // Load tiles and environment
         this.load.image('dirt-tiles', 'TopDownFantasy_Forest_v1/TopDownFantasy-Forest/Tiles/dirt.png');
+        // Load grass tile with a specific frame to crop out transparent areas
+        // Assuming the actual grass content is in the top-left corner
+        this.load.image('grass-tile', 'grass.PNG');
         this.load.image('tree', 'foliage.png');
 
         // Load element symbols sprite sheets
@@ -92,6 +96,16 @@ class LoadingScene extends Phaser.Scene {
             frameWidth: 32,
             frameHeight: 32
         });
+        
+        this.load.spritesheet('arcane-spell', 'spells/arcane1.png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+        
+        this.load.spritesheet('water-spell', 'spells/water1.png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
 
         // Load bat enemy sprite
         this.load.spritesheet('bat-fly', 'bateye/Flight.png', {
@@ -110,6 +124,44 @@ class LoadingScene extends Phaser.Scene {
             frameWidth: 90, // 810 / 9 frames
             frameHeight: 90
         });
+        
+        // Load summoner enemy sprites
+        this.load.spritesheet('summoner-idle', 'newenemies/summoner/The Summoner idle animation-export.png', {
+            frameWidth: 80, // 960 / 12 frames
+            frameHeight: 80
+        });
+        
+        this.load.spritesheet('summoner-summon', 'newenemies/summoner/summon animation-export.png', {
+            frameWidth: 100, // 1400 / 14 frames
+            frameHeight: 80
+        });
+        
+        // Load lost soul enemy sprites
+        this.load.spritesheet('soul-move', 'newenemies/Soul/Soul/move/Soul_move.png', {
+            frameWidth: 96,
+            frameHeight: 96 // 768 / 8 frames
+        });
+        
+        this.load.spritesheet('soul-attack', 'newenemies/Soul/Soul/attack/Soul_attack.png', {
+            frameWidth: 96,
+            frameHeight: 96 // 960 / 10 frames
+        });
+        
+        this.load.spritesheet('soul-bullet', 'newenemies/Soul/Soul/attack/bullet.png', {
+            frameWidth: 96,
+            frameHeight: 96 // 384 / 4 frames
+        });
+        
+        // Load bloboid enemy sprite
+        this.load.spritesheet('bloboid-walk', 'newenemies/blob/blob minion walk.png', {
+            frameWidth: 80, // 640 / 8 frames
+            frameHeight: 35
+        });
+        
+        // Load dark eye enemy sprites (individual frames)
+        for (let i = 1; i <= 8; i++) {
+            this.load.image(`darkeye-walk-${i}`, `newenemies/Bringer-Of-Death/Individual Sprite/Walk/Bringer-of-Death_Walk_${i}.png`);
+        }
     }
 
     create() {
@@ -293,34 +345,44 @@ class GameOverScene extends Phaser.Scene {
 
     init(data) {
         this.survivalTime = data.survivalTime || 0;
-        this.enemiesKilled = data.enemiesKilled || { tree: 0, slime: 0, golem: 0, elite: 0, bat: 0, sorcerer: 0, mushroom: 0, fireworm: 0 };
+        this.enemiesKilled = data.enemiesKilled || { tree: 0, slime: 0, golem: 0, elite: 0, bat: 0, sorcerer: 0, mushroom: 0, fireworm: 0, summoner: 0, soul: 0, bloboid: 0 };
         this.itemsCollected = data.itemsCollected || { jewels: 0, muffins: 0, elements: 0 };
         this.won = data.won || false;
     }
 
     create() {
-        // Title
-        const title = this.add.text(400, 80, this.won ? 'VICTORY!' : 'GAME OVER', {
-            fontSize: '64px',
-            color: this.won ? '#ffd700' : '#ff4444',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
+        // Black background
+        this.cameras.main.setBackgroundColor('#000000');
+        
+        // Show gameover image if not won
+        if (!this.won) {
+            // Move down by 30% of screen height (600 * 0.3 = 180)
+            const gameoverImage = this.add.image(400, 150 + 180, 'gameover-bg');
+            gameoverImage.setOrigin(0.5);
+            // Reduce size by 50%
+            gameoverImage.setScale(0.5);
+        } else {
+            // Victory text if won
+            const title = this.add.text(400, 150 + 180, 'VICTORY!', {
+                fontSize: '64px',
+                color: '#ffd700',
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+        }
 
         // Survival time
         const totalSeconds = Math.floor(this.survivalTime / 1000);
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = totalSeconds % 60;
-        const timeText = this.add.text(400, 150, `Survived: ${minutes}:${seconds.toString().padStart(2, '0')}`, {
+        const timeText = this.add.text(400, 400, `Survived: ${minutes}:${seconds.toString().padStart(2, '0')}`, {
             fontSize: '28px',
             color: '#ffffff'
         }).setOrigin(0.5);
 
-        // Stats background
-        const statsBg = this.add.rectangle(400, 300, 600, 250, 0x000000, 0.8);
-        statsBg.setStrokeStyle(2, 0xffffff);
+        // No stats background frame - removed
 
         // Enemy kills
-        const killsTitle = this.add.text(250, 200, 'Enemies Defeated:', {
+        const killsTitle = this.add.text(250, 290, 'Enemies Defeated:', {
             fontSize: '20px',
             color: '#ffdd44',
             fontStyle: 'bold'
@@ -332,14 +394,14 @@ class GameOverScene extends Phaser.Scene {
         if (this.enemiesKilled.golem > 0) killsText += `Golems: ${this.enemiesKilled.golem}\n`;
         if (this.enemiesKilled.elite > 0) killsText += `Elites: ${this.enemiesKilled.elite}\n`;
 
-        const killsList = this.add.text(250, 240, killsText || 'None', {
+        const killsList = this.add.text(250, 320, killsText || 'None', {
             fontSize: '16px',
             color: '#ffffff',
             align: 'center'
         }).setOrigin(0.5, 0);
 
         // Items collected
-        const itemsTitle = this.add.text(550, 200, 'Items Collected:', {
+        const itemsTitle = this.add.text(550, 290, 'Items Collected:', {
             fontSize: '20px',
             color: '#44ff44',
             fontStyle: 'bold'
@@ -347,7 +409,7 @@ class GameOverScene extends Phaser.Scene {
 
         const itemsText = `Jewels: ${this.itemsCollected.jewels}\nMuffins: ${this.itemsCollected.muffins}\nElements: ${this.itemsCollected.elements}`;
 
-        const itemsList = this.add.text(550, 240, itemsText, {
+        const itemsList = this.add.text(550, 320, itemsText, {
             fontSize: '16px',
             color: '#ffffff',
             align: 'center'
@@ -357,18 +419,18 @@ class GameOverScene extends Phaser.Scene {
         const totalKills = this.enemiesKilled.tree + this.enemiesKilled.slime + this.enemiesKilled.golem + this.enemiesKilled.elite * 3;
         const score = totalKills * 100 + this.itemsCollected.jewels * 10 + Math.floor(totalSeconds) * 5;
 
-        const scoreText = this.add.text(400, 380, `Score: ${score}`, {
+        const scoreText = this.add.text(400, 440, `Score: ${score}`, {
             fontSize: '32px',
             color: '#ffd700',
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        const restartText = this.add.text(400, 450, 'Press SPACE to Try Again', {
+        const restartText = this.add.text(400, 500, 'Press SPACE to Try Again', {
             fontSize: '24px',
             color: '#ffffff'
         }).setOrigin(0.5);
 
-        const menuText = this.add.text(400, 490, 'Press ESC for Main Menu', {
+        const menuText = this.add.text(400, 540, 'Press ESC for Main Menu', {
             fontSize: '24px',
             color: '#ffffff'
         }).setOrigin(0.5);
@@ -431,8 +493,8 @@ class GameScene extends Phaser.Scene {
         this.jewels = null;
         this.playerXP = 0;
         this.playerLevel = 1;
-        this.xpToNextLevel = 10;
-        this.maxCharges = 1;
+        this.xpToNextLevel = 50;
+        this.maxCharges = 4; // Start with 4 charge slots
         this.chargingElement = null;
         this.chargeHoldTime = 0;
         this.chargeHoldThreshold = 500;
@@ -463,21 +525,29 @@ class GameScene extends Phaser.Scene {
         this.playerHealth = 100;
         this.gameStarted = false; // Will be set to true after countdown
         console.log('GameScene created, gameStarted set to false');
-        this.charges = ['fire']; // Start with fire charge for testing
+        this.charges = []; // Start with no charges
         this.orbitingOrbs = [];
         this.lastEnemySpawn = 0;
         this.survivalTime = 0;
         this.difficultyMultiplier = 1.0;
         this.spawnRateMultiplier = 1.0;
         this.lastEliteSpawn = 0; // Changed from lastMinute to track 30-second intervals
-        this.enemiesKilled = { tree: 0, slime: 0, golem: 0, elite: 0, bat: 0, sorcerer: 0, mushroom: 0, fireworm: 0 };
+        
+        // Wave-based spawning system
+        this.currentWave = 0;
+        this.waveStartTime = 0;
+        this.enemiesInCurrentWave = 0;
+        this.maxEnemiesPerWave = 10;
+        this.waveSpawnInterval = 500; // ms between spawns in a wave
+        this.lastWaveSpawn = 0;
+        this.enemiesKilled = { tree: 0, slime: 0, golem: 0, elite: 0, bat: 0, sorcerer: 0, mushroom: 0, fireworm: 0, summoner: 0, soul: 0 };
         this.itemsCollected = { jewels: 0, muffins: 0, elements: 0 };
         this.eliteEnemies = [];
         this.chests = this.physics.add.group();
         this.playerXP = 0;
         this.playerLevel = 1;
-        this.xpToNextLevel = 10;
-        this.maxCharges = 1;
+        this.xpToNextLevel = 50;
+        this.maxCharges = 4; // Start with 4 charge slots
         this.lastFireTime = 0;
         this.currentChargeIndex = 0;
         this.chargingElement = null;
@@ -502,17 +572,21 @@ class GameScene extends Phaser.Scene {
         this.elementsMenu = null;
 
 
+        // Initialize cooldown system
+        this.spellCooldowns = new Map(); // Map to track cooldowns by spell type
+        this.globalSpellCooldown = 0; // Global cooldown to prevent spell spam
+        
         // Element configuration - 18 elements with sprite frames and colors
         this.elementConfig = {
             // First sprite sheet (elements.png)
-            fire: { frame: 0, color: 0xff4444, name: 'Fire', sheet: 'element-symbols', fireRate: 800 },
+            fire: { frame: 0, color: 0xff4444, name: 'Fire', sheet: 'element-symbols', fireRate: 3000 },
             water: { frame: 1, color: 0x4444ff, name: 'Water', sheet: 'element-symbols', fireRate: 1200 },
             earth: { frame: 2, color: 0x44ff44, name: 'Earth', sheet: 'element-symbols', fireRate: 2000 },
             rock: { frame: 3, color: 0x8b4513, name: 'Rock', sheet: 'element-symbols', fireRate: 1500 },
-            air: { frame: 4, color: 0xcccccc, name: 'Air', sheet: 'element-symbols', fireRate: 600 },
+            air: { frame: 4, color: 0xcccccc, name: 'Air', sheet: 'element-symbols', fireRate: 800 },
             lightning: { frame: 5, color: 0xffff44, name: 'Lightning', sheet: 'element-symbols', fireRate: 1000 },
             holy: { frame: 6, color: 0xffdd00, name: 'Holy', sheet: 'element-symbols' },
-            arcane: { frame: 7, color: 0xff44ff, name: 'Arcane', sheet: 'element-symbols' },
+            arcane: { frame: 7, color: 0xff44ff, name: 'Arcane', sheet: 'element-symbols', fireRate: 1600 },
             dust: { frame: 8, color: 0xcc9966, name: 'Dust', sheet: 'element-symbols' },
 
             // Second sprite sheet (elements2.PNG)
@@ -544,7 +618,7 @@ class GameScene extends Phaser.Scene {
         // Element descriptions for the discovery menu
         this.elementDescriptions = {
             fire: 'Creates burning projectiles that leave fire pools. Basic offensive element.',
-            water: 'Spawns protective orbs that orbit around you. Defensive element.',
+            water: 'Creates an expanding water wave that damages and slows enemies. Defensive element.',
             earth: 'Directional earthquake that damages enemies in a line. Area control.',
             rock: 'Heavy projectiles that stun enemies on impact. Crowd control.',
             air: 'Creates wind blasts that push enemies away. Knockback element.',
@@ -680,6 +754,8 @@ class GameScene extends Phaser.Scene {
         console.log('Pause menu created');
         this.createElementsMenu();
         console.log('Elements menu created');
+        this.createXPBar();
+        console.log('XP bar created');
 
 
         // Create wizard animations
@@ -728,6 +804,30 @@ class GameScene extends Phaser.Scene {
             frames: this.anims.generateFrameNumbers('fire-spell', { start: 0, end: 11 }),
             frameRate: 12,
             repeat: -1
+        });
+        
+        // Create water spell animation using all 12 frames
+        this.anims.create({
+            key: 'water-spell-anim',
+            frames: this.anims.generateFrameNumbers('water-spell', { start: 0, end: 11 }),
+            frameRate: 12,
+            repeat: 0
+        });
+        
+        // Create arcane spell firing animation (first 6 frames)
+        this.anims.create({
+            key: 'arcane-spell-fire',
+            frames: this.anims.generateFrameNumbers('arcane-spell', { start: 0, end: 5 }),
+            frameRate: 15,
+            repeat: 0  // Play once and hold on last frame
+        });
+        
+        // Create arcane spell impact animation (last 6 frames)
+        this.anims.create({
+            key: 'arcane-spell-impact',
+            frames: this.anims.generateFrameNumbers('arcane-spell', { start: 6, end: 11 }),
+            frameRate: 15,
+            repeat: 0  // Play once
         });
 
         // Create enemy walking animation
@@ -827,6 +927,68 @@ class GameScene extends Phaser.Scene {
         this.anims.create({
             key: 'fireworm-walking',
             frames: this.anims.generateFrameNumbers('fireworm-walk', { start: 0, end: 8 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        
+        // Summoner animations
+        this.anims.create({
+            key: 'summoner-idling',
+            frames: this.anims.generateFrameNumbers('summoner-idle', { start: 0, end: 11 }),
+            frameRate: 8,
+            repeat: -1
+        });
+        
+        this.anims.create({
+            key: 'summoner-summoning',
+            frames: this.anims.generateFrameNumbers('summoner-summon', { start: 0, end: 13 }),
+            frameRate: 10,
+            repeat: 0
+        });
+        
+        // Lost soul animations
+        this.anims.create({
+            key: 'soul-moving',
+            frames: this.anims.generateFrameNumbers('soul-move', { start: 0, end: 7 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        
+        this.anims.create({
+            key: 'soul-attacking',
+            frames: this.anims.generateFrameNumbers('soul-attack', { start: 0, end: 9 }),
+            frameRate: 12,
+            repeat: 0
+        });
+        
+        this.anims.create({
+            key: 'soul-bullet-anim',
+            frames: this.anims.generateFrameNumbers('soul-bullet', { start: 0, end: 3 }),
+            frameRate: 15,
+            repeat: -1
+        });
+        
+        // Bloboid animation
+        this.anims.create({
+            key: 'bloboid-walking',
+            frames: this.anims.generateFrameNumbers('bloboid-walk', { start: 0, end: 7 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        
+        // Dark eye animation
+        this.anims.create({
+            key: 'darkeye-walking',
+            frames: [
+                { key: 'darkeye-walk-1' },
+                { key: 'darkeye-walk-2' },
+                { key: 'darkeye-walk-3' },
+                { key: 'darkeye-walk-4' },
+                { key: 'darkeye-walk-5' },
+                { key: 'darkeye-walk-6' },
+                { key: 'darkeye-walk-7' },
+                { key: 'darkeye-walk-8' }
+            ],
             frameRate: 10,
             repeat: -1
         });
@@ -933,113 +1095,362 @@ class GameScene extends Phaser.Scene {
         this.wizard.anims.pause();
         this.wizard.anims.setCurrentFrame(this.wizard.anims.currentAnim.frames[this.wizard.anims.currentAnim.frames.length - 1]);
 
-        console.log('Creating countdown display');
+        console.log('Starting resurrection animation with countdown');
 
-        // Create countdown display
-        this.countdownText = this.add.text(400, 300, '3', {
-            fontSize: '128px',
-            color: '#ffdd44',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 8
-        });
-        this.countdownText.setOrigin(0.5);
-        this.countdownText.setScrollFactor(0);
-        this.countdownText.setDepth(300);
-
-        console.log('Starting countdown timer');
-
-        // Countdown from 3 to 1
-        let countdownValue = 3;
-        const countdownTimer = this.time.addEvent({
-            delay: 1000,
-            repeat: 2,
-            callback: () => {
-                console.log('Countdown:', countdownValue);
-                countdownValue--;
-                if (countdownValue > 0) {
-                    this.countdownText.setText(countdownValue.toString());
-                    // Scale animation for each countdown number
-                    this.tweens.add({
-                        targets: this.countdownText,
-                        scale: { from: 1.5, to: 1 },
-                        duration: 800,
-                        ease: 'Bounce.easeOut'
-                    });
-                } else {
-                    console.log('Countdown finished - starting resurrection animation');
-                    // Countdown finished - play death animation in reverse
-                    this.countdownText.destroy();
-
-                    // Play wizard death animation in reverse to show resurrection
-                    const deathAnim = this.anims.get('wizard-death');
-                    const totalFrames = deathAnim.frames.length;
-                    let currentFrame = totalFrames - 1;
-
-                    const reverseTimer = this.time.addEvent({
-                        delay: 100, // 10 FPS reversed
-                        repeat: totalFrames - 1,
-                        callback: () => {
-                            if (currentFrame >= 0) {
-                                this.wizard.anims.setCurrentFrame(deathAnim.frames[currentFrame]);
-                                currentFrame--;
-                            }
-                            if (currentFrame < 0) {
-                                // Resurrection complete, start the game
-                                console.log('Resurrection complete - starting game');
-                                this.wizard.play('wizard-idle-full');
-                                this.wizard.once('animationcomplete', () => {
-                                    this.wizard.play('wizard-idle-loop');
-                                });
-                                this.startGame();
-                            }
-                        }
-                    });
-                }
-            }
-        });
+        // Start resurrection animation immediately
+        this.startResurrectionAnimation();
+        
+        // Silent countdown continues in background
+        // The game will start after the animation and delay in startResurrectionAnimation
 
         console.log('Game sequence setup complete');
+    }
+    
+    showElementSelection() {
+        console.log('showElementSelection called');
+        
+        try {
+            // Initialize gamepad button states for element selection
+            if (!this.gamepadButtonStates) {
+                this.gamepadButtonStates = [];
+            }
+            // Initialize button 0 state to prevent immediate selection
+            if (this.gamepad) {
+                this.gamepadButtonStates[0] = this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed;
+            }
+            
+            // Make sure camera is at default position
+            const cam = this.cameras.main;
+            cam.centerOn(400, 300);
+            console.log('Camera position:', cam.scrollX, cam.scrollY);
+            console.log('Camera size:', cam.width, 'x', cam.height);
+            console.log('Camera zoom:', cam.zoom);
+            // Create selection background - positioned in screen center
+            const centerX = cam.width / 2;
+            const centerY = cam.height / 2;
+            
+            console.log('Creating UI at screen center:', centerX, centerY);
+            
+            const selectionBg = this.add.rectangle(centerX, centerY, 700, 400, 0x000000);
+            selectionBg.setStrokeStyle(5, 0xffd700); // Gold border
+            selectionBg.setScrollFactor(0);
+            selectionBg.setDepth(500); // Very high depth to ensure visibility
+            selectionBg.setInteractive(); // Make background interactive to block clicks below
+            
+            console.log('Selection BG created:', selectionBg.visible, 'at depth:', selectionBg.depth);
+            
+            // Force the UI to be visible
+            selectionBg.setAlpha(0.9);
+            
+            // Make sure input is enabled
+            this.input.enabled = true;
+            console.log('Input enabled:', this.input.enabled);
+            
+            // Add a global pointer down handler to test if input is working at all
+            this.input.on('pointerdown', (pointer) => {
+                console.log('Global pointer down at:', pointer.x, pointer.y);
+            });
+            
+            
+            // Title
+            const title = this.add.text(centerX, centerY - 150, 'Choose Your Starting Element!', {
+                fontSize: '28px',
+                color: '#ffd700',
+                fontStyle: 'bold'
+            });
+            title.setOrigin(0.5);
+            title.setScrollFactor(0);
+            title.setDepth(501);
+            
+            // For debugging - use fixed elements
+            const selectedElements = ['fire', 'water', 'earth'];
+            console.log('Using fixed elements for testing:', selectedElements);
+            
+            // Create element cards using chest UI style
+            const buttons = [];
+            
+            try {
+                for (let i = 0; i < selectedElements.length; i++) {
+                const xPos = centerX - 220 + i * 220;
+                const element = selectedElements[i];
+                
+                console.log(`Processing element ${i}: ${element}`);
+                
+                if (!this.elementConfig) {
+                    console.error('elementConfig is not defined!');
+                    throw new Error('elementConfig not found');
+                }
+                
+                const config = this.elementConfig[element];
+                
+                if (!config) {
+                    console.error(`No config found for element: ${element}`);
+                    continue;
+                }
+                
+                const button = this.add.container(xPos, centerY - 20);
+                button.setScrollFactor(0);
+                button.setDepth(502);
+                
+                console.log(`Creating button for ${element} at position ${xPos}, 280`);
+                
+                const bg = this.add.rectangle(0, 0, 200, 280, 0x333333);
+                bg.setStrokeStyle(3, i === 0 ? 0xffff00 : 0xffffff);
+                bg.setInteractive({ useHandCursor: true });
+                
+                console.log(`Creating sprite with sheet: ${config.sheet}, frame: ${config.frame}`);
+                
+                let sprite;
+                try {
+                    sprite = this.add.sprite(0, -80, config.sheet, config.frame);
+                    sprite.setScale(0.4);
+                } catch (spriteError) {
+                    console.error('Error creating sprite:', spriteError);
+                    // Create a placeholder rectangle instead
+                    sprite = this.add.rectangle(0, -80, 60, 60, config.color || 0xffffff);
+                }
+                
+                const name = this.add.text(0, -20, config.name.toUpperCase(), {
+                    fontSize: '18px',
+                    color: '#ffffff',
+                    fontStyle: 'bold'
+                });
+                name.setOrigin(0.5);
+                
+                const descriptionText = this.elementDescriptions[element] || 'Elemental magic';
+                const description = this.add.text(0, 40, descriptionText, {
+                    fontSize: '12px',
+                    color: '#cccccc',
+                    align: 'center',
+                    wordWrap: { width: 180 }
+                });
+                description.setOrigin(0.5);
+                
+                button.add([bg, sprite, name, description]);
+                
+                // Create an invisible hit zone at the button's world position
+                const hitZone = this.add.rectangle(xPos, centerY - 20, 200, 280, 0x00ff00, 0.01);
+                hitZone.setScrollFactor(0);
+                hitZone.setDepth(600);
+                hitZone.setInteractive({ useHandCursor: true });
+                
+                // Store references
+                buttons.push({ container: button, element: element, bg: bg, hitZone: hitZone });
+                
+                // Selection - use arrow function to preserve context
+                const selectElement = () => {
+                    console.log(`Element selected: ${element}`);
+                    
+                    // Add selected element to charges
+                    this.charges.push(element);
+                    console.log('Charges after selection:', this.charges);
+                    
+                    this.updateChargeUI();
+                    console.log('Charge UI updated');
+                    
+                    // Clean up selection UI
+                    selectionBg.destroy();
+                    title.destroy();
+                    controlHint.destroy();
+                    buttons.forEach(btn => {
+                        btn.container.destroy();
+                        btn.hitZone.destroy();
+                    });
+                    
+                    console.log('UI cleaned up - starting game');
+                    // Start the game
+                    this.startGame();
+                };
+                
+                // Add event handlers to the hit zone
+                hitZone.on('pointerdown', selectElement);
+                
+                // Hover effects on hit zone
+                hitZone.on('pointerover', () => {
+                    console.log(`Hovering over ${element}`);
+                    bg.setFillStyle(0x555555);
+                });
+                
+                hitZone.on('pointerout', () => {
+                    bg.setFillStyle(0x333333);
+                });
+                
+                // Debug - log button visibility
+                console.log(`Button ${element} visible:`, button.visible, 'BG interactive:', bg.input.enabled);
+            }
+            
+            } catch (loopError) {
+                console.error('Error in button creation loop:', loopError);
+                console.error('Stack trace:', loopError.stack);
+            }
+            
+            // Control hint
+            const controlHintText = this.gamepad ? 
+                'Use D-Pad/Stick to select, A to confirm' : 
+                'Click an element or use Arrow Keys + Space';
+            const controlHint = this.add.text(centerX, centerY + 170, controlHintText, {
+                fontSize: '14px',
+                color: '#aaaaaa'
+            });
+            controlHint.setOrigin(0.5);
+            controlHint.setScrollFactor(0);
+            controlHint.setDepth(501);
+            
+            console.log('Element selection UI created successfully');
+            
+            // Controller support for element selection
+            this.elementSelectionIndex = 0;
+            this.elementSelectionButtons = buttons;
+            this.elementSelectionActive = true;
+            
+            // Highlight first button
+            this.updateElementSelectionHighlight();
+            
+            // Store references for cleanup
+            this.elementSelectionUI = {
+                bg: selectionBg,
+                title: title,
+                controlHint: controlHint,
+                buttons: buttons
+            };
+            
+        } catch (error) {
+            console.error('Error in showElementSelection:', error);
+            // Fallback: start game with fire element
+            this.charges.push('fire');
+            this.updateChargeUI();
+            console.log('Error fallback - starting game');
+            this.startGame();
+        }
+    }
+    
+    updateElementSelectionHighlight() {
+        // Update visual highlight for selected element
+        this.elementSelectionButtons.forEach((btn, index) => {
+            if (index === this.elementSelectionIndex) {
+                btn.bg.setStrokeStyle(3, 0xffff00); // Yellow highlight
+                btn.bg.setScale(1.05);
+            } else {
+                btn.bg.setStrokeStyle(3, 0xffffff); // White border
+                btn.bg.setScale(1);
+            }
+        });
+    }
+    
+    selectCurrentElement() {
+        if (!this.elementSelectionActive || !this.elementSelectionButtons) return;
+        
+        const selectedButton = this.elementSelectionButtons[this.elementSelectionIndex];
+        const element = selectedButton.element;
+        
+        console.log(`Element selected via controller: ${element}`);
+        
+        // Add selected element to charges
+        this.charges.push(element);
+        this.updateChargeUI();
+        
+        // Clean up selection UI
+        this.elementSelectionUI.bg.destroy();
+        this.elementSelectionUI.title.destroy();
+        this.elementSelectionUI.controlHint.destroy();
+        this.elementSelectionUI.buttons.forEach(btn => {
+            btn.container.destroy();
+            if (btn.hitZone) btn.hitZone.destroy();
+        });
+        
+        // Clear references
+        this.elementSelectionActive = false;
+        this.elementSelectionButtons = null;
+        this.elementSelectionUI = null;
+        
+        console.log('UI cleaned up - starting game');
+        // Start the game
+        this.startGame();
+    }
+    
+    startResurrectionAnimation() {
+        console.log('startResurrectionAnimation called');
+        
+        try {
+            // Play death animation backwards from last frame to first
+            console.log('Playing wizard death animation backwards');
+            
+            // Create a reverse death animation if it doesn't exist
+            if (!this.anims.exists('wizard-death-reverse')) {
+                // Get the frames from the death animation
+                const deathAnim = this.anims.get('wizard-death');
+                const frames = deathAnim.frames.map(frame => ({
+                    key: frame.textureKey,
+                    frame: frame.textureFrame
+                }));
+                
+                // Reverse the frames array
+                frames.reverse();
+                
+                // Create the reverse animation
+                this.anims.create({
+                    key: 'wizard-death-reverse',
+                    frames: frames,
+                    frameRate: 10,
+                    repeat: 0
+                });
+            }
+            
+            // Make sure wizard animation is not paused
+            this.wizard.anims.resume();
+            
+            // Play the reverse death animation
+            this.wizard.play('wizard-death-reverse');
+            
+            // After resurrection completes, play idle
+            this.wizard.once('animationcomplete', () => {
+                console.log('Resurrection animation complete, playing idle');
+                this.wizard.play('wizard-idle-loop');
+            });
+            
+            // Start game after animation plus some delay
+            this.time.delayedCall(2000, () => {
+                console.log('Starting game after resurrection');
+                this.startGame();
+            });
+            
+        } catch (error) {
+            console.error('Error in startResurrectionAnimation:', error);
+            // Fallback: start game directly
+            this.wizard.play('wizard-idle-loop');
+            this.startGame();
+        }
     }
 
     createForestBackground() {
         const worldWidth = 4000;  // Much wider world - was 1280
         const worldHeight = 2160;  // 3x the original height (720 * 3)
-        const tileSize = 16;
-
-        // Calculate number of tiles needed
-        const tilesX = Math.ceil(worldWidth / tileSize);
-        const tilesY = Math.ceil(worldHeight / tileSize);
-
-        // Create map data array
-        const mapData = [];
-        for (let y = 0; y < tilesY; y++) {
-            mapData[y] = [];
-            for (let x = 0; x < tilesX; x++) {
-                // Randomly select tile index (0-5 for 6 tiles)
-                mapData[y][x] = Phaser.Math.Between(0, 5);
-            }
-        }
-
-        // Create tilemap from data
-        const map = this.make.tilemap({
-            data: mapData,
-            tileWidth: tileSize,
-            tileHeight: tileSize
-        });
-
-        // Add tileset image - dirt.png contains 2x3 tiles of 16x16 each
-        const tileset = map.addTilesetImage('dirt-tiles', 'dirt-tiles', 16, 16, 0, 0);
-
-        // Create layer
-        const layer = map.createLayer(0, tileset, 0, 0);
-        layer.setDepth(-10);
+        
+        // Just set a solid background color - no tiles
+        this.cameras.main.setBackgroundColor('#2d5a27'); // Dark green background
 
         // Update world bounds
         this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
 
         // Set camera bounds to prevent seeing beyond the world
         this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
+        
+        // Create trees on top of the background
+        this.createTrees();
+    }
+    
+    createTrees() {
+        // Add random trees for decoration
+        const treeCount = 50;
+        for (let i = 0; i < treeCount; i++) {
+            const x = Phaser.Math.Between(100, 3900);
+            const y = Phaser.Math.Between(100, 2060);
+            
+            const tree = this.add.image(x, y, 'tree');
+            tree.setScale(Phaser.Math.FloatBetween(0.8, 1.2));
+            tree.setDepth(y / 10); // Depth based on Y position
+            tree.setAlpha(0.8);
+        }
     }
 
     createChargeUI() {
@@ -1050,6 +1461,16 @@ class GameScene extends Phaser.Scene {
         });
         this.secondaryTimer.setScrollFactor(0); // Fix to camera
         this.secondaryTimer.setDepth(60); // Above everything
+        
+        // Add FPS meter
+        this.fpsText = this.add.text(10, 10, 'FPS: 0', {
+            fontSize: '16px',
+            color: '#00ff00',
+            backgroundColor: '#000000',
+            padding: { x: 5, y: 5 }
+        });
+        this.fpsText.setScrollFactor(0);
+        this.fpsText.setDepth(1000);
 
         // Removed auto-shooting text
 
@@ -1315,23 +1736,19 @@ class GameScene extends Phaser.Scene {
         // Enable player controls
         this.gameStarted = true;
 
-        // Switch wizard to idle animation
-        this.wizard.play('wizard-idle-full');
-        this.wizard.once('animationcomplete', () => {
-            this.wizard.play('wizard-idle-loop');
-        });
-
-        console.log('Spawning initial enemies');
-
-        // Spawn initial wave of enemies
-        const initialEnemies = 4;
-        for (let i = 0; i < initialEnemies; i++) {
-            this.spawnEnemy();
-        }
+        console.log('Starting wave system');
+        
+        // Start with no charges
+        this.charges = [];
+        this.updateChargeUI();
+        
+        // Initialize wave system
+        this.waveStartTime = this.time.now;
+        this.startNewWave();
 
         console.log('Game fully started!');
 
-        // Update charge indicators to show starting fire charge
+        // Update charge indicators to show starting arcane charge
         if (this.charges.length > 0 && this.chargeIndicators.length > 0) {
             const element = this.charges[0];
             const config = this.elementConfig[element];
@@ -1340,6 +1757,127 @@ class GameScene extends Phaser.Scene {
                 this.chargeIndicators[0].sprite.setVisible(true);
             }
         }
+        
+        // Trigger level up after 1 second
+        this.time.delayedCall(1000, () => {
+            console.log('Triggering initial level up');
+            this.openChest(this.wizard, null);
+        });
+    }
+    
+    getWaveDefinition(waveNumber) {
+        // Wave definitions inspired by Vampire Survivors
+        // Each wave lasts 60 seconds, with specific enemy types and spawn patterns
+        
+        const baseWaves = [
+            // Wave 0 (0:00-1:00) - Introduction
+            {
+                enemies: [
+                    { type: 'bat', weight: 40, count: 3 },
+                    { type: 'tree', weight: 60, count: 2 }
+                ],
+                spawnInterval: 2000,
+                maxEnemies: 25
+            },
+            // Wave 1 (1:00-2:00) - Add mushrooms
+            {
+                enemies: [
+                    { type: 'bat', weight: 30, count: 4 },
+                    { type: 'tree', weight: 40, count: 2 },
+                    { type: 'mushroom', weight: 30, count: 2 }
+                ],
+                spawnInterval: 1500,
+                maxEnemies: 35
+            },
+            // Wave 2 (2:00-3:00) - Add fireworms
+            {
+                enemies: [
+                    { type: 'bat', weight: 25, count: 4 },
+                    { type: 'tree', weight: 30, count: 2 },
+                    { type: 'mushroom', weight: 25, count: 2 },
+                    { type: 'fireworm', weight: 20, count: 2 }
+                ],
+                spawnInterval: 1200,
+                maxEnemies: 45,
+                specialEvent: { time: 30, type: 'swarm', enemy: 'bat', count: 12 }
+            },
+            // Wave 3 (3:00-4:00) - Add souls
+            {
+                enemies: [
+                    { type: 'tree', weight: 25, count: 3 },
+                    { type: 'mushroom', weight: 25, count: 2 },
+                    { type: 'fireworm', weight: 25, count: 2 },
+                    { type: 'soul', weight: 25, count: 2 }
+                ],
+                spawnInterval: 1000,
+                maxEnemies: 55
+            },
+            // Wave 4 (4:00-5:00) - Add bloboids
+            {
+                enemies: [
+                    { type: 'mushroom', weight: 20, count: 3 },
+                    { type: 'fireworm', weight: 20, count: 3 },
+                    { type: 'soul', weight: 30, count: 2 },
+                    { type: 'bloboid', weight: 30, count: 2 }
+                ],
+                spawnInterval: 800,
+                maxEnemies: 65,
+                specialEvent: { time: 30, type: 'circle', enemy: 'fireworm', count: 10 }
+            },
+            // Wave 5+ (5:00+) - Add summoners and increase difficulty
+            {
+                enemies: [
+                    { type: 'fireworm', weight: 15, count: 3 },
+                    { type: 'soul', weight: 20, count: 3 },
+                    { type: 'bloboid', weight: 25, count: 3 },
+                    { type: 'summoner', weight: 20, count: 2 },
+                    { type: 'tree', weight: 20, count: 4 }
+                ],
+                spawnInterval: 600,
+                maxEnemies: 80
+            }
+        ];
+        
+        // After wave 5, cycle through waves with increased difficulty
+        const waveIndex = Math.min(waveNumber, baseWaves.length - 1);
+        const wave = { ...baseWaves[waveIndex] };
+        
+        // Increase difficulty for waves beyond the base set
+        if (waveNumber >= baseWaves.length) {
+            const cycleNumber = Math.floor(waveNumber / baseWaves.length);
+            wave.spawnInterval = Math.max(300, wave.spawnInterval - (cycleNumber * 200));
+            wave.maxEnemies = wave.maxEnemies + (cycleNumber * 10);
+        }
+        
+        return wave;
+    }
+    
+    startNewWave() {
+        this.currentWave++;
+        this.waveStartTime = this.time.now;
+        this.enemiesInCurrentWave = 0;
+        
+        console.log(`Starting wave ${this.currentWave}`);
+        
+        // Show wave announcement
+        const waveText = this.add.text(400, 200, `Wave ${this.currentWave}`, {
+            fontSize: '48px',
+            color: '#ffdd44',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        waveText.setOrigin(0.5);
+        waveText.setDepth(100);
+        
+        this.tweens.add({
+            targets: waveText,
+            y: 250,
+            alpha: 0,
+            duration: 2000,
+            ease: 'Power2',
+            onComplete: () => waveText.destroy()
+        });
     }
 
     createWizardHealthBar() {
@@ -1389,6 +1927,64 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    createXPBar() {
+        // Create XP bar at top of screen
+        const barWidth = 400;
+        const barHeight = 20;
+        const barX = 400; // Center of screen
+        const barY = 10; // Flush with top
+        
+        // Background
+        this.xpBarBg = this.add.rectangle(barX, barY, barWidth, barHeight, 0x333333);
+        this.xpBarBg.setStrokeStyle(2, 0x000000);
+        this.xpBarBg.setScrollFactor(0);
+        this.xpBarBg.setDepth(100);
+        
+        // XP fill
+        this.xpBarFill = this.add.rectangle(barX - barWidth/2, barY, 0, barHeight - 4, 0x4444ff);
+        this.xpBarFill.setOrigin(0, 0.5);
+        this.xpBarFill.setScrollFactor(0);
+        this.xpBarFill.setDepth(101);
+        
+        // Level text
+        this.levelText = this.add.text(barX - barWidth/2 - 10, barY, `Lvl ${this.playerLevel}`, {
+            fontSize: '16px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 2
+        });
+        this.levelText.setOrigin(1, 0.5);
+        this.levelText.setScrollFactor(0);
+        this.levelText.setDepth(102);
+        
+        // XP text
+        this.xpText = this.add.text(barX, barY, `${this.playerXP} / ${this.xpToNextLevel}`, {
+            fontSize: '14px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 2
+        });
+        this.xpText.setOrigin(0.5, 0.5);
+        this.xpText.setScrollFactor(0);
+        this.xpText.setDepth(102);
+        
+        this.updateXPBar();
+    }
+    
+    updateXPBar() {
+        if (!this.xpBarFill || !this.xpText || !this.levelText) return;
+        
+        // Update XP fill
+        const xpPercent = this.playerXP / this.xpToNextLevel;
+        const barWidth = 400;
+        this.xpBarFill.width = (barWidth - 4) * xpPercent;
+        
+        // Update text
+        this.xpText.setText(`${this.playerXP} / ${this.xpToNextLevel}`);
+        this.levelText.setText(`Lvl ${this.playerLevel}`);
+    }
+
     update(time, delta) {
         // Update gamepad reference
         if (!this.gamepad && this.input.gamepad.total > 0) {
@@ -1433,6 +2029,20 @@ class GameScene extends Phaser.Scene {
         if (this.secondaryTimer) {
             this.secondaryTimer.setText(timeString);
         }
+        
+        // Update FPS meter
+        if (this.fpsText) {
+            const fps = Math.round(this.game.loop.actualFps);
+            this.fpsText.setText(`FPS: ${fps}`);
+            // Change color based on performance
+            if (fps >= 55) {
+                this.fpsText.setColor('#00ff00'); // Green for good
+            } else if (fps >= 30) {
+                this.fpsText.setColor('#ffff00'); // Yellow for okay
+            } else {
+                this.fpsText.setColor('#ff0000'); // Red for poor
+            }
+        }
 
         // Check win condition (10 minutes)
         if (minutes >= 10) {
@@ -1454,7 +2064,8 @@ class GameScene extends Phaser.Scene {
         // Only open pause menu if no other menus are active
         if ((Phaser.Input.Keyboard.JustDown(this.pKey) ||
             (startPressed && !this.gamepadButtonStates[9])) &&
-            !this.spellbookOpen && !this.elementsMenuOpen && !this.chestSelectionActive && !this.fusionUI) {
+            !this.spellbookOpen && !this.elementsMenuOpen && !this.chestSelectionActive && !this.fusionUI &&
+            !this.elementSelectionActive && !this.discardConfirmation && !this.discardConfirmUI) {
             this.togglePause();
         }
 
@@ -1600,6 +2211,64 @@ class GameScene extends Phaser.Scene {
         if (this.isPaused) {
             this.handlePauseMenuController();
             return;
+        }
+        
+        // Handle element selection controls before game starts
+        if (this.elementSelectionActive && this.elementSelectionButtons) {
+            // Check for left/right navigation (D-pad or left stick)
+            let leftPressed = false;
+            let rightPressed = false;
+            let confirmPressed = false;
+            
+            if (this.gamepad) {
+                // D-pad navigation
+                leftPressed = this.gamepad.buttons[14] && this.gamepad.buttons[14].pressed && !this.gamepadButtonStates[14];
+                rightPressed = this.gamepad.buttons[15] && this.gamepad.buttons[15].pressed && !this.gamepadButtonStates[15];
+                
+                // Left stick navigation
+                if (!leftPressed && this.gamepad.leftStick.x < -0.5 && !this.leftStickPressed) {
+                    leftPressed = true;
+                    this.leftStickPressed = true;
+                } else if (this.gamepad.leftStick.x >= -0.5) {
+                    this.leftStickPressed = false;
+                }
+                
+                if (!rightPressed && this.gamepad.leftStick.x > 0.5 && !this.rightStickPressed) {
+                    rightPressed = true;
+                    this.rightStickPressed = true;
+                } else if (this.gamepad.leftStick.x <= 0.5) {
+                    this.rightStickPressed = false;
+                }
+                
+                // A button to confirm
+                confirmPressed = this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed && !this.gamepadButtonStates[0];
+            }
+            
+            // Keyboard support as well
+            if (this.cursors) {
+                leftPressed = leftPressed || Phaser.Input.Keyboard.JustDown(this.cursors.left);
+                rightPressed = rightPressed || Phaser.Input.Keyboard.JustDown(this.cursors.right);
+            }
+            if (this.spaceKey) {
+                confirmPressed = confirmPressed || Phaser.Input.Keyboard.JustDown(this.spaceKey);
+            }
+            
+            // Navigate between elements
+            if (leftPressed) {
+                console.log('Element selection: Navigate left');
+                this.elementSelectionIndex = Math.max(0, this.elementSelectionIndex - 1);
+                this.updateElementSelectionHighlight();
+            } else if (rightPressed) {
+                console.log('Element selection: Navigate right');
+                this.elementSelectionIndex = Math.min(this.elementSelectionButtons.length - 1, this.elementSelectionIndex + 1);
+                this.updateElementSelectionHighlight();
+            }
+            
+            // Select element
+            if (confirmPressed) {
+                console.log('Element selection: Confirm selection');
+                this.selectCurrentElement();
+            }
         }
 
         // Don't allow player movement until game has started
@@ -1791,23 +2460,19 @@ class GameScene extends Phaser.Scene {
         // Element orbs are now collected by walking over them
         // No manual charging system
 
-        // Automatic shooting based on charges - each charge has its own cooldown
+        // Automatic shooting based on charges using the new cooldown system
         if (this.charges.length > 0) {
-            // Fire each charge independently based on its own cooldown
+            // Fire each charge independently based on its cooldown
             for (let i = 0; i < this.charges.length; i++) {
                 const element = this.charges[i];
                 const elementConfig = this.elementConfig[element];
                 const fireRate = elementConfig.fireRate || 1000; // Default 1 second if not specified
 
-                // Initialize last fire time if not set
-                if (this.chargeLastFireTimes[i] === undefined) {
-                    this.chargeLastFireTimes[i] = 0;
-                }
-
-                // Check if this charge is ready to fire
-                if (time > this.chargeLastFireTimes[i] + fireRate) {
+                // Check if this charge can fire using the new cooldown system
+                if (this.canCastSpell(element, i)) {
                     this.fireIndividualCharge(i, element);
-                    this.chargeLastFireTimes[i] = time;
+                    // Set the cooldown for this specific charge
+                    this.setSpellCooldown(element, fireRate, i);
                 }
             }
         } else {
@@ -1818,26 +2483,37 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        // Check if any sorcerers are currently alive (replaced golems)
-        const sorcererAlive = this.enemies.children.entries.some(enemy =>
-            enemy.active && enemy.enemyType === 'sorcerer'
+        // Check if any dark eyes are currently alive (replaced sorcerers)
+        const darkEyeAlive = this.enemies.children.entries.some(enemy =>
+            enemy.active && enemy.enemyType === 'darkeye'
         );
 
-        // Only spawn regular enemies if no sorcerer is alive and game has started
-        if (!sorcererAlive && this.gameStarted) {
-            // Calculate spawn delay based on difficulty
-            // Start at 10 seconds for easier early game, decrease to minimum of 2 seconds
-            const baseSpawnDelay = 10000; // 10 seconds (much slower initial spawn)
-            const minSpawnDelay = 2000; // 2 second minimum
-            const spawnDelay = Math.max(minSpawnDelay, baseSpawnDelay / this.spawnRateMultiplier);
-
-            if (time > this.lastEnemySpawn + spawnDelay) {
-                // Spawn fewer enemies early on
-                const enemiesToSpawn = Math.floor(1 + Math.floor(this.spawnRateMultiplier * 0.5));
-                for (let i = 0; i < enemiesToSpawn; i++) {
-                    this.spawnEnemy();
+        // Wave-based spawning system
+        if (!darkEyeAlive && this.gameStarted) {
+            // Check if it's time to start a new wave (every 60 seconds)
+            const waveTime = (time - this.waveStartTime) / 1000; // Convert to seconds
+            if (waveTime >= 60) {
+                this.startNewWave();
+            }
+            
+            // Get current wave definition
+            const waveDef = this.getWaveDefinition(this.currentWave - 1);
+            
+            // Check for special events
+            if (waveDef.specialEvent && Math.floor(waveTime) === waveDef.specialEvent.time) {
+                if (!this.specialEventTriggered) {
+                    this.triggerSpecialEvent(waveDef.specialEvent);
+                    this.specialEventTriggered = true;
                 }
-                this.lastEnemySpawn = time;
+            } else if (Math.floor(waveTime) !== waveDef.specialEvent?.time) {
+                this.specialEventTriggered = false;
+            }
+            
+            // Regular wave spawning
+            const currentEnemyCount = this.enemies.children.entries.filter(e => e.active).length;
+            if (currentEnemyCount < waveDef.maxEnemies && time > this.lastWaveSpawn + waveDef.spawnInterval) {
+                this.spawnWaveEnemy(waveDef);
+                this.lastWaveSpawn = time;
             }
         }
 
@@ -1849,8 +2525,8 @@ class GameScene extends Phaser.Scene {
 
             const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
 
-            // Teleport enemy if too far from wizard (beyond 800 pixels) - but not sorcerers
-            if (distance > 800 && enemy.enemyType !== 'sorcerer') {
+            // Teleport enemy if too far from wizard (beyond 800 pixels)
+            if (distance > 800) {
                 // Teleport to outside viewport
                 const camera = this.cameras.main;
                 const viewportWidth = camera.width;
@@ -1883,29 +2559,79 @@ class GameScene extends Phaser.Scene {
                 enemy.y = Phaser.Math.Clamp(enemy.y, 50, 2110);
             }
 
-            // Handle sorcerer behavior separately
-            if (enemy.enemyType === 'sorcerer') {
-                // Sorcerers are completely stationary
-                enemy.body.setVelocity(0, 0);
-
+            // Handle summoner behavior
+            if (enemy.enemyType === 'summoner') {
+                // Summoners move very slowly
+                if (!enemy.stunned && !enemy.blinded) {
+                    const moveSpeed = enemy.moveSpeed || 20;
+                    const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
+                    enemy.setVelocity(
+                        Math.cos(angle) * moveSpeed,
+                        Math.sin(angle) * moveSpeed
+                    );
+                }
+                
+                // Face the wizard (reversed for summoner)
+                if (this.wizard.x < enemy.x) {
+                    enemy.setFlipX(false); // Face left (no flip)
+                } else {
+                    enemy.setFlipX(true); // Face right (flip)
+                }
+                
+                // Summon minions periodically
+                if (!enemy.lastSummonTime) enemy.lastSummonTime = 0;
+                if (time > enemy.lastSummonTime + enemy.summonCooldown && !enemy.isSummoning) {
+                    this.summonMinions(enemy);
+                    enemy.lastSummonTime = time;
+                }
+            }
+            // Handle lost soul behavior
+            else if (enemy.enemyType === 'soul') {
+                const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
+                
+                // Move towards wizard but stop at attack range
+                if (distance > enemy.attackRange && !enemy.stunned && !enemy.blinded) {
+                    const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
+                    let speed = enemy.moveSpeed;
+                    
+                    // Apply water slow effect if active
+                    if (enemy.waterSlowTime && this.time.now < enemy.waterSlowTime) {
+                        speed *= enemy.waterSlowFactor || 0.5;
+                    }
+                    
+                    enemy.setVelocity(
+                        Math.cos(angle) * speed,
+                        Math.sin(angle) * speed
+                    );
+                } else {
+                    enemy.setVelocity(0, 0);
+                }
+                
                 // Face the wizard
                 if (this.wizard.x < enemy.x) {
                     enemy.setFlipX(true); // Face left
                 } else {
                     enemy.setFlipX(false); // Face right
                 }
-
-                // Fire projectiles at the wizard
-                if (!enemy.lastFireTime) enemy.lastFireTime = 0;
-                if (time > enemy.lastFireTime + enemy.fireRate) {
-                    this.fireSorcererProjectile(enemy);
-                    enemy.lastFireTime = time;
+                
+                // Attack when in range
+                if (distance <= enemy.attackRange && !enemy.isAttacking) {
+                    if (!enemy.lastAttackTime) enemy.lastAttackTime = 0;
+                    if (time > enemy.lastAttackTime + enemy.attackCooldown) {
+                        this.soulAttack(enemy);
+                        enemy.lastAttackTime = time;
+                    }
                 }
             }
             // Only update velocity if not being knocked back, not stunned, and not blinded
             else if (Math.abs(enemy.body.velocity.x) < 100 && Math.abs(enemy.body.velocity.y) < 100 && !enemy.stunned && !enemy.blinded) {
                 // Get enemy speed based on type
-                const moveSpeed = enemy.moveSpeed || (enemy.enemyType === 'tree' ? 48 : 60);
+                let moveSpeed = enemy.moveSpeed || (enemy.enemyType === 'tree' ? 48 : 60);
+                
+                // Apply water slow effect if active
+                if (enemy.waterSlowTime && this.time.now < enemy.waterSlowTime) {
+                    moveSpeed *= enemy.waterSlowFactor || 0.5;
+                }
 
                 // Stop moving if within attack range (40 pixels)
                 const stopDistance = 40;
@@ -1921,8 +2647,8 @@ class GameScene extends Phaser.Scene {
                         enemy.play(`golem-${enemy.golemColor}-walk`);
                     }
 
-                    // Flip golem to face wizard
-                    if (enemy.enemyType === 'golem') {
+                    // Flip enemies to face wizard
+                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'soul' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'darkeye') {
                         if (this.wizard.x < enemy.x) {
                             enemy.setFlipX(true); // Face left
                         } else {
@@ -1938,8 +2664,8 @@ class GameScene extends Phaser.Scene {
                         enemy.play(`golem-${enemy.golemColor}-walk`);
                     }
 
-                    // Flip golem to face wizard even when stopped
-                    if (enemy.enemyType === 'golem') {
+                    // Flip enemies to face wizard even when stopped
+                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'darkeye') {
                         if (this.wizard.x < enemy.x) {
                             enemy.setFlipX(true); // Face left
                         } else {
@@ -1947,8 +2673,8 @@ class GameScene extends Phaser.Scene {
                         }
                     }
                 }
-            } else if (enemy.enemyType !== 'sorcerer') {
-                // Gradually slow down knockback (but not for sorcerers)
+            } else {
+                // Gradually slow down knockback
                 enemy.setVelocity(
                     enemy.body.velocity.x * 0.85,
                     enemy.body.velocity.y * 0.85
@@ -1989,6 +2715,41 @@ class GameScene extends Phaser.Scene {
 
         // Update wizard health bar position
         this.updateWizardHealthBar();
+
+        // Water sprite stays at spawn position - no position update needed
+
+        // Update active fire flame position to follow wizard
+        if (this.activeFlames && this.activeFlames[0] && this.activeFlames[0].active) {
+            const flame = this.activeFlames[0];
+            const direction = this.wizard.lastDirection || 'down';
+            
+            // Calculate directional offsets (same logic as in fireFireProjectile)
+            const directionAngles = {
+                'up': -Math.PI / 2,
+                'down': Math.PI / 2,
+                'left': Math.PI,
+                'right': 0,
+                'up-left': -3 * Math.PI / 4,
+                'up-right': -Math.PI / 4,
+                'down-left': 3 * Math.PI / 4,
+                'down-right': Math.PI / 4
+            };
+            
+            const angle = directionAngles[direction];
+            const scale = flame.scaleX; // Get current scale of flame
+            const spriteSize = 32 * scale;
+            const wizardHitboxRadius = 15;
+            const spacing = 10;
+            const distanceFromWizard = wizardHitboxRadius + spacing + (spriteSize * 0.5);
+            
+            // Update position
+            flame.x = this.wizard.x + Math.cos(angle) * distanceFromWizard;
+            flame.y = this.wizard.y + Math.sin(angle) * distanceFromWizard;
+            
+            // Update rotation to match current direction
+            const defaultAngle = 3 * Math.PI / 4; // down-left
+            flame.setRotation(angle - defaultAngle);
+        }
 
         // Attract jewels to wizard when close
         this.jewels.children.entries.forEach(jewel => {
@@ -2035,46 +2796,71 @@ class GameScene extends Phaser.Scene {
             }
         });
 
-        // Update water orbs to orbit around wizard
+        // Water orbs are no longer used - water spell creates AOE waves instead
+        // Clean up any remaining water orbs
         this.waterOrbs.forEach((orb, index) => {
             if (orb.active) {
-                // Store current angle if not set
-                if (orb.currentAngle === undefined) {
-                    orb.currentAngle = orb.startAngle;
-                }
-                // Increment angle continuously
-                orb.currentAngle += 0.002 * delta;
-                orb.x = this.wizard.x + Math.cos(orb.currentAngle) * orb.orbitRadius;
-                orb.y = this.wizard.y + Math.sin(orb.currentAngle) * orb.orbitRadius;
+                orb.destroy();
             }
         });
+        this.waterOrbs = [];
 
         // Active flames stay in their initial position and rotation
         // No longer follow the wizard to prevent rotation abuse
 
-        // Update lightning projectiles to home in on enemies
+        // Update homing projectiles
         this.projectiles.children.entries.forEach(projectile => {
             if (projectile.isHoming && projectile.active) {
-                let closestEnemy = null;
-                let closestDist = 999999;
-
-                this.enemies.children.entries.forEach(enemy => {
-                    if (enemy.active) {
-                        const dist = Phaser.Math.Distance.Between(projectile.x, projectile.y, enemy.x, enemy.y);
-                        if (dist < closestDist) {
-                            closestDist = dist;
-                            closestEnemy = enemy;
+                let targetEnemy = null;
+                
+                // For arcane projectiles, use locked target
+                if (projectile.homingTarget && projectile.homingTarget.active && !projectile.homingTarget.isDying) {
+                    targetEnemy = projectile.homingTarget;
+                } else {
+                    // For other homing projectiles (like lightning), find closest
+                    let closestDist = 999999;
+                    this.enemies.children.entries.forEach(enemy => {
+                        if (enemy.active && !enemy.isDying) {
+                            const dist = Phaser.Math.Distance.Between(projectile.x, projectile.y, enemy.x, enemy.y);
+                            if (dist < closestDist) {
+                                closestDist = dist;
+                                targetEnemy = enemy;
+                            }
                         }
-                    }
-                });
+                    });
+                }
 
-                if (closestEnemy) {
-                    const angle = Phaser.Math.Angle.Between(projectile.x, projectile.y, closestEnemy.x, closestEnemy.y);
-                    const speed = 250;
+                if (targetEnemy) {
+                    const angle = Phaser.Math.Angle.Between(projectile.x, projectile.y, targetEnemy.x, targetEnemy.y);
+                    const speed = projectile.homingSpeed || 250;
                     projectile.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+                    
+                    // Rotate projectile to face target (for arcane)
+                    if (projectile.texture.key === 'arcane-spell') {
+                        projectile.setRotation(angle);
+                    }
                 }
             }
         });
+        
+        // Update enemy homing projectiles
+        if (this.enemyProjectiles) {
+            this.enemyProjectiles.children.entries.forEach(projectile => {
+                if (projectile.isHoming && projectile.active) {
+                    // Enemy projectiles always target the wizard
+                    if (this.wizard && this.wizard.active) {
+                        const angle = Phaser.Math.Angle.Between(projectile.x, projectile.y, this.wizard.x, this.wizard.y);
+                        const speed = projectile.homingSpeed || 150;
+                        projectile.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+                        
+                        // Rotate soul bullets to face wizard
+                        if (projectile.texture.key === 'soul-bullet') {
+                            projectile.setRotation(angle);
+                        }
+                    }
+                }
+            });
+        }
 
         // Check fire pools for enemy damage
         this.firePools.forEach(pool => {
@@ -2190,7 +2976,7 @@ class GameScene extends Phaser.Scene {
 
     updateSpellbookText() {
         const spellDescriptions = {
-            'water-water-lightning': 'C-C-X: Shield of Waves\n4 water orbs orbit for 3 seconds',
+            'water-water-lightning': 'C-C-X: Shield of Waves\nPowerful water wave with extended slow effect',
             'fire-lightning-fire': 'Z-X-Z: Explosive Bolt\nLarge projectile that explodes on impact',
             'water-lightning-water': 'C-X-C: Storm Shotgun\nFires a spread of water and lightning orbs',
             'lightning-water-earth': 'X-C-V: Magnetic Vortex\nCreates a grey orb that magnetizes enemies'
@@ -2996,7 +3782,8 @@ class GameScene extends Phaser.Scene {
         confirmText.setDepth(301);
         confirmText.setScrollFactor(0);
 
-        const yesText = this.add.text(350, 320, 'Yes (Y/Enter)', {
+        const controlText = this.gamepad ? 'Yes (A)' : 'Yes (Y/Enter)';
+        const yesText = this.add.text(350, 320, controlText, {
             fontSize: '16px',
             color: '#44ff44'
         }).setOrigin(0.5);
@@ -3004,7 +3791,8 @@ class GameScene extends Phaser.Scene {
         yesText.setScrollFactor(0);
         yesText.setInteractive({ useHandCursor: true });
 
-        const noText = this.add.text(450, 320, 'No (N/Esc)', {
+        const noControlText = this.gamepad ? 'No (B)' : 'No (N/Esc)';
+        const noText = this.add.text(450, 320, noControlText, {
             fontSize: '16px',
             color: '#ff4444'
         }).setOrigin(0.5);
@@ -3021,12 +3809,14 @@ class GameScene extends Phaser.Scene {
                 const idx = this.discardConfirmation.index;
                 this.discardConfirmation.elements.forEach(el => el.destroy());
                 this.discardConfirmation = null;
+                this.discardConfirmUI = null;
                 this.discardCharge(idx, true);
                 this.input.keyboard.off('keydown', handleKey);
             } else if (event.key === 'n' || event.key === 'N' || event.key === 'Escape') {
                 // Cancel discard
                 this.discardConfirmation.elements.forEach(el => el.destroy());
                 this.discardConfirmation = null;
+                this.discardConfirmUI = null;
                 this.input.keyboard.off('keydown', handleKey);
             }
         };
@@ -3043,6 +3833,7 @@ class GameScene extends Phaser.Scene {
                 const idx = this.discardConfirmation.index;
                 this.discardConfirmation.elements.forEach(el => el.destroy());
                 this.discardConfirmation = null;
+                this.discardConfirmUI = null;
                 this.discardCharge(idx, true);
                 this.input.keyboard.off('keydown', handleKey);
             }
@@ -3052,6 +3843,7 @@ class GameScene extends Phaser.Scene {
             if (this.discardConfirmation && this.discardConfirmation.active) {
                 this.discardConfirmation.elements.forEach(el => el.destroy());
                 this.discardConfirmation = null;
+                this.discardConfirmUI = null;
                 this.input.keyboard.off('keydown', handleKey);
             }
         });
@@ -3061,6 +3853,16 @@ class GameScene extends Phaser.Scene {
             active: true,
             index: index,
             elements: [confirmBg, confirmText, yesText, noText]
+        };
+        
+        // Also store as discardConfirmUI for controller handling compatibility
+        this.discardConfirmUI = {
+            active: true,
+            chargeIndex: index,
+            bg: confirmBg,
+            text: confirmText,
+            yes: yesText,
+            no: noText
         };
 
         this.input.keyboard.on('keydown', handleKey);
@@ -3542,7 +4344,7 @@ class GameScene extends Phaser.Scene {
                 this.enemiesKilled.golem++;
                 enemy.destroy();
             });
-        } else if (enemy.enemyType === 'sorcerer') {
+        } else if (enemy.enemyType === 'darkeye') {
             // Mark as dying to prevent further updates
             enemy.isDying = true;
             enemy.setVelocity(0, 0);
@@ -3555,8 +4357,8 @@ class GameScene extends Phaser.Scene {
                 tint: 0x9933ff,
                 duration: 500,
                 onComplete: () => {
-                    if (enemy.isLevelUpSorcerer) {
-                        // Level-up sorcerers drop charge expansion
+                    if (enemy.isLevelUpDarkEye) {
+                        // Level-up dark eyes drop charge expansion
                         this.dropChargeExpansion(enemyX, enemyY);
 
                         // Also drop some jewels
@@ -3578,8 +4380,8 @@ class GameScene extends Phaser.Scene {
                         this.dropJewel(enemyX + offsetX, enemyY + offsetY);
                     }
 
-                    if (!this.enemiesKilled.sorcerer) this.enemiesKilled.sorcerer = 0;
-                    this.enemiesKilled.sorcerer++;
+                    if (!this.enemiesKilled.darkeye) this.enemiesKilled.darkeye = 0;
+                    this.enemiesKilled.darkeye++;
                     enemy.destroy();
                 }
             });
@@ -3729,6 +4531,131 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    soulAttack(soul) {
+        // Play attack animation
+        soul.isAttacking = true;
+        soul.setVelocity(0, 0); // Stop moving during attack
+        soul.play('soul-attacking');
+        
+        // Fire projectile midway through animation
+        this.time.delayedCall(400, () => {
+            if (!soul || !soul.active || soul.isDying) return;
+            
+            // Create soul bullet projectile
+            const angle = Phaser.Math.Angle.Between(soul.x, soul.y, this.wizard.x, this.wizard.y);
+            const projectile = this.physics.add.sprite(soul.x, soul.y, 'soul-bullet');
+            projectile.play('soul-bullet-anim');
+            projectile.setScale(0.5);
+            projectile.isEnemyProjectile = true;
+            projectile.damage = 5;
+            projectile.setDepth(5);
+            
+            // Make it homing
+            projectile.isHoming = true;
+            projectile.homingSpeed = 150;
+            projectile.homingTarget = this.wizard; // Target the wizard directly
+            
+            // Set initial velocity towards wizard
+            projectile.setVelocity(
+                Math.cos(angle) * projectile.homingSpeed,
+                Math.sin(angle) * projectile.homingSpeed
+            );
+            
+            // Add ghostly tint
+            projectile.setTint(0x00ffff);
+            
+            // Add to enemy projectiles group
+            if (!this.enemyProjectiles || !this.enemyProjectiles.children) {
+                this.enemyProjectiles = this.physics.add.group();
+            }
+            this.enemyProjectiles.add(projectile);
+            
+            // Auto-destroy after 3 seconds
+            this.time.delayedCall(3000, () => {
+                if (projectile.active) {
+                    projectile.destroy();
+                }
+            });
+        });
+        
+        // Return to move animation after attack
+        soul.once('animationcomplete', () => {
+            if (soul && soul.active && !soul.isDying) {
+                soul.isAttacking = false;
+                soul.play('soul-moving');
+            }
+        });
+    }
+    
+    summonMinions(summoner) {
+        // Play summoning animation
+        summoner.play('summoner-summoning');
+        summoner.isSummoning = true;
+        
+        // Store original body offset
+        const originalOffsetX = summoner.body.offset.x;
+        const originalOffsetY = summoner.body.offset.y;
+        
+        // Adjust body offset for summon animation (character shifts in the sprite)
+        summoner.body.setOffset(originalOffsetX, originalOffsetY);
+        
+        // Return to idle after summon animation completes
+        summoner.once('animationcomplete', () => {
+            summoner.play('summoner-idling');
+            summoner.isSummoning = false;
+            // Restore original body offset
+            summoner.body.setOffset(originalOffsetX, originalOffsetY);
+        });
+        
+        // Create purple summoning effect
+        const summonEffect = this.add.circle(summoner.x, summoner.y, 30, 0xff44ff, 0.6);
+        summonEffect.setDepth(10);
+        
+        this.tweens.add({
+            targets: summonEffect,
+            scale: { from: 1, to: 3 },
+            alpha: { from: 0.8, to: 0 },
+            duration: 500,
+            onComplete: () => summonEffect.destroy()
+        });
+        
+        // Summon 2-3 bat minions around the summoner
+        const minionsToSummon = 2 + Math.floor(Math.random() * 2);
+        
+        for (let i = 0; i < minionsToSummon; i++) {
+            const angle = (Math.PI * 2 / minionsToSummon) * i;
+            const distance = 60;
+            const spawnX = summoner.x + Math.cos(angle) * distance;
+            const spawnY = summoner.y + Math.sin(angle) * distance;
+            
+            // Spawn a bat minion
+            const bat = this.physics.add.sprite(spawnX, spawnY, 'bat-fly', 0);
+            bat.setScale(0.6); // Smaller than regular bats
+            bat.health = 1;
+            bat.maxHealth = bat.health;
+            bat.enemyType = 'bat';
+            bat.play('bat-flying');
+            bat.body.setSize(60, 40);
+            bat.body.setOffset(45, 55);
+            bat.moveSpeed = 90; // Slightly faster than regular bats
+            bat.isFlying = true;
+            bat.isSummoned = true; // Mark as summoned
+            
+            // Add spawn effect for each minion
+            const spawnPoof = this.add.circle(spawnX, spawnY, 20, 0xff44ff, 0.6);
+            spawnPoof.setDepth(10);
+            this.tweens.add({
+                targets: spawnPoof,
+                scale: { from: 0, to: 1.5 },
+                alpha: { from: 1, to: 0 },
+                duration: 300,
+                onComplete: () => spawnPoof.destroy()
+            });
+            
+            this.enemies.add(bat);
+        }
+    }
+    
     fireSorcererProjectile(sorcerer) {
         // Safety check - ensure sorcerer is valid and active
         if (!sorcerer || !sorcerer.active || sorcerer.isDying) return;
@@ -3990,14 +4917,20 @@ class GameScene extends Phaser.Scene {
         // Randomly choose between enemy types
         const rand = Math.random();
         let enemyType;
-        if (rand < 0.25) {
-            enemyType = 'tree'; // 25%
-        } else if (rand < 0.5) {
-            enemyType = 'bat'; // 25%
-        } else if (rand < 0.75) {
-            enemyType = 'mushroom'; // 25%
+        if (rand < 0.14) {
+            enemyType = 'tree'; // 14%
+        } else if (rand < 0.28) {
+            enemyType = 'bat'; // 14%
+        } else if (rand < 0.42) {
+            enemyType = 'mushroom'; // 14%
+        } else if (rand < 0.56) {
+            enemyType = 'fireworm'; // 14%
+        } else if (rand < 0.70) {
+            enemyType = 'summoner'; // 14%
+        } else if (rand < 0.85) {
+            enemyType = 'soul'; // 15%
         } else {
-            enemyType = 'fireworm'; // 25%
+            enemyType = 'bloboid'; // 15%
         }
 
         if (enemyType === 'tree') {
@@ -4057,11 +4990,255 @@ class GameScene extends Phaser.Scene {
             fireworm.body.setOffset(10, 20);
             fireworm.element = 'fire'; // Fire worms have fire element
             this.enemies.add(fireworm);
+        } else if (enemyType === 'summoner') {
+            const summoner = this.physics.add.sprite(x, y, 'summoner-idle', 0);
+            summoner.setScale(1.5); // Scale to appropriate size
+            summoner.health = 8; // High health
+            summoner.maxHealth = summoner.health;
+            summoner.enemyType = 'summoner';
+            summoner.moveSpeed = 20; // Very slow
+            summoner.play('summoner-idling');
+            summoner.body.setSize(40, 60);
+            summoner.body.setOffset(20, 10);
+            summoner.lastSummonTime = 0;
+            summoner.summonCooldown = 5000; // Summon every 5 seconds
+            summoner.element = 'arcane'; // Arcane element
+            this.enemies.add(summoner);
+        } else if (enemyType === 'soul') {
+            const soul = this.physics.add.sprite(x, y, 'soul-move', 0);
+            soul.setScale(0.8);
+            soul.health = 4; // Medium health
+            soul.maxHealth = soul.health;
+            soul.enemyType = 'soul';
+            soul.moveSpeed = 40; // Slow floating speed
+            soul.play('soul-moving');
+            soul.body.setSize(60, 60);
+            soul.body.setOffset(18, 18);
+            soul.isFlying = true; // Souls float
+            soul.attackRange = 150; // Short attack range
+            soul.attackCooldown = 2000; // Attack every 2 seconds
+            soul.lastAttackTime = 0;
+            soul.element = 'arcane'; // Arcane element like ghosts
+            this.enemies.add(soul);
+        } else if (enemyType === 'bloboid') {
+            const bloboid = this.physics.add.sprite(x, y, 'bloboid-walk', 0);
+            bloboid.setScale(1.5); // Scale up from small sprite
+            bloboid.setFlipX(true); // Flip bloboid horizontally
+            bloboid.health = 5; // Medium-high health
+            bloboid.maxHealth = bloboid.health;
+            bloboid.enemyType = 'bloboid';
+            bloboid.moveSpeed = 35; // Slow blob movement
+            bloboid.play('bloboid-walking');
+            bloboid.body.setSize(50, 30);
+            bloboid.body.setOffset(15, 2);
+            bloboid.element = 'earth'; // Earth element for blob
+            this.enemies.add(bloboid);
+        }
+    }
+    
+    spawnWaveEnemy(waveDef) {
+        // Choose enemy type based on wave definition weights
+        let totalWeight = 0;
+        waveDef.enemies.forEach(e => totalWeight += e.weight);
+        
+        let random = Math.random() * totalWeight;
+        let selectedEnemy = null;
+        
+        for (const enemy of waveDef.enemies) {
+            random -= enemy.weight;
+            if (random <= 0) {
+                selectedEnemy = enemy;
+                break;
+            }
+        }
+        
+        if (selectedEnemy) {
+            // Spawn the specified count of this enemy type
+            for (let i = 0; i < selectedEnemy.count; i++) {
+                this.spawnSpecificEnemy(selectedEnemy.type);
+            }
+        }
+    }
+    
+    spawnSpecificEnemy(enemyType) {
+        // Get spawn position outside viewport
+        const camera = this.cameras.main;
+        const viewportWidth = camera.width;
+        const viewportHeight = camera.height;
+        const spawnMargin = 50;
+        
+        // Randomly choose which side to spawn from
+        const side = Phaser.Math.Between(0, 3);
+        let x, y;
+        
+        switch (side) {
+            case 0: // Top
+                x = camera.scrollX + Phaser.Math.Between(0, viewportWidth);
+                y = camera.scrollY - spawnMargin;
+                break;
+            case 1: // Right
+                x = camera.scrollX + viewportWidth + spawnMargin;
+                y = camera.scrollY + Phaser.Math.Between(0, viewportHeight);
+                break;
+            case 2: // Bottom
+                x = camera.scrollX + Phaser.Math.Between(0, viewportWidth);
+                y = camera.scrollY + viewportHeight + spawnMargin;
+                break;
+            case 3: // Left
+                x = camera.scrollX - spawnMargin;
+                y = camera.scrollY + Phaser.Math.Between(0, viewportHeight);
+                break;
+        }
+        
+        // Clamp to world bounds
+        x = Phaser.Math.Clamp(x, 50, 3950);
+        y = Phaser.Math.Clamp(y, 50, 2110);
+        
+        // Create the specific enemy type
+        this.createEnemy(enemyType, x, y);
+    }
+    
+    createEnemy(enemyType, x, y) {
+        if (enemyType === 'tree') {
+            const enemy = this.physics.add.sprite(x, y, 'enemy-walk', 0);
+            const scaleFactor = 1.2;
+            enemy.setScale(scaleFactor);
+            enemy.health = 6;
+            enemy.maxHealth = enemy.health;
+            enemy.enemyType = 'tree';
+            enemy.moveSpeed = 36;
+            enemy.play('enemy-walking');
+            enemy.body.setSize(26, 39);
+            enemy.body.setOffset(3, 12);
+            this.enemies.add(enemy);
+        } else if (enemyType === 'bat') {
+            const bat = this.physics.add.sprite(x, y, 'bat-fly', 0);
+            bat.setScale(0.8);
+            bat.health = 1;
+            bat.maxHealth = bat.health;
+            bat.enemyType = 'bat';
+            bat.play('bat-flying');
+            bat.body.setSize(60, 40);
+            bat.body.setOffset(45, 55);
+            bat.moveSpeed = 80;
+            bat.isFlying = true;
+            this.enemies.add(bat);
+        } else if (enemyType === 'mushroom') {
+            const mushroom = this.physics.add.sprite(x, y, 'mushroom-run', 0);
+            mushroom.setScale(0.7);
+            mushroom.health = 3;
+            mushroom.maxHealth = mushroom.health;
+            mushroom.enemyType = 'mushroom';
+            mushroom.moveSpeed = 50;
+            mushroom.play('mushroom-running');
+            mushroom.body.setSize(80, 100);
+            mushroom.body.setOffset(35, 25);
+            this.enemies.add(mushroom);
+        } else if (enemyType === 'fireworm') {
+            const fireworm = this.physics.add.sprite(x, y, 'fireworm-walk', 0);
+            fireworm.setScale(1.2);
+            fireworm.health = 2;
+            fireworm.maxHealth = fireworm.health;
+            fireworm.enemyType = 'fireworm';
+            fireworm.moveSpeed = 65;
+            fireworm.play('fireworm-walking');
+            fireworm.body.setSize(70, 50);
+            fireworm.body.setOffset(10, 20);
+            fireworm.element = 'fire';
+            this.enemies.add(fireworm);
+        } else if (enemyType === 'summoner') {
+            const summoner = this.physics.add.sprite(x, y, 'summoner-walk', 0);
+            summoner.setScale(0.8);
+            summoner.health = 8;
+            summoner.maxHealth = summoner.health;
+            summoner.enemyType = 'summoner';
+            summoner.moveSpeed = 20;
+            summoner.play('summoner-walking');
+            summoner.body.setSize(80, 100);
+            summoner.body.setOffset(40, 20);
+            summoner.lastSummonTime = 0;
+            summoner.summonCooldown = 5000;
+            summoner.isSummoning = false;
+            this.enemies.add(summoner);
+        } else if (enemyType === 'soul') {
+            const soul = this.physics.add.sprite(x, y, 'soul-move', 0);
+            soul.setScale(0.8);
+            soul.health = 4;
+            soul.maxHealth = soul.health;
+            soul.enemyType = 'soul';
+            soul.moveSpeed = 40;
+            soul.play('soul-moving');
+            soul.body.setSize(60, 60);
+            soul.body.setOffset(18, 18);
+            soul.isFlying = true;
+            soul.attackRange = 150;
+            soul.attackCooldown = 2000;
+            soul.lastAttackTime = 0;
+            soul.element = 'arcane';
+            this.enemies.add(soul);
+        } else if (enemyType === 'bloboid') {
+            const bloboid = this.physics.add.sprite(x, y, 'bloboid-walk', 0);
+            bloboid.setScale(1.5);
+            bloboid.setFlipX(true);
+            bloboid.health = 5;
+            bloboid.maxHealth = bloboid.health;
+            bloboid.enemyType = 'bloboid';
+            bloboid.moveSpeed = 35;
+            bloboid.play('bloboid-walking');
+            bloboid.body.setSize(50, 30);
+            bloboid.body.setOffset(15, 2);
+            bloboid.element = 'earth';
+            this.enemies.add(bloboid);
+        }
+    }
+    
+    triggerSpecialEvent(event) {
+        console.log(`Triggering special event: ${event.type}`);
+        
+        if (event.type === 'swarm') {
+            // Spawn enemies from one side moving quickly across screen
+            const side = Phaser.Math.Between(0, 3);
+            for (let i = 0; i < event.count; i++) {
+                setTimeout(() => {
+                    const camera = this.cameras.main;
+                    let x, y;
+                    
+                    switch (side) {
+                        case 0: // Top
+                            x = camera.scrollX + Phaser.Math.Between(100, camera.width - 100);
+                            y = camera.scrollY - 50;
+                            break;
+                        case 1: // Right
+                            x = camera.scrollX + camera.width + 50;
+                            y = camera.scrollY + Phaser.Math.Between(100, camera.height - 100);
+                            break;
+                        case 2: // Bottom
+                            x = camera.scrollX + Phaser.Math.Between(100, camera.width - 100);
+                            y = camera.scrollY + camera.height + 50;
+                            break;
+                        case 3: // Left
+                            x = camera.scrollX - 50;
+                            y = camera.scrollY + Phaser.Math.Between(100, camera.height - 100);
+                            break;
+                    }
+                    
+                    this.createEnemy(event.enemy, x, y);
+                }, i * 200); // Stagger spawns
+            }
+        } else if (event.type === 'circle') {
+            // Spawn enemies in a circle around the player
+            const radius = 300;
+            for (let i = 0; i < event.count; i++) {
+                const angle = (Math.PI * 2 / event.count) * i;
+                const x = this.wizard.x + Math.cos(angle) * radius;
+                const y = this.wizard.y + Math.sin(angle) * radius;
+                this.createEnemy(event.enemy, x, y);
+            }
         }
     }
 
     spawnLevelUpGolem() {
-        // Now spawns a Sorcerer instead of golem
+        // Now spawns a Dark Eye enemy instead of sorcerer
         const angle = Math.random() * Math.PI * 2;
         const distance = 250; // Slightly further than golem
 
@@ -4072,18 +5249,19 @@ class GameScene extends Phaser.Scene {
         const spawnX = Phaser.Math.Clamp(x, 100, 3900);
         const spawnY = Phaser.Math.Clamp(y, 100, 2060);
 
-        const sorcerer = this.physics.add.sprite(spawnX, spawnY, 'sorcerer-attack-0');
+        const darkEye = this.physics.add.sprite(spawnX, spawnY, 'darkeye-walk-1');
 
-        // Scale based on level (3 times smaller than before)
-        const scaleFactor = (2.0 + (this.playerLevel * 0.1)) / 3;
-        sorcerer.setScale(scaleFactor);
-        sorcerer.health = Math.floor(10 + (this.playerLevel * 2));
-        sorcerer.maxHealth = sorcerer.health;
-        sorcerer.enemyType = 'sorcerer';
-        sorcerer.moveSpeed = 0; // Sorcerer doesn't move
-        sorcerer.isLevelUpSorcerer = true; // Mark as special sorcerer that drops charge expansion
-        sorcerer.lastFireTime = 0;
-        sorcerer.fireRate = 2000; // Fire every 2 seconds
+        // Scale based on level
+        const scaleFactor = 1.0 + (this.playerLevel * 0.05);
+        darkEye.setScale(scaleFactor);
+        darkEye.setFlipX(true); // Flip horizontally
+        darkEye.health = Math.floor((15 + (this.playerLevel * 3)) * 10);
+        darkEye.maxHealth = darkEye.health;
+        darkEye.enemyType = 'darkeye';
+        darkEye.moveSpeed = 25; // Slow menacing walk
+        darkEye.isLevelUpDarkEye = true; // Mark as special dark eye that drops charge expansion
+        darkEye.play('darkeye-walking');
+        darkEye.element = 'dark'; // Dark element
 
         // Ensure enemies group exists before adding
         if (!this.enemies || !this.enemies.children) {
@@ -4091,33 +5269,27 @@ class GameScene extends Phaser.Scene {
         }
 
         // Add to enemies group first before modifying physics
-        this.enemies.add(sorcerer);
+        this.enemies.add(darkEye);
 
         // Now set up physics body after it's in the group
-        if (sorcerer.body) {
-            sorcerer.body.enable = true;
-            sorcerer.body.immovable = false; // Allow collision responses
-            sorcerer.body.moves = true; // Allow physics system to track it
+        if (darkEye.body) {
+            darkEye.body.enable = true;
+            darkEye.body.immovable = false; // Allow collision responses
+            darkEye.body.moves = true; // Allow physics system to track it
 
             // Get sprite dimensions to center hitbox properly
-            const spriteWidth = sorcerer.width * sorcerer.scaleX;
-            const spriteHeight = sorcerer.height * sorcerer.scaleY;
+            const spriteWidth = darkEye.width * darkEye.scaleX;
+            const spriteHeight = darkEye.height * darkEye.scaleY;
 
             // Set hitbox size and center it
-            sorcerer.body.setSize(spriteWidth * 0.6, spriteHeight * 0.8);
-            sorcerer.body.setOffset(
-                (sorcerer.width - sorcerer.body.width) / 2,
-                (sorcerer.height - sorcerer.body.height) / 2
+            darkEye.body.setSize(spriteWidth * 0.7, spriteHeight * 0.9);
+            darkEye.body.setOffset(
+                (darkEye.width - darkEye.body.width) / 2,
+                (darkEye.height - darkEye.body.height) / 2
             );
-
-            // Ensure it stays at spawn position
-            sorcerer.body.setVelocity(0, 0);
         }
 
-        // Start attack animation
-        sorcerer.play('sorcerer-attack');
-
-        // Special spawn effect - purple for sorcerer
+        // Special spawn effect - dark purple for dark eye
         const spawnEffect = this.add.circle(spawnX, spawnY, 50, 0x9933ff, 0.8);
         spawnEffect.setDepth(10);
         this.tweens.add({
@@ -4287,21 +5459,69 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    showDamageNumber(x, y, damage) {
+        const damageText = this.add.text(x, y, damage.toString(), {
+            fontSize: '24px',
+            color: '#ffff00',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        damageText.setOrigin(0.5);
+        damageText.setDepth(150);
+        
+        // Animate floating up and fading out
+        this.tweens.add({
+            targets: damageText,
+            y: y - 50,
+            alpha: 0,
+            duration: 1000,
+            ease: 'Power2',
+            onComplete: () => {
+                damageText.destroy();
+            }
+        });
+    }
+    
     projectileHitEnemy(projectile, enemy) {
         // Deal damage based on projectile type and charge count
         const baseDamage = projectile.isExplosive ? 4 : 2;
         const damage = baseDamage * (projectile.damage || 1);
         enemy.health -= damage;
-
-        // Apply knockback (unless elite with no stagger)
-        if (!enemy.noStagger) {
-            const angle = Phaser.Math.Angle.Between(projectile.x, projectile.y, enemy.x, enemy.y);
-            const knockbackForce = projectile.isExplosive ? 500 : 300;
-            enemy.setVelocity(
-                Math.cos(angle) * knockbackForce,
-                Math.sin(angle) * knockbackForce
-            );
+        console.log(`Enemy hit! Type: ${enemy.enemyType}, Health: ${enemy.health}/${enemy.maxHealth}, Damage: ${damage}`);
+        
+        // Show damage number
+        this.showDamageNumber(enemy.x, enemy.y - 20, damage);
+        
+        // Apply burn effect for fire projectiles
+        if (projectile.element === 'fire' && projectile.burnDamage && !enemy.burning) {
+            enemy.burning = true;
+            enemy.burnDamage = projectile.burnDamage;
+            enemy.burnEndTime = this.time.now + projectile.burnDuration;
+            
+            // Visual burn effect
+            enemy.setTint(0xff6600);
+            
+            // Create burn damage timer
+            this.time.delayedCall(projectile.burnDuration, () => {
+                if (enemy && enemy.active) {
+                    // Deal burn damage
+                    enemy.health -= enemy.burnDamage;
+                    this.showDamageNumber(enemy.x, enemy.y - 20, enemy.burnDamage);
+                    
+                    // Clear burn status
+                    enemy.burning = false;
+                    enemy.clearTint();
+                    
+                    // Check if enemy died from burn
+                    if (enemy.health <= 0 && enemy.active) {
+                        this.killEnemy(enemy);
+                    }
+                }
+            });
         }
+
+        // Knockback removed - only specific spells will have knockback
 
         // Apply stun from rock projectile
         if (projectile.element === 'rock' && projectile.stunDuration) {
@@ -4454,16 +5674,28 @@ class GameScene extends Phaser.Scene {
         }
 
 
-        // Don't destroy water orbs on hit, they keep orbiting
-        if (projectile.element === 'water' && this.waterOrbs.includes(projectile)) {
-            return;
-        }
+        // Water spell is now AOE, no projectiles to check
 
         // Don't destroy stationary flames on hit
         if (projectile.isStationary) {
             return;
         }
 
+        // Handle arcane projectile impact animation
+        if (projectile.element === 'arcane' && projectile.texture.key === 'arcane-spell') {
+            // Create impact sprite at collision point
+            const impact = this.add.sprite(projectile.x, projectile.y, 'arcane-spell');
+            impact.play('arcane-spell-impact');
+            impact.setScale(projectile.scaleX);
+            impact.setTint(projectile.tintTopLeft);
+            impact.setDepth(projectile.depth);
+            
+            // Destroy impact sprite when animation completes
+            impact.once('animationcomplete', () => {
+                impact.destroy();
+            });
+        }
+        
         // Destroy projectile unless it's a piercing type
         if (!projectile.isPiercing && !projectile.chainCount) {
             projectile.destroy();
@@ -4727,12 +5959,15 @@ class GameScene extends Phaser.Scene {
         const xpGain = Math.ceil(2 * this.difficultyMultiplier);
         this.playerXP += xpGain;
         this.itemsCollected.jewels++;
+        
+        // Update XP bar
+        this.updateXPBar();
 
         // Check for level up
         while (this.playerXP >= this.xpToNextLevel) {
             this.playerXP -= this.xpToNextLevel;
             this.playerLevel++;
-            this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.5);
+            this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.5 * 5);
 
             // Show chest reward selection directly on level up
             this.openChest(wizard, null);
@@ -4849,6 +6084,33 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    // Cooldown system helper functions
+    canCastSpell(spellType, chargeIndex = null) {
+        const now = this.time.now;
+        
+        // Check global cooldown
+        if (now < this.globalSpellCooldown) {
+            return false;
+        }
+        
+        // Check spell-specific cooldown
+        const cooldownKey = chargeIndex !== null ? `${spellType}_${chargeIndex}` : spellType;
+        const spellCooldown = this.spellCooldowns.get(cooldownKey) || 0;
+        
+        return now >= spellCooldown;
+    }
+    
+    setSpellCooldown(spellType, cooldownMs, chargeIndex = null) {
+        const now = this.time.now;
+        const cooldownKey = chargeIndex !== null ? `${spellType}_${chargeIndex}` : spellType;
+        
+        // Set spell-specific cooldown
+        this.spellCooldowns.set(cooldownKey, now + cooldownMs);
+        
+        // Set a small global cooldown to prevent spell spam (100ms)
+        this.globalSpellCooldown = now + 100;
+    }
+    
     fireIndividualCharge(chargeIndex, element) {
         // Check if charge is linked to others
         const linkedIndices = [chargeIndex];
@@ -4858,14 +6120,18 @@ class GameScene extends Phaser.Scene {
             // Check link to the left
             if (chargeIndex > 0 && this.linkButtons[chargeIndex - 1] && this.linkButtons[chargeIndex - 1].linked) {
                 linkedIndices.unshift(chargeIndex - 1);
-                // Update the linked charge's fire time too
-                this.chargeLastFireTimes[chargeIndex - 1] = this.time.now;
+                // Set cooldown for linked charge
+                const linkedElement = this.charges[chargeIndex - 1];
+                const linkedConfig = this.elementConfig[linkedElement];
+                this.setSpellCooldown(linkedElement, linkedConfig.fireRate || 1000, chargeIndex - 1);
             }
             // Check link to the right
             if (chargeIndex < this.charges.length - 1 && this.linkButtons[chargeIndex] && this.linkButtons[chargeIndex].linked) {
                 linkedIndices.push(chargeIndex + 1);
-                // Update the linked charge's fire time too
-                this.chargeLastFireTimes[chargeIndex + 1] = this.time.now;
+                // Set cooldown for linked charge
+                const linkedElement = this.charges[chargeIndex + 1];
+                const linkedConfig = this.elementConfig[linkedElement];
+                this.setSpellCooldown(linkedElement, linkedConfig.fireRate || 1000, chargeIndex + 1);
             }
         }
 
@@ -4877,10 +6143,12 @@ class GameScene extends Phaser.Scene {
             // Single element effect
             switch (element) {
                 case 'fire':
-                    this.fireFireProjectile([element]);
+                    // Pass all charges so fire can scale based on total fire elements
+                    this.fireFireProjectile([element], this.charges);
                     break;
                 case 'water':
-                    this.createWaterOrb();
+                    // Pass all charges so water can scale based on total water elements
+                    this.createWaterOrb(linkedElements, this.charges);
                     break;
                 case 'lightning':
                     this.fireLightningProjectile();
@@ -4893,6 +6161,9 @@ class GameScene extends Phaser.Scene {
                     break;
                 case 'air':
                     this.createWindGust();
+                    break;
+                case 'arcane':
+                    this.fireArcaneProjectile();
                     break;
                 default:
                     // For non-primary elements, use basic projectile with element effect
@@ -4927,10 +6198,10 @@ class GameScene extends Phaser.Scene {
             const element = currentGroup[0];
             switch (element) {
                 case 'fire':
-                    this.fireFireProjectile(currentGroup);
+                    this.fireFireProjectile(currentGroup, this.charges);
                     break;
                 case 'water':
-                    this.createWaterOrb();
+                    this.createWaterOrb(currentGroup, this.charges);
                     break;
                 case 'lightning':
                     this.fireLightningProjectile();
@@ -5001,6 +6272,10 @@ class GameScene extends Phaser.Scene {
         const combo = elements.sort().join('-');
 
         switch (combo) {
+            case 'arcane-arcane':
+                // Double arcane projectiles targeting same enemy
+                this.fireDoubleArcane();
+                break;
             case 'fire-fire':
                 // Double-sized fire spell
                 this.fireFireProjectile(elements);
@@ -5034,7 +6309,7 @@ class GameScene extends Phaser.Scene {
                 const element = elements[0];
                 switch (element) {
                     case 'fire':
-                        this.fireFireProjectile(currentGroup);
+                        this.fireFireProjectile(currentGroup, this.charges);
                         break;
                     case 'water':
                         this.createWaterOrb();
@@ -5074,7 +6349,7 @@ class GameScene extends Phaser.Scene {
             elements.forEach(element => {
                 switch (element) {
                     case 'fire':
-                        this.fireFireProjectile(currentGroup);
+                        this.fireFireProjectile(currentGroup, this.charges);
                         break;
                     case 'water':
                         this.createWaterOrb();
@@ -5095,7 +6370,7 @@ class GameScene extends Phaser.Scene {
         this.createElementalStorm();
     }
 
-    fireFireProjectile(currentGroup = ['fire']) {
+    fireFireProjectile(currentGroup = ['fire'], allCharges = null) {
         // Remove any existing flame for this charge
         if (this.activeFlames[0]) {
             this.activeFlames[0].destroy();
@@ -5103,11 +6378,16 @@ class GameScene extends Phaser.Scene {
         }
 
         const direction = this.wizard.lastDirection || 'down';
-        const baseScale = 2.25; // 50% larger than 1.5
-        // Double the scale if linking fire+fire (currentGroup has 2 fires)
-        const scale = currentGroup.length === 2 && currentGroup.every(e => e === 'fire') 
-            ? baseScale * 2 
-            : baseScale + (currentGroup.length - 1) * 0.5;
+        const baseScale = 2.25; // Base scale
+        // Count total fire elements from all charges if provided, otherwise from the group
+        const fireCount = allCharges 
+            ? allCharges.filter(e => e === 'fire').length 
+            : currentGroup.filter(e => e === 'fire').length;
+        
+        console.log('Fire count for scaling:', fireCount);
+        
+        // 100% larger (2x) for each fire element
+        const scale = baseScale * fireCount;
 
         // Since the sprite is 32x32 and we're scaling it, calculate the actual size
         const spriteSize = 32 * scale;
@@ -5159,8 +6439,10 @@ class GameScene extends Phaser.Scene {
         // Remove vertical flip to change which corner is the contact point
         flame.setFlipY(false);
 
-        // Play animation
-        flame.play('fire-spell-anim');
+        // Play animation only if not already playing
+        if (!flame.anims.isPlaying || flame.anims.currentAnim.key !== 'fire-spell-anim') {
+            flame.play('fire-spell-anim');
+        }
 
         // Set physics properties
         // Scale collision box with sprite size
@@ -5169,7 +6451,9 @@ class GameScene extends Phaser.Scene {
         flame.body.setSize(collisionSize, collisionSize); // Collision box
         flame.element = 'fire';
         // Double damage for fire+fire link
-        flame.damage = isDoubleScale ? 4 : currentGroup.length; // Damage scales with linked charges
+        flame.damage = 0.5; // 0.5 damage on collision (will be doubled to 1 in projectileHitEnemy)
+        flame.burnDamage = 1; // Additional burn damage
+        flame.burnDuration = 1000; // 1 second burn
         flame.linkedCount = currentGroup.length;
         flame.isStationary = true; // Mark as stationary effect
 
@@ -5190,46 +6474,97 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    createWaterOrb() {
-        // Check if we already have active water orbs
-        const activeOrbs = this.waterOrbs.filter(orb => orb && orb.active).length;
-
-        // Don't create more orbs if we already have one (unless multiple water charges)
-        if (activeOrbs > 0) {
+    createWaterOrb(elementGroup = ['water'], allCharges = null) {
+        console.log('=== WATER SPELL START ===');
+        
+        // Absolute prevention of multiple water spells
+        if (this.activeWaterSprite && this.activeWaterSprite.active) {
+            console.log('BLOCKED: Water sprite already exists');
             return;
         }
-
-        // For single water charge, create only ONE orb that expires
-        if (!this.textures.exists('water-auto-orb')) {
-            const graphics = this.add.graphics();
-            graphics.fillStyle(0x4444ff, 1);
-            graphics.fillCircle(6, 6, 6);
-            graphics.generateTexture('water-auto-orb', 12, 12);
-            graphics.destroy();
+        
+        // Count total water elements from all charges if provided, otherwise from the group
+        const waterCount = allCharges 
+            ? allCharges.filter(e => e === 'water').length 
+            : elementGroup.filter(e => e === 'water').length;
+        
+        console.log('Water count for scaling:', waterCount);
+        
+        // Base scale 3, 100% larger (2x) for each water element
+        const scale = 3 * waterCount;
+        
+        // Create water spell as a physics sprite with collision detection
+        const waterSprite = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'water-spell');
+        this.activeWaterSprite = waterSprite;
+        waterSprite.setOrigin(0.5, 0.5);
+        waterSprite.setScale(scale);
+        waterSprite.setDepth(20);
+        
+        // Set up physics body to match visual size
+        // Base sprite is 32x32, scaled by the scale factor
+        // Set hitbox radius proportional to scale
+        const hitboxRadius = 10 * waterCount; // Scale hitbox with water count
+        waterSprite.body.setCircle(hitboxRadius);
+        // Center the circular hitbox on the sprite
+        // For a sprite with origin 0.5, 0.5, center the physics body
+        const offset = 16 - hitboxRadius; // 16 is half of 32 (sprite size)
+        waterSprite.body.setOffset(offset, offset);
+        
+        // Mark as water spell for collision detection
+        waterSprite.isWaterSpell = true;
+        waterSprite.damage = 3;
+        waterSprite.hitEnemies = new Set(); // Track which enemies have been hit
+        
+        // Play animation
+        waterSprite.play('water-spell-anim');
+        
+        // Enable debug rendering for this sprite if debug mode is on
+        if (this.physics.world.drawDebug) {
+            waterSprite.body.debugShowBody = true;
+            waterSprite.body.debugShowVelocity = true;
         }
+        
+        console.log('Water sprite created:', waterSprite);
+        
+        // Set up collision with enemies
+        const waterOverlap = this.physics.add.overlap(
+            waterSprite,
+            this.enemies,
+            (water, enemy) => {
+                // Check if this enemy was already hit by this water spell
+                if (!enemy.active || water.hitEnemies.has(enemy)) return;
+                
+                // Mark enemy as hit
+                water.hitEnemies.add(enemy);
+                
+                // Apply damage
+                enemy.health -= water.damage;
+                
+                // Apply slow effect
+                enemy.waterSlowTime = this.time.now + 2000; // Slow for 2 seconds
+                enemy.waterSlowFactor = 0.5; // Reduce speed by 50%
+                
+                // Visual effect on enemy
+                enemy.setTint(0x4444ff);
+                this.time.delayedCall(2000, () => {
+                    if (enemy.active) enemy.clearTint();
+                });
+                
+                // Show damage number
+                this.showDamageNumber(enemy.x, enemy.y - 20, water.damage);
 
-        const orb = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'water-auto-orb');
-        orb.element = 'water';
-        orb.damage = 2;
-        orb.setDepth(5);
-        orb.startAngle = Math.random() * Math.PI * 2;
-        orb.currentAngle = orb.startAngle; // Store current angle
-        orb.orbitRadius = 60;
-        orb.startTime = this.time.now;
-        orb.lifespan = 5000; // Water orb lasts 5 seconds
-
-        this.waterOrbs.push(orb);
-        this.projectiles.add(orb);
-
-        // Remove orb after lifespan
-        this.time.delayedCall(orb.lifespan, () => {
-            if (orb.active) {
-                const index = this.waterOrbs.indexOf(orb);
-                if (index > -1) {
-                    this.waterOrbs.splice(index, 1);
+                if (enemy.health <= 0) {
+                    this.killEnemy(enemy);
                 }
-                orb.destroy();
             }
+        );
+        
+        // Destroy after animation completes
+        waterSprite.on('animationcomplete', () => {
+            console.log('Water animation complete, destroying');
+            waterOverlap.destroy(); // Remove collision detection
+            waterSprite.destroy();
+            this.activeWaterSprite = null;
         });
     }
 
@@ -5548,19 +6883,40 @@ class GameScene extends Phaser.Scene {
             onComplete: () => blast.destroy()
         });
 
-        // Push enemies away
-        this.enemies.children.entries.forEach(enemy => {
-            const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
-            if (distance < 150) {
-                const angle = Phaser.Math.Angle.Between(this.wizard.x, this.wizard.y, enemy.x, enemy.y);
+        // Push enemies away - optimized version
+        const wizardX = this.wizard.x;
+        const wizardY = this.wizard.y;
+        const radiusSquared = 150 * 150; // Pre-calculate to avoid sqrt
+        
+        // Only process active enemies
+        const enemies = this.enemies.children.entries;
+        for (let i = 0; i < enemies.length; i++) {
+            const enemy = enemies[i];
+            
+            // Skip inactive or dying enemies
+            if (!enemy || !enemy.active || enemy.isDying) continue;
+            
+            // Use squared distance to avoid expensive sqrt calculation
+            const dx = enemy.x - wizardX;
+            const dy = enemy.y - wizardY;
+            const distanceSquared = dx * dx + dy * dy;
+            
+            if (distanceSquared < radiusSquared) {
+                const distance = Math.sqrt(distanceSquared);
+                const angle = Math.atan2(dy, dx);
                 const force = (150 - distance) * 5;
-                enemy.setVelocity(Math.cos(angle) * force, Math.sin(angle) * force);
+                
+                enemy.setVelocity(
+                    Math.cos(angle) * force,
+                    Math.sin(angle) * force
+                );
+                
                 enemy.health -= 1;
                 if (enemy.health <= 0) {
                     this.killEnemy(enemy);
                 }
             }
-        });
+        }
     }
 
     createHolyLight() {
@@ -5598,25 +6954,133 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    fireArcaneProjectile() {
-        // Arcane element - homing projectile
-        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'element-symbols', 7);
-        projectile.element = 'arcane';
-        projectile.damage = 2;
-        projectile.setDepth(5);
-        projectile.isHoming = true;
-        projectile.homingSpeed = 200;
-
-        // Add particle trail
-        this.tweens.add({
-            targets: projectile,
-            scale: { from: 1, to: 0.8 },
-            duration: 200,
-            yoyo: true,
-            repeat: -1
+    fireDoubleArcane() {
+        // Find closest enemy for both projectiles to target
+        let closestEnemy = null;
+        let closestDistance = Infinity;
+        
+        this.enemies.children.entries.forEach(enemy => {
+            if (enemy.active && !enemy.isDying) {
+                const distance = Phaser.Math.Distance.Between(this.wizard.x, this.wizard.y, enemy.x, enemy.y);
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestEnemy = enemy;
+                }
+            }
         });
+        
+        // If no enemy found, don't fire
+        if (!closestEnemy) return;
+        
+        // Fire two arcane projectiles with slight offset
+        for (let i = 0; i < 2; i++) {
+            const offsetAngle = (i === 0 ? -0.2 : 0.2); // Slight angle offset
+            const offsetX = Math.cos(offsetAngle) * 30;
+            const offsetY = Math.sin(offsetAngle) * 30;
+            
+            // Create projectile with animated sprite
+            const projectile = this.physics.add.sprite(
+                this.wizard.x + offsetX, 
+                this.wizard.y + offsetY, 
+                'arcane-spell'
+            );
+            projectile.play('arcane-spell-fire');
+            projectile.element = 'arcane';
+            projectile.damage = 4; // Increased damage for linked version
+            projectile.setDepth(5);
+            projectile.setScale(1.8); // Slightly larger
+            
+            // Lock onto same target
+            projectile.isHoming = true;
+            projectile.homingTarget = closestEnemy;
+            projectile.homingSpeed = 350; // Faster than single
+            
+            // Calculate initial velocity toward target
+            const angle = Phaser.Math.Angle.Between(
+                projectile.x, projectile.y, 
+                closestEnemy.x, closestEnemy.y
+            ) + offsetAngle;
+            
+            projectile.setVelocity(
+                Math.cos(angle) * projectile.homingSpeed,
+                Math.sin(angle) * projectile.homingSpeed
+            );
+            
+            // Visual effect - intense purple glow
+            projectile.setTint(0xff44ff);
+
+            this.projectiles.add(projectile);
+            
+            // Auto-destroy after 5 seconds if it doesn't hit anything
+            this.time.delayedCall(5000, () => {
+                if (projectile.active) {
+                    projectile.destroy();
+                }
+            });
+            
+            // Slight delay between projectiles
+            if (i === 0) {
+                this.time.delayedCall(100, () => {});
+            }
+        }
+    }
+    
+    fireArcaneProjectile() {
+        // Arcane element - lock-on homing projectile
+        // Find closest enemy
+        let closestEnemy = null;
+        let closestDistance = Infinity;
+        
+        this.enemies.children.entries.forEach(enemy => {
+            if (enemy.active && !enemy.isDying) {
+                const distance = Phaser.Math.Distance.Between(this.wizard.x, this.wizard.y, enemy.x, enemy.y);
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestEnemy = enemy;
+                }
+            }
+        });
+        
+        // If no enemy found, don't fire
+        if (!closestEnemy) return;
+        
+        // Create projectile with animated sprite
+        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'arcane-spell');
+        projectile.play('arcane-spell-fire');  // Play firing animation
+        
+        // When animation completes, hold on frame 5
+        projectile.on('animationcomplete', () => {
+            projectile.setFrame(5);
+        });
+        
+        projectile.element = 'arcane';
+        projectile.damage = 3;
+        projectile.setDepth(5);
+        projectile.setScale(0.75);
+        
+        // Lock onto target
+        projectile.isHoming = true;
+        projectile.homingTarget = closestEnemy;
+        projectile.homingSpeed = 150; // Reduced by 50% from 300
+        
+        // Calculate initial velocity toward target
+        const angle = Phaser.Math.Angle.Between(this.wizard.x, this.wizard.y, closestEnemy.x, closestEnemy.y);
+        projectile.setVelocity(
+            Math.cos(angle) * projectile.homingSpeed,
+            Math.sin(angle) * projectile.homingSpeed
+        );
+        
+        // Visual effect - purple glow
+        projectile.setTint(0xff88ff);
 
         this.projectiles.add(projectile);
+        
+        // Auto-destroy after 5 seconds if it doesn't hit anything
+        this.time.delayedCall(5000, () => {
+            if (projectile.active) {
+                projectile.destroy();
+            }
+        });
     }
 
     createDustCloud() {
@@ -6921,7 +8385,8 @@ class GameScene extends Phaser.Scene {
         selectionBg.setScrollFactor(0);
         selectionBg.setDepth(200);
 
-        const title = this.add.text(400, 120, 'Choose Your Reward!', {
+        const titleText = this.initialElementSelection ? 'Choose Your Starting Element!' : 'Choose Your Reward!';
+        const title = this.add.text(400, 120, titleText, {
             fontSize: '32px',
             color: '#ffd700',
             fontStyle: 'bold'
@@ -6940,29 +8405,67 @@ class GameScene extends Phaser.Scene {
 
         // Create three reward type buttons
         const buttons = [];
-        const rewardTypes = [
-            {
-                type: 'link',
-                title: 'LINK SLOT',
-                icon: '🔗',
-                description: 'Add a link between element slots',
-                color: 0x44ff44
-            },
-            {
-                type: 'element',
-                title: 'PRIMARY ELEMENT',
-                icon: '⚡',
-                description: 'Choose from 3 primary elements',
-                color: 0x4444ff
-            },
-            {
-                type: 'fusion',
-                title: 'FUSION RITUAL',
-                icon: '🔮',
-                description: 'Combine 2 elements into a new one',
-                color: 0xff44ff
+        let rewardTypes;
+        
+        if (this.initialElementSelection) {
+            // For initial game start, directly show element choices
+            const primaryElements = ['fire', 'water', 'earth', 'air', 'rock', 'poison'];
+            const selectedElements = [];
+            
+            // Select 3 random primary elements
+            while (selectedElements.length < 3) {
+                const elem = primaryElements[Math.floor(Math.random() * primaryElements.length)];
+                if (!selectedElements.includes(elem)) {
+                    selectedElements.push(elem);
+                }
             }
-        ];
+            
+            // Create reward types for direct element selection
+            rewardTypes = selectedElements.map((elem, index) => {
+                const elementInfo = {
+                    fire: { icon: '🔥', color: 0xff4444, desc: 'Burns enemies over time' },
+                    water: { icon: '💧', color: 0x4444ff, desc: 'Flows and cleanses' },
+                    earth: { icon: '🌍', color: 0x44ff44, desc: 'Solid and defensive' },
+                    air: { icon: '💨', color: 0xaaaaff, desc: 'Swift and elusive' },
+                    rock: { icon: '🪨', color: 0x888888, desc: 'Stuns and crushes' },
+                    poison: { icon: '☠️', color: 0x44ff44, desc: 'Damages over time' }
+                };
+                
+                return {
+                    type: 'element',
+                    element: elem,
+                    title: elem.toUpperCase(),
+                    icon: elementInfo[elem].icon,
+                    description: elementInfo[elem].desc,
+                    color: elementInfo[elem].color
+                };
+            });
+        } else {
+            // Normal level up rewards
+            rewardTypes = [
+                {
+                    type: 'link',
+                    title: 'LINK SLOT',
+                    icon: '🔗',
+                    description: 'Add a link between element slots',
+                    color: 0x44ff44
+                },
+                {
+                    type: 'element',
+                    title: 'PRIMARY ELEMENT',
+                    icon: '⚡',
+                    description: 'Choose from 3 primary elements',
+                    color: 0x4444ff
+                },
+                {
+                    type: 'fusion',
+                    title: 'FUSION RITUAL',
+                    icon: '🔮',
+                    description: 'Combine 2 elements into a new one',
+                    color: 0xff44ff
+                }
+            ];
+        }
 
         for (let i = 0; i < 3; i++) {
             const xPos = 180 + i * 220;
@@ -7002,11 +8505,16 @@ class GameScene extends Phaser.Scene {
             description.setOrigin(0.5);
 
             button.add([bg, iconBg, icon, name, description]);
-            buttons.push({ container: button, type: reward.type, bg: bg });
+            buttons.push({ container: button, type: reward.type, bg: bg, element: reward.element });
 
             bg.on('pointerdown', () => {
                 console.log('Mouse clicked on reward:', reward.type);
-                this.selectChestReward(reward.type, chest);
+                if (this.initialElementSelection && reward.element) {
+                    // For initial element selection, directly select the element
+                    this.selectChestElement(reward.element, null, selectionBg, title, controlHint, buttons);
+                } else {
+                    this.selectChestReward(reward.type, chest);
+                }
             });
 
             bg.on('pointerover', () => {
@@ -7803,7 +9311,14 @@ class GameScene extends Phaser.Scene {
         // Reset state and resume
         this.chestSelectionActive = false;
         this.chestUI = null;
-        this.physics.resume();
+        
+        // If this was initial element selection, start the game
+        if (this.initialElementSelection) {
+            this.initialElementSelection = false;
+            this.startGame();
+        } else {
+            this.physics.resume();
+        }
     }
 
     handleChestSelectionController() {
@@ -7872,7 +9387,12 @@ class GameScene extends Phaser.Scene {
 
                 if (selectedReward && selectedReward.type) {
                     console.log('Selecting reward type:', selectedReward.type);
-                    this.selectChestReward(selectedReward.type, this.chestUI.chest);
+                    if (this.initialElementSelection && selectedReward.element) {
+                        // For initial element selection, directly select the element
+                        this.selectChestElement(selectedReward.element, null, this.chestUI.bg, this.chestUI.title, this.chestUI.controlHint, this.chestUI.buttons);
+                    } else {
+                        this.selectChestReward(selectedReward.type, this.chestUI.chest);
+                    }
                 } else {
                     console.log('No reward type found for button at index', this.chestCursorIndex);
                 }
@@ -7976,15 +9496,20 @@ class GameScene extends Phaser.Scene {
         if (this.chestUI && !this.chestUI.mainMenu && confirmPressed && !this.prevChestConfirmPressed) {
             if (this.chestUI.choices) {
                 const selectedElement = this.chestUI.choices[this.chestCursorIndex];
-                const config = this.elementConfig[selectedElement];
-                this.selectChestElement(
-                    selectedElement,
-                    config,
-                    this.chestUI.bg,
-                    this.chestUI.title,
-                    this.chestUI.controlHint,
-                    this.chestUI.buttons
-                );
+                if (this.initialElementSelection) {
+                    // For initial element selection, directly select the element (like mouse handler)
+                    this.selectChestElement(selectedElement, null, this.chestUI.bg, this.chestUI.title, this.chestUI.controlHint, this.chestUI.buttons);
+                } else {
+                    const config = this.elementConfig[selectedElement];
+                    this.selectChestElement(
+                        selectedElement,
+                        config,
+                        this.chestUI.bg,
+                        this.chestUI.title,
+                        this.chestUI.controlHint,
+                        this.chestUI.buttons
+                    );
+                }
             }
         }
 
