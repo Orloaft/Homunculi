@@ -106,6 +106,21 @@ class LoadingScene extends Phaser.Scene {
             frameWidth: 32,
             frameHeight: 32
         });
+        
+        this.load.spritesheet('lightning-spell', 'spells/lightning1.png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+        
+        this.load.spritesheet('earth-spell', 'spells/earth1.png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+        
+        // Load individual air spell frames
+        for (let i = 1; i <= 7; i++) {
+            this.load.image(`air-spell-${i}`, `spells/air${i}.png`);
+        }
 
         // Load bat enemy sprite
         this.load.spritesheet('bat-fly', 'bateye/Flight.png', {
@@ -499,7 +514,7 @@ class GameScene extends Phaser.Scene {
         this.chargeHoldTime = 0;
         this.chargeHoldThreshold = 500;
         this.lastFireTime = 0;
-        this.fireRate = 1000; // milliseconds between automatic shots
+        this.fireRate = 1500; // milliseconds between automatic shots (slowed by 50%)
         this.chargeLastFireTimes = []; // Track last fire time for each charge slot
         this.elementFireRates = {}; // Different fire rates for each element type
         this.muffins = null;
@@ -554,7 +569,7 @@ class GameScene extends Phaser.Scene {
         this.chargeHoldTime = 0;
         this.chargeHoldThreshold = 500;
         this.lastFireTime = 0;
-        this.fireRate = 1000; // milliseconds between automatic shots
+        this.fireRate = 1500; // milliseconds between automatic shots (slowed by 50%)
         this.muffins = null;
         this.gamepad = null;
         this.elementOrbs = null;
@@ -579,14 +594,14 @@ class GameScene extends Phaser.Scene {
         // Element configuration - 18 elements with sprite frames and colors
         this.elementConfig = {
             // First sprite sheet (elements.png)
-            fire: { frame: 0, color: 0xff4444, name: 'Fire', sheet: 'element-symbols', fireRate: 3000 },
-            water: { frame: 1, color: 0x4444ff, name: 'Water', sheet: 'element-symbols', fireRate: 1200 },
-            earth: { frame: 2, color: 0x44ff44, name: 'Earth', sheet: 'element-symbols', fireRate: 2000 },
-            rock: { frame: 3, color: 0x8b4513, name: 'Rock', sheet: 'element-symbols', fireRate: 1500 },
-            air: { frame: 4, color: 0xcccccc, name: 'Air', sheet: 'element-symbols', fireRate: 800 },
-            lightning: { frame: 5, color: 0xffff44, name: 'Lightning', sheet: 'element-symbols', fireRate: 1000 },
+            fire: { frame: 0, color: 0xff4444, name: 'Fire', sheet: 'element-symbols', fireRate: 4500 },
+            water: { frame: 1, color: 0x4444ff, name: 'Water', sheet: 'element-symbols', fireRate: 1800 },
+            earth: { frame: 2, color: 0x44ff44, name: 'Earth', sheet: 'element-symbols', fireRate: 3000 },
+            rock: { frame: 3, color: 0x8b4513, name: 'Rock', sheet: 'element-symbols', fireRate: 2250 },
+            air: { frame: 4, color: 0xcccccc, name: 'Air', sheet: 'element-symbols', fireRate: 1200 },
+            lightning: { frame: 5, color: 0xffff44, name: 'Lightning', sheet: 'element-symbols', fireRate: 1500 },
             holy: { frame: 6, color: 0xffdd00, name: 'Holy', sheet: 'element-symbols' },
-            arcane: { frame: 7, color: 0xff44ff, name: 'Arcane', sheet: 'element-symbols', fireRate: 1600 },
+            arcane: { frame: 7, color: 0xff44ff, name: 'Arcane', sheet: 'element-symbols', fireRate: 2400 },
             dust: { frame: 8, color: 0xcc9966, name: 'Dust', sheet: 'element-symbols' },
 
             // Second sprite sheet (elements2.PNG)
@@ -803,7 +818,7 @@ class GameScene extends Phaser.Scene {
             key: 'fire-spell-anim',
             frames: this.anims.generateFrameNumbers('fire-spell', { start: 0, end: 11 }),
             frameRate: 12,
-            repeat: -1
+            repeat: 0
         });
         
         // Create water spell animation using all 12 frames
@@ -812,6 +827,40 @@ class GameScene extends Phaser.Scene {
             frames: this.anims.generateFrameNumbers('water-spell', { start: 0, end: 11 }),
             frameRate: 12,
             repeat: 0
+        });
+        
+        // Create lightning spell animation
+        this.anims.create({
+            key: 'lightning-spell-anim',
+            frames: this.anims.generateFrameNumbers('lightning-spell', { start: 0, end: 11 }),
+            frameRate: 15,
+            repeat: -1
+        });
+        
+        // Create earth spell animation
+        this.anims.create({
+            key: 'earth-spell-anim',
+            frames: this.anims.generateFrameNumbers('earth-spell', { start: 0, end: 11 }),
+            frameRate: 12,
+            repeat: -1
+        });
+        
+        // Create air spell animation from individual frames - plays backwards then forwards
+        const airFrames = [];
+        // Backwards (7 to 1)
+        for (let i = 7; i >= 1; i--) {
+            airFrames.push({ key: `air-spell-${i}` });
+        }
+        // Forwards (1 to 7)
+        for (let i = 1; i <= 7; i++) {
+            airFrames.push({ key: `air-spell-${i}` });
+        }
+        
+        this.anims.create({
+            key: 'air-spell-anim',
+            frames: airFrames,
+            frameRate: 40, // Double speed
+            repeat: 0 // Play once
         });
         
         // Create arcane spell firing animation (first 6 frames)
@@ -2522,6 +2571,21 @@ class GameScene extends Phaser.Scene {
 
         this.enemies.children.entries.forEach(enemy => {
             if (!enemy || !enemy.active || enemy.isDying) return;
+            
+            // Visual feedback for knockback immunity
+            if (enemy.knockbackImmune) {
+                // Add a subtle white outline effect
+                if (!enemy.immunityOutline) {
+                    enemy.immunityOutline = true;
+                    enemy.setTint(0xffffcc); // Light yellow tint
+                }
+            } else if (enemy.immunityOutline) {
+                // Remove the immunity visual when no longer immune
+                enemy.immunityOutline = false;
+                if (!enemy.stunned && !enemy.burning && !enemy.poisoned && !enemy.slowed && !enemy.frozen) {
+                    enemy.clearTint();
+                }
+            }
 
             const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
 
@@ -2687,6 +2751,7 @@ class GameScene extends Phaser.Scene {
             if (projectile.updateParticles) {
                 projectile.updateParticles();
             }
+            
 
             // Use world bounds instead of fixed screen coordinates
             const bounds = this.physics.world.bounds;
@@ -2706,6 +2771,42 @@ class GameScene extends Phaser.Scene {
                 }
             });
         }
+        
+        // Update lightning orb tracking
+        this.projectiles.children.entries.forEach(projectile => {
+            if (projectile.active && projectile.currentTarget && projectile.texture && projectile.texture.key === 'lightning-spell') {
+                // Check if current target is still valid
+                if (!projectile.currentTarget.active) {
+                    // Target died, find new target or destroy
+                    if (projectile.bounceCount > 0) {
+                        let nextTarget = null;
+                        let nearestDistance = 250;
+                        
+                        this.enemies.children.entries.forEach(enemy => {
+                            if (enemy.active && !enemy.isDying && !projectile.hitEnemies.has(enemy)) {
+                                const dist = Phaser.Math.Distance.Between(projectile.x, projectile.y, enemy.x, enemy.y);
+                                if (dist < nearestDistance) {
+                                    nearestDistance = dist;
+                                    nextTarget = enemy;
+                                }
+                            }
+                        });
+                        
+                        if (nextTarget) {
+                            projectile.currentTarget = nextTarget;
+                            this.setLightningOrbVelocity(projectile, nextTarget);
+                        } else {
+                            projectile.destroy();
+                        }
+                    } else {
+                        projectile.destroy();
+                    }
+                } else {
+                    // Adjust velocity to continue tracking target
+                    this.setLightningOrbVelocity(projectile, projectile.currentTarget);
+                }
+            }
+        });
 
         // Update depths based on Y position
         this.wizard.setDepth(this.wizard.y / 10);
@@ -4631,7 +4732,7 @@ class GameScene extends Phaser.Scene {
             // Spawn a bat minion
             const bat = this.physics.add.sprite(spawnX, spawnY, 'bat-fly', 0);
             bat.setScale(0.6); // Smaller than regular bats
-            bat.health = 1;
+            bat.health = 2; // Increased by 50%
             bat.maxHealth = bat.health;
             bat.enemyType = 'bat';
             bat.play('bat-flying');
@@ -4937,7 +5038,7 @@ class GameScene extends Phaser.Scene {
             const enemy = this.physics.add.sprite(x, y, 'enemy-walk', 0);
             const scaleFactor = 1.2;
             enemy.setScale(scaleFactor);
-            enemy.health = 6;  // Increased by 50% from 4
+            enemy.health = 9; // Increased by 50%  // Increased by 50% from 4
             enemy.maxHealth = enemy.health;
             enemy.enemyType = 'tree';
             enemy.moveSpeed = 36; // Reduced by 25% from 48
@@ -4956,7 +5057,7 @@ class GameScene extends Phaser.Scene {
 
                 const bat = this.physics.add.sprite(batX, batY, 'bat-fly', 0);
                 bat.setScale(0.8); // 2x larger than 0.4
-                bat.health = 1; // Bats have only 1 health
+                bat.health = 2; // Increased by 50% // Bats have only 1 health
                 bat.maxHealth = bat.health;
                 bat.enemyType = 'bat';
                 bat.play('bat-flying');
@@ -4970,7 +5071,7 @@ class GameScene extends Phaser.Scene {
         if (enemyType === 'mushroom') {
             const mushroom = this.physics.add.sprite(x, y, 'mushroom-run', 0);
             mushroom.setScale(0.7); // Scale to appropriate size
-            mushroom.health = 3; // Medium health
+            mushroom.health = 5; // Increased by 50% // Medium health
             mushroom.maxHealth = mushroom.health;
             mushroom.enemyType = 'mushroom';
             mushroom.moveSpeed = 50; // Medium speed
@@ -4981,7 +5082,7 @@ class GameScene extends Phaser.Scene {
         } else if (enemyType === 'fireworm') {
             const fireworm = this.physics.add.sprite(x, y, 'fireworm-walk', 0);
             fireworm.setScale(1.2); // Scale up slightly
-            fireworm.health = 2; // Low-medium health
+            fireworm.health = 3; // Increased by 50% // Low-medium health
             fireworm.maxHealth = fireworm.health;
             fireworm.enemyType = 'fireworm';
             fireworm.moveSpeed = 65; // Fast
@@ -4993,7 +5094,7 @@ class GameScene extends Phaser.Scene {
         } else if (enemyType === 'summoner') {
             const summoner = this.physics.add.sprite(x, y, 'summoner-idle', 0);
             summoner.setScale(1.5); // Scale to appropriate size
-            summoner.health = 8; // High health
+            summoner.health = 12; // Increased by 50% // High health
             summoner.maxHealth = summoner.health;
             summoner.enemyType = 'summoner';
             summoner.moveSpeed = 20; // Very slow
@@ -5007,7 +5108,7 @@ class GameScene extends Phaser.Scene {
         } else if (enemyType === 'soul') {
             const soul = this.physics.add.sprite(x, y, 'soul-move', 0);
             soul.setScale(0.8);
-            soul.health = 4; // Medium health
+            soul.health = 6; // Increased by 50% // Medium health
             soul.maxHealth = soul.health;
             soul.enemyType = 'soul';
             soul.moveSpeed = 40; // Slow floating speed
@@ -5024,7 +5125,7 @@ class GameScene extends Phaser.Scene {
             const bloboid = this.physics.add.sprite(x, y, 'bloboid-walk', 0);
             bloboid.setScale(1.5); // Scale up from small sprite
             bloboid.setFlipX(true); // Flip bloboid horizontally
-            bloboid.health = 5; // Medium-high health
+            bloboid.health = 8; // Increased by 50% // Medium-high health
             bloboid.maxHealth = bloboid.health;
             bloboid.enemyType = 'bloboid';
             bloboid.moveSpeed = 35; // Slow blob movement
@@ -5103,7 +5204,7 @@ class GameScene extends Phaser.Scene {
             const enemy = this.physics.add.sprite(x, y, 'enemy-walk', 0);
             const scaleFactor = 1.2;
             enemy.setScale(scaleFactor);
-            enemy.health = 6;
+            enemy.health = 9; // Increased by 50%
             enemy.maxHealth = enemy.health;
             enemy.enemyType = 'tree';
             enemy.moveSpeed = 36;
@@ -5114,7 +5215,7 @@ class GameScene extends Phaser.Scene {
         } else if (enemyType === 'bat') {
             const bat = this.physics.add.sprite(x, y, 'bat-fly', 0);
             bat.setScale(0.8);
-            bat.health = 1;
+            bat.health = 2; // Increased by 50%
             bat.maxHealth = bat.health;
             bat.enemyType = 'bat';
             bat.play('bat-flying');
@@ -5126,7 +5227,7 @@ class GameScene extends Phaser.Scene {
         } else if (enemyType === 'mushroom') {
             const mushroom = this.physics.add.sprite(x, y, 'mushroom-run', 0);
             mushroom.setScale(0.7);
-            mushroom.health = 3;
+            mushroom.health = 5; // Increased by 50%
             mushroom.maxHealth = mushroom.health;
             mushroom.enemyType = 'mushroom';
             mushroom.moveSpeed = 50;
@@ -5137,7 +5238,7 @@ class GameScene extends Phaser.Scene {
         } else if (enemyType === 'fireworm') {
             const fireworm = this.physics.add.sprite(x, y, 'fireworm-walk', 0);
             fireworm.setScale(1.2);
-            fireworm.health = 2;
+            fireworm.health = 3; // Increased by 50%
             fireworm.maxHealth = fireworm.health;
             fireworm.enemyType = 'fireworm';
             fireworm.moveSpeed = 65;
@@ -5149,7 +5250,7 @@ class GameScene extends Phaser.Scene {
         } else if (enemyType === 'summoner') {
             const summoner = this.physics.add.sprite(x, y, 'summoner-walk', 0);
             summoner.setScale(0.8);
-            summoner.health = 8;
+            summoner.health = 12; // Increased by 50%
             summoner.maxHealth = summoner.health;
             summoner.enemyType = 'summoner';
             summoner.moveSpeed = 20;
@@ -5163,7 +5264,7 @@ class GameScene extends Phaser.Scene {
         } else if (enemyType === 'soul') {
             const soul = this.physics.add.sprite(x, y, 'soul-move', 0);
             soul.setScale(0.8);
-            soul.health = 4;
+            soul.health = 6; // Increased by 50%
             soul.maxHealth = soul.health;
             soul.enemyType = 'soul';
             soul.moveSpeed = 40;
@@ -5180,7 +5281,7 @@ class GameScene extends Phaser.Scene {
             const bloboid = this.physics.add.sprite(x, y, 'bloboid-walk', 0);
             bloboid.setScale(1.5);
             bloboid.setFlipX(true);
-            bloboid.health = 5;
+            bloboid.health = 8; // Increased by 50%
             bloboid.maxHealth = bloboid.health;
             bloboid.enemyType = 'bloboid';
             bloboid.moveSpeed = 35;
@@ -5484,6 +5585,19 @@ class GameScene extends Phaser.Scene {
     }
     
     projectileHitEnemy(projectile, enemy) {
+        // Initialize hit tracking for piercing projectiles
+        if (!projectile.hitEnemies) {
+            projectile.hitEnemies = new Set();
+        }
+        
+        // Check if this enemy was already hit by this projectile
+        if (projectile.hitEnemies.has(enemy)) {
+            return; // Skip if already hit
+        }
+        
+        // Mark enemy as hit by this projectile
+        projectile.hitEnemies.add(enemy);
+        
         // Deal damage based on projectile type and charge count
         const baseDamage = projectile.isExplosive ? 4 : 2;
         const damage = baseDamage * (projectile.damage || 1);
@@ -5521,7 +5635,32 @@ class GameScene extends Phaser.Scene {
             });
         }
 
-        // Knockback removed - only specific spells will have knockback
+        // Apply knockback for earth projectiles
+        if (projectile.knockbackForce && projectile.element === 'earth') {
+            // Check if enemy is immune to knockback
+            const currentTime = this.time.now;
+            if (!enemy.knockbackImmuneUntil || currentTime > enemy.knockbackImmuneUntil) {
+                // Apply knockback
+                const angle = Math.atan2(enemy.y - projectile.y, enemy.x - projectile.x);
+                enemy.setVelocity(
+                    Math.cos(angle) * projectile.knockbackForce,
+                    Math.sin(angle) * projectile.knockbackForce
+                );
+                
+                // Set knockback immunity for 1.5 seconds
+                enemy.knockbackImmuneUntil = currentTime + 1500;
+                
+                // Visual indicator of knockback immunity
+                enemy.knockbackImmune = true;
+                
+                // Remove immunity after duration
+                this.time.delayedCall(1500, () => {
+                    if (enemy.active) {
+                        enemy.knockbackImmune = false;
+                    }
+                });
+            }
+        }
 
         // Apply stun from rock projectile
         if (projectile.element === 'rock' && projectile.stunDuration) {
@@ -5566,51 +5705,6 @@ class GameScene extends Phaser.Scene {
         // Handle explosive projectiles
         if (projectile.isExplosive) {
             this.createExplosion(projectile.x, projectile.y);
-        }
-
-        // Handle chain lightning
-        if (projectile.chainCount && projectile.chainCount > 0) {
-            // Mark this enemy as hit
-            if (!projectile.hitEnemies) projectile.hitEnemies = [];
-            projectile.hitEnemies.push(enemy);
-
-            // Find next target
-            let nearestEnemy = null;
-            let minDistance = 200; // Max chain distance
-
-            this.enemies.children.entries.forEach(otherEnemy => {
-                if (otherEnemy.active && otherEnemy !== enemy && !projectile.hitEnemies.includes(otherEnemy)) {
-                    const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, otherEnemy.x, otherEnemy.y);
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                        nearestEnemy = otherEnemy;
-                    }
-                }
-            });
-
-            if (nearestEnemy) {
-                // Redirect projectile to new target
-                projectile.chainCount--;
-                const angle = Phaser.Math.Angle.Between(projectile.x, projectile.y, nearestEnemy.x, nearestEnemy.y);
-                projectile.setVelocity(Math.cos(angle) * 400, Math.sin(angle) * 400);
-
-                // Visual chain effect
-                const chain = this.add.graphics();
-                chain.lineStyle(2, 0x44aaff, 0.8);
-                chain.moveTo(enemy.x, enemy.y);
-                chain.lineTo(nearestEnemy.x, nearestEnemy.y);
-                chain.strokePath();
-                chain.setDepth(5);
-
-                this.tweens.add({
-                    targets: chain,
-                    alpha: 0,
-                    duration: 200,
-                    onComplete: () => chain.destroy()
-                });
-
-                return; // Don't destroy projectile yet
-            }
         }
 
         // Handle fire projectiles that create pools
@@ -5696,8 +5790,54 @@ class GameScene extends Phaser.Scene {
             });
         }
         
+        // Handle lightning orb bouncing
+        if (projectile.bounceCount !== undefined && projectile.texture && projectile.texture.key === 'lightning-spell') {
+            // Find next target
+            if (projectile.bounceCount > 0) {
+                let nextTarget = null;
+                let nearestDistance = 250;
+                
+                this.enemies.children.entries.forEach(nextEnemy => {
+                    if (nextEnemy.active && !nextEnemy.isDying && !projectile.hitEnemies.has(nextEnemy)) {
+                        const dist = Phaser.Math.Distance.Between(projectile.x, projectile.y, nextEnemy.x, nextEnemy.y);
+                        if (dist < nearestDistance) {
+                            nearestDistance = dist;
+                            nextTarget = nextEnemy;
+                        }
+                    }
+                });
+                
+                if (nextTarget) {
+                    // Bounce to next enemy
+                    projectile.bounceCount--;
+                    projectile.currentTarget = nextTarget;
+                    this.setLightningOrbVelocity(projectile, nextTarget);
+                    
+                    // Visual trail effect
+                    const trail = this.add.sprite(projectile.x, projectile.y, 'lightning-spell');
+                    trail.setScale(0.5);
+                    trail.setAlpha(0.5);
+                    trail.setDepth(19);
+                    this.tweens.add({
+                        targets: trail,
+                        alpha: 0,
+                        scale: 0,
+                        duration: 200,
+                        onComplete: () => trail.destroy()
+                    });
+                } else {
+                    // No more targets, destroy orb
+                    projectile.destroy();
+                }
+            } else {
+                // No more bounces, destroy orb
+                projectile.destroy();
+            }
+            return; // Don't run normal destruction logic
+        }
+        
         // Destroy projectile unless it's a piercing type
-        if (!projectile.isPiercing && !projectile.chainCount) {
+        if (!projectile.isPiercing) {
             projectile.destroy();
         }
     }
@@ -6154,7 +6294,7 @@ class GameScene extends Phaser.Scene {
                     this.fireLightningProjectile();
                     break;
                 case 'earth':
-                    this.createEarthquake(1);
+                    this.fireEarthProjectile();
                     break;
                 case 'rock':
                     this.fireRockProjectile();
@@ -6207,8 +6347,7 @@ class GameScene extends Phaser.Scene {
                     this.fireLightningProjectile();
                     break;
                 case 'earth':
-                    // Pass group size to determine width
-                    this.createEarthquake(currentGroup.length);
+                    this.fireEarthProjectile();
                     break;
                 case 'rock':
                     this.fireRockProjectile();
@@ -6463,8 +6602,8 @@ class GameScene extends Phaser.Scene {
         // Store reference
         this.activeFlames[0] = flame;
 
-        // Auto-destroy after 3 seconds
-        this.time.delayedCall(3000, () => {
+        // Auto-destroy after animation completes (1 second for 12 frames at 12fps)
+        this.time.delayedCall(1000, () => {
             if (flame && flame.active) {
                 flame.destroy();
                 if (this.activeFlames[0] === flame) {
@@ -6569,111 +6708,268 @@ class GameScene extends Phaser.Scene {
     }
 
     fireLightningProjectile() {
-        if (!this.textures.exists('lightning-auto-proj')) {
-            const graphics = this.add.graphics();
-            graphics.fillStyle(0xffff44, 1);
-            graphics.fillCircle(6, 6, 6);
-            graphics.generateTexture('lightning-auto-proj', 12, 12);
-            graphics.destroy();
+        // Find the closest enemy
+        let closestEnemy = null;
+        let closestDistance = Infinity;
+        
+        this.enemies.children.entries.forEach(enemy => {
+            if (enemy.active && !enemy.isDying) {
+                const distance = Phaser.Math.Distance.Between(this.wizard.x, this.wizard.y, enemy.x, enemy.y);
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestEnemy = enemy;
+                }
+            }
+        });
+        
+        // If no enemy found, don't fire
+        if (!closestEnemy) return;
+        
+        // Create lightning orb projectile
+        const lightningOrb = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'lightning-spell');
+        lightningOrb.play('lightning-spell-anim');
+        lightningOrb.setScale(1.5);
+        lightningOrb.setDepth(20);
+        
+        // Set up projectile properties
+        lightningOrb.bounceCount = 3; // Will bounce to 3 more enemies after initial hit
+        lightningOrb.hitEnemies = new Set();
+        lightningOrb.currentTarget = closestEnemy;
+        lightningOrb.speed = 400;
+        lightningOrb.damage = 3;
+        
+        // Add to projectiles group
+        this.projectiles.add(lightningOrb);
+        
+        // Set initial velocity towards first enemy
+        this.setLightningOrbVelocity(lightningOrb, closestEnemy);
+    }
+    
+    setLightningOrbVelocity(orb, target) {
+        if (!target || !target.active) return;
+        
+        const angle = Phaser.Math.Angle.Between(orb.x, orb.y, target.x, target.y);
+        orb.setVelocity(
+            Math.cos(angle) * orb.speed,
+            Math.sin(angle) * orb.speed
+        );
+    }
+    
+    handleLightningOrbHit(orb, enemy) {
+        // Don't hit the same enemy twice
+        if (orb.hitEnemies.has(enemy)) return;
+        
+        // Deal damage
+        enemy.health -= orb.damage;
+        orb.hitEnemies.add(enemy);
+        
+        // Visual effect on enemy
+        enemy.setTint(0xffff00);
+        this.time.delayedCall(100, () => {
+            if (enemy.active) enemy.clearTint();
+        });
+        
+        // Show damage number
+        this.showDamageNumber(enemy.x, enemy.y - 20, orb.damage);
+        
+        // Check if enemy died
+        if (enemy.health <= 0) {
+            this.killEnemy(enemy);
         }
-
-        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'lightning-auto-proj');
-        projectile.element = 'lightning';
-        projectile.damage = 2;
-        projectile.setDepth(5);
-        projectile.isHoming = true;
-
-        this.projectiles.add(projectile);
+        
+        // Create a visual lightning trail effect
+        const trail = this.add.sprite(orb.x, orb.y, 'lightning-spell');
+        trail.setScale(0.5);
+        trail.setAlpha(0.5);
+        trail.setDepth(19);
+        this.tweens.add({
+            targets: trail,
+            alpha: 0,
+            scale: 0,
+            duration: 200,
+            onComplete: () => trail.destroy()
+        });
+        
+        // Find next target if bounces remain
+        if (orb.bounceCount > 0) {
+            let nextTarget = null;
+            let nearestDistance = 250; // Max chain distance
+            
+            this.enemies.children.entries.forEach(nextEnemy => {
+                if (nextEnemy.active && !nextEnemy.isDying && !orb.hitEnemies.has(nextEnemy)) {
+                    const dist = Phaser.Math.Distance.Between(orb.x, orb.y, nextEnemy.x, nextEnemy.y);
+                    if (dist < nearestDistance) {
+                        nearestDistance = dist;
+                        nextTarget = nextEnemy;
+                    }
+                }
+            });
+            
+            if (nextTarget) {
+                // Bounce to next enemy
+                orb.bounceCount--;
+                orb.currentTarget = nextTarget;
+                this.setLightningOrbVelocity(orb, nextTarget);
+            } else {
+                // No more targets, destroy orb
+                orb.destroy();
+            }
+        } else {
+            // No more bounces, destroy orb
+            orb.destroy();
+        }
     }
 
     createWindGust() {
-        // Create a wind gust that pushes enemies away
-        const windRadius = 150;
-
-        // Visual effect - expanding circle
-        const windCircle = this.add.circle(this.wizard.x, this.wizard.y, 20, 0xcccccc, 0.3);
-        windCircle.setDepth(15);
-
-        this.tweens.add({
-            targets: windCircle,
-            radius: windRadius,
-            alpha: 0,
-            duration: 500,
-            onComplete: () => windCircle.destroy()
+        // Create air spell sprite centered on wizard, starting with first frame
+        const airSpell = this.add.sprite(this.wizard.x, this.wizard.y, 'air-spell-7');
+        airSpell.setScale(3);
+        airSpell.setDepth(20);
+        airSpell.setAlpha(0.6); // Reduce opacity by 40%
+        airSpell.play('air-spell-anim');
+        
+        // Set up the effect radius
+        const effectRadius = 200; // Large area of effect
+        
+        // Store reference to wizard for position updates
+        airSpell.followTarget = this.wizard;
+        
+        // Add update event to make it follow the wizard
+        const updateEvent = this.time.addEvent({
+            delay: 16, // ~60 FPS update rate
+            callback: () => {
+                if (airSpell.active && airSpell.followTarget) {
+                    airSpell.x = airSpell.followTarget.x;
+                    airSpell.y = airSpell.followTarget.y;
+                }
+            },
+            loop: true
         });
-
-        // Create particle texture if it doesn't exist
-        if (!this.textures.exists('wind-particle')) {
-            const graphics = this.add.graphics();
-            graphics.fillStyle(0xffffff, 1);
-            graphics.fillCircle(2, 2, 2);
-            graphics.generateTexture('wind-particle', 4, 4);
-            graphics.destroy();
-        }
-
-        // Create swirl particles
-        const particles = this.add.particles(this.wizard.x, this.wizard.y, 'wind-particle', {
-            speed: { min: 100, max: 200 },
-            scale: { start: 0.5, end: 0 },
-            lifespan: 500,
-            quantity: 20,
-            radial: true,
-            alpha: { start: 0.6, end: 0 },
-            tint: 0xcccccc
+        
+        // When animation completes, destroy the sprite and stop the update
+        airSpell.once('animationcomplete', () => {
+            updateEvent.destroy();
+            airSpell.destroy();
         });
-
-        this.time.delayedCall(500, () => particles.destroy());
-
-        // Push enemies away
+        
+        // Apply knockback and damage to enemies
         this.enemies.children.entries.forEach(enemy => {
-            if (!enemy.active) return;
-
+            if (!enemy.active || enemy.isDying) return;
+            
             const dist = Phaser.Math.Distance.Between(
                 this.wizard.x, this.wizard.y,
                 enemy.x, enemy.y
             );
-
-            if (dist < windRadius) {
-                // Calculate push direction
-                const angle = Phaser.Math.Angle.Between(
-                    this.wizard.x, this.wizard.y,
-                    enemy.x, enemy.y
-                );
-
-                const pushForce = (1 - dist / windRadius) * 500;
-                const pushX = Math.cos(angle) * pushForce;
-                const pushY = Math.sin(angle) * pushForce;
-
-                enemy.setVelocity(pushX, pushY);
-                enemy.knockbackTime = this.time.now + 300;
-
-                // Small damage
+            
+            if (dist < effectRadius) {
+                // Low damage
                 enemy.health -= 0.5;
+                
+                // Show damage number
+                this.showDamageNumber(enemy.x, enemy.y - 20, 0.5);
+                
+                // Check if enemy died
                 if (enemy.health <= 0) {
                     this.killEnemy(enemy);
-                }
-            }
-        });
-
-        // Also push away projectiles from enemies
-        this.enemies.children.entries.forEach(enemy => {
-            if (enemy.projectiles) {
-                enemy.projectiles.children.entries.forEach(proj => {
-                    if (!proj.active) return;
-
-                    const dist = Phaser.Math.Distance.Between(
+                } else {
+                    // Calculate knockback angle
+                    const angle = Phaser.Math.Angle.Between(
                         this.wizard.x, this.wizard.y,
-                        proj.x, proj.y
+                        enemy.x, enemy.y
                     );
-
-                    if (dist < windRadius) {
-                        proj.destroy();
+                    
+                    // Strong knockback force that decreases with distance
+                    const knockbackForce = (1 - dist / effectRadius) * 400;
+                    
+                    // Check knockback immunity
+                    const currentTime = this.time.now;
+                    if (!enemy.knockbackImmuneUntil || currentTime > enemy.knockbackImmuneUntil) {
+                        enemy.setVelocity(
+                            Math.cos(angle) * knockbackForce,
+                            Math.sin(angle) * knockbackForce
+                        );
+                        
+                        // Set knockback immunity
+                        enemy.knockbackImmuneUntil = currentTime + 1500;
+                        enemy.knockbackImmune = true;
+                        
+                        this.time.delayedCall(1500, () => {
+                            if (enemy.active) {
+                                enemy.knockbackImmune = false;
+                            }
+                        });
                     }
-                });
+                }
             }
         });
     }
 
+    fireEarthProjectile() {
+        // Create earth projectile that travels in a straight line
+        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'earth-spell');
+        projectile.element = 'earth';
+        projectile.damage = 4;
+        projectile.knockbackForce = 300;
+        projectile.isPiercing = true;
+        projectile.body.setCollideWorldBounds(false);
+        projectile.setDepth(5);
+        projectile.setScale(1.5);
+        
+        // Play animation
+        projectile.play('earth-spell-anim');
+        
+        // Add to projectiles group first
+        this.projectiles.add(projectile);
+        
+        // Directional firing
+        const speed = 300;
+        const diagonalSpeed = speed / Math.sqrt(2);
+        
+        const directions = {
+            up: { x: 0, y: -speed },
+            down: { x: 0, y: speed },
+            left: { x: -speed, y: 0 },
+            right: { x: speed, y: 0 },
+            'up-left': { x: -diagonalSpeed, y: -diagonalSpeed },
+            'up-right': { x: diagonalSpeed, y: -diagonalSpeed },
+            'down-left': { x: -diagonalSpeed, y: diagonalSpeed },
+            'down-right': { x: diagonalSpeed, y: diagonalSpeed }
+        };
+        
+        const direction = this.wizard.lastDirection || 'down';
+        const dir = directions[direction];
+        
+        if (!dir) {
+            console.error(`Invalid direction: ${direction}`);
+            const fallbackDir = directions['down'];
+            projectile.setVelocity(fallbackDir.x, fallbackDir.y);
+        } else {
+            projectile.setVelocity(dir.x, dir.y);
+        }
+        
+        // Rotate projectile to match direction
+        const directionAngles = {
+            'up': -Math.PI / 2,
+            'down': Math.PI / 2,
+            'left': Math.PI,
+            'right': 0,
+            'up-left': -3 * Math.PI / 4,
+            'up-right': -Math.PI / 4,
+            'down-left': 3 * Math.PI / 4,
+            'down-right': Math.PI / 4
+        };
+        
+        const angle = directionAngles[direction] || 0;
+        projectile.setRotation(angle);
+        
+        // Destroy after 3 seconds
+        this.time.delayedCall(3000, () => {
+            if (projectile.active) {
+                projectile.destroy();
+            }
+        });
+    }
+    
     createEarthquake(linkedCount = 1) {
         // Use the direction the wizard is facing
         const diagonalValue = 1 / Math.sqrt(2);
@@ -6906,10 +7202,24 @@ class GameScene extends Phaser.Scene {
                 const angle = Math.atan2(dy, dx);
                 const force = (150 - distance) * 5;
                 
-                enemy.setVelocity(
-                    Math.cos(angle) * force,
-                    Math.sin(angle) * force
-                );
+                // Check knockback immunity
+                const currentTime = this.time.now;
+                if (!enemy.knockbackImmuneUntil || currentTime > enemy.knockbackImmuneUntil) {
+                    enemy.setVelocity(
+                        Math.cos(angle) * force,
+                        Math.sin(angle) * force
+                    );
+                    
+                    // Set knockback immunity
+                    enemy.knockbackImmuneUntil = currentTime + 1500;
+                    enemy.knockbackImmune = true;
+                    
+                    this.time.delayedCall(1500, () => {
+                        if (enemy.active) {
+                            enemy.knockbackImmune = false;
+                        }
+                    });
+                }
                 
                 enemy.health -= 1;
                 if (enemy.health <= 0) {
@@ -8269,7 +8579,7 @@ class GameScene extends Phaser.Scene {
         if (eliteType === 'tree') {
             elite = this.physics.add.sprite(x, y, 'enemy-walk', 0);
             elite.setScale(1.8); // 50% larger
-            elite.health = 12; // 300% health
+            elite.health = 18; // Increased by 50%
             elite.enemyType = 'tree';
             elite.play('enemy-walking');
             elite.body.setSize(30, 45);
@@ -8277,7 +8587,7 @@ class GameScene extends Phaser.Scene {
         } else if (eliteType === 'slime') {
             elite = this.physics.add.sprite(x, y, 'slime-idle-0');
             elite.setScale(2.25); // 50% larger
-            elite.health = 9; // 300% health
+            elite.health = 14; // Increased by 50%
             elite.enemyType = 'slime';
             elite.moveSpeed = 32;
             elite.generation = 0;
@@ -8288,7 +8598,7 @@ class GameScene extends Phaser.Scene {
             const golemColor = Math.random() < 0.5 ? 'orange' : 'blue';
             elite = this.physics.add.sprite(x, y, `golem-${golemColor}-walk`, 0);
             elite.setScale(4.5); // 50% larger than base 3.0
-            elite.health = 24; // ~300% of base 7.5
+            elite.health = 36; // Increased by 50%
             elite.enemyType = 'golem';
             elite.golemColor = golemColor;
             elite.moveSpeed = 25;
