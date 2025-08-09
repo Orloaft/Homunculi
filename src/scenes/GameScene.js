@@ -16,6 +16,7 @@ export default class GameScene extends Phaser.Scene {
 
     init(data) {
         this.debugMode = data?.debugMode || false;
+        this.stage = data?.stage || 'forest'; // Default to forest stage
     }
 
     create() {
@@ -37,6 +38,9 @@ export default class GameScene extends Phaser.Scene {
         // Setup camera
         this.setupCamera();
 
+        // Add debug stage name display
+        this.createStageDebugDisplay();
+
         // Start game sequence
         this.startGameSequence();
     }
@@ -45,13 +49,20 @@ export default class GameScene extends Phaser.Scene {
         // Set world bounds
         this.physics.world.setBounds(0, 0, GAME_CONFIG.worldWidth, GAME_CONFIG.worldHeight);
 
-        // Create grass floor using tileSprite for seamless coverage
-        this.grassFloor = this.add.tileSprite(0, 0, GAME_CONFIG.worldWidth, GAME_CONFIG.worldHeight, 'grass-tile');
-        this.grassFloor.setOrigin(0, 0);
-        this.grassFloor.setDepth(-1); // Ensure it's behind everything
-
-        // Add some trees for decoration
-        this.createTrees();
+        // Create floor based on stage type
+        const tileName = this.stage === 'cave' ? 'stone-tile' : 'grass-tile';
+        this.floor = this.add.tileSprite(0, 0, GAME_CONFIG.worldWidth, GAME_CONFIG.worldHeight, tileName);
+        this.floor.setOrigin(0, 0);
+        this.floor.setDepth(-1);
+        
+        // Add stage-specific decorations
+        if (this.stage === 'cave') {
+            // Create invisible barriers for cave
+            this.createInvisibleBarriers();
+        } else {
+            // Add trees for forest
+            this.createTrees();
+        }
     }
 
     createTrees() {
@@ -65,6 +76,34 @@ export default class GameScene extends Phaser.Scene {
             tree.setDepth(y / 10);
             tree.setAlpha(0.8);
         }
+    }
+
+    createInvisibleBarriers() {
+        // Create invisible physics bodies for the world boundaries
+        const thickness = 50;
+        
+        // Top barrier
+        const topBarrier = this.physics.add.staticImage(GAME_CONFIG.worldWidth / 2, thickness / 2, null);
+        topBarrier.setSize(GAME_CONFIG.worldWidth, thickness);
+        topBarrier.setVisible(false);
+        
+        // Bottom barrier
+        const bottomBarrier = this.physics.add.staticImage(GAME_CONFIG.worldWidth / 2, GAME_CONFIG.worldHeight - thickness / 2, null);
+        bottomBarrier.setSize(GAME_CONFIG.worldWidth, thickness);
+        bottomBarrier.setVisible(false);
+        
+        // Left barrier
+        const leftBarrier = this.physics.add.staticImage(thickness / 2, GAME_CONFIG.worldHeight / 2, null);
+        leftBarrier.setSize(thickness, GAME_CONFIG.worldHeight);
+        leftBarrier.setVisible(false);
+        
+        // Right barrier
+        const rightBarrier = this.physics.add.staticImage(GAME_CONFIG.worldWidth - thickness / 2, GAME_CONFIG.worldHeight / 2, null);
+        rightBarrier.setSize(thickness, GAME_CONFIG.worldHeight);
+        rightBarrier.setVisible(false);
+        
+        // Store barriers for collision setup
+        this.barriers = [topBarrier, bottomBarrier, leftBarrier, rightBarrier];
     }
 
     createWizard() {
@@ -137,6 +176,12 @@ export default class GameScene extends Phaser.Scene {
 
         // UI system
         this.uiManager = new UIManager(this);
+        
+        // TEST: Add poison element for testing
+        this.time.delayedCall(1000, () => {
+            this.chargeSystem.addElement('poison');
+            console.log('Added poison element for testing');
+        });
 
         // Game state
         this.gameStarted = false;
@@ -211,6 +256,17 @@ export default class GameScene extends Phaser.Scene {
                 }
             }
         );
+
+        // If in cave stage, add collisions with invisible barriers
+        if (this.stage === 'cave' && this.barriers) {
+            this.barriers.forEach(barrier => {
+                // Wizard collision with barriers
+                this.physics.add.collider(this.wizard, barrier);
+                
+                // Enemy collision with barriers
+                this.physics.add.collider(this.enemyManager.enemies, barrier);
+            });
+        }
     }
 
     setupCamera() {
@@ -220,6 +276,25 @@ export default class GameScene extends Phaser.Scene {
 
         // Set zoom if needed
         this.cameras.main.setZoom(1);
+    }
+
+    createStageDebugDisplay() {
+        console.log('Creating stage debug display for stage:', this.stage);
+        
+        // Create debug text showing current stage
+        const debugText = this.add.text(400, 50, `Stage: ${this.stage.toUpperCase()}`, {
+            fontSize: '32px',
+            color: '#ff0000',
+            stroke: '#ffffff',
+            strokeThickness: 6,
+            fontStyle: 'bold'
+        });
+        debugText.setOrigin(0.5, 0); // Center horizontally
+        debugText.setScrollFactor(0); // Keep it fixed on screen
+        debugText.setDepth(10000); // Make sure it's on top of everything
+        
+        // Also log to console
+        console.log('Debug text created at position:', debugText.x, debugText.y);
     }
 
     startGameSequence() {

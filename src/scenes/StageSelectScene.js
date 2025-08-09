@@ -4,7 +4,7 @@ export default class StageSelectScene extends Phaser.Scene {
         this.selectedStage = 0;
         this.stages = [
             { name: 'Forest', unlocked: true, description: 'A mystical forest filled with danger' },
-            { name: 'Cave', unlocked: false, description: 'Dark caverns with unknown threats' },
+            { name: 'Cave', unlocked: true, description: 'Dark caverns with unknown threats' },
             { name: 'Castle', unlocked: false, description: 'An ancient fortress of evil' },
             { name: 'Volcano', unlocked: false, description: 'Molten depths of fire and brimstone' },
             { name: 'Sky Temple', unlocked: false, description: 'Floating sanctuary in the clouds' },
@@ -210,7 +210,7 @@ export default class StageSelectScene extends Phaser.Scene {
     }
 
     selectStage(index) {
-        if (index === 0) {
+        if (index === 0 || index === 1) {
             // Fade to black before starting game
             const fadeOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000);
             fadeOverlay.setAlpha(0);
@@ -225,7 +225,7 @@ export default class StageSelectScene extends Phaser.Scene {
                     // Start loading scene which will transition to the game
                     this.scene.start('LoadingScene', { 
                         nextScene: 'GameScene',
-                        data: {}
+                        data: { stage: index === 0 ? 'forest' : 'cave' }
                     });
                 }
             });

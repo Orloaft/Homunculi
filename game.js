@@ -46,7 +46,13 @@ class LoadingScene extends Phaser.Scene {
         // Load grass tile with a specific frame to crop out transparent areas
         // Assuming the actual grass content is in the top-left corner
         this.load.image('grass-tile', 'grass.PNG');
+        this.load.image('stone-tile', 'stone.png');
         this.load.image('tree', 'foliage.png');
+        
+        // Load level up reward icons
+        this.load.image('meditate-icon', 'meditate.png');
+        this.load.image('element-select-icon', 'elementsekect.png');
+        this.load.image('fusion-icon', 'holdflask.png');
 
         // Load element symbols sprite sheets
         this.load.spritesheet('element-symbols', 'elements.png', {
@@ -115,6 +121,23 @@ class LoadingScene extends Phaser.Scene {
         this.load.spritesheet('water-spell', 'spells/water1.png', {
             frameWidth: 32,
             frameHeight: 32
+        });
+        
+        this.load.spritesheet('ice-spell', 'spells/ice.PNG', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+        
+        // Old poison sprite - keeping for compatibility
+        this.load.spritesheet('poison-spell-old', 'spells/poison.PNG', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+        
+        // New poison sprite sheet with 9 frames
+        this.load.spritesheet('poison-spell', 'spells/poison-sheet.png', {
+            frameWidth: 55,
+            frameHeight: 41
         });
 
         this.load.spritesheet('lightning-spell', 'spells/lightning1.png', {
@@ -393,7 +416,7 @@ class StageSelectScene extends Phaser.Scene {
         this.selectedStage = 0;
         this.stages = [
             { name: 'Forest', unlocked: true, description: 'A mystical forest filled with danger' },
-            { name: 'Cave', unlocked: false, description: 'Dark caverns with unknown threats' },
+            { name: 'Cave', unlocked: true, description: 'Dark caverns with unknown threats' },
             { name: 'Castle', unlocked: false, description: 'An ancient fortress of evil' },
             { name: 'Volcano', unlocked: false, description: 'Molten depths of fire and brimstone' },
             { name: 'Sky Temple', unlocked: false, description: 'Floating sanctuary in the clouds' },
@@ -599,7 +622,7 @@ class StageSelectScene extends Phaser.Scene {
     }
 
     selectStage(index) {
-        if (index === 0) {
+        if (index === 0 || index === 1) {
             // Fade to black before starting game
             const fadeOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000);
             fadeOverlay.setAlpha(0);
@@ -614,7 +637,7 @@ class StageSelectScene extends Phaser.Scene {
                     // Start loading scene which will transition to the game
                     this.scene.start('LoadingScene', {
                         nextScene: 'GameScene',
-                        data: {}
+                        data: { stage: index === 0 ? 'forest' : 'cave' }
                     });
                 }
             });
@@ -814,6 +837,11 @@ class GameScene extends Phaser.Scene {
         this.activeFlames = []; // Track active fire spell effects
     }
 
+    init(data) {
+        // Receive stage data
+        this.stage = data?.stage || 'forest';
+    }
+
     preload() {
         // All assets are loaded in LoadingScene
     }
@@ -892,7 +920,7 @@ class GameScene extends Phaser.Scene {
             steam: { frame: 1, color: 0xaabbcc, name: 'Steam', sheet: 'element-symbols2' },
             poison: { frame: 2, color: 0x00ff00, name: 'Poison', sheet: 'element-symbols2' },
             volcano: { frame: 3, color: 0xcc3300, name: 'Volcano', sheet: 'element-symbols2' },
-            ice: { frame: 4, color: 0x00ddff, name: 'Ice', sheet: 'element-symbols2' },
+            ice: { frame: 4, color: 0x00ddff, name: 'Ice', sheet: 'element-symbols2', fireRate: 2500 },
             meteor: { frame: 5, color: 0xff8800, name: 'Meteor', sheet: 'element-symbols2' },
             mud: { frame: 6, color: 0x664422, name: 'Mud', sheet: 'element-symbols2' },
             thunder: { frame: 7, color: 0xffff00, name: 'Thunder', sheet: 'element-symbols2' },
@@ -911,7 +939,7 @@ class GameScene extends Phaser.Scene {
         };
 
         // Define primary elements (can drop from enemies)
-        this.primaryElements = ['fire', 'water', 'earth', 'air', 'lightning', 'arcane'];
+        this.primaryElements = ['fire', 'water', 'earth', 'air', 'lightning', 'arcane', 'ice', 'poison'];
 
         // Element descriptions for the discovery menu
         this.elementDescriptions = {
@@ -926,9 +954,9 @@ class GameScene extends Phaser.Scene {
             dust: 'Blinds and slows enemies in a large area. Debuff element.',
             lava: 'Molten projectiles that create burning pools on impact. Destructive fire.',
             steam: 'Explosive bursts that push enemies back violently. Pressure element.',
-            poison: 'Applies damage over time to enemies. Lethal toxin.',
+            poison: 'Drops poison mines that trigger on contact, poisoning enemies for continuous damage.',
             volcano: 'Erupts with multiple lava projectiles in all directions. Explosive earth.',
-            ice: 'Slows enemies and reduces their movement speed. Frost magic.',
+            ice: 'Creates ice crystals that freeze enemies in place for 2 seconds. Frost magic.',
             meteor: 'Calls down meteors from above with area damage. Celestial destruction.',
             mud: 'Creates slowing puddles that trap enemies. Terrain control.',
             thunder: 'Instant lightning strikes on random enemies. Divine punishment.',
@@ -944,9 +972,9 @@ class GameScene extends Phaser.Scene {
             moon: 'Lunar energy that heals allies and curses enemies. Night magic.'
         };
 
-        console.log('Creating forest background');
-        this.createForestBackground();
-        console.log('Forest background created');
+        console.log('Creating background for stage:', this.stage);
+        this.createStageBackground();
+        console.log('Stage background created');
 
         console.log('Creating wizard sprite');
         this.wizard = this.physics.add.sprite(2000, 1080, 'wizard-idle');  // Center horizontally in the world
@@ -1029,16 +1057,35 @@ class GameScene extends Phaser.Scene {
         this.physics.add.overlap(this.wizard, this.chests, this.openChest, null, this);
         this.physics.add.overlap(this.wizard, this.chargeExpansions, this.collectChargeExpansion, null, this);
 
-        // Add collisions with trees
-        this.physics.add.collider(this.wizard, this.trees);
-        this.physics.add.collider(this.enemies, this.trees);
-        this.physics.add.collider(this.projectiles, this.trees, this.projectileHitTree, null, this);
+        // Add collisions with trees (only in forest stage)
+        if (this.stage === 'forest') {
+            this.physics.add.collider(this.wizard, this.trees);
+            this.physics.add.collider(this.enemies, this.trees);
+            // Projectiles now pass through trees without collision
+            // this.physics.add.collider(this.projectiles, this.trees, this.projectileHitTree, null, this);
+        }
+        
+        // Add collisions with barriers (only in cave stage)
+        if (this.stage === 'cave' && this.barriers) {
+            this.barriers.forEach(barrier => {
+                this.physics.add.collider(this.wizard, barrier);
+                this.physics.add.collider(this.enemies, barrier);
+            });
+        }
 
-        // Add enemy-to-enemy collision to prevent stacking
-        this.physics.add.collider(this.enemies, this.enemies);
+        // Add enemy-to-enemy collision to prevent stacking (but allow passing through frozen enemies)
+        this.physics.add.collider(this.enemies, this.enemies, null, (enemy1, enemy2) => {
+            // If either enemy is frozen, allow them to pass through each other
+            if (enemy1.frozen || enemy2.frozen) {
+                return false; // No collision
+            }
+            return true; // Normal collision
+        });
 
-        // Spawn some trees randomly
-        this.spawnTrees();
+        // Spawn some trees randomly (only in forest stage)
+        if (this.stage === 'forest') {
+            this.spawnTrees();
+        }
 
         console.log('Creating UI elements');
         this.createChargeUI();
@@ -1108,6 +1155,22 @@ class GameScene extends Phaser.Scene {
         this.anims.create({
             key: 'water-spell-anim',
             frames: this.anims.generateFrameNumbers('water-spell', { start: 0, end: 11 }),
+            frameRate: 12,
+            repeat: 0
+        });
+
+        // Create ice spell animation (slower)
+        this.anims.create({
+            key: 'ice-spell-anim',
+            frames: this.anims.generateFrameNumbers('ice-spell', { start: 0, end: 5 }),
+            frameRate: 6,  // Slowed down from 10 to 6
+            repeat: -1
+        });
+
+        // Create poison mine animation with new 9-frame sprite
+        this.anims.create({
+            key: 'poison-mine-anim',
+            frames: this.anims.generateFrameNumbers('poison-spell', { start: 0, end: 8 }),
             frameRate: 12,
             repeat: 0
         });
@@ -1754,7 +1817,7 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    createForestBackground() {
+    createStageBackground() {
         const worldWidth = 4000;  // Much wider world - was 1280
         const worldHeight = 2160;  // 3x the original height (720 * 3)
 
@@ -1767,13 +1830,21 @@ class GameScene extends Phaser.Scene {
         // Set camera bounds to prevent seeing beyond the world
         this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
 
-        // Create grass floor using tileSprite for seamless coverage
-        this.grassFloor = this.add.tileSprite(0, 0, worldWidth, worldHeight, 'grass-tile');
-        this.grassFloor.setOrigin(0, 0);
-        this.grassFloor.setDepth(-1); // Ensure it's behind everything
+        // Create floor based on stage type
+        const tileName = this.stage === 'cave' ? 'stone-tile' : 'grass-tile';
+        this.floor = this.add.tileSprite(0, 0, worldWidth, worldHeight, tileName);
+        this.floor.setOrigin(0, 0);
+        this.floor.setDepth(-1); // Ensure it's behind everything
 
-        // Create trees on top of the background
-        this.createTrees();
+        // Add stage-specific decorations
+        if (this.stage === 'cave') {
+            // Create invisible barriers for cave
+            this.createInvisibleBarriers();
+        } else {
+            // Create trees for forest
+            this.createTrees();
+        }
+        
     }
 
     createTrees() {
@@ -1788,6 +1859,50 @@ class GameScene extends Phaser.Scene {
             tree.setDepth(y / 10); // Depth based on Y position
             tree.setAlpha(0.8);
         }
+    }
+
+    createInvisibleBarriers() {
+        // Create invisible physics bodies for the world boundaries
+        const thickness = 50;
+        const worldWidth = 4000;
+        const worldHeight = 2160;
+        
+        // Top barrier
+        const topBarrier = this.physics.add.staticImage(worldWidth / 2, thickness / 2, null);
+        topBarrier.setSize(worldWidth, thickness);
+        topBarrier.setVisible(false);
+        
+        // Bottom barrier
+        const bottomBarrier = this.physics.add.staticImage(worldWidth / 2, worldHeight - thickness / 2, null);
+        bottomBarrier.setSize(worldWidth, thickness);
+        bottomBarrier.setVisible(false);
+        
+        // Left barrier
+        const leftBarrier = this.physics.add.staticImage(thickness / 2, worldHeight / 2, null);
+        leftBarrier.setSize(thickness, worldHeight);
+        leftBarrier.setVisible(false);
+        
+        // Right barrier
+        const rightBarrier = this.physics.add.staticImage(worldWidth - thickness / 2, worldHeight / 2, null);
+        rightBarrier.setSize(thickness, worldHeight);
+        rightBarrier.setVisible(false);
+        
+        // Store barriers for collision setup
+        this.barriers = [topBarrier, bottomBarrier, leftBarrier, rightBarrier];
+    }
+
+    createStageDebugDisplay() {
+        // Create debug text showing current stage
+        const debugText = this.add.text(400, 20, `Stage: ${this.stage.toUpperCase()}`, {
+            fontSize: '32px',
+            color: '#ff0000',
+            stroke: '#ffffff',
+            strokeThickness: 6,
+            fontStyle: 'bold'
+        });
+        debugText.setOrigin(0.5, 0); // Center horizontally
+        debugText.setScrollFactor(0); // Keep it fixed on screen
+        debugText.setDepth(10000); // Make sure it's on top of everything
     }
 
     createChargeUI() {
@@ -2078,6 +2193,14 @@ class GameScene extends Phaser.Scene {
         // Start with no charges
         this.charges = [];
         this.updateChargeUI();
+        
+        // TEST: Add poison element for testing
+        this.time.delayedCall(1000, () => {
+            this.charges.push('poison');
+            this.updateChargeUI();
+            this.updateChargeGroups();
+            console.log('Added poison element for testing');
+        });
 
         // Initialize wave system
         this.waveStartTime = this.time.now;
@@ -2106,74 +2229,149 @@ class GameScene extends Phaser.Scene {
         // Wave definitions inspired by Vampire Survivors
         // Each wave lasts 60 seconds, with specific enemy types and spawn patterns
 
-        const baseWaves = [
-            // Wave 0 (0:00-1:00) - Introduction
-            {
-                enemies: [
-                    { type: 'bat', weight: 40, count: 3 },
-                    { type: 'tree', weight: 60, count: 2 }
-                ],
-                spawnInterval: 2000,
-                maxEnemies: 25
-            },
-            // Wave 1 (1:00-2:00) - Add mushrooms
-            {
-                enemies: [
-                    { type: 'bat', weight: 30, count: 4 },
-                    { type: 'tree', weight: 40, count: 2 },
-                    { type: 'mushroom', weight: 30, count: 2 }
-                ],
-                spawnInterval: 1500,
-                maxEnemies: 35
-            },
-            // Wave 2 (2:00-3:00) - Add fireworms
-            {
-                enemies: [
-                    { type: 'bat', weight: 25, count: 4 },
-                    { type: 'tree', weight: 30, count: 2 },
-                    { type: 'mushroom', weight: 25, count: 2 },
-                    { type: 'fireworm', weight: 20, count: 2 }
-                ],
-                spawnInterval: 1200,
-                maxEnemies: 45,
-                specialEvent: { time: 30, type: 'swarm', enemy: 'bat', count: 12 }
-            },
-            // Wave 3 (3:00-4:00) - Add souls
-            {
-                enemies: [
-                    { type: 'tree', weight: 25, count: 3 },
-                    { type: 'mushroom', weight: 25, count: 2 },
-                    { type: 'fireworm', weight: 25, count: 2 },
-                    { type: 'soul', weight: 25, count: 2 }
-                ],
-                spawnInterval: 1000,
-                maxEnemies: 55
-            },
-            // Wave 4 (4:00-5:00) - Add bloboids
-            {
-                enemies: [
-                    { type: 'mushroom', weight: 20, count: 3 },
-                    { type: 'fireworm', weight: 20, count: 3 },
-                    { type: 'soul', weight: 30, count: 2 },
-                    { type: 'bloboid', weight: 30, count: 2 }
-                ],
-                spawnInterval: 800,
-                maxEnemies: 65,
-                specialEvent: { time: 30, type: 'circle', enemy: 'fireworm', count: 10 }
-            },
-            // Wave 5+ (5:00+) - Add summoners and increase difficulty
-            {
-                enemies: [
-                    { type: 'fireworm', weight: 15, count: 3 },
-                    { type: 'soul', weight: 20, count: 3 },
-                    { type: 'bloboid', weight: 25, count: 3 },
-                    { type: 'summoner', weight: 20, count: 2 },
-                    { type: 'tree', weight: 20, count: 4 }
-                ],
-                spawnInterval: 600,
-                maxEnemies: 80
-            }
-        ];
+        let baseWaves;
+        
+        if (this.stage === 'cave') {
+            // Cave stage waves: slimes, lost souls, bats, golems, dark eyes
+            baseWaves = [
+                // Wave 0 (0:00-1:00) - Introduction
+                {
+                    enemies: [
+                        { type: 'bat', weight: 40, count: 3 },
+                        { type: 'slime', weight: 60, count: 2 }
+                    ],
+                    spawnInterval: 2000,
+                    maxEnemies: 25
+                },
+                // Wave 1 (1:00-2:00) - Add souls
+                {
+                    enemies: [
+                        { type: 'bat', weight: 30, count: 4 },
+                        { type: 'slime', weight: 40, count: 2 },
+                        { type: 'soul', weight: 30, count: 2 }
+                    ],
+                    spawnInterval: 1500,
+                    maxEnemies: 35
+                },
+                // Wave 2 (2:00-3:00) - Add golems
+                {
+                    enemies: [
+                        { type: 'bat', weight: 25, count: 4 },
+                        { type: 'slime', weight: 30, count: 2 },
+                        { type: 'soul', weight: 25, count: 2 },
+                        { type: 'golem', weight: 20, count: 1 }
+                    ],
+                    spawnInterval: 1200,
+                    maxEnemies: 45,
+                    specialEvent: { time: 30, type: 'swarm', enemy: 'bat', count: 12 }
+                },
+                // Wave 3 (3:00-4:00) - More golems
+                {
+                    enemies: [
+                        { type: 'slime', weight: 25, count: 3 },
+                        { type: 'soul', weight: 25, count: 2 },
+                        { type: 'golem', weight: 25, count: 2 },
+                        { type: 'bat', weight: 25, count: 3 }
+                    ],
+                    spawnInterval: 1000,
+                    maxEnemies: 55
+                },
+                // Wave 4 (4:00-5:00) - Add dark eyes
+                {
+                    enemies: [
+                        { type: 'soul', weight: 20, count: 3 },
+                        { type: 'golem', weight: 30, count: 2 },
+                        { type: 'slime', weight: 30, count: 3 },
+                        { type: 'darkeye', weight: 20, count: 1 }
+                    ],
+                    spawnInterval: 800,
+                    maxEnemies: 65,
+                    specialEvent: { time: 30, type: 'circle', enemy: 'soul', count: 10 }
+                },
+                // Wave 5+ (5:00+) - Full cave roster
+                {
+                    enemies: [
+                        { type: 'golem', weight: 25, count: 2 },
+                        { type: 'soul', weight: 20, count: 3 },
+                        { type: 'slime', weight: 20, count: 4 },
+                        { type: 'darkeye', weight: 20, count: 1 },
+                        { type: 'bat', weight: 15, count: 4 }
+                    ],
+                    spawnInterval: 600,
+                    maxEnemies: 80
+                }
+            ];
+        } else {
+            // Forest stage waves: trees, mushrooms, bats, bloboids, summoners
+            baseWaves = [
+                // Wave 0 (0:00-1:00) - Introduction
+                {
+                    enemies: [
+                        { type: 'bat', weight: 40, count: 3 },
+                        { type: 'tree', weight: 60, count: 2 }
+                    ],
+                    spawnInterval: 2000,
+                    maxEnemies: 25
+                },
+                // Wave 1 (1:00-2:00) - Add mushrooms
+                {
+                    enemies: [
+                        { type: 'bat', weight: 30, count: 4 },
+                        { type: 'tree', weight: 40, count: 2 },
+                        { type: 'mushroom', weight: 30, count: 2 }
+                    ],
+                    spawnInterval: 1500,
+                    maxEnemies: 35
+                },
+                // Wave 2 (2:00-3:00) - Add bloboids
+                {
+                    enemies: [
+                        { type: 'bat', weight: 25, count: 4 },
+                        { type: 'tree', weight: 30, count: 2 },
+                        { type: 'mushroom', weight: 25, count: 2 },
+                        { type: 'bloboid', weight: 20, count: 2 }
+                    ],
+                    spawnInterval: 1200,
+                    maxEnemies: 45,
+                    specialEvent: { time: 30, type: 'swarm', enemy: 'bat', count: 12 }
+                },
+                // Wave 3 (3:00-4:00) - More variety
+                {
+                    enemies: [
+                        { type: 'tree', weight: 25, count: 3 },
+                        { type: 'mushroom', weight: 25, count: 2 },
+                        { type: 'bloboid', weight: 25, count: 2 },
+                        { type: 'bat', weight: 25, count: 3 }
+                    ],
+                    spawnInterval: 1000,
+                    maxEnemies: 55
+                },
+                // Wave 4 (4:00-5:00) - Add summoners
+                {
+                    enemies: [
+                        { type: 'mushroom', weight: 20, count: 3 },
+                        { type: 'bloboid', weight: 30, count: 3 },
+                        { type: 'tree', weight: 30, count: 3 },
+                        { type: 'summoner', weight: 20, count: 1 }
+                    ],
+                    spawnInterval: 800,
+                    maxEnemies: 65,
+                    specialEvent: { time: 30, type: 'circle', enemy: 'mushroom', count: 10 }
+                },
+                // Wave 5+ (5:00+) - Full forest roster
+                {
+                    enemies: [
+                        { type: 'bloboid', weight: 25, count: 3 },
+                        { type: 'summoner', weight: 20, count: 2 },
+                        { type: 'tree', weight: 20, count: 4 },
+                        { type: 'mushroom', weight: 20, count: 3 },
+                        { type: 'bat', weight: 15, count: 4 }
+                    ],
+                    spawnInterval: 600,
+                    maxEnemies: 80
+                }
+            ];
+        }
 
         // After wave 5, cycle through waves with increased difficulty
         const waveIndex = Math.min(waveNumber, baseWaves.length - 1);
@@ -2914,7 +3112,7 @@ class GameScene extends Phaser.Scene {
             // Handle summoner behavior
             if (enemy.enemyType === 'summoner') {
                 // Summoners move very slowly
-                if (!enemy.stunned && !enemy.blinded) {
+                if (!enemy.stunned && !enemy.blinded && !enemy.frozen) {
                     const moveSpeed = enemy.moveSpeed || 20;
                     const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
                     enemy.setVelocity(
@@ -2942,7 +3140,7 @@ class GameScene extends Phaser.Scene {
                 const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
 
                 // Move towards wizard but stop at attack range
-                if (distance > enemy.attackRange && !enemy.stunned && !enemy.blinded) {
+                if (distance > enemy.attackRange && !enemy.stunned && !enemy.blinded && !enemy.frozen) {
                     const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
                     let speed = enemy.moveSpeed;
 
@@ -2976,7 +3174,7 @@ class GameScene extends Phaser.Scene {
                 }
             }
             // Only update velocity if not being knocked back, not stunned, and not blinded
-            else if (Math.abs(enemy.body.velocity.x) < 100 && Math.abs(enemy.body.velocity.y) < 100 && !enemy.stunned && !enemy.blinded) {
+            else if (Math.abs(enemy.body.velocity.x) < 100 && Math.abs(enemy.body.velocity.y) < 100 && !enemy.stunned && !enemy.blinded && !enemy.frozen) {
                 // Get enemy speed based on type
                 let moveSpeed = enemy.moveSpeed || (enemy.enemyType === 'tree' ? 48 : 60);
 
@@ -4606,12 +4804,25 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    cleanupEnemyEffects(enemy) {
+        // Clean up poison timer if it exists
+        if (enemy.poisonTimer) {
+            enemy.poisonTimer.destroy();
+            enemy.poisonTimer = null;
+        }
+        // Clear any status effects
+        enemy.poisoned = false;
+    }
+
     killEnemy(enemy) {
         if (enemy.isDying) return;
 
         enemy.isDying = true;
         const enemyX = enemy.x;
         const enemyY = enemy.y;
+        
+        // Clean up any active effects
+        this.cleanupEnemyEffects(enemy);
 
         if (enemy.enemyType === 'slime') {
             // Play slime death animation
@@ -5303,23 +5514,36 @@ class GameScene extends Phaser.Scene {
         x = Phaser.Math.Clamp(x, 50, 3950);  // Updated for wider world
         y = Phaser.Math.Clamp(y, 50, 2110);  // Updated for taller world (2160 - 50)
 
-        // Randomly choose between enemy types
+        // Randomly choose between enemy types based on stage
         const rand = Math.random();
         let enemyType;
-        if (rand < 0.14) {
-            enemyType = 'tree'; // 14%
-        } else if (rand < 0.28) {
-            enemyType = 'bat'; // 14%
-        } else if (rand < 0.42) {
-            enemyType = 'mushroom'; // 14%
-        } else if (rand < 0.56) {
-            enemyType = 'fireworm'; // 14%
-        } else if (rand < 0.70) {
-            enemyType = 'summoner'; // 14%
-        } else if (rand < 0.85) {
-            enemyType = 'soul'; // 15%
+        
+        if (this.stage === 'cave') {
+            // Cave enemies: slimes, lost souls, bats, golems, dark eyes
+            if (rand < 0.25) {
+                enemyType = 'slime'; // 25%
+            } else if (rand < 0.45) {
+                enemyType = 'soul'; // 20%
+            } else if (rand < 0.65) {
+                enemyType = 'bat'; // 20%
+            } else if (rand < 0.85) {
+                enemyType = 'golem'; // 20%
+            } else {
+                enemyType = 'darkeye'; // 15%
+            }
         } else {
-            enemyType = 'bloboid'; // 15%
+            // Forest enemies: trees, mushrooms, bats, bloboids, summoners
+            if (rand < 0.25) {
+                enemyType = 'tree'; // 25%
+            } else if (rand < 0.45) {
+                enemyType = 'mushroom'; // 20%
+            } else if (rand < 0.65) {
+                enemyType = 'bat'; // 20%
+            } else if (rand < 0.85) {
+                enemyType = 'bloboid'; // 20%
+            } else {
+                enemyType = 'summoner'; // 15%
+            }
         }
 
         if (enemyType === 'tree') {
@@ -5334,7 +5558,7 @@ class GameScene extends Phaser.Scene {
             enemy.body.setSize(26, 39); // Widened by 30%
             enemy.body.setOffset(3, 12); // Adjusted offset for wider hitbox
             this.enemies.add(enemy);
-        } else {
+        } else if (enemyType === 'bat') {
             // Spawn 2 bat enemies at once
             for (let i = 0; i < 2; i++) {
                 // Slightly offset each bat spawn position
@@ -5359,7 +5583,7 @@ class GameScene extends Phaser.Scene {
         if (enemyType === 'mushroom') {
             const mushroom = this.physics.add.sprite(x, y, 'mushroom-run', 0);
             mushroom.setScale(0.7); // Scale to appropriate size
-            mushroom.setFlipY(true); // Reverse vertical facing
+            // mushroom.setFlipY(true); // Removed - no need to flip
             mushroom.health = 5; // Increased by 50% // Medium health
             mushroom.maxHealth = mushroom.health;
             mushroom.enemyType = 'mushroom';
@@ -5424,6 +5648,50 @@ class GameScene extends Phaser.Scene {
             bloboid.body.setOffset(15, 2);
             bloboid.element = 'earth'; // Earth element for blob
             this.enemies.add(bloboid);
+        } else if (enemyType === 'slime') {
+            // Create slime enemy
+            const slime = this.physics.add.sprite(x, y, 'slime-idle', 0);
+            slime.setScale(1.0);
+            slime.health = 4; // Increased by 50%
+            slime.maxHealth = slime.health;
+            slime.enemyType = 'slime';
+            slime.moveSpeed = 30; // Slow
+            slime.play('slime-idle');
+            slime.body.setSize(40, 40);
+            slime.body.setOffset(10, 10);
+            slime.generation = 0; // For splitting mechanic
+            this.enemies.add(slime);
+        } else if (enemyType === 'golem') {
+            // Randomly choose golem color
+            const golemColor = Math.random() < 0.5 ? 'orange' : 'blue';
+            const golem = this.physics.add.sprite(x, y, `golem-${golemColor}-walk`, 0);
+            golem.setScale(1.5);
+            golem.health = 15; // Increased by 50% - Very high health
+            golem.maxHealth = golem.health;
+            golem.enemyType = 'golem';
+            golem.golemColor = golemColor;
+            golem.moveSpeed = 25; // Very slow but tanky
+            golem.play(`golem-${golemColor}-walk`);
+            golem.body.setSize(60, 50);
+            golem.body.setOffset(15, 10);
+            golem.element = golemColor === 'orange' ? 'fire' : 'water';
+            this.enemies.add(golem);
+        } else if (enemyType === 'darkeye') {
+            // Create dark eye enemy
+            const darkeye = this.physics.add.sprite(x, y, 'darkeye-walk', 0);
+            darkeye.setScale(0.8);
+            darkeye.health = 20; // Increased by 50% - Boss-level health
+            darkeye.maxHealth = darkeye.health;
+            darkeye.enemyType = 'darkeye';
+            darkeye.moveSpeed = 45; // Medium speed
+            darkeye.play('darkeye-walking');
+            darkeye.body.setSize(80, 80);
+            darkeye.body.setOffset(40, 30);
+            darkeye.element = 'arcane'; // Powerful arcane enemy
+            darkeye.attackRange = 200;
+            darkeye.attackCooldown = 3000;
+            darkeye.lastAttackTime = 0;
+            this.enemies.add(darkeye);
         }
     }
 
@@ -5517,6 +5785,7 @@ class GameScene extends Phaser.Scene {
         } else if (enemyType === 'mushroom') {
             const mushroom = this.physics.add.sprite(x, y, 'mushroom-run', 0);
             mushroom.setScale(0.7);
+            mushroom.setFlipY(true); // Reverse vertical facing
             mushroom.health = 5; // Increased by 50%
             mushroom.maxHealth = mushroom.health;
             mushroom.enemyType = 'mushroom';
@@ -5571,6 +5840,7 @@ class GameScene extends Phaser.Scene {
             const bloboid = this.physics.add.sprite(x, y, 'bloboid-walk', 0);
             bloboid.setScale(1.5);
             bloboid.setFlipX(true);
+            bloboid.setFlipY(true); // Reverse vertical facing
             bloboid.health = 8; // Increased by 50%
             bloboid.maxHealth = bloboid.health;
             bloboid.enemyType = 'bloboid';
@@ -5580,6 +5850,47 @@ class GameScene extends Phaser.Scene {
             bloboid.body.setOffset(15, 2);
             bloboid.element = 'earth';
             this.enemies.add(bloboid);
+        } else if (enemyType === 'slime') {
+            const slime = this.physics.add.sprite(x, y, 'slime-idle', 0);
+            slime.setScale(1.0);
+            slime.health = 4; // Increased by 50%
+            slime.maxHealth = slime.health;
+            slime.enemyType = 'slime';
+            slime.moveSpeed = 30;
+            slime.play('slime-idle');
+            slime.body.setSize(40, 40);
+            slime.body.setOffset(10, 10);
+            slime.generation = 0;
+            this.enemies.add(slime);
+        } else if (enemyType === 'golem') {
+            const golemColor = Math.random() < 0.5 ? 'orange' : 'blue';
+            const golem = this.physics.add.sprite(x, y, `golem-${golemColor}-walk`, 0);
+            golem.setScale(1.5);
+            golem.health = 15; // Increased by 50%
+            golem.maxHealth = golem.health;
+            golem.enemyType = 'golem';
+            golem.golemColor = golemColor;
+            golem.moveSpeed = 25;
+            golem.play(`golem-${golemColor}-walk`);
+            golem.body.setSize(60, 50);
+            golem.body.setOffset(15, 10);
+            golem.element = golemColor === 'orange' ? 'fire' : 'water';
+            this.enemies.add(golem);
+        } else if (enemyType === 'darkeye') {
+            const darkeye = this.physics.add.sprite(x, y, 'darkeye-walk', 0);
+            darkeye.setScale(0.8);
+            darkeye.health = 20; // Increased by 50%
+            darkeye.maxHealth = darkeye.health;
+            darkeye.enemyType = 'darkeye';
+            darkeye.moveSpeed = 45;
+            darkeye.play('darkeye-walking');
+            darkeye.body.setSize(80, 80);
+            darkeye.body.setOffset(40, 30);
+            darkeye.element = 'arcane';
+            darkeye.attackRange = 200;
+            darkeye.attackCooldown = 3000;
+            darkeye.lastAttackTime = 0;
+            this.enemies.add(darkeye);
         }
     }
 
@@ -5850,10 +6161,10 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    showDamageNumber(x, y, damage) {
+    showDamageNumber(x, y, damage, color = '#ffff00') {
         const damageText = this.add.text(x, y, damage.toString(), {
             fontSize: '24px',
-            color: '#ffff00',
+            color: color,
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 4
@@ -5964,8 +6275,54 @@ class GameScene extends Phaser.Scene {
             });
         }
 
+        // Apply freeze from ice projectile
+        if (projectile.freezeEnemy && projectile.freezeDuration && !enemy.frozen) {
+            enemy.frozen = true;
+            enemy.frozenUntil = this.time.now + projectile.freezeDuration;
+            
+            // Stop enemy movement
+            enemy.setVelocity(0, 0);
+            
+            // Visual freeze effect - blue tint and stop animation
+            enemy.setTint(0x88ccff);
+            if (enemy.anims) {
+                enemy.anims.pause();
+            }
+            
+            // Unfreeze after duration
+            this.time.delayedCall(projectile.freezeDuration, () => {
+                if (enemy.active) {
+                    enemy.frozen = false;
+                    // Clear tint only if no other effects
+                    if (!enemy.burning && !enemy.stunned && !enemy.poisoned && !enemy.slowed) {
+                        enemy.clearTint();
+                    }
+                    if (enemy.anims) {
+                        enemy.anims.resume();
+                    }
+                }
+            });
+        }
+
         // Visual feedback - flash red and play hurt animation for golems
         enemy.setTint(0xff0000);
+        
+        // Restore appropriate tint after flash
+        this.time.delayedCall(100, () => {
+            if (enemy.active) {
+                if (enemy.frozen) {
+                    enemy.setTint(0x88ccff);
+                } else if (enemy.poisoned) {
+                    enemy.setTint(0x00ff00);
+                } else if (enemy.burning) {
+                    enemy.setTint(0xff6600);
+                } else if (enemy.stunned) {
+                    enemy.setTint(0x666666);
+                } else {
+                    enemy.clearTint();
+                }
+            }
+        });
 
         // Play hurt animation for golems if not dying
         if (enemy.enemyType === 'golem' && enemy.health > 0 && !enemy.isDying && !enemy.isAttacking) {
@@ -6592,8 +6949,14 @@ class GameScene extends Phaser.Scene {
                 case 'air':
                     this.createWindGust();
                     break;
+                case 'ice':
+                    this.createIceSpell();
+                    break;
                 case 'arcane':
                     this.fireArcaneProjectile();
+                    break;
+                case 'poison':
+                    this.createPoisonMines();
                     break;
                 default:
                     // For non-primary elements, use basic projectile with element effect
@@ -6645,6 +7008,9 @@ class GameScene extends Phaser.Scene {
                 case 'air':
                     this.createAirBlast();
                     break;
+                case 'ice':
+                    this.createIceSpell();
+                    break;
                 case 'holy':
                     this.createHolyLight();
                     break;
@@ -6661,13 +7027,13 @@ class GameScene extends Phaser.Scene {
                     this.createSteamBurst();
                     break;
                 case 'poison':
-                    this.firePoisonProjectile();
+                    this.createPoisonMines();
                     break;
                 case 'volcano':
                     this.createVolcanicEruption();
                     break;
                 case 'ice':
-                    this.fireIceProjectile();
+                    this.createIceSpell();
                     break;
                 case 'meteor':
                     this.fireMeteorProjectile();
@@ -7256,6 +7622,265 @@ class GameScene extends Phaser.Scene {
         this.time.delayedCall(3000, () => {
             if (projectile.active) {
                 projectile.destroy();
+            }
+        });
+    }
+
+    createIceSpell() {
+        // Create multiple ice crystals at random positions around the wizard
+        const iceCount = 5; // Number of ice crystals to spawn
+        const radius = 150; // Max distance from wizard
+        
+        for (let i = 0; i < iceCount; i++) {
+            // Random angle and distance
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 50 + Math.random() * (radius - 50);
+            
+            // Calculate position
+            const x = this.wizard.x + Math.cos(angle) * distance;
+            const y = this.wizard.y + Math.sin(angle) * distance;
+            
+            // Create ice crystal sprite
+            const iceCrystal = this.physics.add.sprite(x, y, 'ice-spell');
+            iceCrystal.element = 'ice';
+            iceCrystal.damage = 2;
+            iceCrystal.freezeDuration = 2000; // 2 seconds freeze
+            iceCrystal.body.setCollideWorldBounds(false);
+            iceCrystal.setDepth(5);
+            iceCrystal.setScale(1.2);
+            
+            // Play animation
+            iceCrystal.play('ice-spell-anim');
+            
+            // Make it static (doesn't move)
+            iceCrystal.body.setVelocity(0, 0);
+            iceCrystal.body.setImmovable(true);
+            
+            // Add to projectiles group for collision detection
+            this.projectiles.add(iceCrystal);
+            
+            // Add freeze effect on hit
+            iceCrystal.freezeEnemy = true;
+            
+            // Fade in effect
+            iceCrystal.setAlpha(0);
+            this.tweens.add({
+                targets: iceCrystal,
+                alpha: 0.8,
+                duration: 300,
+                ease: 'Power2'
+            });
+            
+            // Destroy after 3 seconds
+            this.time.delayedCall(3000, () => {
+                if (iceCrystal.active) {
+                    // Fade out before destroying
+                    this.tweens.add({
+                        targets: iceCrystal,
+                        alpha: 0,
+                        duration: 300,
+                        onComplete: () => iceCrystal.destroy()
+                    });
+                }
+            });
+            
+            // Delay between spawning each crystal
+            this.time.delayedCall(i * 100, () => {});
+        }
+    }
+
+    createPoisonMines() {
+        // Create a group to track active poison fields if not exists
+        if (!this.poisonFields) {
+            this.poisonFields = this.physics.add.group();
+        }
+        
+        // Debug check
+        if (!this.textures.exists('poison-spell')) {
+            console.error('Poison spell texture not loaded!');
+            return;
+        }
+        
+        // Calculate position behind wizard based on last movement direction
+        const direction = this.wizard.lastDirection || 'down';
+        let offsetX = 0;
+        let offsetY = 0;
+        const baseDistance = 50; // Distance behind wizard
+        
+        // Determine offset based on direction
+        switch (direction) {
+            case 'up':
+                offsetY = baseDistance;
+                break;
+            case 'down':
+                offsetY = -baseDistance;
+                break;
+            case 'left':
+                offsetX = baseDistance;
+                break;
+            case 'right':
+                offsetX = -baseDistance;
+                break;
+            case 'up-left':
+                offsetX = baseDistance / Math.sqrt(2);
+                offsetY = baseDistance / Math.sqrt(2);
+                break;
+            case 'up-right':
+                offsetX = -baseDistance / Math.sqrt(2);
+                offsetY = baseDistance / Math.sqrt(2);
+                break;
+            case 'down-left':
+                offsetX = baseDistance / Math.sqrt(2);
+                offsetY = -baseDistance / Math.sqrt(2);
+                break;
+            case 'down-right':
+                offsetX = -baseDistance / Math.sqrt(2);
+                offsetY = -baseDistance / Math.sqrt(2);
+                break;
+        }
+        
+        let spawnX = this.wizard.x + offsetX;
+        let spawnY = this.wizard.y + offsetY;
+        
+        // Check for existing mines and adjust position if needed
+        const mineSpacing = 35;
+        let attempts = 0;
+        const maxAttempts = 8;
+        
+        while (attempts < maxAttempts) {
+            let tooClose = false;
+            
+            // Check distance to all existing poison fields
+            this.poisonFields.children.entries.forEach(existingField => {
+                if (existingField.active) {
+                    const dist = Phaser.Math.Distance.Between(spawnX, spawnY, existingField.x, existingField.y);
+                    if (dist < mineSpacing) {
+                        tooClose = true;
+                    }
+                }
+            });
+            
+            if (!tooClose) {
+                break; // Found a good spot
+            }
+            
+            // Try adjacent positions in a circle
+            const angle = (attempts * Math.PI * 2) / maxAttempts;
+            spawnX = this.wizard.x + offsetX + Math.cos(angle) * mineSpacing;
+            spawnY = this.wizard.y + offsetY + Math.sin(angle) * mineSpacing;
+            attempts++;
+        }
+        
+        // Create poison field at calculated position
+        const field = this.physics.add.sprite(spawnX, spawnY, 'poison-spell');
+        field.setFrame(0); // Stay on first frame initially
+        field.setScale(0.75); // 50% smaller than default
+        field.setDepth(4); // Above ground but below UI
+        field.body.setImmovable(true);
+        field.body.setSize(30, 30); // Adjusted trigger area for smaller size
+        
+        // Track if animation has played
+        field.hasTriggered = false;
+        
+        // Add a subtle pulsing effect to show it's active
+        field.pulseTween = this.tweens.add({
+            targets: field,
+            alpha: { from: 0.8, to: 1 },
+            scale: { from: 0.75, to: 0.85 },
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        field.element = 'poison';
+        field.hitEnemies = new Set(); // Track which enemies have been poisoned
+        
+        // Add to fields group
+        this.poisonFields.add(field);
+        
+        // Setup collision with enemies
+        this.physics.add.overlap(field, this.enemies, (field, enemy) => {
+            if (enemy.active && !enemy.isDying && !field.hitEnemies.has(enemy)) {
+                // Mark this enemy as hit by this field
+                field.hitEnemies.add(enemy);
+                
+                // Play animation on first collision
+                if (!field.hasTriggered) {
+                    field.hasTriggered = true;
+                    // Stop pulsing
+                    if (field.pulseTween) {
+                        field.pulseTween.stop();
+                    }
+                    field.setScale(0.75); // Reset scale
+                    field.setAlpha(1); // Reset alpha
+                    // Play poison animation
+                    field.play('poison-mine-anim');
+                    // Destroy field after animation completes
+                    field.once('animationcomplete', () => {
+                        field.destroy();
+                    });
+                }
+                
+                // Apply poison to enemy if not already poisoned
+                if (!enemy.poisoned) {
+                    enemy.poisoned = true;
+                    enemy.poisonDamage = 1; // 1 damage every 2 seconds
+                    
+                    // Visual poison effect - green tint
+                    enemy.setTint(0x00ff00);
+                    
+                    // Store the timer on the enemy for cleanup
+                    if (enemy.poisonTimer) {
+                        enemy.poisonTimer.destroy();
+                    }
+                    
+                    // Create poison damage timer that continues until death
+                    enemy.poisonTimer = this.time.addEvent({
+                        delay: 2000, // Every 2 seconds
+                        callback: () => {
+                            if (enemy.active) {
+                                // Deal poison damage
+                                enemy.health -= enemy.poisonDamage;
+                                this.showDamageNumber(enemy.x, enemy.y - 20, enemy.poisonDamage, '#00ff00');
+                                
+                                // Check if enemy died from poison
+                                if (enemy.health <= 0) {
+                                    if (enemy.poisonTimer) {
+                                        enemy.poisonTimer.destroy();
+                                        enemy.poisonTimer = null;
+                                    }
+                                    enemy.poisoned = false;
+                                    this.killEnemy(enemy);
+                                }
+                            } else {
+                                // Enemy no longer exists
+                                if (enemy.poisonTimer) {
+                                    enemy.poisonTimer.destroy();
+                                    enemy.poisonTimer = null;
+                                }
+                            }
+                        },
+                        loop: true
+                    });
+                }
+            }
+        });
+        
+        // Auto-animate and destroy field after 10 seconds if untouched
+        this.time.delayedCall(10000, () => {
+            if (field.active && !field.hasTriggered) {
+                field.hasTriggered = true;
+                // Stop pulsing
+                if (field.pulseTween) {
+                    field.pulseTween.stop();
+                }
+                field.setScale(0.75); // Reset scale
+                field.setAlpha(1); // Reset alpha
+                // Play animation before destroying
+                field.play('poison-mine-anim');
+                field.once('animationcomplete', () => {
+                    field.destroy();
+                });
             }
         });
     }
@@ -9047,6 +9672,7 @@ class GameScene extends Phaser.Scene {
                     type: 'link',
                     title: 'LINK SLOT',
                     icon: '🔗',
+                    iconImage: 'meditate-icon',
                     description: 'Add a link between element slots',
                     color: 0x44ff44
                 },
@@ -9054,6 +9680,7 @@ class GameScene extends Phaser.Scene {
                     type: 'element',
                     title: 'PRIMARY ELEMENT',
                     icon: '⚡',
+                    iconImage: 'element-select-icon',
                     description: 'Choose from 3 primary elements',
                     color: 0x4444ff
                 },
@@ -9061,6 +9688,7 @@ class GameScene extends Phaser.Scene {
                     type: 'fusion',
                     title: 'FUSION RITUAL',
                     icon: '🔮',
+                    iconImage: 'fusion-icon',
                     description: 'Combine 2 elements into a new one',
                     color: 0xff44ff
                 }
@@ -9084,10 +9712,17 @@ class GameScene extends Phaser.Scene {
             const iconBg = this.add.circle(0, -80, 40, reward.color, 0.8);
             iconBg.setStrokeStyle(3, reward.color);
 
-            const icon = this.add.text(0, -80, reward.icon, {
-                fontSize: '48px'
-            });
-            icon.setOrigin(0.5);
+            // Use image if available, otherwise fall back to emoji
+            let iconElement;
+            if (reward.iconImage) {
+                iconElement = this.add.image(0, -80, reward.iconImage);
+                iconElement.setScale(0.5); // Scale down to fit nicely
+            } else {
+                iconElement = this.add.text(0, -80, reward.icon, {
+                    fontSize: '48px'
+                });
+                iconElement.setOrigin(0.5);
+            }
 
             const name = this.add.text(0, -20, reward.title, {
                 fontSize: '18px',
@@ -9104,7 +9739,7 @@ class GameScene extends Phaser.Scene {
             });
             description.setOrigin(0.5);
 
-            button.add([bg, iconBg, icon, name, description]);
+            button.add([bg, iconBg, iconElement, name, description]);
             buttons.push({ container: button, type: reward.type, bg: bg, element: reward.element });
 
             bg.on('pointerdown', () => {

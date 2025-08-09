@@ -151,6 +151,12 @@ export class DamageSystem {
     }
     
     completeEnemyDeath(enemy) {
+        // Clean up any active poison timer
+        if (enemy.poisonTimer) {
+            enemy.poisonTimer.remove();
+            enemy.poisonTimer = null;
+        }
+        
         // Emit death event
         this.scene.events.emit('enemyKilled', enemy);
         

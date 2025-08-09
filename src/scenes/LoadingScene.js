@@ -94,6 +94,7 @@ export default class LoadingScene extends Phaser.Scene {
         // Tiles and environment
         this.load.image('dirt-tiles', 'TopDownFantasy_Forest_v1/TopDownFantasy-Forest/Tiles/dirt.png');
         this.load.image('grass-tile', 'grass.PNG');
+        this.load.image('stone-tile', 'stone.png');
         this.load.image('tree', 'foliage.png');
 
         // Element symbols sprite sheets
@@ -226,6 +227,17 @@ export default class LoadingScene extends Phaser.Scene {
             frameWidth: 32,
             frameHeight: 32
         });
+
+        // Load lightning spell
+        this.load.spritesheet('lightning-spell', 'spells/lightning1.png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+
+        // Load individual air spell frames
+        for (let i = 1; i <= 7; i++) {
+            this.load.image(`air${i}`, `spells/air${i}.png`);
+        }
     }
 
     loadCollectibles() {

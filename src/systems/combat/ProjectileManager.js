@@ -76,6 +76,7 @@ export class ProjectileManager {
         // Handle linked elements
         const primaryElement = elements[0];
         const isLinked = elements.length > 1;
+        console.log('[ProjectileManager] fireProjectile called:', { primaryElement, elements, target: target ? {x: target.x, y: target.y} : null });
         
         // Fire element-specific projectile
         switch (primaryElement) {
@@ -322,28 +323,34 @@ export class ProjectileManager {
     }
     
     firePoisonProjectile(origin, target, group) {
-        const angle = Math.atan2(target.y - origin.y, target.x - origin.x);
+        console.log('[ProjectileManager] firePoisonProjectile called!');
+        // Calculate position to place poison field (at target location)
+        const poison = this.scene.physics.add.sprite(target.x, target.y, 'poison-spell');
+        console.log('[ProjectileManager] Poison sprite created:', poison);
         
-        // Create poison projectile
-        const poison = this.scene.physics.add.sprite(origin.x, origin.y, 'water-spell');
-        poison.setTint(0x00ff00);
-        poison.play('water-spell-anim');
+        // Stay on first frame and don't play animation
+        poison.setFrame(0);
+        console.log('[ProjectileManager] Set to frame 0');
         
-        // Set velocity
-        const speed = COMBAT_CONFIG.projectileSpeed;
-        poison.setVelocity(
-            Math.cos(angle) * speed,
-            Math.sin(angle) * speed
-        );
+        // Set as stationary (no velocity)
+        poison.setVelocity(0, 0);
         
         // Properties
         poison.element = 'poison';
-        poison.damage = 0.5;
-        poison.poisonDamage = 1 * group.length;
-        poison.poisonDuration = 3000;
-        poison.poisonTicks = 3;
+        poison.isPoisonField = true;
+        poison.isStationary = true; // Mark as stationary so it won't be destroyed on hit
+        poison.damage = 0; // No initial damage, only poison effect
+        poison.poisonDamage = 1; // 1 damage every 2 seconds
+        poison.group = group; // Store group for potential scaling
+        poison.hitEnemies = new Set(); // Track enemies already poisoned by this field
         
+        // Add to projectiles for collision detection
         this.projectiles.add(poison);
+        
+        // Remove after 10 seconds
+        this.scene.time.delayedCall(10000, () => {
+            poison.destroy();
+        });
     }
     
     fireLightningProjectile(origin, target, group) {
@@ -651,6 +658,24 @@ export class ProjectileManager {
     }
     
     handleProjectileHit(projectile, enemy) {
+        console.log('[ProjectileManager] handleProjectileHit:', { element: projectile.element, isPoisonField: projectile.isPoisonField });
+        // Handle poison field specially
+        if (projectile.isPoisonField) {
+            // Check if this enemy was already poisoned by this field
+            if (projectile.hitEnemies.has(enemy)) {
+                return;
+            }
+            
+            // Mark enemy as hit by this field
+            projectile.hitEnemies.add(enemy);
+            
+            // Apply poison effect (no initial damage)
+            if (!enemy.poisoned) {
+                this.applyPoisonUntilDeath(enemy, projectile.poisonDamage);
+            }
+            return; // Don't destroy the field
+        }
+        
         // Calculate damage
         const baseDamage = projectile.isExplosive ? 
             COMBAT_CONFIG.explosiveDamage : COMBAT_CONFIG.baseDamage;
@@ -825,6 +850,41 @@ export class ProjectileManager {
                 }
             });
         }
+    }
+    
+    applyPoisonUntilDeath(enemy, damagePerTick) {
+        enemy.poisoned = true;
+        enemy.setTint(0x00ff00);
+        
+        // Apply damage every 2 seconds until enemy dies
+        const poisonTimer = this.scene.time.addEvent({
+            delay: 2000,
+            callback: () => {
+                if (enemy && enemy.active) {
+                    enemy.health -= damagePerTick;
+                    
+                    this.scene.events.emit('enemyDamaged', {
+                        enemy: enemy,
+                        damage: damagePerTick,
+                        element: 'poison',
+                        isDot: true
+                    });
+                    
+                    // Check if enemy is dead
+                    if (enemy.health <= 0) {
+                        enemy.poisoned = false;
+                        poisonTimer.remove();
+                    }
+                } else {
+                    // Enemy no longer exists, stop poison
+                    poisonTimer.remove();
+                }
+            },
+            loop: true
+        });
+        
+        // Store timer reference on enemy for cleanup
+        enemy.poisonTimer = poisonTimer;
     }
     
     handleChainLightning(projectile, hitEnemy) {
