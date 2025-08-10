@@ -58,6 +58,7 @@ class LoadingScene extends Phaser.Scene {
         
         // Load background music
         this.load.audio('bgm', 'homonculibgm.mp3');
+        this.load.audio('bgm2', 'bgm2.mp3');
 
         // Load element symbols sprite sheets
         this.load.spritesheet('element-symbols', 'elements.png', {
@@ -236,6 +237,14 @@ class LoadingScene extends Phaser.Scene {
         // Display loading complete image
         const loadingImage = this.add.image(400, 300, 'loading-bg');
         
+        // Add "Loading..." text at the bottom of the screen
+        const loadingText = this.add.text(400, 550, 'Loading...', {
+            fontSize: '24px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        });
+        loadingText.setOrigin(0.5);
+        
         // If this is a transition (not initial load), we can proceed faster
         const fadeDelay = this.nextScene === 'TitleScene' ? 1000 : 500;
 
@@ -245,9 +254,9 @@ class LoadingScene extends Phaser.Scene {
 
         // Wait a bit before starting fade
         this.time.delayedCall(fadeDelay, () => {
-            // First fade the loading image
+            // First fade the loading image and text
             this.tweens.add({
-                targets: loadingImage,
+                targets: [loadingImage, loadingText],
                 alpha: 0,
                 duration: 1000,
                 ease: 'Power2',
@@ -379,7 +388,7 @@ class TitleScene extends Phaser.Scene {
         const overlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.8);
         overlay.setInteractive(); // Block clicks to elements below
         
-        const menuBg = this.add.rectangle(400, 300, 500, 400, 0x333333, 0.95);
+        const menuBg = this.add.rectangle(400, 300, 500, 450, 0x333333, 0.95);
         menuBg.setStrokeStyle(3, 0xffd700);
         
         const menuTitle = this.add.text(400, 140, 'OPTIONS', {
@@ -492,8 +501,53 @@ class TitleScene extends Phaser.Scene {
         
         elementContainer.add([elementLabel, elementText, leftArrow, rightArrow]);
         
+        // BGM selector
+        const bgmContainer = this.add.container(400, 370);
+        const bgmLabel = this.add.text(-150, 0, 'Background Music:', {
+            fontSize: '20px',
+            color: '#ffffff'
+        }).setOrigin(0, 0.5);
+        
+        const bgmOptions = ['BGM 1', 'BGM 2'];
+        const savedBGM = localStorage.getItem('selectedBGM') || 'BGM 1';
+        let currentBGMIndex = bgmOptions.indexOf(savedBGM);
+        
+        const bgmText = this.add.text(50, 0, savedBGM, {
+            fontSize: '18px',
+            color: '#ffd700',
+            backgroundColor: '#000000',
+            padding: { x: 15, y: 5 }
+        }).setOrigin(0.5);
+        
+        // BGM Arrow buttons
+        const bgmLeftArrow = this.add.text(-20, 0, '<', {
+            fontSize: '24px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        bgmLeftArrow.setInteractive({ useHandCursor: true });
+        
+        const bgmRightArrow = this.add.text(120, 0, '>', {
+            fontSize: '24px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        bgmRightArrow.setInteractive({ useHandCursor: true });
+        
+        bgmLeftArrow.on('pointerdown', () => {
+            currentBGMIndex = (currentBGMIndex - 1 + bgmOptions.length) % bgmOptions.length;
+            bgmText.setText(bgmOptions[currentBGMIndex]);
+            localStorage.setItem('selectedBGM', bgmOptions[currentBGMIndex]);
+        });
+        
+        bgmRightArrow.on('pointerdown', () => {
+            currentBGMIndex = (currentBGMIndex + 1) % bgmOptions.length;
+            bgmText.setText(bgmOptions[currentBGMIndex]);
+            localStorage.setItem('selectedBGM', bgmOptions[currentBGMIndex]);
+        });
+        
+        bgmContainer.add([bgmLabel, bgmText, bgmLeftArrow, bgmRightArrow]);
+        
         // Close button
-        const closeButton = this.add.text(400, 400, 'CLOSE', {
+        const closeButton = this.add.text(400, 440, 'CLOSE', {
             fontSize: '24px',
             color: '#ffffff',
             backgroundColor: '#000000',
@@ -517,13 +571,14 @@ class TitleScene extends Phaser.Scene {
             debugContainer.destroy();
             volumeContainer.destroy();
             elementContainer.destroy();
+            bgmContainer.destroy();
             closeButton.destroy();
         });
         
         // Store references for cleanup
         this.optionsMenu = {
             overlay, menuBg, menuTitle, debugContainer, 
-            volumeContainer, elementContainer, closeButton
+            volumeContainer, elementContainer, bgmContainer, closeButton
         };
     }
 }
@@ -974,6 +1029,8 @@ class GameScene extends Phaser.Scene {
         this.gameStarted = false; // Will be set to true after countdown
         console.log('GameScene created, gameStarted set to false');
         this.charges = []; // Start with no charges
+        this.slotBuffs = []; // Track buffs for each charge slot: {damageMultiplier: 1, speedMultiplier: 1, linked: false}
+        this.earnedLinks = 0; // Track how many links have been earned through level ups
         this.orbitingOrbs = [];
         this.lastEnemySpawn = 0;
         this.survivalTime = 0;
@@ -1019,8 +1076,11 @@ class GameScene extends Phaser.Scene {
         this.elementsMenuOpen = false;
         this.elementsMenu = null;
         
-        // Create and start background music
-        this.bgMusic = this.sound.add('bgm', {
+        // Create and start background music based on user selection
+        const selectedBGM = localStorage.getItem('selectedBGM') || 'BGM 1';
+        const bgmKey = selectedBGM === 'BGM 1' ? 'bgm' : 'bgm2';
+        
+        this.bgMusic = this.sound.add(bgmKey, {
             loop: true,
             volume: 0.5
         });
@@ -3057,6 +3117,12 @@ class GameScene extends Phaser.Scene {
             return;
         }
 
+        // Handle meditate selection controller input
+        if (this.meditateSelectionActive && this.meditateUI) {
+            this.handleMeditateController();
+            return;
+        }
+
         // Handle chest selection controller input
         if (this.chestSelectionActive && this.chestUI) {
             this.handleChestSelectionController();
@@ -3669,18 +3735,21 @@ class GameScene extends Phaser.Scene {
             flame.setRotation(angle - defaultAngle);
         }
 
-        // Attract jewels to wizard when close
+        // XP gems are attracted to wizard when in close proximity
         this.jewels.children.entries.forEach(jewel => {
             const distance = Phaser.Math.Distance.Between(jewel.x, jewel.y, this.wizard.x, this.wizard.y);
 
-            if (distance < 100) {
+            if (distance < 120) { // Doubled from 60 to 120 for stronger magnet range
                 // Attract jewel to wizard
                 const angle = Phaser.Math.Angle.Between(jewel.x, jewel.y, this.wizard.x, this.wizard.y);
-                const speed = 200;
+                const speed = 400; // Doubled from 200 to 400 for faster attraction
                 jewel.body.setVelocity(
                     Math.cos(angle) * speed,
                     Math.sin(angle) * speed
                 );
+            } else {
+                // Stop movement when out of range
+                jewel.body.setVelocity(0, 0);
             }
         });
 
@@ -5238,7 +5307,6 @@ class GameScene extends Phaser.Scene {
             enemy.setVelocity(0, 0);
             this.tweens.add({
                 targets: enemy,
-                scale: 0,
                 alpha: 0,
                 duration: 500,
                 onComplete: () => {
@@ -5324,7 +5392,6 @@ class GameScene extends Phaser.Scene {
             this.tweens.add({
                 targets: enemy,
                 alpha: 0,
-                scale: 1.5,
                 tint: 0x9933ff,
                 duration: 500,
                 onComplete: () => {
@@ -7253,7 +7320,7 @@ class GameScene extends Phaser.Scene {
         jewel.setDepth(25);
         jewel.setScale(0.075); // 2x larger
         jewel.body.setVelocity(0, 0);
-        jewel.body.setSize(20, 20); // Smaller collision box for tiny gem
+        jewel.body.setSize(60, 60); // Larger collision box for proximity collection
 
         // Add floating animation
         this.tweens.add({
@@ -7535,17 +7602,17 @@ class GameScene extends Phaser.Scene {
             switch (element) {
                 case 'fire':
                     // Pass all charges so fire can scale based on total fire elements
-                    this.fireFireProjectile([element], this.charges);
+                    this.fireFireProjectile([element], this.charges, chargeIndex);
                     break;
                 case 'water':
                     // Pass all charges so water can scale based on total water elements
-                    this.createWaterOrb(linkedElements, this.charges);
+                    this.createWaterOrb(linkedElements, this.charges, chargeIndex);
                     break;
                 case 'lightning':
-                    this.fireLightningProjectile();
+                    this.fireLightningProjectile(chargeIndex);
                     break;
                 case 'earth':
-                    this.fireEarthProjectile();
+                    this.fireEarthProjectile(chargeIndex);
                     break;
                 case 'rock':
                     this.fireRockProjectile();
@@ -7769,7 +7836,7 @@ class GameScene extends Phaser.Scene {
         this.createElementalStorm();
     }
 
-    fireFireProjectile(currentGroup = ['fire'], allCharges = null) {
+    fireFireProjectile(currentGroup = ['fire'], allCharges = null, slotIndex = 0) {
         // Remove any existing flame for this charge
         if (this.activeFlames[0]) {
             this.activeFlames[0].destroy();
@@ -7777,7 +7844,7 @@ class GameScene extends Phaser.Scene {
         }
 
         const direction = this.wizard.lastDirection || 'down';
-        const baseScale = 2.25; // Base scale
+        const baseScale = 2.8125; // Base scale increased by 25% (was 2.25)
         // Count total fire elements from all charges if provided, otherwise from the group
         const fireCount = allCharges
             ? allCharges.filter(e => e === 'fire').length
@@ -7849,9 +7916,11 @@ class GameScene extends Phaser.Scene {
         const collisionSize = isDoubleScale ? 40 : 20;
         flame.body.setSize(collisionSize, collisionSize); // Collision box
         flame.element = 'fire';
-        // Double damage for fire+fire link
-        flame.damage = 0.5; // 0.5 damage on collision (will be doubled to 1 in projectileHitEnemy)
+        // Get slot buffs and apply damage multiplier
+        const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
+        flame.damage = 0.5 * slotBuff.damageMultiplier; // Apply slot damage buff
         flame.linkedCount = currentGroup.length;
+        flame.slotIndex = slotIndex; // Store slot index for reference
         flame.isStationary = true; // Mark as stationary effect
 
         // Add to projectiles group for collision detection
@@ -7860,8 +7929,9 @@ class GameScene extends Phaser.Scene {
         // Store reference
         this.activeFlames[0] = flame;
 
-        // Auto-destroy after animation completes (1 second for 12 frames at 12fps)
-        this.time.delayedCall(1000, () => {
+        // Auto-destroy after animation completes, reduced duration for speed buffs
+        const duration = Math.max(500, 1000 / slotBuff.speedMultiplier); // Faster speed = shorter duration
+        this.time.delayedCall(duration, () => {
             if (flame && flame.active) {
                 flame.destroy();
                 if (this.activeFlames[0] === flame) {
@@ -7871,7 +7941,7 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    createWaterOrb(elementGroup = ['water'], allCharges = null) {
+    createWaterOrb(elementGroup = ['water'], allCharges = null, slotIndex = 0) {
         console.log('=== WATER SPELL START ===');
 
         // Absolute prevention of multiple water spells
@@ -7907,10 +7977,14 @@ class GameScene extends Phaser.Scene {
         const offset = 16 - hitboxRadius; // 16 is half of 32 (sprite size)
         waterSprite.body.setOffset(offset, offset);
 
+        // Get slot buffs and apply damage multiplier
+        const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
+        
         // Mark as water spell for collision detection
         waterSprite.isWaterSpell = true;
-        waterSprite.damage = 3;
+        waterSprite.damage = 3 * slotBuff.damageMultiplier; // Apply damage buff
         waterSprite.hitEnemies = new Set(); // Track which enemies have been hit
+        waterSprite.slotIndex = slotIndex; // Store slot index
 
         // Play animation only if it exists
         if (this.anims.exists('water-spell-anim')) {
@@ -7973,7 +8047,7 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    fireLightningProjectile() {
+    fireLightningProjectile(slotIndex = 0) {
         // Find the closest enemy
         let closestEnemy = null;
         let closestDistance = Infinity;
@@ -8000,12 +8074,16 @@ class GameScene extends Phaser.Scene {
         lightningOrb.setScale(1.5);
         lightningOrb.setDepth(20);
 
+        // Get slot buffs and apply them
+        const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
+        
         // Set up projectile properties
         lightningOrb.bounceCount = 3; // Will bounce to 3 more enemies after initial hit
         lightningOrb.hitEnemies = new Set();
         lightningOrb.currentTarget = closestEnemy;
-        lightningOrb.speed = 400;
-        lightningOrb.damage = 1.5; // Reduced by 50%
+        lightningOrb.speed = 400 * slotBuff.speedMultiplier; // Apply speed buff
+        lightningOrb.damage = 1.5 * slotBuff.damageMultiplier; // Apply damage buff
+        lightningOrb.slotIndex = slotIndex; // Store slot index
 
         // Add to projectiles group
         this.projectiles.add(lightningOrb);
@@ -8176,25 +8254,31 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    fireEarthProjectile() {
+    fireEarthProjectile(slotIndex = 0) {
+        // Get slot buffs and apply them
+        const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
+        
         // Create earth projectile that travels in a straight line
-        // Use element symbol instead of earth-spell sprite
-        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'element-symbols', 2); // Earth frame
+        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'earth-spell');
         projectile.element = 'earth';
-        projectile.damage = 4;
-        projectile.knockbackForce = 300;
+        projectile.damage = 4 * slotBuff.damageMultiplier; // Apply damage buff
+        projectile.knockbackForce = 1600; // 2x knockback force
+        projectile.slotIndex = slotIndex; // Store slot index
         projectile.isPiercing = true;
         projectile.body.setCollideWorldBounds(false);
         projectile.setDepth(5);
-        projectile.setScale(0.15); // Smaller scale for element symbol
-
-        // No animation to play - static sprite
+        projectile.setScale(1.5); // Scale for earth spell
+        
+        // Play animation if it exists
+        if (this.anims.exists('earth-spell-anim')) {
+            projectile.play('earth-spell-anim');
+        }
 
         // Add to projectiles group first
         this.projectiles.add(projectile);
 
-        // Directional firing
-        const speed = 300;
+        // Directional firing with speed buff applied
+        const speed = 300 * slotBuff.speedMultiplier; // Apply speed buff
         const diagonalSpeed = speed / Math.sqrt(2);
 
         const directions = {
@@ -10081,8 +10165,15 @@ class GameScene extends Phaser.Scene {
     }
 
     spawnEliteEnemy() {
-        // Randomly choose enemy type
-        const types = ['tree', 'slime', 'golem'];
+        // Choose enemy type based on current stage
+        let types = [];
+        if (this.stage === 'lava') {
+            types = ['fireslime', 'bat', 'fireworm', 'orangegolem'];
+        } else if (this.stage === 'cave') {
+            types = ['slime', 'soul', 'bat', 'golem'];
+        } else { // forest stage
+            types = ['tree', 'mushroom', 'bat', 'bloboid'];
+        }
         const eliteType = types[Math.floor(Math.random() * types.length)];
 
         // Spawn outside viewport
@@ -10116,63 +10207,26 @@ class GameScene extends Phaser.Scene {
         x = Phaser.Math.Clamp(x, 100, 3900);
         y = Phaser.Math.Clamp(y, 100, 2060);
 
-        let elite;
-        if (eliteType === 'tree') {
-            elite = this.physics.add.sprite(x, y, 'enemy-walk', 0);
-            elite.setScale(1.8); // 50% larger
-            elite.health = 18; // Increased by 50%
-            elite.enemyType = 'tree';
-            elite.play('enemy-walking');
-            elite.body.setSize(30, 45);
-            elite.body.setOffset(7, 22);
-        } else if (eliteType === 'slime') {
-            elite = this.physics.add.sprite(x, y, 'slime-idle-0');
-            elite.setScale(2.25); // 50% larger
-            elite.health = 14; // Increased by 50%
-            elite.enemyType = 'slime';
-            elite.moveSpeed = 32;
-            elite.generation = 0;
-            elite.play('slime-idle');
-            elite.body.setSize(48, 36);
-            elite.body.setOffset(0, 12);
-        } else {
-            const golemColor = Math.random() < 0.5 ? 'orange' : 'blue';
-            elite = this.physics.add.sprite(x, y, `golem-${golemColor}-walk`, 0);
-            elite.setScale(4.5); // 50% larger than base 3.0
-            elite.health = 36; // Increased by 50%
-            elite.enemyType = 'golem';
-            elite.golemColor = golemColor;
-            elite.moveSpeed = 25;
-            elite.play(`golem-${golemColor}-walk`);
-            elite.body.setSize(30, 40);
-            elite.body.setOffset(30, 20);
-        }
-
+        // Create the enemy first using normal spawn method
+        this.createEnemy(eliteType, x, y);
+        
+        // Get the last added enemy (the one we just created)
+        const elite = this.enemies.children.entries[this.enemies.children.entries.length - 1];
+        
+        // Apply elite modifications
+        elite.setScale(elite.scaleX * 1.5); // 50% larger
+        elite.health = Math.floor(elite.health * 2); // Double health for elites
+        elite.maxHealth = elite.health;
         elite.isElite = true;
         elite.noStagger = true; // Cannot be staggered
         elite.setTint(0xff00ff); // Purple tint for elites
-        elite.maxHealth = elite.health;
+        
+        // Adjust physics body for the new scale
+        const currentWidth = elite.body.width;
+        const currentHeight = elite.body.height;
+        elite.body.setSize(currentWidth, currentHeight);
 
-        this.enemies.add(elite);
-
-        // Announcement
-        const eliteText = this.add.text(this.wizard.x, this.wizard.y - 100, 'ELITE ENEMY SPAWNED!', {
-            fontSize: '28px',
-            color: '#ff00ff',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 4
-        });
-        eliteText.setOrigin(0.5);
-        eliteText.setDepth(100);
-
-        this.tweens.add({
-            targets: eliteText,
-            y: this.wizard.y - 150,
-            alpha: 0,
-            duration: 2000,
-            onComplete: () => eliteText.destroy()
-        });
+        // Elite enemy spawn notification removed
     }
 
     dropChest(x, y) {
@@ -10280,11 +10334,11 @@ class GameScene extends Phaser.Scene {
             // Normal level up rewards
             rewardTypes = [
                 {
-                    type: 'link',
-                    title: 'LINK SLOT',
-                    icon: '🔗',
+                    type: 'meditate',
+                    title: 'MEDITATE',
+                    icon: '🧘',
                     iconImage: 'meditate-icon',
-                    description: 'Add a link between element slots',
+                    description: 'Choose random slot upgrade',
                     color: 0x44ff44
                 },
                 {
@@ -10355,7 +10409,6 @@ class GameScene extends Phaser.Scene {
             buttons.push({ container: button, type: reward.type, bg: bg, element: reward.element });
 
             bg.on('pointerdown', () => {
-                console.log('Mouse clicked on reward:', reward.type);
                 if (this.initialElementSelection && reward.element) {
                     // For initial element selection, directly select the element
                     this.selectChestElement(reward.element, null, null, null, null, buttons);
@@ -10411,7 +10464,11 @@ class GameScene extends Phaser.Scene {
             this.chestUI = null;
         }
 
-        if (rewardType === 'link') {
+        if (rewardType === 'meditate') {
+            console.log('Meditate reward selected - showing meditate UI');
+            this.showMeditateReward();
+            if (chest) chest.destroy();
+        } else if (rewardType === 'link') {
             this.showLinkReward();
             if (chest) chest.destroy();
         } else if (rewardType === 'element') {
@@ -10424,6 +10481,18 @@ class GameScene extends Phaser.Scene {
     }
 
     showLinkReward() {
+        console.log('showLinkReward called');
+        console.log('Current charges:', this.charges);
+        console.log('Current linkButtons:', this.linkButtons);
+        // Initialize linkButtons if not already done
+        if (!this.linkButtons) {
+            this.linkButtons = [];
+            // Create empty link buttons for all possible positions
+            for (let i = 0; i < this.maxCharges - 1; i++) {
+                this.linkButtons.push({ linked: false });
+            }
+        }
+
         // Check if we can add more links
         const currentLinks = this.linkButtons ? this.linkButtons.filter(l => l.linked).length : 0;
         const maxLinks = Math.max(0, this.maxCharges - 1);
@@ -10489,6 +10558,237 @@ class GameScene extends Phaser.Scene {
                 message.destroy();
                 this.closeChestUI();
             });
+        }
+    }
+
+    showMeditateReward() {
+        console.log('showMeditateReward called - creating meditate UI');
+        console.log('Current charges:', this.charges);
+        console.log('Current maxCharges:', this.maxCharges);
+        console.log('Current linkButtons:', this.linkButtons);
+        // Create UI for slot upgrade selection
+        const selectionBg = this.add.rectangle(400, 300, 700, 400, 0x000000, 0.9);
+        selectionBg.setScrollFactor(0);
+        selectionBg.setDepth(200);
+
+        const title = this.add.text(400, 150, 'SELECT SLOT UPGRADE', {
+            fontSize: '24px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        });
+        title.setOrigin(0.5);
+        title.setScrollFactor(0);
+        title.setDepth(201);
+
+        // Add control hint
+        const controlHint = this.add.text(400, 480, 'Use D-pad/Arrow keys to navigate, A/SPACE to select', {
+            fontSize: '14px',
+            color: '#aaaaaa'
+        });
+        controlHint.setOrigin(0.5);
+        controlHint.setScrollFactor(0);
+        controlHint.setDepth(201);
+
+        // Create three upgrade type buttons
+        const upgradeTypes = [
+            {
+                type: 'link',
+                title: 'LINK SLOT',
+                description: 'Add connection between slots',
+                color: 0x44ff44
+            },
+            {
+                type: 'damage',
+                title: 'DAMAGE BOOST',
+                description: 'Increase spell damage +25%',
+                color: 0xff4444
+            },
+            {
+                type: 'speed',
+                title: 'SPEED BOOST',
+                description: 'Increase spell speed +25%',
+                color: 0x4444ff
+            }
+        ];
+
+        const buttons = [];
+        for (let i = 0; i < 3; i++) {
+            const xPos = 180 + i * 220;
+            const upgrade = upgradeTypes[i];
+
+            const button = this.add.container(xPos, 300);
+            button.setScrollFactor(0);
+            button.setDepth(202);
+
+            // Black background
+            const bg = this.add.rectangle(0, 0, 200, 280, 0x000000, 0.9);
+            bg.setInteractive({ useHandCursor: true });
+
+            // Title at the top
+            const name = this.add.text(0, -120, upgrade.title, {
+                fontSize: '18px',
+                color: '#ffffff',
+                fontStyle: 'bold'
+            });
+            name.setOrigin(0.5);
+
+            // Icon representation
+            const iconText = this.add.text(0, 0, upgrade.type === 'link' ? '🔗' : upgrade.type === 'damage' ? '⚔️' : '💨', {
+                fontSize: '48px'
+            });
+            iconText.setOrigin(0.5);
+
+            // Description at the bottom
+            const description = this.add.text(0, 80, upgrade.description, {
+                fontSize: '14px',
+                color: '#cccccc',
+                align: 'center',
+                wordWrap: { width: 180 }
+            });
+            description.setOrigin(0.5);
+
+            button.add([bg, name, iconText, description]);
+            buttons.push({ container: button, upgrade: upgrade, bg: bg });
+
+            bg.on('pointerdown', () => {
+                this.selectSlotUpgrade(upgrade.type);
+            });
+        }
+
+        // Store UI elements
+        this.meditateUI = {
+            bg: selectionBg,
+            title: title,
+            controlHint: controlHint,
+            buttons: buttons
+        };
+
+        // Initialize controller support
+        this.meditateCursorIndex = 0;
+        this.meditateSelectionActive = true;
+        
+        // Initialize previous button states to TRUE to prevent immediate input
+        this.prevMeditateLeftPressed = true;
+        this.prevMeditateRightPressed = true;
+        this.prevMeditateConfirmPressed = true;
+
+        // Reset input states after a short delay to prevent immediate selection
+        this.time.delayedCall(200, () => {
+            this.prevMeditateLeftPressed = false;
+            this.prevMeditateRightPressed = false;
+            this.prevMeditateConfirmPressed = false;
+        });
+
+        // Set initial selection highlight
+        this.updateMeditateHighlight();
+    }
+
+    updateMeditateHighlight() {
+        if (!this.meditateUI || !this.meditateUI.buttons) return;
+
+        // Update visual highlight for selected upgrade
+        this.meditateUI.buttons.forEach((btn, index) => {
+            if (index === this.meditateCursorIndex) {
+                btn.bg.setStrokeStyle(3, 0xffff00); // Yellow highlight
+                btn.bg.setScale(1.05);
+            } else {
+                btn.bg.setStrokeStyle(2, 0xffffff); // White border
+                btn.bg.setScale(1);
+            }
+        });
+    }
+
+    handleMeditateController() {
+        if (!this.meditateSelectionActive || !this.meditateUI) return;
+
+        // Input detection - same pattern as chest controller
+        const leftPressed = this.cursors.left.isDown ||
+            (this.gamepad && ((this.gamepad.leftStick.x < -0.5) || (this.gamepad.buttons[14] && this.gamepad.buttons[14].pressed)));
+        const rightPressed = this.cursors.right.isDown ||
+            (this.gamepad && ((this.gamepad.leftStick.x > 0.5) || (this.gamepad.buttons[15] && this.gamepad.buttons[15].pressed)));
+        const confirmPressed = this.spaceKey.isDown ||
+            (this.gamepad && this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed);
+
+        // Handle navigation (edge detection for single presses)
+        if (leftPressed && !this.prevMeditateLeftPressed) {
+            this.meditateCursorIndex = Math.max(0, this.meditateCursorIndex - 1);
+            this.updateMeditateHighlight();
+        } else if (rightPressed && !this.prevMeditateRightPressed) {
+            this.meditateCursorIndex = Math.min(this.meditateUI.buttons.length - 1, this.meditateCursorIndex + 1);
+            this.updateMeditateHighlight();
+        }
+
+        // Handle selection
+        if (confirmPressed && !this.prevMeditateConfirmPressed) {
+            const selectedUpgrade = this.meditateUI.buttons[this.meditateCursorIndex].upgrade;
+            this.selectSlotUpgrade(selectedUpgrade.type);
+        }
+
+        // Store button states for next frame
+        this.prevMeditateLeftPressed = leftPressed;
+        this.prevMeditateRightPressed = rightPressed;
+        this.prevMeditateConfirmPressed = confirmPressed;
+    }
+
+    selectSlotUpgrade(upgradeType) {
+        // Clean up meditate UI
+        if (this.meditateUI) {
+            this.meditateUI.bg.destroy();
+            this.meditateUI.title.destroy();
+            this.meditateUI.controlHint.destroy();
+            this.meditateUI.buttons.forEach(btn => btn.container.destroy());
+            this.meditateUI = null;
+        }
+
+        // Clean up controller state
+        this.meditateSelectionActive = false;
+        this.meditateCursorIndex = 0;
+
+        if (upgradeType === 'link') {
+            console.log('Link upgrade selected from meditate menu');
+            // Add a random link (existing functionality)
+            this.showLinkReward();
+        } else {
+            // For damage/speed upgrades, select a random slot to upgrade
+            // Initialize slot buffs if needed
+            while (this.slotBuffs.length < this.maxCharges) {
+                this.slotBuffs.push({ damageMultiplier: 1, speedMultiplier: 1 });
+            }
+
+            // Choose a random slot to upgrade (any slot, empty or occupied)
+            const slotIndex = Math.floor(Math.random() * this.maxCharges);
+            
+            if (upgradeType === 'damage') {
+                this.slotBuffs[slotIndex].damageMultiplier += 0.25; // +25% damage
+                const message = this.add.text(400, 300, `Slot ${slotIndex + 1} damage increased by 25%!`, {
+                    fontSize: '24px',
+                    color: '#ff4444',
+                    fontStyle: 'bold'
+                });
+                message.setOrigin(0.5);
+                message.setScrollFactor(0);
+                message.setDepth(210);
+
+                this.time.delayedCall(2000, () => {
+                    message.destroy();
+                    this.closeChestUI();
+                });
+            } else if (upgradeType === 'speed') {
+                this.slotBuffs[slotIndex].speedMultiplier += 0.25; // +25% speed
+                const message = this.add.text(400, 300, `Slot ${slotIndex + 1} speed increased by 25%!`, {
+                    fontSize: '24px',
+                    color: '#4444ff',
+                    fontStyle: 'bold'
+                });
+                message.setOrigin(0.5);
+                message.setScrollFactor(0);
+                message.setDepth(210);
+
+                this.time.delayedCall(2000, () => {
+                    message.destroy();
+                    this.closeChestUI();
+                });
+            }
         }
     }
 
