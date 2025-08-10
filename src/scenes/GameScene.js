@@ -176,12 +176,6 @@ export default class GameScene extends Phaser.Scene {
 
         // UI system
         this.uiManager = new UIManager(this);
-        
-        // TEST: Add poison element for testing
-        this.time.delayedCall(1000, () => {
-            this.chargeSystem.addElement('poison');
-            console.log('Added poison element for testing');
-        });
 
         // Game state
         this.gameStarted = false;
