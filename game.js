@@ -1090,6 +1090,7 @@ class GameScene extends Phaser.Scene {
         const startElement = localStorage.getItem('startElement');
         if (startElement && startElement !== 'none') {
             this.charges = [startElement];
+            console.log('Starting with element:', startElement);
         }
 
         // Initialize cooldown system
@@ -2279,7 +2280,9 @@ class GameScene extends Phaser.Scene {
             indicator.setScrollFactor(0);
             indicator.setDepth(62);
             indicator.setVisible(false);
-            indicator.setScale(0.1); // Scale down much more since frames are huge
+            indicator.setScale(0.08); // Scale down much more since frames are huge
+            indicator.setTint(0xffffff); // Ensure no tint
+            indicator.setAlpha(1); // Ensure full opacity
 
             this.chargeIndicators.push({ bg: slotBg, sprite: indicator });
         }
@@ -2311,14 +2314,37 @@ class GameScene extends Phaser.Scene {
         // Clean up charge fire times array to match current charges
         this.chargeLastFireTimes = this.chargeLastFireTimes.slice(0, this.charges.length);
 
+        // Initialize or update chargeSlots
+        if (!this.chargeSlots) {
+            this.chargeSlots = new Array(8).fill(null);
+        }
+        
+        // Always sync chargeSlots with charges array
+        for (let i = 0; i < 8; i++) {
+            if (i < this.charges.length) {
+                this.chargeSlots[i] = this.charges[i];
+            } else {
+                this.chargeSlots[i] = null;
+            }
+        }
+        console.log('Updated chargeSlots:', this.chargeSlots);
+        console.log('Charges array:', this.charges);
+
         this.chargeIndicators.forEach((indicator, index) => {
             // Update visibility based on max charges
             indicator.bg.setVisible(index < this.maxCharges);
 
-            if (index < this.charges.length) {
-                const element = this.charges[index];
+            const element = this.chargeSlots ? this.chargeSlots[index] : (index < this.charges.length ? this.charges[index] : null);
+            if (element) {
                 const config = this.elementConfig[element];
                 if (config) {
+                    console.log(`Updating UI slot ${index}: element=${element}, sheet=${config.sheet}, frame=${config.frame}`);
+                    // Check if texture exists
+                    if (!this.textures.exists(config.sheet)) {
+                        console.error(`Texture ${config.sheet} does not exist!`);
+                        indicator.sprite.setVisible(false);
+                        return;
+                    }
                     // Update texture if needed
                     if (indicator.sprite.texture.key !== config.sheet) {
                         indicator.sprite.setTexture(config.sheet, config.frame);
@@ -2327,7 +2353,9 @@ class GameScene extends Phaser.Scene {
                     }
                     indicator.sprite.setVisible(true);
                     indicator.sprite.setAlpha(1);
+                    indicator.sprite.setTint(0xffffff);
                 } else {
+                    console.log(`No config for element ${element} at slot ${index}`);
                     indicator.sprite.setVisible(false);
                 }
             } else {
@@ -2509,8 +2537,7 @@ class GameScene extends Phaser.Scene {
 
         console.log('Starting wave system');
 
-        // Start with no charges
-        this.charges = [];
+        // Update charge UI with starting element (don't reset charges)
         this.updateChargeUI();
 
         // Initialize wave system
@@ -4053,9 +4080,8 @@ class GameScene extends Phaser.Scene {
     createPauseMenu() {
         this.pauseMenu = this.add.container(400, 300);
 
-        // IMPORTANT: Set the container size and make it interactive
+        // Set the container size but don't make the container itself interactive
         this.pauseMenu.setSize(700, 500);
-        this.pauseMenu.setInteractive(new Phaser.Geom.Rectangle(-350, -250, 700, 500), Phaser.Geom.Rectangle.Contains);
 
         // Controller support variables
         this.pauseMenuCursorIndex = 0;
@@ -4068,6 +4094,7 @@ class GameScene extends Phaser.Scene {
         const bg = this.add.rectangle(0, 0, 700, 500, 0x000000, 0.9);
         bg.setStrokeStyle(3, 0xffffff);
         bg.setInteractive(); // This blocks clicks from going through
+        this.pauseMenu.add(bg);
 
         // Title
         const title = this.add.text(0, -200, 'ELEMENT MANAGEMENT', {
@@ -4075,17 +4102,20 @@ class GameScene extends Phaser.Scene {
             color: '#ffdd44',
             fontStyle: 'bold'
         }).setOrigin(0.5);
+        this.pauseMenu.add(title);
 
         // Instructions
         const instructions = this.add.text(0, -150, 'Drag elements to rearrange • Click X to discard • Click between slots to link', {
             fontSize: '16px',
             color: '#ffffff'
         }).setOrigin(0.5);
+        this.pauseMenu.add(instructions);
 
         const tip = this.add.text(0, -120, 'Green links can be clicked again to unlink', {
             fontSize: '14px',
             color: '#aaaaaa'
         }).setOrigin(0.5);
+        this.pauseMenu.add(tip);
 
         // Charge slot visuals
         this.pauseChargeSlots = [];
@@ -4095,35 +4125,55 @@ class GameScene extends Phaser.Scene {
         const slotStartX = -150;
         const slotSpacing = 100;
         const slotY = 0;
+        const slotRowY1 = -50;  // First row Y position
+        const slotRowY2 = 50;   // Second row Y position
 
-        for (let i = 0; i < 4; i++) {
-            // Slot background
-            const slotBg = this.add.rectangle(slotStartX + i * slotSpacing, slotY, 80, 80, 0x333333);
+        for (let i = 0; i < 8; i++) {
+            // Slot background - arrange in 2 rows of 4
+            const row = Math.floor(i / 4);
+            const col = i % 4;
+            const slotX = slotStartX + col * slotSpacing;
+            const slotY_pos = row === 0 ? slotRowY1 : slotRowY2;
+            const slotBg = this.add.rectangle(slotX, slotY_pos, 80, 80, 0x333333);
             slotBg.setStrokeStyle(2, 0xffffff);
             slotBg.setData('slotIndex', i);
             slotBg.setInteractive({ dropZone: true });
+            this.pauseMenu.add(slotBg);
+            
+            // Debug mouse events
+            slotBg.on('pointerover', () => {
+                console.log(`Mouse over slot ${i} at x=${slotX}`);
+                slotBg.setStrokeStyle(3, 0xffff00);
+            });
+            slotBg.on('pointerout', () => {
+                slotBg.setStrokeStyle(2, 0xffffff);
+            });
 
             // Charge indicator using sprite (make it draggable) - default to first sheet
-            const chargeSprite = this.add.sprite(slotStartX + i * slotSpacing, slotY, 'element-symbols', 0);
+            const chargeSprite = this.add.sprite(slotX, slotY_pos, 'element-symbols', 0);
             chargeSprite.setVisible(false);
             chargeSprite.setScale(0.2); // Scale down since frames are huge
+            chargeSprite.setTint(0xffffff); // Ensure no tint
+            chargeSprite.setAlpha(1); // Ensure full opacity
+            this.pauseMenu.add(chargeSprite);
             chargeSprite.setInteractive({
                 draggable: true,
                 hitArea: new Phaser.Geom.Rectangle(-16, -16, 32, 32),
                 hitAreaCallback: Phaser.Geom.Rectangle.Contains
             });
             chargeSprite.setData('slotIndex', i);
-            chargeSprite.setData('originalX', slotStartX + i * slotSpacing);
-            chargeSprite.setData('originalY', slotY);
+            chargeSprite.setData('originalX', slotX);
+            chargeSprite.setData('originalY', slotY_pos);
 
             // Slot number
-            const slotNum = this.add.text(slotStartX + i * slotSpacing, slotY + 50, `Slot ${i + 1}`, {
+            const slotNum = this.add.text(slotX, slotY_pos + 50, `Slot ${i + 1}`, {
                 fontSize: '14px',
                 color: '#aaaaaa'
             }).setOrigin(0.5);
+            this.pauseMenu.add(slotNum);
 
             // Discard button
-            const discardBtn = this.add.text(slotStartX + i * slotSpacing + 35, slotY - 35, 'X', {
+            const discardBtn = this.add.text(slotX + 35, slotY_pos - 35, 'X', {
                 fontSize: '16px',
                 color: '#ff4444',
                 backgroundColor: '#333333',
@@ -4132,6 +4182,7 @@ class GameScene extends Phaser.Scene {
             discardBtn.setInteractive({ useHandCursor: true });
             discardBtn.setVisible(false);
             discardBtn.setData('slotIndex', i);
+            this.pauseMenu.add(discardBtn);
 
             // Need to capture i in closure
             const slotIndex = i;
@@ -4142,24 +4193,27 @@ class GameScene extends Phaser.Scene {
                 circle: chargeSprite, // Keeping the name for compatibility
                 text: slotNum,
                 discardBtn: discardBtn,
-                x: slotStartX + i * slotSpacing,
-                y: slotY
+                x: slotX,
+                y: slotY_pos
             });
 
-            // Link button (between slots)
-            if (i < 3) {
-                const linkX = slotStartX + i * slotSpacing + slotSpacing / 2;
-                const linkBtn = this.add.rectangle(linkX, slotY, 30, 20, 0x555555);
+            // Link button (between slots) - only for slots in the same row
+            if (i < 7 && (i % 4) < 3) {
+                const linkX = slotX + slotSpacing / 2;
+                const linkY = slotY_pos;
+                const linkBtn = this.add.rectangle(linkX, linkY, 30, 20, 0x555555);
                 linkBtn.setInteractive({
                     hitArea: new Phaser.Geom.Rectangle(-15, -10, 30, 20),
                     hitAreaCallback: Phaser.Geom.Rectangle.Contains
                 });
                 linkBtn.setStrokeStyle(1, 0xaaaaaa);
+                this.pauseMenu.add(linkBtn);
 
-                const linkText = this.add.text(linkX, slotY, '-', {
+                const linkText = this.add.text(linkX, linkY, '-', {
                     fontSize: '16px',
                     color: '#ffffff'
                 }).setOrigin(0.5);
+                this.pauseMenu.add(linkText);
 
                 // Event handlers will be set up in togglePause when menu is shown
 
@@ -4173,33 +4227,26 @@ class GameScene extends Phaser.Scene {
             color: '#44ff44',
             align: 'center'
         }).setOrigin(0.5);
+        this.pauseMenu.add(this.comboDisplay);
 
         // Close instruction
         const closeText = this.add.text(0, 200, 'Press P or Start to resume', {
             fontSize: '16px',
             color: '#aaaaaa'
         }).setOrigin(0.5);
+        this.pauseMenu.add(closeText);
 
         // Controller instructions
         const controllerText = this.add.text(0, 170, 'Controller: D-pad to navigate • A to select/place • B to cancel • Y for link mode', {
             fontSize: '14px',
             color: '#888888'
         }).setOrigin(0.5);
+        this.pauseMenu.add(controllerText);
 
-        this.pauseMenu.add([bg, title, instructions, tip, closeText, controllerText, this.comboDisplay]);
-
-        // Add all slot elements
-        this.pauseChargeSlots.forEach(slot => {
-            this.pauseMenu.add([slot.bg, slot.circle, slot.text, slot.discardBtn]);
-        });
-
-        // Add all link buttons
-        this.linkButtons.forEach(link => {
-            this.pauseMenu.add([link.btn, link.text]);
-        });
+        // All elements have already been added to the pause menu container individually
 
         this.pauseMenu.setVisible(false);
-        this.pauseMenu.setDepth(300);
+        this.pauseMenu.setDepth(500);
         this.pauseMenu.setScrollFactor(0);
 
         // Set up drag events - we need to remove old listeners first to avoid duplicates
@@ -4211,7 +4258,7 @@ class GameScene extends Phaser.Scene {
             // Check if this is one of our charge circles
             if (gameObject.getData('slotIndex') !== undefined && this.pauseChargeSlots.some(slot => slot.circle === gameObject)) {
                 this.draggedCharge = gameObject;
-                gameObject.setDepth(201); // Bring to front
+                // Don't set depth on sprites in containers - they inherit container depth
                 gameObject.setAlpha(0.8);
                 // Store the initial position relative to the container
                 gameObject.setData('dragStartX', gameObject.x);
@@ -4314,7 +4361,7 @@ class GameScene extends Phaser.Scene {
 
             // Move charge circles out of container and make them interactive at world level
             this.pauseChargeSlots.forEach((slot, index) => {
-                if (slot.circle.visible && index < this.charges.length) {
+                if (index < this.maxCharges) {
                     // Calculate world position
                     const worldX = this.pauseMenu.x + slot.circle.x;
                     const worldY = this.pauseMenu.y + slot.circle.y;
@@ -4324,10 +4371,11 @@ class GameScene extends Phaser.Scene {
                     hitZone.setDepth(300);
                     hitZone.setScrollFactor(0);
 
-                    // IMPORTANT: Set interactive after creating, with draggable
+                    // IMPORTANT: Set interactive after creating, with draggable only if slot has a charge
+                    const hasCharge = slot.circle.visible && this.chargeSlots && this.chargeSlots[index];
                     hitZone.setInteractive({
-                        draggable: true,
-                        useHandCursor: true
+                        draggable: hasCharge,
+                        useHandCursor: hasCharge
                     });
 
                     hitZone.setData('slotIndex', index);
@@ -4568,12 +4616,34 @@ class GameScene extends Phaser.Scene {
     }
 
     updatePauseMenuDisplay() {
-        // Update charge slot displays
-        for (let i = 0; i < this.maxCharges && i < 4; i++) {
+        // Initialize or update chargeSlots
+        if (!this.chargeSlots) {
+            this.chargeSlots = new Array(8).fill(null);
+        }
+        
+        // Always sync chargeSlots with charges array
+        for (let i = 0; i < 8; i++) {
             if (i < this.charges.length) {
-                const element = this.charges[i];
+                this.chargeSlots[i] = this.charges[i];
+            } else {
+                this.chargeSlots[i] = null;
+            }
+        }
+        console.log('Updated chargeSlots:', this.chargeSlots);
+        console.log('Charges array:', this.charges);
+        
+        // Update charge slot displays
+        for (let i = 0; i < this.maxCharges && i < 8; i++) {
+            const element = this.chargeSlots ? this.chargeSlots[i] : (i < this.charges.length ? this.charges[i] : null);
+            if (element) {
                 const config = this.elementConfig[element];
                 if (config) {
+                    // Check if texture exists
+                    if (!this.textures.exists(config.sheet)) {
+                        console.error(`Pause menu: Texture ${config.sheet} does not exist!`);
+                        this.pauseChargeSlots[i].circle.setVisible(false);
+                        return;
+                    }
                     // Update texture if needed
                     if (this.pauseChargeSlots[i].circle.texture.key !== config.sheet) {
                         this.pauseChargeSlots[i].circle.setTexture(config.sheet, config.frame);
@@ -4581,7 +4651,12 @@ class GameScene extends Phaser.Scene {
                         this.pauseChargeSlots[i].circle.setFrame(config.frame);
                     }
                     this.pauseChargeSlots[i].circle.setVisible(true);
+                    this.pauseChargeSlots[i].circle.setTint(0xffffff);
+                    this.pauseChargeSlots[i].circle.setAlpha(1);
                     this.pauseChargeSlots[i].discardBtn.setVisible(true);
+                    
+                    // Debug logging
+                    console.log(`Pause Slot ${i}: element=${element}, frame=${config.frame}, sheet=${config.sheet}, visible=${this.pauseChargeSlots[i].circle.visible}`);
 
                     // Update slot index data for dragging
                     this.pauseChargeSlots[i].circle.setData('slotIndex', i);
@@ -4601,7 +4676,7 @@ class GameScene extends Phaser.Scene {
             this.pauseChargeSlots[i].text.setVisible(isVisible);
 
             // Update link button visibility and state
-            if (i < 3 && this.linkButtons[i]) {
+            if (i < this.linkButtons.length && this.linkButtons[i]) {
                 const hasCurrentCharge = i < this.charges.length;
                 const hasNextCharge = (i + 1) < this.charges.length;
                 // Only show links if they are already linked (earned from chests)
@@ -4661,54 +4736,45 @@ class GameScene extends Phaser.Scene {
     }
 
     swapCharges(fromIndex, toIndex) {
-        // Only swap if both indices are valid and within charges array
-        if (fromIndex < this.charges.length && toIndex < this.charges.length) {
-            // Swap the charges
-            const temp = this.charges[fromIndex];
-            this.charges[fromIndex] = this.charges[toIndex];
-            this.charges[toIndex] = temp;
-
-            // Update the charge UI in main game
-            this.updateChargeUI();
-
-            // Clear any links that might be affected
-            // If we're moving charges, we should clear links between the affected slots
-            if (fromIndex > 0 && this.linkButtons[fromIndex - 1]) {
-                this.linkButtons[fromIndex - 1].linked = false;
-            }
-            if (fromIndex < this.linkButtons.length && this.linkButtons[fromIndex]) {
-                this.linkButtons[fromIndex].linked = false;
-            }
-            if (toIndex > 0 && this.linkButtons[toIndex - 1]) {
-                this.linkButtons[toIndex - 1].linked = false;
-            }
-            if (toIndex < this.linkButtons.length && this.linkButtons[toIndex]) {
-                this.linkButtons[toIndex].linked = false;
-            }
-        } else if (fromIndex < this.charges.length && toIndex >= this.charges.length && toIndex < this.maxCharges) {
-            // Moving to an empty slot
-            const charge = this.charges.splice(fromIndex, 1)[0];
-
-            // Pad with undefined if needed
-            while (this.charges.length < toIndex) {
-                this.charges.push(undefined);
-            }
-            this.charges[toIndex] = charge;
-
-            // Remove undefined values
-            this.charges = this.charges.filter(c => c !== undefined);
-
-            // Clear affected links
-            if (fromIndex > 0 && this.linkButtons[fromIndex - 1]) {
-                this.linkButtons[fromIndex - 1].linked = false;
-            }
-            if (fromIndex < this.linkButtons.length && this.linkButtons[fromIndex]) {
-                this.linkButtons[fromIndex].linked = false;
-            }
-
-            // Update the charge UI
-            this.updateChargeUI();
+        console.log(`Swapping charges from ${fromIndex} to ${toIndex}`);
+        console.log('Current charges:', this.charges);
+        
+        // Ensure both indices are valid slot indices
+        if (fromIndex < 0 || toIndex < 0 || fromIndex >= this.maxCharges || toIndex >= this.maxCharges) {
+            console.log('Invalid indices');
+            return;
         }
+        
+        // Initialize chargeSlots array if it doesn't exist
+        if (!this.chargeSlots) {
+            this.chargeSlots = new Array(8).fill(null);
+            // Copy existing charges to slots
+            for (let i = 0; i < this.charges.length; i++) {
+                this.chargeSlots[i] = this.charges[i];
+            }
+        }
+        
+        // Perform the swap in the slots array
+        const temp = this.chargeSlots[fromIndex];
+        this.chargeSlots[fromIndex] = this.chargeSlots[toIndex];
+        this.chargeSlots[toIndex] = temp;
+        
+        // Rebuild charges array (compact, no nulls)
+        this.charges = this.chargeSlots.filter(charge => charge !== null && charge !== undefined);
+        
+        console.log('After swap - slots:', this.chargeSlots);
+        console.log('After swap - charges:', this.charges);
+        
+        // Update the charge UI in main game
+        this.updateChargeUI();
+        
+        // Clear any links that might be affected
+        const affectedIndices = [fromIndex - 1, fromIndex, toIndex - 1, toIndex];
+        affectedIndices.forEach(idx => {
+            if (idx >= 0 && idx < this.linkButtons.length && this.linkButtons[idx]) {
+                this.linkButtons[idx].linked = false;
+            }
+        });
     }
 
     discardCharge(index, confirmed = false) {
@@ -5150,6 +5216,11 @@ class GameScene extends Phaser.Scene {
         this.spellbookOpen = !this.spellbookOpen;
         this.spellbookUI.setVisible(this.spellbookOpen);
         this.updateSpellbookText();
+        
+        // Disable interaction when hidden to prevent blocking other UI
+        if (this.spellbookUI.input) {
+            this.spellbookUI.input.enabled = this.spellbookOpen;
+        }
 
         if (this.spellbookOpen) {
             // Pause physics and all timers
@@ -5178,6 +5249,11 @@ class GameScene extends Phaser.Scene {
     toggleElementsMenu() {
         this.elementsMenuOpen = !this.elementsMenuOpen;
         this.elementsMenu.setVisible(this.elementsMenuOpen);
+        
+        // Disable interaction when hidden to prevent blocking other UI
+        if (this.elementsMenu.input) {
+            this.elementsMenu.input.enabled = this.elementsMenuOpen;
+        }
 
         if (this.elementsMenuOpen) {
             // Pause game and all timers when menu is open
