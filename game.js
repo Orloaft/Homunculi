@@ -1166,15 +1166,15 @@ class GameScene extends Phaser.Scene {
             crystal: { frame: 8, color: 0xffaaff, name: 'Crystal', sheet: 'element-symbols2' },
 
             // Third sprite sheet (elements3.PNG)
-            death: { frame: 0, color: 0x333333, name: 'Death', sheet: 'element-symbols3' },
+            death: { frame: 0, color: 0x333333, name: 'Death', sheet: 'element-symbols3', fireRate: 6000 },
             time: { frame: 1, color: 0xffd700, name: 'Time', sheet: 'element-symbols3' },
             sand: { frame: 0, color: 0xf4a460, name: 'Sand', sheet: 'sand-symbol', isImage: true },
             gravity: { frame: 0, color: 0x4b0082, name: 'Gravity', sheet: 'gravity-symbol', isImage: true },
-            sun: { frame: 4, color: 0xffeb3b, name: 'Sun', sheet: 'element-symbols3' },
-            smoke: { frame: 5, color: 0x696969, name: 'Smoke', sheet: 'element-symbols3' },
+            sun: { frame: 4, color: 0xffeb3b, name: 'Sun', sheet: 'element-symbols3', fireRate: 999999 },
+            smoke: { frame: 5, color: 0x696969, name: 'Smoke', sheet: 'element-symbols3', fireRate: 999999 },
             wave: { frame: 0, color: 0x00bcd4, name: 'Wave', sheet: 'wave-symbol', isImage: true },
             star: { frame: 7, color: 0xffffff, name: 'Star', sheet: 'element-symbols3' },
-            moon: { frame: 8, color: 0xe0e0e0, name: 'Moon', sheet: 'element-symbols3' }
+            moon: { frame: 8, color: 0xe0e0e0, name: 'Moon', sheet: 'element-symbols3', fireRate: 12000 }
         };
 
         // Define primary elements (can drop from enemies)
@@ -2646,11 +2646,6 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        // Trigger level up after 1 second
-        this.time.delayedCall(1000, () => {
-            console.log('Triggering initial level up');
-            this.openChest(this.wizard, null);
-        });
     }
 
     getWaveDefinition(waveNumber) {
@@ -3620,13 +3615,16 @@ class GameScene extends Phaser.Scene {
             // Handle summoner behavior
             if (enemy.enemyType === 'summoner') {
                 // Summoners move very slowly
-                if (!enemy.stunned && !enemy.blinded && !enemy.frozen) {
+                if (!enemy.stunned && !enemy.blinded && !enemy.frozen && !this.wizard.invisible) {
                     const moveSpeed = enemy.moveSpeed || 20;
                     const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
                     enemy.setVelocity(
                         Math.cos(angle) * moveSpeed,
                         Math.sin(angle) * moveSpeed
                     );
+                } else if (this.wizard.invisible) {
+                    // Stop moving when wizard is invisible
+                    enemy.setVelocity(0, 0);
                 }
 
                 // Face the wizard (reversed for summoner)
@@ -3648,7 +3646,7 @@ class GameScene extends Phaser.Scene {
                 const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
 
                 // Move towards wizard but stop at attack range
-                if (distance > enemy.attackRange && !enemy.stunned && !enemy.blinded && !enemy.frozen) {
+                if (distance > enemy.attackRange && !enemy.stunned && !enemy.blinded && !enemy.frozen && !this.wizard.invisible) {
                     const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
                     let speed = enemy.moveSpeed;
 
@@ -3682,7 +3680,7 @@ class GameScene extends Phaser.Scene {
                 }
             }
             // Only update velocity if not being knocked back, not stunned, and not blinded
-            else if (Math.abs(enemy.body.velocity.x) < 100 && Math.abs(enemy.body.velocity.y) < 100 && !enemy.stunned && !enemy.blinded && !enemy.frozen) {
+            else if (Math.abs(enemy.body.velocity.x) < 100 && Math.abs(enemy.body.velocity.y) < 100 && !enemy.stunned && !enemy.blinded && !enemy.frozen && !this.wizard.invisible) {
                 // Get enemy speed based on type
                 let moveSpeed = enemy.moveSpeed || (enemy.enemyType === 'tree' ? 48 : 60);
 
@@ -3737,6 +3735,9 @@ class GameScene extends Phaser.Scene {
                         }
                     }
                 }
+            } else if (this.wizard.invisible && Math.abs(enemy.body.velocity.x) < 100 && Math.abs(enemy.body.velocity.y) < 100) {
+                // Stop enemies when wizard is invisible
+                enemy.setVelocity(0, 0);
             } else {
                 // Gradually slow down knockback
                 enemy.setVelocity(
@@ -3752,6 +3753,10 @@ class GameScene extends Phaser.Scene {
                 projectile.updateParticles();
             }
 
+            // Skip bounds check for bouncing projectiles (like star)
+            if (projectile.isBouncing) {
+                return;
+            }
 
             // Use world bounds instead of fixed screen coordinates
             const bounds = this.physics.world.bounds;
@@ -3770,6 +3775,40 @@ class GameScene extends Phaser.Scene {
                     projectile.update(time, delta);
                 }
             });
+        }
+
+        // Update star projectiles bouncing
+        this.projectiles.children.entries.forEach(projectile => {
+            if (projectile.active && projectile.isBouncing && projectile.starUpdate) {
+                projectile.starUpdate();
+            }
+        });
+        
+        // Update moon spell position to smoothly follow wizard
+        if (this.moonSpellComponents && this.moonSpellActive) {
+            this.moonSpellComponents.moonRing.x = this.wizard.x;
+            this.moonSpellComponents.moonRing.y = this.wizard.y;
+            this.moonSpellComponents.innerGlow.x = this.wizard.x;
+            this.moonSpellComponents.innerGlow.y = this.wizard.y;
+            this.moonSpellComponents.particles.x = this.wizard.x;
+            this.moonSpellComponents.particles.y = this.wizard.y;
+        }
+        
+        // Auto-cast sun and moon spells when available
+        if (!this.sunSpellActive && !this.sunSpellCooldown && this.charges) {
+            // Check if wizard has sun element in charges
+            const hasSunElement = this.charges.some(charge => charge === 'sun');
+            if (hasSunElement) {
+                this.createSunSpell();
+            }
+        }
+        
+        if (!this.moonSpellActive && !this.moonSpellCooldown && this.charges) {
+            // Check if wizard has moon element in charges
+            const hasMoonElement = this.charges.some(charge => charge === 'moon');
+            if (hasMoonElement) {
+                this.createMoonSpell();
+            }
         }
 
         // Update lightning orb tracking
@@ -5382,6 +5421,12 @@ class GameScene extends Phaser.Scene {
             enemy.burnTimer = null;
         }
         
+        // Clean up sun burn timer if it exists
+        if (enemy.sunBurnTick) {
+            enemy.sunBurnTick.destroy();
+            enemy.sunBurnTick = null;
+        }
+        
         // Clear all status effects
         enemy.poisoned = false;
         enemy.burning = false;
@@ -5391,6 +5436,7 @@ class GameScene extends Phaser.Scene {
         enemy.wet = false;
         enemy.slowed = false;
         enemy.blinded = false;
+        enemy.inSunAura = false;
         
         // Clear any tints
         enemy.clearTint();
@@ -7603,15 +7649,6 @@ class GameScene extends Phaser.Scene {
             jewel.setTint(0x00ffff); // Cyan for medium value
         }
 
-        // Add floating animation
-        this.tweens.add({
-            targets: jewel,
-            y: y - 10,
-            duration: 1000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
 
         this.jewels.add(jewel);
     }
@@ -7952,6 +7989,21 @@ class GameScene extends Phaser.Scene {
                 case 'meteor':
                     this.fireMeteorProjectile();
                     break;
+                case 'moon':
+                    this.createMoonSpell();
+                    break;
+                case 'death':
+                    this.createDeathSpell();
+                    break;
+                case 'smoke':
+                    this.createSmokeSpell();
+                    break;
+                case 'sun':
+                    this.createSunSpell();
+                    break;
+                case 'star':
+                    this.createStarSpell();
+                    break;
                 default:
                     // For non-primary elements, use basic projectile with element effect
                     this.fireEnhancedProjectile(element);
@@ -8049,6 +8101,18 @@ class GameScene extends Phaser.Scene {
                     break;
                 case 'gravity':
                     this.createGravitySpell();
+                    break;
+                case 'moon':
+                    this.createMoonSpell();
+                    break;
+                case 'death':
+                    this.createDeathSpell();
+                    break;
+                case 'smoke':
+                    this.createSmokeSpell();
+                    break;
+                case 'sun':
+                    this.createSunSpell();
                     break;
             }
         } else if (currentGroup.length === 2) {
@@ -10672,6 +10736,910 @@ class GameScene extends Phaser.Scene {
         gravity.once('animationcomplete', () => {
             pullInterval.destroy();
             gravity.destroy();
+        });
+    }
+
+    createMoonSpell() {
+        // Check if moon spell is already active or on cooldown
+        if (this.moonSpellActive || this.moonSpellCooldown) {
+            return; // Don't create multiple moon spells or if on cooldown
+        }
+        
+        // Mark moon spell as active (don't set cooldown yet)
+        this.moonSpellActive = true;
+        
+        // Moon element - creates a permanent ring of light that heals player and burns enemies
+        const moonRing = this.add.circle(this.wizard.x, this.wizard.y, 150, 0xe0e0e0, 0.05); // More transparent
+        moonRing.setDepth(3);
+        moonRing.setStrokeStyle(2, 0xffffff, 0.3); // More transparent stroke
+        
+        // Add inner glow
+        const innerGlow = this.add.circle(this.wizard.x, this.wizard.y, 100, 0xffffff, 0.03); // More transparent
+        innerGlow.setDepth(3);
+        
+        // Add rotating light particles (more subtle)
+        const particles = this.add.particles(this.wizard.x, this.wizard.y, 'particle', {
+            scale: { start: 0.2, end: 0 },
+            alpha: { start: 0.3, end: 0 },
+            speed: 30,
+            lifespan: 1500,
+            frequency: 100,
+            emitZone: {
+                type: 'edge',
+                source: new Phaser.Geom.Circle(0, 0, 140),
+                quantity: 8
+            },
+            tint: 0xe0e0e0
+        });
+        
+        // Create particle texture if it doesn't exist
+        if (!this.textures.exists('particle')) {
+            const graphics = this.add.graphics();
+            graphics.fillStyle(0xffffff);
+            graphics.fillCircle(4, 4, 4);
+            graphics.generateTexture('particle', 8, 8);
+            graphics.destroy();
+        }
+        
+        // Subtle pulsing animation
+        this.tweens.add({
+            targets: [moonRing, innerGlow],
+            scale: { from: 1, to: 1.05 },
+            alpha: { from: moonRing.alpha, to: moonRing.alpha + 0.02 },
+            duration: 2000,
+            yoyo: true,
+            repeat: -1
+        });
+        
+        // Track ring position to wizard
+        const updatePosition = () => {
+            if (moonRing.active) {
+                moonRing.x = this.wizard.x;
+                moonRing.y = this.wizard.y;
+                innerGlow.x = this.wizard.x;
+                innerGlow.y = this.wizard.y;
+                particles.x = this.wizard.x;
+                particles.y = this.wizard.y;
+            }
+        };
+        
+        // Healing and damage effect
+        const healAndBurn = this.time.addEvent({
+            delay: 500, // Effect every 0.5 seconds
+            callback: () => {
+                if (!moonRing.active) {
+                    healAndBurn.destroy();
+                    return;
+                }
+                
+                // Heal player (2 HP per tick)
+                if (this.wizardHealth < this.wizardMaxHealth) {
+                    this.wizardHealth = Math.min(this.wizardHealth + 2, this.wizardMaxHealth);
+                    this.updateWizardHealthBar();
+                    
+                    // Show healing effect
+                    const healText = this.add.text(this.wizard.x, this.wizard.y - 30, '+2', {
+                        fontSize: '20px',
+                        color: '#00ff00',
+                        fontStyle: 'bold'
+                    });
+                    healText.setOrigin(0.5);
+                    
+                    this.tweens.add({
+                        targets: healText,
+                        y: this.wizard.y - 60,
+                        alpha: 0,
+                        duration: 1000,
+                        onComplete: () => healText.destroy()
+                    });
+                }
+                
+                // Damage enemies in range
+                this.enemies.children.entries.forEach(enemy => {
+                    if (enemy.active) {
+                        const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
+                        if (dist < 150) { // Within moon ring radius
+                            // Apply lunar burn damage (3 damage)
+                            enemy.health -= 3;
+                            
+                            // Visual effect - moonlight burn
+                            enemy.setTint(0xe0e0ff);
+                            this.time.delayedCall(200, () => {
+                                if (enemy.active) enemy.clearTint();
+                            });
+                            
+                            // Show damage
+                            this.showDamageNumber(enemy.x, enemy.y - 20, 3);
+                            
+                            if (enemy.health <= 0) {
+                                this.killEnemy(enemy);
+                            }
+                        }
+                    }
+                });
+                
+                // Update position
+                updatePosition();
+            },
+            repeat: -1
+        });
+        
+        // Store moon spell components for smooth following
+        this.moonSpellComponents = {
+            moonRing,
+            innerGlow,
+            particles
+        };
+        
+        // Destroy moon spell after 6 seconds
+        this.time.delayedCall(6000, () => {
+            // Clean up all moon spell components
+            moonRing.destroy();
+            innerGlow.destroy();
+            particles.destroy();
+            healAndBurn.destroy();
+            
+            // Clear stored components
+            this.moonSpellComponents = null;
+            
+            // Mark moon spell as inactive and start cooldown
+            this.moonSpellActive = false;
+            this.moonSpellCooldown = true;
+            
+            // Clear cooldown after 6 more seconds (total 12 seconds from cast)
+            this.time.delayedCall(6000, () => {
+                this.moonSpellCooldown = false;
+            });
+        });
+    }
+
+    createSunSpell() {
+        // Check if sun spell is already active or on cooldown
+        if (this.sunSpellActive || this.sunSpellCooldown) {
+            return; // Don't create multiple sun spells or if on cooldown
+        }
+        
+        // Mark sun spell as active (don't set cooldown yet)
+        this.sunSpellActive = true;
+        
+        // Sun element - creates a permanent ring of heat that burns enemies
+        const sunRing = this.add.circle(this.wizard.x, this.wizard.y, 150, 0xffeb3b, 0.05); // Semi-transparent yellow
+        sunRing.setDepth(3);
+        sunRing.setStrokeStyle(2, 0xffa500, 0.3); // Orange stroke
+        
+        // Add inner heat glow
+        const innerGlow = this.add.circle(this.wizard.x, this.wizard.y, 100, 0xffff00, 0.03); // Semi-transparent bright yellow
+        innerGlow.setDepth(3);
+        
+        // Add heat wave particles
+        const particles = this.add.particles(this.wizard.x, this.wizard.y, 'particle', {
+            scale: { start: 0.3, end: 0 },
+            alpha: { start: 0.4, end: 0 },
+            speed: 40,
+            lifespan: 1200,
+            frequency: 80,
+            emitZone: {
+                type: 'edge',
+                source: new Phaser.Geom.Circle(0, 0, 140),
+                quantity: 10
+            },
+            tint: 0xffa500
+        });
+        
+        // Create particle texture if it doesn't exist
+        if (!this.textures.exists('particle')) {
+            const graphics = this.add.graphics();
+            graphics.fillStyle(0xffffff);
+            graphics.fillCircle(4, 4, 4);
+            graphics.generateTexture('particle', 8, 8);
+            graphics.destroy();
+        }
+        
+        // Heat wave pulsing animation
+        this.tweens.add({
+            targets: [sunRing, innerGlow],
+            scale: { from: 1, to: 1.08 },
+            alpha: { from: sunRing.alpha, to: sunRing.alpha + 0.03 },
+            duration: 1500,
+            yoyo: true,
+            repeat: -1
+        });
+        
+        // Store initial sun position (don't track wizard)
+        const sunPosition = {
+            x: this.wizard.x,
+            y: this.wizard.y
+        };
+        
+        // Burning effect - apply burn to enemies in range
+        const burnEffect = this.time.addEvent({
+            delay: 1000, // Effect every 1 second
+            callback: () => {
+                if (!sunRing.active) {
+                    burnEffect.destroy();
+                    return;
+                }
+                
+                // Apply burn to enemies in range
+                this.enemies.children.entries.forEach(enemy => {
+                    if (enemy.active) {
+                        const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, sunPosition.x, sunPosition.y);
+                        if (dist < 150) { // Within sun ring radius
+                            // Mark enemy as in sun aura
+                            enemy.inSunAura = true;
+                            
+                            // Initialize burn stacks if needed
+                            if (enemy.burnStacks === undefined) {
+                                enemy.burnStacks = 0;
+                            }
+                            
+                            // Add 2 burn stacks
+                            enemy.burnStacks += 2;
+                            
+                            // Cap burn stacks at a reasonable maximum (e.g., 20)
+                            if (enemy.burnStacks > 20) {
+                                enemy.burnStacks = 20;
+                            }
+                            
+                            // Update visual intensity based on stacks
+                            const burnIntensity = Math.min(enemy.burnStacks / 10, 1); // Max intensity at 10 stacks
+                            const tintColor = Phaser.Display.Color.Interpolate.ColorWithColor(
+                                { r: 255, g: 200, b: 0 },
+                                { r: 255, g: 50, b: 0 },
+                                1,
+                                burnIntensity
+                            );
+                            enemy.setTint(Phaser.Display.Color.GetColor(tintColor.r, tintColor.g, tintColor.b));
+                            
+                            // Create burn damage ticker if not exists
+                            if (!enemy.sunBurnTick && enemy.burnStacks > 0) {
+                                enemy.burning = true;
+                                enemy.sunBurnTick = this.time.addEvent({
+                                    delay: 500, // Tick twice per second
+                                    callback: () => {
+                                        if (enemy.active && enemy.burnStacks > 0) {
+                                            // Consume one burn stack and deal damage
+                                            enemy.health -= 1;
+                                            enemy.burnStacks--;
+                                            
+                                            // Show burn damage
+                                            this.showDamageNumber(enemy.x, enemy.y - 20, 1);
+                                            
+                                            // Fire particle effect
+                                            const fireParticle = this.add.circle(
+                                                enemy.x + Phaser.Math.Between(-10, 10),
+                                                enemy.y - 10,
+                                                3,
+                                                0xff6600,
+                                                0.8
+                                            );
+                                            fireParticle.setDepth(5);
+                                            
+                                            this.tweens.add({
+                                                targets: fireParticle,
+                                                y: enemy.y - 30,
+                                                alpha: 0,
+                                                scale: 0,
+                                                duration: 500,
+                                                onComplete: () => fireParticle.destroy()
+                                            });
+                                            
+                                            // Update tint based on remaining stacks
+                                            if (enemy.burnStacks > 0) {
+                                                const newIntensity = Math.min(enemy.burnStacks / 10, 1);
+                                                const newTint = Phaser.Display.Color.Interpolate.ColorWithColor(
+                                                    { r: 255, g: 200, b: 0 },
+                                                    { r: 255, g: 50, b: 0 },
+                                                    1,
+                                                    newIntensity
+                                                );
+                                                enemy.setTint(Phaser.Display.Color.GetColor(newTint.r, newTint.g, newTint.b));
+                                            } else {
+                                                // No more stacks, stop burning
+                                                enemy.burning = false;
+                                                enemy.clearTint();
+                                                if (enemy.sunBurnTick) {
+                                                    enemy.sunBurnTick.destroy();
+                                                    enemy.sunBurnTick = null;
+                                                }
+                                            }
+                                            
+                                            if (enemy.health <= 0) {
+                                                this.killEnemy(enemy);
+                                                if (enemy.sunBurnTick) {
+                                                    enemy.sunBurnTick.destroy();
+                                                }
+                                            }
+                                        }
+                                    },
+                                    repeat: -1 // Continue until out of stacks
+                                });
+                            }
+                        } else if (enemy.inSunAura) {
+                            // Enemy left the sun aura - stop adding stacks but keep burning existing ones
+                            enemy.inSunAura = false;
+                            // Don't clear burn or tint - let it burn out naturally
+                        }
+                    }
+                });
+            },
+            repeat: -1
+        });
+        
+        // Destroy sun spell after 6 seconds
+        this.time.delayedCall(6000, () => {
+            // Clean up all sun spell components
+            sunRing.destroy();
+            innerGlow.destroy();
+            particles.destroy();
+            burnEffect.destroy();
+            
+            // Clear burn effects from all enemies
+            this.enemies.children.entries.forEach(enemy => {
+                if (enemy.active) {
+                    enemy.inSunAura = false;
+                    // Let existing burn stacks burn out naturally
+                }
+            });
+            
+            // Mark sun spell as inactive and start cooldown
+            this.sunSpellActive = false;
+            this.sunSpellCooldown = true;
+            
+            // Clear cooldown after 6 more seconds (total 12 seconds from cast)
+            this.time.delayedCall(6000, () => {
+                this.sunSpellCooldown = false;
+            });
+        });
+    }
+
+    createStarSpell() {
+        // Star element - creates 4 bouncing projectiles that fly in different directions
+        const starCount = 4;
+        const speed = 400;
+        const damage = 2;
+        
+        // Create 4 star projectiles, one for each cardinal direction
+        const directions = [
+            { x: 1, y: 0 },    // Right
+            { x: -1, y: 0 },   // Left
+            { x: 0, y: 1 },    // Down
+            { x: 0, y: -1 }    // Up
+        ];
+        
+        for (let i = 0; i < starCount; i++) {
+            const star = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'element-symbols3', 7);
+            star.setScale(0.15);
+            star.setDepth(5);
+            star.element = 'star';
+            star.damage = damage;
+            star.isBouncing = true;
+            star.bounceCount = 0;
+            star.maxBounces = 10; // Maximum bounces before disappearing
+            
+            // Set initial velocity
+            const dir = directions[i];
+            star.setVelocity(dir.x * speed, dir.y * speed);
+            
+            // Add spinning animation
+            this.tweens.add({
+                targets: star,
+                rotation: Math.PI * 2,
+                duration: 1000,
+                repeat: -1
+            });
+            
+            // Add glowing effect
+            this.tweens.add({
+                targets: star,
+                scale: { from: 0.15, to: 0.2 },
+                alpha: { from: 1, to: 0.7 },
+                duration: 300,
+                yoyo: true,
+                repeat: -1
+            });
+            
+            // Add to projectiles group
+            this.projectiles.add(star);
+            
+            // Create trail effect
+            const trailInterval = this.time.addEvent({
+                delay: 50,
+                callback: () => {
+                    if (star.active) {
+                        const trail = this.add.circle(star.x, star.y, 3, 0xffffff, 0.5);
+                        trail.setDepth(4);
+                        this.tweens.add({
+                            targets: trail,
+                            scale: 0,
+                            alpha: 0,
+                            duration: 300,
+                            onComplete: () => trail.destroy()
+                        });
+                    } else {
+                        trailInterval.destroy();
+                    }
+                },
+                repeat: -1
+            });
+            
+            // Store trail interval for cleanup
+            star.trailInterval = trailInterval;
+            
+            // Auto-destroy after 3 seconds
+            this.time.delayedCall(3000, () => {
+                if (star.active) {
+                    // Create a small explosion effect
+                    const explosion = this.add.circle(star.x, star.y, 20, 0xffffff, 0.8);
+                    explosion.setDepth(6);
+                    this.tweens.add({
+                        targets: explosion,
+                        scale: { from: 0.5, to: 1.5 },
+                        alpha: { from: 0.8, to: 0 },
+                        duration: 300,
+                        onComplete: () => explosion.destroy()
+                    });
+                    
+                    // Clean up trail interval
+                    if (star.trailInterval) {
+                        star.trailInterval.destroy();
+                    }
+                    
+                    star.destroy();
+                }
+            });
+            
+            // Custom update function for bouncing
+            star.updateBounce = () => {
+                if (!star.active) return;
+                
+                const camera = this.cameras.main;
+                const bounds = {
+                    left: camera.scrollX,
+                    right: camera.scrollX + camera.width,
+                    top: camera.scrollY,
+                    bottom: camera.scrollY + camera.height
+                };
+                
+                // Check viewport boundaries
+                let bounced = false;
+                
+                if (star.x <= bounds.left + 10 || star.x >= bounds.right - 10) {
+                    star.setVelocityX(-star.body.velocity.x);
+                    bounced = true;
+                    // Keep star within bounds
+                    if (star.x <= bounds.left + 10) star.x = bounds.left + 11;
+                    if (star.x >= bounds.right - 10) star.x = bounds.right - 11;
+                }
+                
+                if (star.y <= bounds.top + 10 || star.y >= bounds.bottom - 10) {
+                    star.setVelocityY(-star.body.velocity.y);
+                    bounced = true;
+                    // Keep star within bounds
+                    if (star.y <= bounds.top + 10) star.y = bounds.top + 11;
+                    if (star.y >= bounds.bottom - 10) star.y = bounds.bottom - 11;
+                }
+                
+                // Visual feedback on bounce
+                if (bounced) {
+                    star.bounceCount++;
+                    
+                    // Create bounce effect
+                    const bounceEffect = this.add.circle(star.x, star.y, 15, 0xffffff, 0.6);
+                    bounceEffect.setDepth(6);
+                    this.tweens.add({
+                        targets: bounceEffect,
+                        scale: { from: 0.5, to: 1 },
+                        alpha: { from: 0.6, to: 0 },
+                        duration: 200,
+                        onComplete: () => bounceEffect.destroy()
+                    });
+                    
+                    // Destroy if max bounces reached
+                    if (star.bounceCount >= star.maxBounces) {
+                        if (star.trailInterval) {
+                            star.trailInterval.destroy();
+                        }
+                        star.destroy();
+                    }
+                }
+            };
+            
+            // Store update function reference
+            star.starUpdate = star.updateBounce;
+        }
+    }
+
+    createDeathSpell() {
+        // Death element - creates an area that instantly kills enemies with 25% or less health
+        const deathRadius = 200;
+        
+        // Create death zone visual
+        const deathZone = this.add.circle(this.wizard.x, this.wizard.y, deathRadius, 0x000000, 0.2);
+        deathZone.setDepth(2);
+        deathZone.setStrokeStyle(2, 0x330033, 0.8);
+        
+        // Add inner death circle
+        const innerCircle = this.add.circle(this.wizard.x, this.wizard.y, deathRadius * 0.6, 0x220022, 0.3);
+        innerCircle.setDepth(2);
+        
+        // Create skull particles effect
+        const skullParticles = [];
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 / 8) * i;
+            const x = this.wizard.x + Math.cos(angle) * (deathRadius * 0.8);
+            const y = this.wizard.y + Math.sin(angle) * (deathRadius * 0.8);
+            
+            // Create skull marker
+            const skull = this.add.text(x, y, '💀', {
+                fontSize: '24px'
+            });
+            skull.setOrigin(0.5);
+            skull.setDepth(3);
+            skullParticles.push(skull);
+            
+            // Floating animation
+            this.tweens.add({
+                targets: skull,
+                y: y - 10,
+                alpha: { from: 0.8, to: 0.3 },
+                duration: 1000,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+        
+        // Dark pulse animation
+        this.tweens.add({
+            targets: [deathZone, innerCircle],
+            scale: { from: 0, to: 1 },
+            alpha: { from: 0, to: deathZone.alpha },
+            duration: 500,
+            ease: 'Power2'
+        });
+        
+        // Pulsing effect
+        this.tweens.add({
+            targets: deathZone,
+            scale: { from: 1, to: 1.05 },
+            duration: 800,
+            yoyo: true,
+            repeat: -1,
+            delay: 500
+        });
+        
+        // Death effect - check for low health enemies
+        const deathCheck = this.time.addEvent({
+            delay: 100, // Check every 0.1 seconds
+            callback: () => {
+                if (!deathZone.active) {
+                    deathCheck.destroy();
+                    return;
+                }
+                
+                this.enemies.children.entries.forEach(enemy => {
+                    if (enemy.active && !enemy.deathMarked) {
+                        const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
+                        if (dist < deathRadius) {
+                            // Check if enemy health is 25% or less
+                            const maxHealth = enemy.maxHealth || enemy.health;
+                            const healthPercent = enemy.health / maxHealth;
+                            
+                            if (healthPercent <= 0.25) {
+                                // Mark for death
+                                enemy.deathMarked = true;
+                                
+                                // Death animation on enemy
+                                enemy.setTint(0x000000);
+                                
+                                // Create death effect at enemy position
+                                const deathEffect = this.add.text(enemy.x, enemy.y, '☠️', {
+                                    fontSize: '32px'
+                                });
+                                deathEffect.setOrigin(0.5);
+                                deathEffect.setDepth(10);
+                                
+                                // Animate death effect
+                                this.tweens.add({
+                                    targets: deathEffect,
+                                    y: enemy.y - 40,
+                                    scale: { from: 0.5, to: 1.5 },
+                                    alpha: { from: 1, to: 0 },
+                                    duration: 800,
+                                    onComplete: () => deathEffect.destroy()
+                                });
+                                
+                                // Soul extraction effect
+                                const soul = this.add.circle(enemy.x, enemy.y, 10, 0x9933ff, 0.8);
+                                soul.setDepth(5);
+                                
+                                this.tweens.add({
+                                    targets: soul,
+                                    x: this.wizard.x,
+                                    y: this.wizard.y,
+                                    scale: { from: 1, to: 0 },
+                                    duration: 600,
+                                    ease: 'Power2',
+                                    onComplete: () => {
+                                        soul.destroy();
+                                        // Kill enemy after soul extraction
+                                        if (enemy.active) {
+                                            this.killEnemy(enemy);
+                                        }
+                                    }
+                                });
+                            } else if (healthPercent <= 0.35) {
+                                // Visual warning for enemies close to death threshold
+                                if (!enemy.deathWarned) {
+                                    enemy.deathWarned = true;
+                                    enemy.setTint(0x660066);
+                                    this.time.delayedCall(200, () => {
+                                        if (enemy.active && !enemy.deathMarked) {
+                                            enemy.clearTint();
+                                            enemy.deathWarned = false;
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                });
+            },
+            repeat: 39 // Lasts 4 seconds total (40 checks * 0.1s)
+        });
+        
+        // Fade out and cleanup
+        this.time.delayedCall(3500, () => {
+            this.tweens.add({
+                targets: [deathZone, innerCircle, ...skullParticles],
+                alpha: 0,
+                duration: 500,
+                onComplete: () => {
+                    deathZone.destroy();
+                    innerCircle.destroy();
+                    skullParticles.forEach(skull => skull.destroy());
+                    deathCheck.destroy();
+                }
+            });
+        });
+    }
+
+    createSmokeSpell() {
+        // Smoke element - passive ability that grants invisibility every 30 seconds for 5 seconds
+        // Check if smoke veil is already active
+        if (this.smokeVeilActive) {
+            return; // Don't activate if already active
+        }
+        
+        // Check if smoke element is already equipped
+        if (this.hasSmokeElement) {
+            return; // Already have smoke element passive
+        }
+        
+        // Mark that we have smoke element
+        this.hasSmokeElement = true;
+        
+        // Create passive smoke veil timer
+        this.smokeVeilTimer = this.time.addEvent({
+            delay: 30000, // Every 30 seconds
+            callback: () => {
+                this.activateSmokeVeil();
+            },
+            repeat: -1 // Repeat forever
+        });
+        
+        // Activate smoke veil immediately on first cast
+        this.activateSmokeVeil();
+        
+        // Visual feedback for acquiring smoke element
+        const smokeText = this.add.text(this.wizard.x, this.wizard.y - 50, 'Smoke Veil Acquired!', {
+            fontSize: '24px',
+            color: '#696969',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+        smokeText.setOrigin(0.5);
+        
+        this.tweens.add({
+            targets: smokeText,
+            y: this.wizard.y - 100,
+            alpha: 0,
+            duration: 2000,
+            onComplete: () => smokeText.destroy()
+        });
+    }
+    
+    activateSmokeVeil() {
+        // Mark wizard as invisible
+        this.smokeVeilActive = true;
+        this.wizard.invisible = true;
+        
+        // Create smoke cloud effect
+        const smokeParticles = this.add.particles(this.wizard.x, this.wizard.y, 'particle', {
+            scale: { start: 1, end: 2 },
+            alpha: { start: 0.6, end: 0 },
+            speed: { min: 20, max: 60 },
+            lifespan: 1500,
+            frequency: 30,
+            quantity: 3,
+            emitZone: {
+                type: 'random',
+                source: new Phaser.Geom.Circle(0, 0, 30)
+            },
+            tint: 0x696969
+        });
+        
+        // Make wizard semi-transparent
+        this.wizard.setAlpha(0.3);
+        
+        // Add smoke swirl around wizard
+        const smokeSwirl = this.add.graphics();
+        smokeSwirl.lineStyle(3, 0x696969, 0.5);
+        smokeSwirl.setDepth(this.wizard.depth + 1);
+        
+        // Animated smoke swirl
+        const swirlAnim = this.time.addEvent({
+            delay: 50,
+            callback: () => {
+                if (!this.smokeVeilActive) {
+                    swirlAnim.destroy();
+                    return;
+                }
+                
+                smokeSwirl.clear();
+                smokeSwirl.lineStyle(3, 0x696969, 0.5);
+                
+                const time = this.time.now / 500;
+                smokeSwirl.beginPath();
+                
+                for (let i = 0; i < 360; i += 30) {
+                    const angle = (i + time * 50) * Math.PI / 180;
+                    const radius = 40 + Math.sin(time + i / 30) * 10;
+                    const x = this.wizard.x + Math.cos(angle) * radius;
+                    const y = this.wizard.y + Math.sin(angle) * radius;
+                    
+                    if (i === 0) {
+                        smokeSwirl.moveTo(x, y);
+                    } else {
+                        smokeSwirl.lineTo(x, y);
+                    }
+                }
+                
+                smokeSwirl.closePath();
+                smokeSwirl.strokePath();
+            },
+            repeat: -1
+        });
+        
+        // Update particle position to follow wizard
+        const particleUpdate = this.time.addEvent({
+            delay: 16,
+            callback: () => {
+                if (smokeParticles.active) {
+                    smokeParticles.x = this.wizard.x;
+                    smokeParticles.y = this.wizard.y;
+                }
+            },
+            repeat: -1
+        });
+        
+        // Show invisibility timer
+        const timerBg = this.add.rectangle(this.wizard.x, this.wizard.y - 60, 100, 20, 0x000000, 0.7);
+        timerBg.setStrokeStyle(2, 0x696969);
+        const timerBar = this.add.rectangle(this.wizard.x - 48, this.wizard.y - 60, 96, 16, 0x696969);
+        timerBar.setOrigin(0, 0.5);
+        
+        const timerText = this.add.text(this.wizard.x, this.wizard.y - 60, 'INVISIBLE', {
+            fontSize: '12px',
+            color: '#ffffff'
+        });
+        timerText.setOrigin(0.5);
+        
+        // Timer countdown
+        this.tweens.add({
+            targets: timerBar,
+            scaleX: 0,
+            duration: 5000,
+            ease: 'Linear'
+        });
+        
+        // Update timer position
+        const timerUpdate = this.time.addEvent({
+            delay: 16,
+            callback: () => {
+                if (timerBg.active) {
+                    timerBg.x = this.wizard.x;
+                    timerBg.y = this.wizard.y - 60;
+                    timerBar.x = this.wizard.x - 48;
+                    timerBar.y = this.wizard.y - 60;
+                    timerText.x = this.wizard.x;
+                    timerText.y = this.wizard.y - 60;
+                }
+            },
+            repeat: -1
+        });
+        
+        // End invisibility after 5 seconds
+        this.time.delayedCall(5000, () => {
+            // Remove invisibility
+            this.smokeVeilActive = false;
+            this.wizard.invisible = false;
+            this.wizard.setAlpha(1);
+            
+            // Clean up effects
+            smokeParticles.stop();
+            this.time.delayedCall(1500, () => smokeParticles.destroy());
+            smokeSwirl.destroy();
+            swirlAnim.destroy();
+            particleUpdate.destroy();
+            timerUpdate.destroy();
+            timerBg.destroy();
+            timerBar.destroy();
+            timerText.destroy();
+            
+            // Show cooldown timer if we still have smoke element
+            if (this.hasSmokeElement) {
+                // Find which charge slot has smoke element
+                let smokeSlotIndex = -1;
+                for (let i = 0; i < this.charges.length; i++) {
+                    if (this.charges[i] === 'smoke') {
+                        smokeSlotIndex = i;
+                        break;
+                    }
+                }
+                
+                if (smokeSlotIndex >= 0) {
+                    // Position above the smoke charge slot
+                    const slotX = 380 + (smokeSlotIndex * 35);
+                    const slotY = 35; // Above the charge slot at y:50
+                    
+                    const cooldownText = this.add.text(slotX, slotY, '30', {
+                        fontSize: '12px',
+                        color: '#ffffff',
+                        stroke: '#000000',
+                        strokeThickness: 2,
+                        backgroundColor: '#696969',
+                        padding: { x: 2, y: 1 }
+                    });
+                    cooldownText.setOrigin(0.5);
+                    cooldownText.setScrollFactor(0);
+                    cooldownText.setDepth(62); // Above charge UI
+                    
+                    // Store reference for position updates
+                    this.smokeCooldownText = cooldownText;
+                    
+                    // Countdown display
+                    let cooldown = 30;
+                    const cooldownTimer = this.time.addEvent({
+                        delay: 1000,
+                        callback: () => {
+                            cooldown--;
+                            if (cooldown > 0) {
+                                cooldownText.setText(`${cooldown}`);
+                                
+                                // Update position if smoke element moved
+                                let newSmokeIndex = -1;
+                                for (let i = 0; i < this.charges.length; i++) {
+                                    if (this.charges[i] === 'smoke') {
+                                        newSmokeIndex = i;
+                                        break;
+                                    }
+                                }
+                                if (newSmokeIndex >= 0) {
+                                    cooldownText.x = 380 + (newSmokeIndex * 35);
+                                }
+                            } else {
+                                cooldownText.destroy();
+                                cooldownTimer.destroy();
+                                this.smokeCooldownText = null;
+                            }
+                        },
+                        repeat: 29
+                    });
+                }
+            }
         });
     }
 
