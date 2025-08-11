@@ -62,6 +62,9 @@ class LoadingScene extends Phaser.Scene {
         // Load sand element symbol
         this.load.image('sand-symbol', 'sand.png');
         
+        // Load gravity element symbol
+        this.load.image('gravity-symbol', 'gravity.png');
+        
         // Load background music
         this.load.audio('bgm', 'homonculibgm.mp3');
         this.load.audio('bgm2', 'bgm2.mp3');
@@ -190,6 +193,18 @@ class LoadingScene extends Phaser.Scene {
         
         // Load crystal bullet
         this.load.image('crystal-bullet', 'spells/crystalbullet.PNG');
+        
+        // Load gravity spell sprite sheet
+        this.load.spritesheet('gravity-spell', 'spells/gravity1.PNG', {
+            frameWidth: 64,
+            frameHeight: 59
+        });
+        
+        // Load meteor spell sprite sheet
+        this.load.spritesheet('meteor-spell', 'spells/meteor1.PNG', {
+            frameWidth: 32,
+            frameHeight: 38
+        });
 
         // Load individual air spell frames
         for (let i = 1; i <= 7; i++) {
@@ -1145,7 +1160,7 @@ class GameScene extends Phaser.Scene {
             poison: { frame: 2, color: 0x00ff00, name: 'Poison', sheet: 'element-symbols2' },
             volcano: { frame: 3, color: 0xcc3300, name: 'Volcano', sheet: 'element-symbols2' },
             ice: { frame: 4, color: 0x00ddff, name: 'Ice', sheet: 'element-symbols2', fireRate: 2500 },
-            meteor: { frame: 5, color: 0xff8800, name: 'Meteor', sheet: 'element-symbols2' },
+            meteor: { frame: 5, color: 0xff8800, name: 'Meteor', sheet: 'element-symbols2', fireRate: 1500 },
             mud: { frame: 6, color: 0x664422, name: 'Mud', sheet: 'element-symbols2' },
             thunder: { frame: 7, color: 0xffff00, name: 'Thunder', sheet: 'element-symbols2' },
             crystal: { frame: 8, color: 0xffaaff, name: 'Crystal', sheet: 'element-symbols2' },
@@ -1154,7 +1169,7 @@ class GameScene extends Phaser.Scene {
             death: { frame: 0, color: 0x333333, name: 'Death', sheet: 'element-symbols3' },
             time: { frame: 1, color: 0xffd700, name: 'Time', sheet: 'element-symbols3' },
             sand: { frame: 0, color: 0xf4a460, name: 'Sand', sheet: 'sand-symbol', isImage: true },
-            gravity: { frame: 3, color: 0x4b0082, name: 'Gravity', sheet: 'element-symbols3' },
+            gravity: { frame: 0, color: 0x4b0082, name: 'Gravity', sheet: 'gravity-symbol', isImage: true },
             sun: { frame: 4, color: 0xffeb3b, name: 'Sun', sheet: 'element-symbols3' },
             smoke: { frame: 5, color: 0x696969, name: 'Smoke', sheet: 'element-symbols3' },
             wave: { frame: 0, color: 0x00bcd4, name: 'Wave', sheet: 'wave-symbol', isImage: true },
@@ -1188,7 +1203,7 @@ class GameScene extends Phaser.Scene {
             death: 'Dark magic that instantly destroys weakened enemies. Finisher element.',
             time: 'Slows down time for enemies in an area. Temporal manipulation.',
             sand: 'Summons multiple sandstorms that continuously damage and slow enemies. Desert magic.',
-            gravity: 'Pulls enemies together into a crushing singularity. Force element.',
+            gravity: 'Creates a singularity that pulls enemies in and deals 30% of their max health as damage.',
             sun: 'Radiates intense heat and light, burning all nearby enemies. Solar power.',
             smoke: 'Obscures vision and causes choking damage. Suffocation element.',
             wave: 'Powerful water surge that knocks back groups of enemies. Tidal force.',
@@ -1456,6 +1471,22 @@ class GameScene extends Phaser.Scene {
             ],
             frameRate: 10,
             repeat: 0
+        });
+        
+        // Create gravity spell animation (18 frames)
+        this.anims.create({
+            key: 'gravity-spell-anim',
+            frames: this.anims.generateFrameNumbers('gravity-spell', { start: 0, end: 17 }),
+            frameRate: 12,
+            repeat: 0
+        });
+        
+        // Create meteor spell animation (6 frames) - looping
+        this.anims.create({
+            key: 'meteor-spell-anim',
+            frames: this.anims.generateFrameNumbers('meteor-spell', { start: 0, end: 5 }),
+            frameRate: 10,
+            repeat: -1  // Loop forever
         });
 
         // Create air spell animation from individual frames - plays backwards then forwards
@@ -7915,6 +7946,12 @@ class GameScene extends Phaser.Scene {
                 case 'crystal':
                     this.createCrystalSpell();
                     break;
+                case 'gravity':
+                    this.createGravitySpell();
+                    break;
+                case 'meteor':
+                    this.fireMeteorProjectile();
+                    break;
                 default:
                     // For non-primary elements, use basic projectile with element effect
                     this.fireEnhancedProjectile(element);
@@ -8009,6 +8046,9 @@ class GameScene extends Phaser.Scene {
                     break;
                 case 'crystal':
                     this.createCrystalSpell();
+                    break;
+                case 'gravity':
+                    this.createGravitySpell();
                     break;
             }
         } else if (currentGroup.length === 2) {
@@ -9585,16 +9625,7 @@ class GameScene extends Phaser.Scene {
     }
 
     fireMeteor() {
-        if (!this.textures.exists('meteor')) {
-            const graphics = this.add.graphics();
-            graphics.fillStyle(0xff8844, 1);
-            graphics.fillCircle(12, 12, 12);
-            graphics.fillStyle(0x44ff44, 1);
-            graphics.fillCircle(12, 12, 6);
-            graphics.generateTexture('meteor', 24, 24);
-            graphics.destroy();
-        }
-
+        // Single meteor for combos (fire+earth)
         // Find nearest enemy
         let nearestEnemy = null;
         let minDistance = Infinity;
@@ -9610,9 +9641,15 @@ class GameScene extends Phaser.Scene {
         const targetX = nearestEnemy ? nearestEnemy.x : this.wizard.x + Phaser.Math.Between(-200, 200);
         const targetY = nearestEnemy ? nearestEnemy.y : this.wizard.y + Phaser.Math.Between(-200, 200);
 
-        const meteor = this.physics.add.sprite(targetX, targetY - 300, 'meteor');
+        // Create meteor high above target
+        const meteor = this.physics.add.sprite(targetX, targetY - 300, 'meteor-spell');
         meteor.setDepth(10);
-        meteor.setScale(0.5);
+        meteor.setScale(1.5);
+        
+        // Play meteor animation
+        if (this.anims.exists('meteor-spell-anim')) {
+            meteor.play('meteor-spell-anim');
+        }
 
         // Fall animation
         this.tweens.add({
@@ -9633,12 +9670,14 @@ class GameScene extends Phaser.Scene {
                     duration: 300,
                     onComplete: () => impact.destroy()
                 });
+                
+                // Screen shake removed for smoother gameplay
 
-                // Damage enemies in area
+                // Damage enemies in area (increased damage to 8)
                 this.enemies.children.entries.forEach(enemy => {
                     const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, targetX, targetY);
                     if (distance < 80) {
-                        enemy.health -= 5;
+                        enemy.health -= 8;
                         if (enemy.health <= 0) {
                             this.killEnemy(enemy);
                         } else {
@@ -10550,6 +10589,92 @@ class GameScene extends Phaser.Scene {
         });
     }
 
+    createGravitySpell() {
+        // Create gravity singularity at wizard position
+        const gravity = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'gravity-spell');
+        gravity.setScale(4); // Scale up for visibility
+        gravity.setDepth(20);
+        
+        // Play animation
+        if (this.anims.exists('gravity-spell-anim')) {
+            gravity.play('gravity-spell-anim');
+        }
+        
+        // Track which enemies have been damaged
+        const damagedEnemies = new Set();
+        
+        // Create pull effect and damage
+        const pullInterval = this.time.addEvent({
+            delay: 100, // Check every 100ms
+            callback: () => {
+                if (!gravity.active) {
+                    pullInterval.destroy();
+                    return;
+                }
+                
+                const pullRadius = 200; // Large pull radius
+                const damageRadius = 80; // Smaller damage radius
+                
+                this.enemies.children.entries.forEach(enemy => {
+                    if (!enemy.active || enemy.isDying) return;
+                    
+                    const dist = Phaser.Math.Distance.Between(
+                        enemy.x, enemy.y,
+                        gravity.x, gravity.y
+                    );
+                    
+                    // Pull enemies towards center
+                    if (dist < pullRadius && dist > 20) {
+                        const angle = Phaser.Math.Angle.Between(
+                            enemy.x, enemy.y,
+                            gravity.x, gravity.y
+                        );
+                        const pullForce = (pullRadius - dist) / pullRadius * 300; // Stronger pull when closer
+                        
+                        // Apply pull force
+                        enemy.setVelocity(
+                            Math.cos(angle) * pullForce,
+                            Math.sin(angle) * pullForce
+                        );
+                    }
+                    
+                    // Damage enemies in center (only once)
+                    if (dist < damageRadius && !damagedEnemies.has(enemy)) {
+                        // Calculate 30% of max health as damage
+                        const maxHealth = enemy.maxHealth || enemy.health; // Use maxHealth if available
+                        const damage = Math.ceil(maxHealth * 0.3); // 30% of max health
+                        
+                        enemy.health -= damage;
+                        damagedEnemies.add(enemy);
+                        
+                        // Visual effect - dark purple tint
+                        enemy.setTint(0x4b0082);
+                        this.time.delayedCall(500, () => {
+                            if (enemy.active && !enemy.frozen && !enemy.stunned && !enemy.poisoned && !enemy.slowed && !enemy.burning && !enemy.wet && !enemy.sandSlowed) {
+                                enemy.clearTint();
+                            }
+                        });
+                        
+                        // Show damage number
+                        this.showDamageNumber(enemy.x, enemy.y - 20, damage);
+                        
+                        // Check if enemy died
+                        if (enemy.health <= 0) {
+                            this.killEnemy(enemy);
+                        }
+                    }
+                });
+            },
+            repeat: -1
+        });
+        
+        // Destroy after animation completes
+        gravity.once('animationcomplete', () => {
+            pullInterval.destroy();
+            gravity.destroy();
+        });
+    }
+
     fireIceProjectile() {
         // Ice element - slows enemies
         const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'element-symbols2', 4);
@@ -10575,63 +10700,92 @@ class GameScene extends Phaser.Scene {
     }
 
     fireMeteorProjectile() {
-        // Meteor element - falls from above on nearest enemy
-        let nearestEnemy = null;
-        let minDistance = Infinity;
-
-        this.enemies.children.entries.forEach(enemy => {
-            if (enemy.active) {
-                const distance = Phaser.Math.Distance.Between(this.wizard.x, this.wizard.y, enemy.x, enemy.y);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    nearestEnemy = enemy;
-                }
-            }
-        });
-
-        if (nearestEnemy) {
-            const targetX = nearestEnemy.x;
-            const targetY = nearestEnemy.y;
-
-            // Create meteor high above target
-            const meteor = this.physics.add.sprite(targetX, targetY - 300, 'element-symbols2', 5);
-            meteor.setScale(2);
-            meteor.damage = 4;
+        // Meteor element - creates several meteors falling from the sky in a wide area
+        const meteorCount = 5; // Number of meteors
+        const areaRadius = 400; // Wide area coverage
+        const damage = 24; // Doubled damage
+        const explosionRadius = 100; // Explosion radius
+        
+        // Create meteors at random positions around the wizard
+        for (let i = 0; i < meteorCount; i++) {
+            // Random angle and distance from wizard
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * areaRadius;
+            
+            // Calculate target position
+            const targetX = this.wizard.x + Math.cos(angle) * distance;
+            const targetY = this.wizard.y + Math.sin(angle) * distance;
+            
+            // Create meteor high above target position
+            const startY = targetY - 500; // Start higher for more dramatic effect
+            const meteor = this.physics.add.sprite(targetX, startY, 'meteor-spell');
+            meteor.setScale(2); // Original size
             meteor.setDepth(5);
-
-            // Fall animation
+            
+            // Play meteor animation
+            if (this.anims.exists('meteor-spell-anim')) {
+                meteor.play('meteor-spell-anim');
+            }
+            
+            // Create shadow at target position
+            const shadow = this.add.ellipse(targetX, targetY, 30, 20, 0x000000, 0.3);
+            shadow.setDepth(1);
+            meteor.shadow = shadow; // Store reference for cleanup
+            
+            // More varied staggering - some meteors fall much later
+            const delay = i * 200 + Math.random() * 300; // Base delay + random additional delay
+            
+            // Fall animation - simplified without rotation
             this.tweens.add({
                 targets: meteor,
                 y: targetY,
-                duration: 500,
+                duration: 1000 + Math.random() * 200, // Slightly varied fall speeds
+                delay: delay,
                 ease: 'Power2',
+                onUpdate: () => {
+                    // Update shadow size based on meteor height
+                    if (meteor.shadow && meteor.active) {
+                        const progress = (meteor.y - startY) / (targetY - startY);
+                        const shadowScale = 0.2 + (progress * 0.8); // Shadow grows as meteor falls
+                        meteor.shadow.setScale(shadowScale);
+                    }
+                },
                 onComplete: () => {
-                    // Explosion effect
-                    const explosion = this.add.circle(targetX, targetY, 60, 0xff8800, 0.8);
-                    explosion.setDepth(4);
-
-                    this.tweens.add({
-                        targets: explosion,
-                        scale: { from: 0, to: 1.5 },
-                        alpha: { from: 0.8, to: 0 },
-                        duration: 300,
-                        onComplete: () => explosion.destroy()
-                    });
-
-                    // Damage all enemies in area
+                    
+                    // Damage all enemies in explosion area
                     this.enemies.children.entries.forEach(enemy => {
                         if (enemy.active) {
                             const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, targetX, targetY);
-                            if (dist < 80) {
-                                enemy.health -= 4;
+                            if (dist < explosionRadius) {
+                                // Apply damage
+                                enemy.health -= damage;
+                                
+                                // Stronger knockback effect
+                                const knockbackAngle = Math.atan2(enemy.y - targetY, enemy.x - targetX);
+                                const knockbackForce = 350 * (1 - dist / explosionRadius); // Increased force
+                                enemy.body.setVelocity(
+                                    Math.cos(knockbackAngle) * knockbackForce,
+                                    Math.sin(knockbackAngle) * knockbackForce
+                                );
+                                
+                                // Visual feedback
+                                enemy.setTint(0xff6600);
+                                this.time.delayedCall(200, () => {
+                                    if (enemy.active) enemy.clearTint();
+                                });
+                                
                                 if (enemy.health <= 0) {
                                     this.killEnemy(enemy);
                                 }
                             }
                         }
                     });
-
+                    
                     meteor.destroy();
+                    // Remove shadow when meteor impacts
+                    if (meteor.shadow) {
+                        meteor.shadow.destroy();
+                    }
                 }
             });
         }
@@ -11724,8 +11878,8 @@ class GameScene extends Phaser.Scene {
             'arcane+fire': 'lava',
             'ice+poison': 'death',
             'arcane+lightning': 'time',
-            'earth+lightning': 'dust',
-            'arcane+poison': 'gravity',
+            'arcane+poison': 'dust',
+            'earth+lightning': 'gravity',
             'fire+holy': 'sun',
             'lightning+poison': 'wave',
             'holy+ice': 'star',
@@ -11852,7 +12006,18 @@ class GameScene extends Phaser.Scene {
     setupElementSelection(selectionBg, title, choices) {
         const chargesFull = this.charges.length >= this.maxCharges;
         
-        const controlHint = null; // Remove control hint for cleaner UI
+        let controlHint = null;
+        
+        // Add control hint when charges are full
+        if (chargesFull) {
+            controlHint = this.add.text(400, 480, 'Use LEFT/RIGHT to select element, TAB/Y to select charge to replace', {
+                fontSize: '14px',
+                color: '#aaaaaa'
+            });
+            controlHint.setOrigin(0.5);
+            controlHint.setScrollFactor(0);
+            controlHint.setDepth(201);
+        }
 
         // Show current charges if full
         let chargeDisplay = null;
@@ -12064,8 +12229,8 @@ class GameScene extends Phaser.Scene {
                 }
 
                 // Update control hint
-                if (controlHint) {
-                    controlHint.setText('Up/Down: Select Charge to Replace | A: Confirm');
+                if (this.chestUI && this.chestUI.controlHint) {
+                    this.chestUI.controlHint.setText('Select a charge to replace with UP/DOWN, press TAB/Y to return');
                 }
 
                 return; // Don't proceed without selection
@@ -12179,7 +12344,8 @@ class GameScene extends Phaser.Scene {
             (this.gamepad && ((this.gamepad.leftStick.y > 0.5) || (this.gamepad.buttons[13] && this.gamepad.buttons[13].pressed)));
         const confirmPressed = this.spaceKey.isDown ||
             (this.gamepad && this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed);
-        const switchModePressed = this.gamepad && this.gamepad.buttons[2] && this.gamepad.buttons[2].pressed; // Y button
+        const switchModePressed = (this.gamepad && this.gamepad.buttons[2] && this.gamepad.buttons[2].pressed) || // Y button
+            this.tabKey.isDown; // Tab key for keyboard
 
         // Initialize previous states if not set
         if (!this.prevChestLeftPressed) this.prevChestLeftPressed = false;
@@ -12188,6 +12354,7 @@ class GameScene extends Phaser.Scene {
         if (!this.prevChestDownPressed) this.prevChestDownPressed = false;
         if (!this.prevChestConfirmPressed) this.prevChestConfirmPressed = false;
         if (!this.prevChestSwitchPressed) this.prevChestSwitchPressed = false;
+        if (!this.prevChestTabPressed) this.prevChestTabPressed = false;
 
         // Handle main menu selection for new chest system
         if (this.chestUI && this.chestUI.mainMenu) {
@@ -12243,14 +12410,15 @@ class GameScene extends Phaser.Scene {
                     console.log('No reward type found for button at index', this.chestCursorIndex);
                 }
             }
-        } else if (this.chestUI && this.chestUI.chargesFull && switchModePressed && !this.prevChestSwitchPressed) {
+        } else if (this.chestUI && this.chestUI.chargesFull && switchModePressed && 
+            !this.prevChestSwitchPressed && !this.prevChestTabPressed) {
             // Handle element selection sub-menu mode switching
             this.chestChargeSelectMode = !this.chestChargeSelectMode;
             // Update hint text
             if (this.chestChargeSelectMode) {
-                this.chestUI.controlHint.setText('Select a charge to replace with UP/DOWN, press Y to return');
+                this.chestUI.controlHint.setText('Select a charge to replace with UP/DOWN, press TAB/Y to return');
             } else {
-                this.chestUI.controlHint.setText('Use LEFT/RIGHT to select element, Y to select charge to replace');
+                this.chestUI.controlHint.setText('Use LEFT/RIGHT to select element, TAB/Y to select charge to replace');
             }
         }
 
@@ -12365,7 +12533,8 @@ class GameScene extends Phaser.Scene {
         this.prevChestUpPressed = upPressed;
         this.prevChestDownPressed = downPressed;
         this.prevChestConfirmPressed = confirmPressed;
-        this.prevChestSwitchPressed = switchModePressed;
+        this.prevChestSwitchPressed = (this.gamepad && this.gamepad.buttons[2] && this.gamepad.buttons[2].pressed);
+        this.prevChestTabPressed = this.tabKey.isDown;
     }
 
     handleFusionController() {
