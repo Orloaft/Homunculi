@@ -65,6 +65,12 @@ class LoadingScene extends Phaser.Scene {
         // Load gravity element symbol
         this.load.image('gravity-symbol', 'gravity.png');
         
+        // Load star element symbol
+        this.load.image('star-symbol', 'star.png');
+        
+        // Load life element symbol
+        this.load.image('life-symbol', 'life.png');
+        
         // Load background music
         this.load.audio('bgm', 'homonculibgm.mp3');
         this.load.audio('bgm2', 'bgm2.mp3');
@@ -191,6 +197,12 @@ class LoadingScene extends Phaser.Scene {
             this.load.image(`crystal-frame-${i}`, `spells/crystalframe${i}.PNG`);
         }
         
+        // Load rock spell animation (6 frames)
+        this.load.spritesheet('rock-spell', 'spells/rock1(6frames).PNG', {
+            frameWidth: 32,
+            frameHeight: 30
+        });
+        
         // Load crystal bullet
         this.load.image('crystal-bullet', 'spells/crystalbullet.PNG');
         
@@ -204,6 +216,18 @@ class LoadingScene extends Phaser.Scene {
         this.load.spritesheet('meteor-spell', 'spells/meteor1.PNG', {
             frameWidth: 32,
             frameHeight: 38
+        });
+        
+        // Load star spell sprite sheet
+        this.load.spritesheet('star-spell', 'spells/star1(6frames).PNG', {
+            frameWidth: Math.floor(383 / 6), // 63 pixels per frame
+            frameHeight: 46
+        });
+        
+        // Load thunder spell sprite sheet
+        this.load.spritesheet('thunder-spell', 'spells/thunder1-17frames.PNG', {
+            frameWidth: 64, // 1088 ÷ 17 frames
+            frameHeight: 68
         });
 
         // Load individual air spell frames
@@ -506,7 +530,7 @@ class TitleScene extends Phaser.Scene {
         const allElements = ['none', 'fire', 'water', 'earth', 'rock', 'air', 'lightning', 'holy', 'arcane', 
                             'dust', 'lava', 'steam', 'poison', 'volcano', 'ice', 'meteor', 'mud', 
                             'thunder', 'crystal', 'death', 'time', 'sand', 'gravity', 'sun', 'smoke', 
-                            'wave', 'star', 'moon'];
+                            'wave', 'star', 'moon', 'nature', 'life'];
         const elements = allElements;
         const savedElement = localStorage.getItem('startElement') || 'none';
         let currentElementIndex = elements.indexOf(savedElement);
@@ -1036,7 +1060,7 @@ class GameScene extends Phaser.Scene {
         this.playerXP = 0;
         this.playerLevel = 1;
         this.xpToNextLevel = 25; // Reduced by 50%
-        this.maxCharges = 2; // Start with 2 charge slots
+        this.maxCharges = 4; // Start with 4 charge slots
         this.chargingElement = null;
         this.chargeHoldTime = 0;
         this.chargeHoldThreshold = 500;
@@ -1096,7 +1120,7 @@ class GameScene extends Phaser.Scene {
         this.playerXP = 0;
         this.playerLevel = 1;
         this.xpToNextLevel = 25; // Reduced by 50%
-        this.maxCharges = 2; // Start with 2 charge slots
+        this.maxCharges = 4; // Start with 4 charge slots
         this.lastFireTime = 0;
         this.currentChargeIndex = 0;
         this.chargingElement = null;
@@ -1146,7 +1170,7 @@ class GameScene extends Phaser.Scene {
             // First sprite sheet (elements.png)
             fire: { frame: 0, color: 0xff4444, name: 'Fire', sheet: 'element-symbols', fireRate: 3150 }, // Reduced by 30%
             water: { frame: 1, color: 0x4444ff, name: 'Water', sheet: 'element-symbols', fireRate: 1800 },
-            earth: { frame: 2, color: 0x44ff44, name: 'Earth', sheet: 'element-symbols', fireRate: 3000 },
+            earth: { frame: 6, color: 0x44ff44, name: 'Earth', sheet: 'element-symbols2', fireRate: 3000 },
             rock: { frame: 3, color: 0x8b4513, name: 'Rock', sheet: 'element-symbols', fireRate: 2250 },
             air: { frame: 4, color: 0xcccccc, name: 'Air', sheet: 'element-symbols', fireRate: 1200 },
             lightning: { frame: 5, color: 0xffff44, name: 'Lightning', sheet: 'element-symbols', fireRate: 1500 },
@@ -1161,7 +1185,7 @@ class GameScene extends Phaser.Scene {
             volcano: { frame: 3, color: 0xcc3300, name: 'Volcano', sheet: 'element-symbols2' },
             ice: { frame: 4, color: 0x00ddff, name: 'Ice', sheet: 'element-symbols2', fireRate: 2500 },
             meteor: { frame: 5, color: 0xff8800, name: 'Meteor', sheet: 'element-symbols2', fireRate: 1500 },
-            mud: { frame: 6, color: 0x664422, name: 'Mud', sheet: 'element-symbols2' },
+            mud: { frame: 9, color: 0x664422, name: 'Mud', sheet: 'element-symbols3' },
             thunder: { frame: 7, color: 0xffff00, name: 'Thunder', sheet: 'element-symbols2' },
             crystal: { frame: 8, color: 0xffaaff, name: 'Crystal', sheet: 'element-symbols2' },
 
@@ -1173,8 +1197,10 @@ class GameScene extends Phaser.Scene {
             sun: { frame: 4, color: 0xffeb3b, name: 'Sun', sheet: 'element-symbols3', fireRate: 999999 },
             smoke: { frame: 5, color: 0x696969, name: 'Smoke', sheet: 'element-symbols3', fireRate: 999999 },
             wave: { frame: 0, color: 0x00bcd4, name: 'Wave', sheet: 'wave-symbol', isImage: true },
-            star: { frame: 7, color: 0xffffff, name: 'Star', sheet: 'element-symbols3' },
-            moon: { frame: 8, color: 0xe0e0e0, name: 'Moon', sheet: 'element-symbols3', fireRate: 12000 }
+            star: { frame: 0, color: 0xffffff, name: 'Star', sheet: 'star-symbol', isImage: true },
+            moon: { frame: 8, color: 0xe0e0e0, name: 'Moon', sheet: 'element-symbols3', fireRate: 12000 },
+            nature: { frame: 2, color: 0x00ff00, name: 'Nature', sheet: 'element-symbols' },
+            life: { frame: 0, color: 0xff6666, name: 'Life', sheet: 'life-symbol', isImage: true }
         };
 
         // Define primary elements (can drop from enemies)
@@ -1208,7 +1234,9 @@ class GameScene extends Phaser.Scene {
             smoke: 'Obscures vision and causes choking damage. Suffocation element.',
             wave: 'Powerful water surge that knocks back groups of enemies. Tidal force.',
             star: 'Calls down starlight beams from the cosmos. Celestial magic.',
-            moon: 'Lunar energy that heals allies and curses enemies. Night magic.'
+            moon: 'Lunar energy that heals allies and curses enemies. Night magic.',
+            nature: 'Summons whipping vines that strike enemies from the wizard. Nature\'s wrath.',
+            life: 'Heals the wizard over time with regenerative energy. Restoration magic.'
         };
 
         console.log('Creating background for stage:', this.stage);
@@ -1231,6 +1259,9 @@ class GameScene extends Phaser.Scene {
         // Try to minimize the grey background visibility
         // Since we can't remove it without editing the sprites, we'll work with it
         this.wizard.setAlpha(1.0);
+        
+        // Create player visibility indicators
+        this.createPlayerIndicators();
 
         // Make camera follow the wizard
         this.cameras.main.startFollow(this.wizard, true, 0.1, 0.1);
@@ -1459,6 +1490,16 @@ class GameScene extends Phaser.Scene {
             repeat: -1
         });
 
+        // Create rock spell animation with 6 frames
+        if (!this.anims.exists('rock-spell-anim')) {
+            this.anims.create({
+                key: 'rock-spell-anim',
+                frames: this.anims.generateFrameNumbers('rock-spell', { start: 0, end: 5 }),
+                frameRate: 10,
+                repeat: -1
+            });
+        }
+        
         // Create crystal spell animation from individual frames
         this.anims.create({
             key: 'crystal-spell-anim',
@@ -2315,6 +2356,78 @@ class GameScene extends Phaser.Scene {
         debugText.setDepth(10000); // Make sure it's on top of everything
     }
 
+    createPlayerIndicators() {
+        // Create a glowing outline effect for the wizard
+        this.playerOutline = this.add.graphics();
+        this.playerOutline.setDepth(9); // Just below wizard
+        
+        // Create player label "P1"
+        this.playerLabel = this.add.text(0, -60, 'P1', {
+            fontSize: '14px',
+            color: '#00ff00',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3,
+            backgroundColor: '#000000',
+            padding: { x: 4, y: 2 }
+        });
+        this.playerLabel.setOrigin(0.5);
+        this.playerLabel.setDepth(11); // Above wizard
+        
+        // Create arrow indicator that points down at the player
+        this.playerArrow = this.add.triangle(0, -80, 
+            0, 0,    // top point
+            -8, 12,  // bottom left
+            8, 12,   // bottom right
+            0x00ff00
+        );
+        this.playerArrow.setDepth(11);
+        this.playerArrow.setStrokeStyle(2, 0x000000);
+        
+        // Pulsing animation for the arrow
+        this.tweens.add({
+            targets: this.playerArrow,
+            y: -75,
+            duration: 500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Option to toggle indicators with a key
+        this.toggleIndicatorsKey = this.input.keyboard.addKey('I');
+        this.indicatorsVisible = true;
+    }
+
+    updatePlayerIndicators() {
+        if (!this.wizard.active || !this.indicatorsVisible) {
+            this.playerOutline.clear();
+            this.playerLabel.setVisible(false);
+            this.playerArrow.setVisible(false);
+            return;
+        }
+        
+        // Update positions to follow wizard
+        this.playerLabel.x = this.wizard.x;
+        this.playerLabel.y = this.wizard.y - 60;
+        
+        this.playerArrow.x = this.wizard.x;
+        // Arrow Y is animated by tween
+        
+        // Draw glowing outline
+        this.playerOutline.clear();
+        this.playerOutline.lineStyle(3, 0x00ff00, 0.8);
+        
+        // Draw circle outline around wizard
+        this.playerOutline.strokeCircle(this.wizard.x, this.wizard.y, 35);
+        
+        // Add glow effect with multiple circles
+        this.playerOutline.lineStyle(2, 0x00ff00, 0.4);
+        this.playerOutline.strokeCircle(this.wizard.x, this.wizard.y, 38);
+        this.playerOutline.lineStyle(1, 0x00ff00, 0.2);
+        this.playerOutline.strokeCircle(this.wizard.x, this.wizard.y, 41);
+    }
+
     createChargeUI() {
         // Create secondary timer display where charges label was
         this.secondaryTimer = this.add.text(350, 20, '0:00', {
@@ -2356,17 +2469,23 @@ class GameScene extends Phaser.Scene {
         // Initialize charge indicators array
         this.chargeIndicators = [];
 
-        // Create 4 charge indicators using sprites
-        for (let i = 0; i < 4; i++) {
+        // Create 8 charge indicators using sprites (4 per row)
+        for (let i = 0; i < 8; i++) {
+            // Calculate position - 4 slots per row
+            const row = Math.floor(i / 4);
+            const col = i % 4;
+            const xPos = 380 + (col * 35);
+            const yPos = 50 + (row * 35); // Second row below first
+            
             // Background slot
-            const slotBg = this.add.rectangle(380 + (i * 35), 50, 30, 30, 0x333333, 0.5);
+            const slotBg = this.add.rectangle(xPos, yPos, 30, 30, 0x333333, 0.5);
             slotBg.setStrokeStyle(1, 0x666666);
             slotBg.setScrollFactor(0);
             slotBg.setDepth(61);
             slotBg.setVisible(i < this.maxCharges);
 
             // Element sprite indicator (default to first sheet)
-            const indicator = this.add.sprite(380 + (i * 35), 50, 'element-symbols', 0);
+            const indicator = this.add.sprite(xPos, yPos, 'element-symbols', 0);
             indicator.setScrollFactor(0);
             indicator.setDepth(62);
             indicator.setVisible(false);
@@ -3149,6 +3268,29 @@ class GameScene extends Phaser.Scene {
                 onComplete: () => debugText.destroy()
             });
         }
+        
+        // I key to toggle player indicators
+        if (this.toggleIndicatorsKey && Phaser.Input.Keyboard.JustDown(this.toggleIndicatorsKey) &&
+            !this.isPaused && !this.spellbookOpen && !this.elementsMenuOpen && !this.chestSelectionActive && !this.fusionUI) {
+            this.indicatorsVisible = !this.indicatorsVisible;
+            
+            // Show feedback
+            const indicatorText = this.add.text(400, 100, `Player Indicators: ${this.indicatorsVisible ? 'ON' : 'OFF'}`, {
+                fontSize: '20px',
+                color: this.indicatorsVisible ? '#00ff00' : '#ff0000',
+                stroke: '#000000',
+                strokeThickness: 3
+            }).setOrigin(0.5);
+            indicatorText.setScrollFactor(0);
+            indicatorText.setDepth(1000);
+
+            this.tweens.add({
+                targets: indicatorText,
+                alpha: 0,
+                duration: 1500,
+                onComplete: () => indicatorText.destroy()
+            });
+        }
 
         // Update gamepad button states for next frame
         if (this.gamepad) {
@@ -3556,7 +3698,16 @@ class GameScene extends Phaser.Scene {
             if (!enemy.isDying && enemy.wet && enemy.wetEndTime && this.time.now >= enemy.wetEndTime) {
                 enemy.wet = false;
                 // Clear tint if no other status effects
-                if (!enemy.stunned && !enemy.burning && !enemy.poisoned && !enemy.frozen && !enemy.immunityOutline) {
+                if (!enemy.stunned && !enemy.burning && !enemy.poisoned && !enemy.frozen && !enemy.immunityOutline && !enemy.muddy) {
+                    enemy.clearTint();
+                }
+            }
+            
+            // Check if muddy status has expired (only if enemy is not dying)
+            if (!enemy.isDying && enemy.muddy && enemy.muddyEndTime && this.time.now >= enemy.muddyEndTime) {
+                enemy.muddy = false;
+                // Clear tint if no other status effects
+                if (!enemy.stunned && !enemy.burning && !enemy.poisoned && !enemy.frozen && !enemy.immunityOutline && !enemy.wet) {
                     enemy.clearTint();
                 }
             }
@@ -3654,6 +3805,11 @@ class GameScene extends Phaser.Scene {
                     if (!enemy.isDying && enemy.wet && enemy.wetEndTime && this.time.now < enemy.wetEndTime) {
                         speed *= enemy.waterSlowFactor || 0.5;
                     }
+                    
+                    // Apply muddy slow effect if active (check if enemy is not dying)
+                    if (!enemy.isDying && enemy.muddy && enemy.muddyEndTime && this.time.now < enemy.muddyEndTime) {
+                        speed *= enemy.mudSlowFactor || 0.2;
+                    }
 
                     enemy.setVelocity(
                         Math.cos(angle) * speed,
@@ -3687,6 +3843,11 @@ class GameScene extends Phaser.Scene {
                 // Apply wet slow effect if active (check if enemy is not dying)
                 if (!enemy.isDying && enemy.wet && enemy.wetEndTime && this.time.now < enemy.wetEndTime) {
                     moveSpeed *= enemy.waterSlowFactor || 0.5;
+                }
+                
+                // Apply muddy slow effect if active (check if enemy is not dying)
+                if (!enemy.isDying && enemy.muddy && enemy.muddyEndTime && this.time.now < enemy.muddyEndTime) {
+                    moveSpeed *= enemy.mudSlowFactor || 0.2;
                 }
 
                 // Stop moving if within attack range (40 pixels)
@@ -3855,6 +4016,9 @@ class GameScene extends Phaser.Scene {
 
         // Update wizard health bar position
         this.updateWizardHealthBar();
+        
+        // Update player visibility indicators
+        this.updatePlayerIndicators();
 
         // Water sprite stays at spawn position - no position update needed
 
@@ -4520,6 +4684,9 @@ class GameScene extends Phaser.Scene {
                             console.log(`Hovering charge ${index}`);
                             // Removed scale effect
                             hitZone.setStrokeStyle(2, 0x00ff00, 1);
+                            
+                            // Show slot upgrade info
+                            this.showSlotUpgradeTooltip(index, worldX, worldY);
                         }
                     });
 
@@ -4527,6 +4694,9 @@ class GameScene extends Phaser.Scene {
                         if (!hitZone.getData('isBeingDragged')) {
                             // Removed scale reset
                             hitZone.setStrokeStyle(0);
+                            
+                            // Hide tooltip
+                            this.hideSlotUpgradeTooltip();
                         }
                     });
 
@@ -4903,6 +5073,68 @@ class GameScene extends Phaser.Scene {
                 this.linkButtons[idx].linked = false;
             }
         });
+    }
+
+    showSlotUpgradeTooltip(slotIndex, x, y) {
+        // Hide any existing tooltip
+        this.hideSlotUpgradeTooltip();
+        
+        // Get slot buffs
+        const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1, linked: false };
+        
+        // Create tooltip container
+        this.slotTooltip = this.add.container(x + 100, y);
+        this.slotTooltip.setDepth(600);
+        this.slotTooltip.setScrollFactor(0);
+        
+        // Background
+        const bg = this.add.rectangle(0, 0, 200, 100, 0x000000, 0.9);
+        bg.setStrokeStyle(2, 0xffd700);
+        this.slotTooltip.add(bg);
+        
+        // Title
+        const title = this.add.text(0, -35, `Slot ${slotIndex + 1} Upgrades`, {
+            fontSize: '14px',
+            color: '#ffd700',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.slotTooltip.add(title);
+        
+        // Damage multiplier
+        const damageText = this.add.text(0, -10, `Damage: x${slotBuff.damageMultiplier.toFixed(1)}`, {
+            fontSize: '12px',
+            color: slotBuff.damageMultiplier > 1 ? '#44ff44' : '#ffffff'
+        }).setOrigin(0.5);
+        this.slotTooltip.add(damageText);
+        
+        // Speed multiplier
+        const speedText = this.add.text(0, 10, `Speed: x${slotBuff.speedMultiplier.toFixed(1)}`, {
+            fontSize: '12px',
+            color: slotBuff.speedMultiplier > 1 ? '#44ff44' : '#ffffff'
+        }).setOrigin(0.5);
+        this.slotTooltip.add(speedText);
+        
+        // Linked status
+        const linkedText = this.add.text(0, 30, slotBuff.linked ? 'Linked Slot' : 'No Links', {
+            fontSize: '12px',
+            color: slotBuff.linked ? '#ff44ff' : '#aaaaaa'
+        }).setOrigin(0.5);
+        this.slotTooltip.add(linkedText);
+        
+        // Position tooltip to avoid going off screen
+        if (x + 300 > 800) {
+            this.slotTooltip.x = x - 100;
+        }
+        if (y - 50 < 0) {
+            this.slotTooltip.y = y + 100;
+        }
+    }
+    
+    hideSlotUpgradeTooltip() {
+        if (this.slotTooltip) {
+            this.slotTooltip.destroy();
+            this.slotTooltip = null;
+        }
     }
 
     discardCharge(index, confirmed = false) {
@@ -7030,8 +7262,14 @@ class GameScene extends Phaser.Scene {
         projectile.hitEnemies.add(enemy);
 
         // Deal damage based on projectile type and charge count
-        const baseDamage = projectile.isExplosive ? 4 : 2;
-        let damage = baseDamage * (projectile.damage || 1);
+        let damage;
+        if (projectile.element === 'rock') {
+            // Rock projectiles have their damage set directly (6 or 12)
+            damage = projectile.damage;
+        } else {
+            const baseDamage = projectile.isExplosive ? 4 : 2;
+            damage = baseDamage * (projectile.damage || 1);
+        }
         
         // Double damage for lightning hitting wet enemies
         if (projectile.element === 'lightning' && enemy.wet && enemy.wetEndTime && this.time.now < enemy.wetEndTime) {
@@ -7042,28 +7280,58 @@ class GameScene extends Phaser.Scene {
         enemy.health -= damage;
         console.log(`Enemy hit! Type: ${enemy.enemyType}, Health: ${enemy.health}/${enemy.maxHealth}, Damage: ${damage}`);
 
-        // Show damage number
-        this.showDamageNumber(enemy.x, enemy.y - 20, damage);
+        // Show damage number (with critical indicator for rock projectiles)
+        if (projectile.element === 'rock' && projectile.isCritical) {
+            this.showDamageNumber(enemy.x, enemy.y - 20, damage + '!', '#ff6666');
+        } else {
+            this.showDamageNumber(enemy.x, enemy.y - 20, damage);
+        }
 
         // Apply burn effect for fire projectiles (magnitude system)
         if (projectile.element === 'fire') {
-            // Initialize or increase burn magnitude
-            if (!enemy.burnMagnitude) {
-                enemy.burnMagnitude = 0;
-            }
-            enemy.burnMagnitude += 3; // Each fire spell adds magnitude 3
-            
-            // Visual burn effect - red tint
-            enemy.setTint(0xff0000);
-            enemy.burning = true;
-            
-            // Clear existing burn timer if any
-            if (enemy.burnTimer) {
-                enemy.burnTimer.destroy();
-            }
-            
-            // Create burn damage timer that ticks every 0.5 seconds
-            enemy.burnTimer = this.time.addEvent({
+            // Check if enemy is muddy - if so, freeze them instead of burning
+            if (enemy.muddy && enemy.muddyEndTime && this.time.now < enemy.muddyEndTime) {
+                // Freeze enemy for 1 second
+                enemy.frozen = true;
+                enemy.frozenEndTime = this.time.now + 1000; // 1 second freeze
+                enemy.setVelocity(0, 0); // Stop movement
+                enemy.setTint(0x00ccff); // Ice blue tint
+                
+                // Clear muddy status
+                enemy.muddy = false;
+                
+                // Remove freeze after 1 second
+                this.time.delayedCall(1000, () => {
+                    if (enemy.active) {
+                        enemy.frozen = false;
+                        // Only clear tint if not affected by other effects
+                        if (!enemy.burning && !enemy.stunned && !enemy.poisoned && !enemy.slowed && !enemy.wet && !enemy.muddy) {
+                            enemy.clearTint();
+                        }
+                    }
+                });
+                
+                // Show freeze effect text
+                this.showDamageNumber(enemy.x, enemy.y - 40, 'FROZEN!', '#00ccff');
+            } else {
+                // Normal burn effect if not muddy
+                // Initialize or increase burn magnitude
+                if (!enemy.burnMagnitude) {
+                    enemy.burnMagnitude = 0;
+                }
+                enemy.burnMagnitude += 3; // Each fire spell adds magnitude 3
+                
+                // Visual burn effect - red tint
+                enemy.setTint(0xff0000);
+                enemy.burning = true;
+                
+                // Clear existing burn timer if any
+                if (enemy.burnTimer) {
+                    enemy.burnTimer.destroy();
+                }
+                
+                // Create burn damage timer that ticks every 0.5 seconds
+                enemy.burnTimer = this.time.addEvent({
                 delay: 500, // Every half second
                 callback: () => {
                     if (enemy && enemy.active && enemy.burnMagnitude > 0) {
@@ -7100,6 +7368,7 @@ class GameScene extends Phaser.Scene {
                 },
                 loop: true
             });
+            } // End of else block for normal burn effect
         }
 
         // Apply knockback for earth projectiles
@@ -7294,7 +7563,7 @@ class GameScene extends Phaser.Scene {
 
         // Handle lava projectiles that leave lava pools
         if (projectile.leavesLavaPool) {
-            this.createFirePool(projectile.x, projectile.y); // Reuse fire pool for lava
+            this.createFirePool(projectile.x, projectile.y, 1, projectile.lavaPoolDuration, projectile.lavaPoolBurnMagnitude);
         }
 
         // Handle poison damage over time
@@ -7475,6 +7744,11 @@ class GameScene extends Phaser.Scene {
             return; // Don't run normal destruction logic
         }
 
+        // Call custom hit handler if exists
+        if (projectile.onHitEnemy && typeof projectile.onHitEnemy === 'function') {
+            projectile.onHitEnemy(enemy);
+        }
+        
         // Destroy projectile unless it's a piercing type
         if (!projectile.isPiercing) {
             projectile.destroy();
@@ -8004,6 +8278,33 @@ class GameScene extends Phaser.Scene {
                 case 'star':
                     this.createStarSpell();
                     break;
+                case 'time':
+                    this.createTimeSpell();
+                    break;
+                case 'nature':
+                    this.createNatureSpell();
+                    break;
+                case 'life':
+                    this.createLifeSpell();
+                    break;
+                case 'thunder':
+                    this.createThunderSpell();
+                    break;
+                case 'holy':
+                    this.createHolySpell();
+                    break;
+                case 'dust':
+                    this.createDustCloud();
+                    break;
+                case 'lava':
+                    this.fireLavaProjectile();
+                    break;
+                case 'steam':
+                    this.createSteamSpell();
+                    break;
+                case 'mud':
+                    this.createMudTrap();
+                    break;
                 default:
                     // For non-primary elements, use basic projectile with element effect
                     this.fireEnhancedProjectile(element);
@@ -8058,7 +8359,7 @@ class GameScene extends Phaser.Scene {
                     this.createIceSpell();
                     break;
                 case 'holy':
-                    this.createHolyLight();
+                    this.createHolySpell();
                     break;
                 case 'arcane':
                     this.fireArcaneProjectile();
@@ -8070,16 +8371,13 @@ class GameScene extends Phaser.Scene {
                     this.fireLavaProjectile();
                     break;
                 case 'steam':
-                    this.createSteamBurst();
+                    this.createSteamSpell();
                     break;
                 case 'poison':
                     this.createPoisonMines();
                     break;
                 case 'volcano':
                     this.createVolcanicEruption();
-                    break;
-                case 'ice':
-                    this.createIceSpell();
                     break;
                 case 'wave':
                     this.createWaveSpell();
@@ -8091,7 +8389,7 @@ class GameScene extends Phaser.Scene {
                     this.fireMeteorProjectile();
                     break;
                 case 'mud':
-                    this.createMudPuddle();
+                    this.createMudTrap();
                     break;
                 case 'thunder':
                     this.fireThunderBolt();
@@ -8113,6 +8411,12 @@ class GameScene extends Phaser.Scene {
                     break;
                 case 'sun':
                     this.createSunSpell();
+                    break;
+                case 'holy':
+                    this.createHolySpell();
+                    break;
+                case 'steam':
+                    this.createSteamSpell();
                     break;
             }
         } else if (currentGroup.length === 2) {
@@ -9155,32 +9459,57 @@ class GameScene extends Phaser.Scene {
 
     // New element abilities
     fireRockProjectile() {
-        // Rock element - heavy projectile that stuns
-        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'element-symbols', 3);
-        projectile.element = 'rock';
-        projectile.damage = 3;
+        // Find nearest enemy first
+        let closestEnemy = null;
+        let closestDistance = Infinity;
+
+        this.enemies.children.entries.forEach(enemy => {
+            if (enemy.active && !enemy.isDying) {
+                const distance = Phaser.Math.Distance.Between(this.wizard.x, this.wizard.y, enemy.x, enemy.y);
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestEnemy = enemy;
+                }
+            }
+        });
+
+        // Create rock projectile
+        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'rock-spell');
+        projectile.setScale(1);
         projectile.setDepth(5);
-        projectile.setScale(1.2);
+        
+        // Play animation
+        projectile.play('rock-spell-anim');
+        
+        // Base damage is 6, with 50% crit chance
+        const isCritical = Math.random() < 0.5;
+        projectile.damage = isCritical ? 12 : 6;
+        projectile.isCritical = isCritical;
+        projectile.element = 'rock';
+        
+        // Add visual indicator for critical
+        if (isCritical) {
+            projectile.setTint(0xff6666);
+            projectile.setScale(1.2);
+        }
 
-        // Directional firing
-        const speed = 250; // Slower than normal
-        const diagonalSpeed = speed / Math.sqrt(2);
-        const directions = {
-            up: { x: 0, y: -speed },
-            down: { x: 0, y: speed },
-            left: { x: -speed, y: 0 },
-            right: { x: speed, y: 0 },
-            'up-left': { x: -diagonalSpeed, y: -diagonalSpeed },
-            'up-right': { x: diagonalSpeed, y: -diagonalSpeed },
-            'down-left': { x: -diagonalSpeed, y: diagonalSpeed },
-            'down-right': { x: diagonalSpeed, y: diagonalSpeed }
-        };
-
-        const dir = directions[this.wizard.lastDirection || 'down'];
-        projectile.setVelocity(dir.x, dir.y);
-        projectile.stunDuration = 1000; // Stun for 1 second
-
+        // Add to projectiles group BEFORE setting velocity
         this.projectiles.add(projectile);
+
+        // Set velocity after adding to group
+        if (closestEnemy) {
+            const angle = Phaser.Math.Angle.Between(this.wizard.x, this.wizard.y, closestEnemy.x, closestEnemy.y);
+            const speed = 400;
+            projectile.setVelocity(
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed
+            );
+            projectile.rotation = angle;
+        } else {
+            // Default direction if no enemy
+            const speed = 400;
+            projectile.setVelocity(0, speed); // Shoot down by default
+        }
     }
 
     createAirBlast() {
@@ -9446,25 +9775,41 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    createFirePool(x, y, linkedCount = 1) {
-        if (!this.textures.exists('fire-pool')) {
+    createFirePool(x, y, linkedCount = 1, duration = 3000, burnMagnitude = 0) {
+        // Create texture for lava pool if burn magnitude is high (lava)
+        const isLavaPool = burnMagnitude > 0;
+        const textureName = isLavaPool ? 'lava-pool' : 'fire-pool';
+        
+        if (!this.textures.exists(textureName)) {
             const graphics = this.add.graphics();
-            graphics.fillStyle(0xff4444, 0.6);
-            graphics.fillCircle(15, 15, 15);
-            graphics.generateTexture('fire-pool', 30, 30);
+            if (isLavaPool) {
+                // Lava pool - orange/red gradient
+                graphics.fillStyle(0xff6600, 0.8);
+                graphics.fillCircle(20, 20, 20);
+                graphics.fillStyle(0xff0000, 0.6);
+                graphics.fillCircle(20, 20, 15);
+                graphics.generateTexture(textureName, 40, 40);
+            } else {
+                // Fire pool
+                graphics.fillStyle(0xff4444, 0.6);
+                graphics.fillCircle(15, 15, 15);
+                graphics.generateTexture(textureName, 30, 30);
+            }
             graphics.destroy();
         }
 
-        const pool = this.physics.add.sprite(x, y, 'fire-pool');
+        const pool = this.physics.add.sprite(x, y, textureName);
         pool.setDepth(1);
-        pool.body.setSize(30, 30);
+        pool.body.setSize(isLavaPool ? 40 : 30, isLavaPool ? 40 : 30);
         pool.startTime = this.time.now;
         pool.linkedCount = linkedCount; // Store linked fire count
+        pool.burnMagnitude = burnMagnitude; // Store burn magnitude for lava
+        pool.isLavaPool = isLavaPool;
 
         // Burning animation
         this.tweens.add({
             targets: pool,
-            scale: { from: 0.8, to: 1.2 },
+            scale: { from: 0.8, to: isLavaPool ? 1.3 : 1.2 },
             alpha: { from: 0.8, to: 0.4 },
             duration: 300,
             yoyo: true,
@@ -9472,40 +9817,112 @@ class GameScene extends Phaser.Scene {
         });
 
         this.firePools.push(pool);
-
-        // Auto-explode after 3 seconds
-        this.time.delayedCall(3000, () => {
-            if (pool.active) {
-                // Create explosion effect with size based on linked charges
-                const explosionRadius = 40 + (linkedCount - 1) * 20; // Base 40, +20 per extra fire
-                const explosion = this.add.circle(pool.x, pool.y, explosionRadius, 0xff6644, 0.8);
-                explosion.setDepth(4);
-
-                this.tweens.add({
-                    targets: explosion,
-                    scale: { from: 0.5, to: 1.5 },
-                    alpha: { from: 0.8, to: 0 },
-                    duration: 300,
-                    onComplete: () => explosion.destroy()
-                });
-
-                // Damage enemies in explosion radius
-                this.enemies.children.entries.forEach(enemy => {
-                    if (enemy.active) {
-                        const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, pool.x, pool.y);
-                        if (dist < explosionRadius) {
-                            enemy.health -= 3 + linkedCount; // Damage scales with linked fires
-                            enemy.setTint(0xff0000);
-                            this.time.delayedCall(200, () => {
-                                if (enemy.active) enemy.clearTint();
-                            });
-
-                            if (enemy.health <= 0) {
-                                this.killEnemy(enemy);
+        
+        // Apply burn damage for lava pools
+        if (isLavaPool) {
+            const burnInterval = this.time.addEvent({
+                delay: 500, // Every 0.5 seconds
+                callback: () => {
+                    if (!pool.active) {
+                        burnInterval.destroy();
+                        return;
+                    }
+                    
+                    // Check for enemies in the pool
+                    this.enemies.children.entries.forEach(enemy => {
+                        if (enemy.active) {
+                            const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, pool.x, pool.y);
+                            if (dist < 25) { // Within pool radius
+                                // Apply burn magnitude
+                                if (!enemy.burnMagnitude) {
+                                    enemy.burnMagnitude = 0;
+                                }
+                                enemy.burnMagnitude = Math.max(enemy.burnMagnitude, burnMagnitude);
+                                
+                                // Visual burn effect
+                                enemy.setTint(0xff0000);
+                                enemy.burning = true;
+                                
+                                // Start burn timer if not already burning
+                                if (!enemy.burnTimer) {
+                                    enemy.burnTimer = this.time.addEvent({
+                                        delay: 500,
+                                        callback: () => {
+                                            if (enemy && enemy.active && enemy.burnMagnitude > 0) {
+                                                const burnDamage = enemy.burnMagnitude;
+                                                enemy.health -= burnDamage;
+                                                this.showDamageNumber(enemy.x, enemy.y - 20, burnDamage, '#ff6600');
+                                                enemy.burnMagnitude--;
+                                                
+                                                if (enemy.burnMagnitude <= 0) {
+                                                    enemy.burning = false;
+                                                    enemy.burnTimer.destroy();
+                                                    enemy.burnTimer = null;
+                                                    if (!enemy.frozen && !enemy.stunned && !enemy.poisoned && !enemy.slowed && !enemy.wet && !enemy.muddy) {
+                                                        enemy.clearTint();
+                                                    }
+                                                }
+                                                
+                                                if (enemy.health <= 0 && enemy.active) {
+                                                    this.killEnemy(enemy);
+                                                }
+                                            }
+                                        },
+                                        loop: true
+                                    });
+                                }
                             }
                         }
-                    }
-                });
+                    });
+                },
+                repeat: -1
+            });
+            
+            // Store interval reference on pool for cleanup
+            pool.burnInterval = burnInterval;
+        }
+
+        // Auto-remove/explode after duration
+        this.time.delayedCall(duration, () => {
+            if (pool.active) {
+                // Clean up burn interval for lava pools
+                if (pool.burnInterval) {
+                    pool.burnInterval.destroy();
+                }
+                
+                // Only create explosion for fire pools, not lava pools
+                if (!isLavaPool) {
+                    // Create explosion effect with size based on linked charges
+                    const explosionRadius = 40 + (linkedCount - 1) * 20; // Base 40, +20 per extra fire
+                    const explosion = this.add.circle(pool.x, pool.y, explosionRadius, 0xff6644, 0.8);
+                    explosion.setDepth(4);
+
+                    this.tweens.add({
+                        targets: explosion,
+                        scale: { from: 0.5, to: 1.5 },
+                        alpha: { from: 0.8, to: 0 },
+                        duration: 300,
+                        onComplete: () => explosion.destroy()
+                    });
+
+                    // Damage enemies in explosion radius
+                    this.enemies.children.entries.forEach(enemy => {
+                        if (enemy.active) {
+                            const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, pool.x, pool.y);
+                            if (dist < explosionRadius) {
+                                enemy.health -= 3 + linkedCount; // Damage scales with linked fires
+                                enemy.setTint(0xff0000);
+                                this.time.delayedCall(200, () => {
+                                    if (enemy.active) enemy.clearTint();
+                                });
+
+                                if (enemy.health <= 0) {
+                                    this.killEnemy(enemy);
+                                }
+                            }
+                        }
+                    });
+                }
 
                 pool.destroy();
                 const index = this.firePools.indexOf(pool);
@@ -9851,62 +10268,153 @@ class GameScene extends Phaser.Scene {
     }
 
     createMudTrap() {
-        if (!this.textures.exists('mud-trap')) {
+        // Mud spell - shoots mud globs that create pools on impact
+        console.log('=== MUD SPELL START ===');
+
+        // Create mud glob texture if it doesn't exist
+        if (!this.textures.exists('mud-glob')) {
             const graphics = this.add.graphics();
-            graphics.fillStyle(0x8B4513, 0.8);
-            graphics.fillCircle(30, 30, 30);
-            graphics.fillStyle(0x4444ff, 0.5);
-            graphics.fillCircle(30, 30, 20);
-            graphics.generateTexture('mud-trap', 60, 60);
+            graphics.fillStyle(0x8B4513, 1);
+            graphics.fillCircle(8, 8, 8);
+            graphics.fillStyle(0x654321, 0.8);
+            graphics.fillCircle(8, 8, 5);
+            graphics.generateTexture('mud-glob', 16, 16);
             graphics.destroy();
         }
 
-        const trap = this.physics.add.sprite(this.wizard.x + (this.wizard.flipX ? -50 : 50), this.wizard.y, 'mud-trap');
-        trap.setDepth(1);
-        trap.body.setSize(60, 60);
+        // Create mud pool texture if it doesn't exist
+        if (!this.textures.exists('mud-pool')) {
+            const graphics = this.add.graphics();
+            // Create a small mud pool
+            graphics.fillStyle(0x8B4513, 0.6);
+            graphics.fillCircle(20, 20, 20);
+            graphics.fillStyle(0x654321, 0.8);
+            graphics.fillCircle(20, 20, 15);
+            graphics.fillStyle(0x4B3621, 0.5);
+            graphics.fillCircle(20, 20, 8);
+            graphics.generateTexture('mud-pool', 40, 40);
+            graphics.destroy();
+        }
 
-        // Bubble animation
-        this.tweens.add({
-            targets: trap,
-            scale: { from: 0.8, to: 1.1 },
-            duration: 400,
-            yoyo: true,
-            repeat: -1
-        });
+        // Create 3-5 mud globs
+        const globCount = 3 + Math.floor(Math.random() * 3);
+        
+        for (let i = 0; i < globCount; i++) {
+            // Random direction and distance from wizard
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 50 + Math.random() * 100; // 50-150 pixels away
+            
+            // Calculate pool position
+            const poolX = this.wizard.x + Math.cos(angle) * distance;
+            const poolY = this.wizard.y + Math.sin(angle) * distance;
+            
+            // Create a projectile that flies to the target position
+            const glob = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'mud-glob');
+            glob.setDepth(10);
+            glob.setScale(1.5);
+            
+            // Calculate arc trajectory
+            const flightTime = 400; // 0.4 seconds flight time
+            const gravity = 500;
+            
+            // Calculate initial velocities for parabolic trajectory
+            const dx = poolX - this.wizard.x;
+            const dy = poolY - this.wizard.y;
+            const vx = (dx / flightTime) * 1000;
+            const vy = ((dy / flightTime) * 1000) - (0.5 * gravity * flightTime / 1000);
+            
+            glob.setVelocity(vx, vy);
+            glob.body.setGravityY(gravity);
+            
+            // Muddy brown effect
+            this.tweens.add({
+                targets: glob,
+                scale: { from: 1.5, to: 2 },
+                tint: { from: 0x8B4513, to: 0x654321 },
+                duration: 200,
+                yoyo: true,
+                repeat: -1
+            });
+            
+            // Create pool on landing
+            this.time.delayedCall(flightTime, () => {
+                if (glob.active) {
+                    // Create mud pool at landing position
+                    const mudPool = this.physics.add.sprite(glob.x, glob.y, 'mud-pool');
+                    mudPool.setOrigin(0.5, 0.5);
+                    mudPool.setScale(2.5); // 50% smaller than before (was 5)
+                    mudPool.setDepth(1); // Below most things
+                    mudPool.setAlpha(0.8);
 
-        // Slow enemies
-        const slowInterval = this.time.addEvent({
-            delay: 100,
-            callback: () => {
-                this.enemies.children.entries.forEach(enemy => {
-                    if (!enemy.active || !trap.active) return;
+                    // Set up physics body
+                    const hitboxRadius = 40; // 50% smaller hitbox
+                    mudPool.body.setCircle(hitboxRadius);
+                    mudPool.body.setOffset(20 - hitboxRadius, 20 - hitboxRadius);
+                    mudPool.body.setImmovable(true); // Stationary
 
-                    const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, trap.x, trap.y);
-                    if (distance < 40) {
-                        enemy.setVelocityX(enemy.body.velocity.x * 0.3);
-                        enemy.setVelocityY(enemy.body.velocity.y * 0.3);
-                        enemy.setTint(0x8B4513);
-                        enemy.health -= 0.2;
+                    // Mark as mud pool for collision detection
+                    mudPool.isMudPool = true;
+                    mudPool.hitEnemies = new Set();
 
-                        if (enemy.health <= 0) {
-                            this.killEnemy(enemy);
+                    // Fade in animation
+                    this.tweens.add({
+                        targets: mudPool,
+                        alpha: { from: 0, to: 0.8 },
+                        scale: { from: 0, to: 2.5 },
+                        duration: 300,
+                        ease: 'Power2'
+                    });
+
+                    // Apply slow effect to enemies that enter
+                    const mudOverlap = this.physics.add.overlap(
+                        mudPool,
+                        this.enemies,
+                        (pool, enemy) => {
+                            if (!enemy.active) return;
+
+                            // Apply muddy status effect continuously while in pool
+                            enemy.muddy = true;
+                            enemy.muddyEndTime = this.time.now + 1000; // Refresh every second
+                            enemy.mudSlowFactor = 0.2; // 80% speed reduction
+
+                            // Visual effect - brown tint for muddy
+                            if (enemy.tintTopLeft !== 0x8B4513) {
+                                enemy.setTint(0x8B4513);
+                            }
+
+                            // Only damage once per enemy per pool
+                            if (!pool.hitEnemies.has(enemy)) {
+                                pool.hitEnemies.add(enemy);
+                                enemy.health -= 1;
+                                this.showDamageNumber(enemy.x, enemy.y - 20, 1);
+                                
+                                if (enemy.health <= 0) {
+                                    this.killEnemy(enemy);
+                                }
+                            }
                         }
-                    }
-                });
-            },
-            repeat: 40
-        });
+                    );
 
-        // Remove after 4 seconds
-        this.time.delayedCall(4000, () => {
-            trap.destroy();
-            slowInterval.destroy();
-            this.enemies.children.entries.forEach(enemy => {
-                if (enemy.active && enemy.tintTopLeft === 0x8B4513) {
-                    enemy.clearTint();
+                    // Destroy pool after 6 seconds
+                    this.time.delayedCall(6000, () => {
+                        // Fade out animation
+                        this.tweens.add({
+                            targets: mudPool,
+                            alpha: 0,
+                            scale: 0,
+                            duration: 500,
+                            onComplete: () => {
+                                mudOverlap.destroy();
+                                mudPool.destroy();
+                            }
+                        });
+                    });
+                    
+                    // Destroy the glob
+                    glob.destroy();
                 }
             });
-        });
+        }
     }
 
     createPlasmaStorm() {
@@ -10194,21 +10702,89 @@ class GameScene extends Phaser.Scene {
 
     // New element implementations for elements2.PNG
     fireLavaProjectile() {
-        // Lava element - leaves burning pools
-        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'element-symbols2', 0);
-        projectile.element = 'lava';
-        projectile.damage = 2;
-        projectile.setDepth(5);
-        projectile.setScale(1.2);
+        // Lava spell - spits lava pools in random directions
+        console.log('=== LAVA SPELL START ===');
 
-        const speed = 250;
-        const angle = Math.random() * Math.PI * 2;
-        projectile.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
-
-        this.projectiles.add(projectile);
-
-        // Leave lava pools on impact
-        projectile.leavesLavaPool = true;
+        // Create 2-3 lava pools
+        const poolCount = 2 + Math.floor(Math.random() * 2);
+        
+        for (let i = 0; i < poolCount; i++) {
+            // Random direction and distance from wizard
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 50 + Math.random() * 150; // 50-200 pixels away
+            
+            // Calculate pool position
+            const poolX = this.wizard.x + Math.cos(angle) * distance;
+            const poolY = this.wizard.y + Math.sin(angle) * distance;
+            
+            // Create a projectile that flies to the target position
+            if (!this.textures.exists('lava-glob')) {
+                const graphics = this.add.graphics();
+                graphics.fillStyle(0xff6600, 1);
+                graphics.fillCircle(8, 8, 8);
+                graphics.fillStyle(0xff0000, 0.8);
+                graphics.fillCircle(8, 8, 5);
+                graphics.generateTexture('lava-glob', 16, 16);
+                graphics.destroy();
+            }
+            
+            const glob = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'lava-glob');
+            glob.setDepth(10);
+            glob.setScale(1.5);
+            
+            // Calculate arc trajectory
+            const flightTime = 500; // 0.5 seconds flight time
+            const gravity = 600;
+            
+            // Calculate initial velocities for parabolic trajectory
+            const dx = poolX - this.wizard.x;
+            const dy = poolY - this.wizard.y;
+            const vx = (dx / flightTime) * 1000;
+            const vy = ((dy / flightTime) * 1000) - (0.5 * gravity * flightTime / 1000);
+            
+            glob.setVelocity(vx, vy);
+            glob.body.setGravityY(gravity);
+            
+            // Glowing effect
+            this.tweens.add({
+                targets: glob,
+                scale: { from: 1.5, to: 2 },
+                tint: { from: 0xff6600, to: 0xff0000 },
+                duration: 200,
+                yoyo: true,
+                repeat: -1
+            });
+            
+            // Create pool on landing
+            this.time.delayedCall(flightTime, () => {
+                if (glob.active) {
+                    // Create lava pool at landing position
+                    this.createFirePool(glob.x, glob.y, 1, 4000, 10); // 4 seconds, magnitude 10 burn
+                    
+                    // Destroy the projectile
+                    glob.destroy();
+                }
+            });
+            
+            // Add slight delay between projectiles
+            if (i < poolCount - 1) {
+                this.time.delayedCall(100 * (i + 1), () => {});
+            }
+        }
+    }
+    
+    getDirectionAngle() {
+        const directionAngles = {
+            'up': -Math.PI / 2,
+            'down': Math.PI / 2,
+            'left': Math.PI,
+            'right': 0,
+            'up-left': -3 * Math.PI / 4,
+            'up-right': -Math.PI / 4,
+            'down-left': 3 * Math.PI / 4,
+            'down-right': Math.PI / 4
+        };
+        return directionAngles[this.wizard.lastDirection] || 0;
     }
 
     createSteamBurst() {
@@ -10887,7 +11463,8 @@ class GameScene extends Phaser.Scene {
             this.moonSpellCooldown = true;
             
             // Clear cooldown after 6 more seconds (total 12 seconds from cast)
-            this.time.delayedCall(6000, () => {
+            const cooldownDuration = this.hasteActive ? 4800 : 6000; // 20% reduction if hasted
+            this.time.delayedCall(cooldownDuration, () => {
                 this.moonSpellCooldown = false;
             });
         });
@@ -11086,53 +11663,377 @@ class GameScene extends Phaser.Scene {
             this.sunSpellActive = false;
             this.sunSpellCooldown = true;
             
-            // Clear cooldown after 6 more seconds (total 12 seconds from cast)
-            this.time.delayedCall(6000, () => {
+            // Clear cooldown after 6 more seconds (total 12 seconds from cast)  
+            const cooldownDuration = this.hasteActive ? 4800 : 6000; // 20% reduction if hasted
+            this.time.delayedCall(cooldownDuration, () => {
                 this.sunSpellCooldown = false;
             });
         });
     }
 
+    createHolySpell() {
+        console.log('Holy spell activated!');
+        // Holy spell - creates a single vertical beam centered on wizard
+        const beamWidth = 80;
+        const beamHeight = 1200; // Full screen vertical coverage
+        const spellDuration = 2000; // Total duration of the spell
+        const damagePerHit = 3;
+        
+        // Create spark texture if it doesn't exist
+        if (!this.textures.exists('spark')) {
+            const graphics = this.add.graphics();
+            graphics.fillStyle(0xffffff);
+            graphics.fillCircle(4, 4, 4);
+            graphics.generateTexture('spark', 8, 8);
+            graphics.destroy();
+        }
+        
+        // Create the visual beam effect centered on wizard
+        const beam = this.add.rectangle(
+            this.wizard.x, 
+            this.wizard.y, 
+            beamWidth, 
+            beamHeight, 
+            0xffff99, 
+            0.5
+        );
+        beam.setDepth(5);
+        
+        // Add inner glow
+        const innerGlow = this.add.rectangle(
+            this.wizard.x,
+            this.wizard.y,
+            beamWidth * 0.6,
+            beamHeight,
+            0xffffff,
+            0.6
+        );
+        innerGlow.setDepth(5);
+        
+        // Add particles for holy effect
+        const beamParticles = this.add.particles(this.wizard.x, this.wizard.y, 'spark', {
+            speed: { min: 50, max: 150 },
+            scale: { start: 0.8, end: 0 },
+            blendMode: 'ADD',
+            lifespan: 1000,
+            quantity: 2,
+            frequency: 100,
+            emitZone: {
+                type: 'random',
+                source: new Phaser.Geom.Rectangle(
+                    -beamWidth/2, 
+                    -beamHeight/2, 
+                    beamWidth, 
+                    beamHeight
+                )
+            },
+            tint: [0xffff99, 0xffffff, 0xffffcc]
+        });
+        beamParticles.setDepth(6);
+        
+        // Fade in
+        beam.setAlpha(0);
+        innerGlow.setAlpha(0);
+        
+        this.tweens.add({
+            targets: [beam, innerGlow],
+            alpha: { from: 0, to: 0.5 },
+            duration: 200,
+            ease: 'Power2'
+        });
+        
+        // Pulsing effect
+        this.tweens.add({
+            targets: innerGlow,
+            scaleX: { from: 0.6, to: 0.8 },
+            alpha: { from: 0.6, to: 0.8 },
+            duration: 300,
+            yoyo: true,
+            repeat: 6 // Repeat for duration
+        });
+        
+        // Deal damage to enemies hit by the beam
+        const damageTimer = this.time.addEvent({
+            delay: 100, // Check every 100ms
+            callback: () => {
+                this.enemies.children.entries.forEach(enemy => {
+                    if (enemy.active) {
+                        // Check if enemy is within the beam (same X position as wizard)
+                        if (Math.abs(enemy.x - this.wizard.x) < beamWidth / 2) {
+                            // Prevent damage spam - check cooldown
+                            if (!enemy.holyHitTime || this.time.now - enemy.holyHitTime > 300) {
+                                enemy.holyHitTime = this.time.now;
+                                
+                                // Apply holy damage
+                                enemy.health -= damagePerHit;
+                                
+                                // Check if enemy should die
+                                if (enemy.health <= 0) {
+                                    this.killEnemy(enemy);
+                                    return; // Skip visual effects for dead enemy
+                                }
+                                
+                                // Visual effect on hit
+                                const flash = this.add.circle(enemy.x, enemy.y, 25, 0xffff99, 0.9);
+                                flash.setDepth(10);
+                                flash.setBlendMode('ADD');
+                                this.tweens.add({
+                                    targets: flash,
+                                    scale: { from: 0.5, to: 2 },
+                                    alpha: { from: 0.9, to: 0 },
+                                    duration: 400,
+                                    onComplete: () => flash.destroy()
+                                });
+                                
+                                // Show damage number
+                                this.showDamageNumber(enemy.x, enemy.y - 20, damagePerHit);
+                                
+                                // Vertical knockback
+                                enemy.setVelocityY(Phaser.Math.Between(-200, -300));
+                            }
+                        }
+                    }
+                });
+            },
+            repeat: 19 // Run for 2 seconds
+        });
+        
+        // Clean up after duration
+        this.time.delayedCall(spellDuration, () => {
+            // Fade out
+            this.tweens.add({
+                targets: [beam, innerGlow],
+                alpha: 0,
+                duration: 300,
+                onComplete: () => {
+                    beam.destroy();
+                    innerGlow.destroy();
+                    beamParticles.destroy();
+                    damageTimer.destroy();
+                }
+            });
+        });
+    }
+    
+    createSteamSpell() {
+        // Steam spell - creates horizontal pressured steam jets
+        const steamWidth = 200; // Reduced by 75% (was 800)
+        const steamHeight = 30; // Reduced by 75% (was 120)
+        
+        // Create steam jets on both sides
+        const leftSteam = this.add.rectangle(
+            this.wizard.x,
+            this.wizard.y,
+            steamWidth,
+            steamHeight,
+            0xcccccc,
+            0.3
+        );
+        leftSteam.setOrigin(1, 0.5); // Anchor to right edge (extends left)
+        leftSteam.setDepth(5);
+        
+        const rightSteam = this.add.rectangle(
+            this.wizard.x,
+            this.wizard.y,
+            steamWidth,
+            steamHeight,
+            0xcccccc,
+            0.3
+        );
+        rightSteam.setOrigin(0, 0.5); // Anchor to left edge (extends right)
+        rightSteam.setDepth(5);
+        
+        // Add steam particles
+        const createSteamParticles = (x, direction) => {
+            return this.add.particles(x, this.wizard.y, 'spark', {
+                speed: { min: 200, max: 400 },
+                scale: { start: 0.8, end: 1.5 },
+                alpha: { start: 0.6, end: 0 },
+                lifespan: 600,
+                quantity: 5,
+                frequency: 50,
+                emitZone: {
+                    type: 'random',
+                    source: new Phaser.Geom.Rectangle(-10, -steamHeight/2, 20, steamHeight)
+                },
+                tint: [0xaaaaaa, 0xffffff],
+                blendMode: 'NORMAL',
+                angle: direction === 'left' ? { min: 160, max: 200 } : { min: -20, max: 20 }
+            });
+        };
+        
+        const leftParticles = createSteamParticles(this.wizard.x - 20, 'left');
+        const rightParticles = createSteamParticles(this.wizard.x + 20, 'right');
+        leftParticles.setDepth(6);
+        rightParticles.setDepth(6);
+        
+        // Expand animation
+        leftSteam.setScale(0, 1);
+        rightSteam.setScale(0, 1);
+        
+        this.tweens.add({
+            targets: leftSteam,
+            scaleX: 1,
+            duration: 300,
+            ease: 'Power2.Out'
+        });
+        
+        this.tweens.add({
+            targets: rightSteam,
+            scaleX: 1,
+            duration: 300,
+            ease: 'Power2.Out'
+        });
+        
+        // Steam pulsing effect
+        this.tweens.add({
+            targets: [leftSteam, rightSteam],
+            alpha: { from: 0.3, to: 0.5 },
+            scaleY: { from: 1, to: 1.2 },
+            duration: 400,
+            yoyo: true,
+            repeat: 4
+        });
+        
+        // Deal damage and push enemies
+        const damageInterval = this.time.addEvent({
+            delay: 150, // Effect every 150ms
+            callback: () => {
+                this.enemies.children.entries.forEach(enemy => {
+                    if (enemy.active) {
+                        // Check if enemy is within horizontal steam area
+                        if (Math.abs(enemy.y - this.wizard.y) < steamHeight / 2) {
+                            const isLeft = enemy.x < this.wizard.x;
+                            const isRight = enemy.x > this.wizard.x;
+                            
+                            if ((isLeft && Math.abs(enemy.x - this.wizard.x) < steamWidth) ||
+                                (isRight && Math.abs(enemy.x - this.wizard.x) < steamWidth)) {
+                                
+                                // Apply steam damage
+                                enemy.health -= 1.5;
+                                
+                                // Check if enemy should die
+                                if (enemy.health <= 0) {
+                                    this.killEnemy(enemy);
+                                    return; // Skip other effects for dead enemy
+                                }
+                                
+                                // Apply slow effect (steam makes enemies wet and slow)
+                                enemy.wet = true;
+                                enemy.wetEndTime = this.time.now + 2000;
+                                if (!enemy.originalSpeed) {
+                                    enemy.originalSpeed = enemy.speed || 50;
+                                }
+                                enemy.speed = enemy.originalSpeed * 0.5;
+                                
+                                // Visual effect
+                                enemy.setTint(0x8888ff);
+                                
+                                // Push enemies away horizontally
+                                const pushForce = 300;
+                                const direction = enemy.x > this.wizard.x ? 1 : -1;
+                                enemy.setVelocityX(direction * pushForce);
+                                enemy.setVelocityY(Phaser.Math.Between(-50, 50)); // Small vertical variation
+                                
+                                // Steam hit effect
+                                const steamHit = this.add.circle(enemy.x, enemy.y, 15, 0xcccccc, 0.6);
+                                steamHit.setDepth(10);
+                                this.tweens.add({
+                                    targets: steamHit,
+                                    scale: { from: 0.5, to: 2 },
+                                    alpha: { from: 0.6, to: 0 },
+                                    duration: 400,
+                                    onComplete: () => steamHit.destroy()
+                                });
+                                
+                                // Show damage
+                                this.showDamageNumber(enemy.x, enemy.y - 20, 1.5);
+                            }
+                        }
+                    }
+                });
+            },
+            repeat: 6 // Total duration: ~1 second
+        });
+        
+        // Clean up
+        this.time.delayedCall(1200, () => {
+            this.tweens.add({
+                targets: [leftSteam, rightSteam],
+                alpha: 0,
+                scaleX: 0,
+                duration: 300,
+                onComplete: () => {
+                    leftSteam.destroy();
+                    rightSteam.destroy();
+                    leftParticles.destroy();
+                    rightParticles.destroy();
+                    damageInterval.destroy();
+                }
+            });
+        });
+    }
+
     createStarSpell() {
+        // Check if star spell is on cooldown
+        if (this.starSpellCooldown) {
+            return; // Don't cast if on cooldown
+        }
+        
+        // Set cooldown (double the normal cooldown time)
+        this.starSpellCooldown = true;
+        const cooldownDuration = this.hasteActive ? 1600 : 2000; // 20% reduction if hasted
+        this.time.delayedCall(cooldownDuration, () => {
+            this.starSpellCooldown = false;
+        });
+        
         // Star element - creates 4 bouncing projectiles that fly in different directions
         const starCount = 4;
         const speed = 400;
         const damage = 2;
         
-        // Create 4 star projectiles, one for each cardinal direction
+        // Create 4 star projectiles, one for each diagonal direction
         const directions = [
-            { x: 1, y: 0 },    // Right
-            { x: -1, y: 0 },   // Left
-            { x: 0, y: 1 },    // Down
-            { x: 0, y: -1 }    // Up
+            { x: 1, y: 1 },     // Down-Right
+            { x: -1, y: 1 },    // Down-Left
+            { x: 1, y: -1 },    // Up-Right
+            { x: -1, y: -1 }    // Up-Left
         ];
         
         for (let i = 0; i < starCount; i++) {
-            const star = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'element-symbols3', 7);
-            star.setScale(0.15);
+            const star = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'star-spell');
+            star.setScale(0.75); // 50% smaller than 1.5
             star.setDepth(5);
+            
+            // Play star animation
+            star.anims.create({
+                key: 'star-spin',
+                frames: this.anims.generateFrameNumbers('star-spell', { start: 0, end: 5 }),
+                frameRate: 15,
+                repeat: -1
+            });
+            star.play('star-spin');
             star.element = 'star';
             star.damage = damage;
             star.isBouncing = true;
+            star.isPiercing = true; // Pass through enemies
             star.bounceCount = 0;
             star.maxBounces = 10; // Maximum bounces before disappearing
             
-            // Set initial velocity
-            const dir = directions[i];
-            star.setVelocity(dir.x * speed, dir.y * speed);
+            // Enable physics body
+            star.body.enable = true;
             
-            // Add spinning animation
-            this.tweens.add({
-                targets: star,
-                rotation: Math.PI * 2,
-                duration: 1000,
-                repeat: -1
-            });
+            // Configure physics body
+            star.body.setSize(40, 40);
+            star.body.setCollideWorldBounds(false);
+            star.body.setImmovable(false);
+            star.body.allowGravity = false;
+            star.body.moves = true;
             
             // Add glowing effect
             this.tweens.add({
                 targets: star,
-                scale: { from: 0.15, to: 0.2 },
+                scale: { from: 0.75, to: 0.9 },
                 alpha: { from: 1, to: 0.7 },
                 duration: 300,
                 yoyo: true,
@@ -11141,6 +12042,12 @@ class GameScene extends Phaser.Scene {
             
             // Add to projectiles group
             this.projectiles.add(star);
+            
+            // Set initial velocity AFTER adding to group
+            const dir = directions[i];
+            // Normalize diagonal movement (divide by sqrt(2) ≈ 0.707)
+            const normalizedSpeed = speed * 0.707;
+            star.body.setVelocity(dir.x * normalizedSpeed, dir.y * normalizedSpeed);
             
             // Create trail effect
             const trailInterval = this.time.addEvent({
@@ -11247,6 +12154,589 @@ class GameScene extends Phaser.Scene {
             
             // Store update function reference
             star.starUpdate = star.updateBounce;
+        }
+    }
+
+    createTimeSpell() {
+        // Check if time spell is on cooldown
+        if (this.timeSpellCooldown) {
+            return; // Don't cast if on cooldown
+        }
+        
+        // Set cooldown
+        this.timeSpellCooldown = true;
+        const cooldownDuration = this.hasteActive ? 9600 : 12000; // 20% reduction if hasted
+        this.time.delayedCall(cooldownDuration, () => {
+            this.timeSpellCooldown = false;
+        });
+        
+        // Time element - creates an AOE that slows enemies and hastes the player
+        const timeRadius = 150;
+        const spellDuration = 6000; // 6 seconds
+        
+        // Store initial position (doesn't follow wizard)
+        const timePosition = {
+            x: this.wizard.x,
+            y: this.wizard.y
+        };
+        
+        // Create time zone visual - similar to sun but with different colors
+        const timeRing = this.add.circle(timePosition.x, timePosition.y, timeRadius, 0x9966ff, 0.1); // Purple tint
+        timeRing.setDepth(3);
+        timeRing.setStrokeStyle(3, 0xccaaff, 0.5); // Light purple stroke
+        
+        // Add inner time glow
+        const innerGlow = this.add.circle(timePosition.x, timePosition.y, 100, 0xccccff, 0.05);
+        innerGlow.setDepth(3);
+        
+        // Add time distortion particles
+        const particles = this.add.particles(timePosition.x, timePosition.y, 'particle', {
+            scale: { start: 0.4, end: 0 },
+            alpha: { start: 0.6, end: 0 },
+            speed: 30,
+            lifespan: 2000,
+            frequency: 60,
+            emitZone: {
+                type: 'edge',
+                source: new Phaser.Geom.Circle(0, 0, 140),
+                quantity: 12
+            },
+            tint: 0x9966ff
+        });
+        
+        // Create particle texture if it doesn't exist
+        if (!this.textures.exists('particle')) {
+            const graphics = this.add.graphics();
+            graphics.fillStyle(0xffffff);
+            graphics.fillCircle(4, 4, 4);
+            graphics.generateTexture('particle', 8, 8);
+            graphics.destroy();
+        }
+        
+        // Time distortion pulsing animation
+        this.tweens.add({
+            targets: [timeRing, innerGlow],
+            scale: { from: 1, to: 1.1 },
+            alpha: { from: timeRing.alpha, to: timeRing.alpha + 0.05 },
+            duration: 1000,
+            yoyo: true,
+            repeat: -1
+        });
+        
+        // Apply haste to player
+        const originalSpeed = this.wizardSpeed || 130;
+        this.wizardSpeed = originalSpeed * 1.2; // 20% faster
+        this.hasteActive = true;
+        this.hasteEndTime = this.time.now + spellDuration;
+        
+        // Visual haste effect on wizard
+        const hasteGlow = this.add.circle(this.wizard.x, this.wizard.y, 30, 0x9966ff, 0.3);
+        hasteGlow.setDepth(4);
+        
+        // Make haste glow follow wizard
+        const hasteFollowInterval = this.time.addEvent({
+            delay: 16, // Every frame
+            callback: () => {
+                if (hasteGlow.active && this.wizard.active) {
+                    hasteGlow.x = this.wizard.x;
+                    hasteGlow.y = this.wizard.y;
+                }
+            },
+            repeat: -1
+        });
+        
+        // Time effect - check enemies in range and apply slow
+        const timeEffect = this.time.addEvent({
+            delay: 500, // Check every 0.5 seconds
+            callback: () => {
+                if (!timeRing.active) {
+                    timeEffect.destroy();
+                    return;
+                }
+                
+                // Check enemies in range and apply time slow
+                this.enemies.children.entries.forEach(enemy => {
+                    if (enemy.active) {
+                        const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, timePosition.x, timePosition.y);
+                        if (dist < timeRadius) {
+                            // Apply time slow effect
+                            if (!enemy.timeSlowed) {
+                                enemy.timeSlowed = true;
+                                enemy.originalSpeed = enemy.moveSpeed || 40;
+                                enemy.moveSpeed = enemy.originalSpeed * 0.3; // 70% slower
+                                
+                                // Visual effect - purple tint
+                                enemy.setTint(0x9966ff);
+                            }
+                        } else if (enemy.timeSlowed) {
+                            // Enemy left the time zone - restore speed
+                            enemy.timeSlowed = false;
+                            enemy.moveSpeed = enemy.originalSpeed;
+                            // Clear tint only if no other effects
+                            if (!enemy.frozen && !enemy.stunned && !enemy.poisoned && !enemy.slowed && !enemy.burning) {
+                                enemy.clearTint();
+                            }
+                        }
+                    }
+                });
+            },
+            repeat: -1
+        });
+        
+        // Destroy time spell after duration
+        this.time.delayedCall(spellDuration, () => {
+            // Clean up all time spell components
+            timeRing.destroy();
+            innerGlow.destroy();
+            particles.destroy();
+            timeEffect.destroy();
+            hasteGlow.destroy();
+            hasteFollowInterval.destroy();
+            
+            // Remove haste from player
+            this.wizardSpeed = originalSpeed;
+            this.hasteActive = false;
+            
+            // Clear time slow from all enemies
+            this.enemies.children.entries.forEach(enemy => {
+                if (enemy.active && enemy.timeSlowed) {
+                    enemy.timeSlowed = false;
+                    enemy.moveSpeed = enemy.originalSpeed;
+                    // Clear tint only if no other effects
+                    if (!enemy.frozen && !enemy.stunned && !enemy.poisoned && !enemy.slowed && !enemy.burning) {
+                        enemy.clearTint();
+                    }
+                }
+            });
+        });
+    }
+
+    createNatureSpell() {
+        // Check if nature spell is on cooldown
+        if (this.natureSpellCooldown) {
+            return; // Don't cast if on cooldown
+        }
+        
+        // Set cooldown
+        this.natureSpellCooldown = true;
+        const cooldownDuration = this.hasteActive ? 2400 : 3000; // 3 seconds cooldown, 20% reduction if hasted
+        this.time.delayedCall(cooldownDuration, () => {
+            this.natureSpellCooldown = false;
+        });
+        
+        // Nature element - creates whipping vines that originate from wizard
+        const vineCount = 8; // Number of vines
+        const vineLength = 120; // Maximum reach of vines (reduced by 40% from 200)
+        const vineDuration = 1500; // How long the whip animation lasts
+        const damage = 4;
+        
+        // Create vines in a circular pattern around wizard
+        for (let i = 0; i < vineCount; i++) {
+            const angle = (Math.PI * 2 / vineCount) * i;
+            
+            // Create vine graphics
+            const vine = this.add.graphics();
+            vine.setDepth(5);
+            
+            // Vine segments for animation
+            const segments = 10;
+            const segmentLength = vineLength / segments;
+            let vinePoints = [];
+            
+            // Initialize vine points at wizard position
+            for (let j = 0; j <= segments; j++) {
+                vinePoints.push({
+                    x: this.wizard.x,
+                    y: this.wizard.y
+                });
+            }
+            
+            // Track animation state
+            let animPhase = 'extend';
+            let animProgress = 0;
+            
+            // Create animation tween
+            const vineAnim = this.tweens.add({
+                targets: { progress: 0 },
+                progress: 1,
+                duration: vineDuration,
+                onUpdate: (tween) => {
+                    animProgress = tween.getValue();
+                    
+                    // Determine phase
+                    if (animProgress < 0.33) {
+                        animPhase = 'extend';
+                    } else if (animProgress < 0.67) {
+                        animPhase = 'whip';
+                    } else {
+                        animPhase = 'retract';
+                    }
+                    
+                    // Clear previous drawing
+                    vine.clear();
+                    vine.lineStyle(4, 0x228B22, 1); // Forest green
+                    vine.beginPath();
+                    vine.moveTo(this.wizard.x, this.wizard.y);
+                    
+                    if (animPhase === 'extend') {
+                        // Extend phase
+                        const extendProgress = animProgress * 3;
+                        for (let j = 1; j <= segments; j++) {
+                            const distance = segmentLength * j * extendProgress;
+                            const curveOffset = Math.sin(j * 0.5 + this.time.now * 0.01) * 20;
+                            const perpAngle = angle + Math.PI / 2;
+                            
+                            vinePoints[j].x = this.wizard.x + Math.cos(angle) * distance + Math.cos(perpAngle) * curveOffset;
+                            vinePoints[j].y = this.wizard.y + Math.sin(angle) * distance + Math.sin(perpAngle) * curveOffset;
+                            
+                            vine.lineTo(vinePoints[j].x, vinePoints[j].y);
+                        }
+                    } else if (animPhase === 'whip') {
+                        // Whip phase
+                        const whipProgress = (animProgress - 0.33) * 3;
+                        for (let j = 1; j <= segments; j++) {
+                            const distance = segmentLength * j;
+                            const whipAngle = angle + Math.sin(whipProgress * Math.PI * 2) * 0.5;
+                            const curveOffset = Math.sin(j * 0.5 + whipProgress * Math.PI * 4) * 30;
+                            const perpAngle = whipAngle + Math.PI / 2;
+                            
+                            vinePoints[j].x = this.wizard.x + Math.cos(whipAngle) * distance + Math.cos(perpAngle) * curveOffset;
+                            vinePoints[j].y = this.wizard.y + Math.sin(whipAngle) * distance + Math.sin(perpAngle) * curveOffset;
+                            
+                            vine.lineTo(vinePoints[j].x, vinePoints[j].y);
+                        }
+                        
+                        // Check for enemy hits during whip phase
+                        this.enemies.children.entries.forEach(enemy => {
+                            if (enemy.active && !enemy.hitByVine) {
+                                // Check if enemy is near any vine segment
+                                for (let j = 1; j < segments; j++) {
+                                    const dist = Phaser.Math.Distance.Between(
+                                        enemy.x, enemy.y,
+                                        vinePoints[j].x, vinePoints[j].y
+                                    );
+                                    
+                                    if (dist < 30) { // Hit radius
+                                        enemy.hitByVine = true;
+                                        enemy.health -= damage;
+                                        
+                                        // Knockback effect
+                                        const knockbackAngle = Phaser.Math.Angle.Between(
+                                            this.wizard.x, this.wizard.y,
+                                            enemy.x, enemy.y
+                                        );
+                                        const knockbackForce = 200;
+                                        enemy.setVelocity(
+                                            Math.cos(knockbackAngle) * knockbackForce,
+                                            Math.sin(knockbackAngle) * knockbackForce
+                                        );
+                                        
+                                        // Visual effect - green flash
+                                        enemy.setTint(0x00FF00);
+                                        this.time.delayedCall(200, () => {
+                                            if (enemy.active) enemy.clearTint();
+                                        });
+                                        
+                                        // Show damage
+                                        this.showDamageNumber(enemy.x, enemy.y - 20, damage);
+                                        
+                                        if (enemy.health <= 0) {
+                                            this.killEnemy(enemy);
+                                        }
+                                        
+                                        break; // Only hit once per vine
+                                    }
+                                }
+                            }
+                        });
+                    } else {
+                        // Retract phase
+                        const retractProgress = 1 - (animProgress - 0.67) * 3;
+                        for (let j = 1; j <= segments; j++) {
+                            const distance = segmentLength * j * retractProgress;
+                            
+                            vinePoints[j].x = this.wizard.x + Math.cos(angle) * distance;
+                            vinePoints[j].y = this.wizard.y + Math.sin(angle) * distance;
+                            
+                            vine.lineTo(vinePoints[j].x, vinePoints[j].y);
+                        }
+                    }
+                    
+                    vine.strokePath();
+                    
+                    // Add leaves/thorns
+                    for (let j = 2; j < segments; j += 2) {
+                        vine.fillStyle(0x00FF00, 0.8);
+                        vine.fillCircle(vinePoints[j].x, vinePoints[j].y, 3);
+                    }
+                },
+                onComplete: () => {
+                    vine.destroy();
+                    
+                    // Reset hit flags
+                    this.enemies.children.entries.forEach(enemy => {
+                        if (enemy.active) {
+                            enemy.hitByVine = false;
+                        }
+                    });
+                }
+            });
+            
+            // Delay start for each vine
+            if (i > 0) {
+                vineAnim.pause();
+                this.time.delayedCall(i * 50, () => {
+                    vineAnim.resume();
+                });
+            }
+        }
+        
+        // Add nature particle effect around wizard
+        const natureParticles = this.add.particles(this.wizard.x, this.wizard.y, 'particle', {
+            scale: { start: 0.3, end: 0 },
+            alpha: { start: 0.6, end: 0 },
+            speed: { min: 20, max: 50 },
+            lifespan: 1000,
+            frequency: 50,
+            quantity: 2,
+            tint: [0x00FF00, 0x228B22, 0x90EE90],
+            emitZone: {
+                type: 'edge',
+                source: new Phaser.Geom.Circle(0, 0, 40),
+                quantity: 8
+            }
+        });
+        
+        // Destroy particles after spell duration
+        this.time.delayedCall(vineDuration, () => {
+            natureParticles.destroy();
+        });
+    }
+
+    createLifeSpell() {
+        // Check if life spell is on cooldown
+        if (this.lifeSpellCooldown) {
+            return; // Don't cast if on cooldown
+        }
+        
+        // Set cooldown
+        this.lifeSpellCooldown = true;
+        const cooldownDuration = this.hasteActive ? 12000 : 15000; // 15 seconds cooldown, 20% reduction if hasted
+        this.time.delayedCall(cooldownDuration, () => {
+            this.lifeSpellCooldown = false;
+        });
+        
+        // Life element - heals the wizard over time
+        const healDuration = 8000; // 8 seconds of healing
+        const healInterval = 500; // Heal every 0.5 seconds
+        const healAmount = 3; // HP per tick
+        
+        // Visual effect - create healing aura around wizard
+        const healAura = this.add.circle(this.wizard.x, this.wizard.y, 40, 0xff6666, 0.3);
+        healAura.setDepth(4);
+        
+        // Heart particles
+        const heartParticles = this.add.particles(this.wizard.x, this.wizard.y, 'life-symbol', {
+            scale: { start: 0.2, end: 0 },
+            alpha: { start: 0.8, end: 0 },
+            speed: { min: 20, max: 40 },
+            lifespan: 1500,
+            frequency: 300,
+            quantity: 1,
+            emitZone: {
+                type: 'edge',
+                source: new Phaser.Geom.Circle(0, 0, 30),
+                quantity: 1
+            }
+        });
+        
+        // Pulsing animation for aura
+        this.tweens.add({
+            targets: healAura,
+            scale: { from: 1, to: 1.2 },
+            alpha: { from: 0.3, to: 0.5 },
+            duration: 500,
+            yoyo: true,
+            repeat: -1
+        });
+        
+        // Follow wizard
+        const followInterval = this.time.addEvent({
+            delay: 16, // Every frame
+            callback: () => {
+                if (healAura.active && this.wizard.active) {
+                    healAura.x = this.wizard.x;
+                    healAura.y = this.wizard.y;
+                    heartParticles.x = this.wizard.x;
+                    heartParticles.y = this.wizard.y;
+                }
+            },
+            repeat: -1
+        });
+        
+        // Healing effect
+        const healingInterval = this.time.addEvent({
+            delay: healInterval,
+            callback: () => {
+                if (!this.wizard.active || !healAura.active) {
+                    healingInterval.destroy();
+                    return;
+                }
+                
+                // Heal wizard
+                if (this.playerHealth < this.maxHealth) {
+                    this.playerHealth = Math.min(this.playerHealth + healAmount, this.maxHealth);
+                    this.updateWizardHealthBar();
+                    
+                    // Show healing number
+                    const healText = this.add.text(this.wizard.x, this.wizard.y - 30, `+${healAmount}`, {
+                        fontSize: '20px',
+                        color: '#ff6666',
+                        fontStyle: 'bold'
+                    });
+                    healText.setOrigin(0.5);
+                    healText.setDepth(10);
+                    
+                    this.tweens.add({
+                        targets: healText,
+                        y: this.wizard.y - 60,
+                        alpha: 0,
+                        duration: 1000,
+                        onComplete: () => healText.destroy()
+                    });
+                    
+                    // Healing sparkles
+                    for (let i = 0; i < 3; i++) {
+                        const sparkle = this.add.circle(
+                            this.wizard.x + Phaser.Math.Between(-20, 20),
+                            this.wizard.y + Phaser.Math.Between(-20, 20),
+                            3,
+                            0xffaaaa,
+                            0.8
+                        );
+                        sparkle.setDepth(5);
+                        
+                        this.tweens.add({
+                            targets: sparkle,
+                            y: sparkle.y - 20,
+                            scale: 0,
+                            alpha: 0,
+                            duration: 600,
+                            onComplete: () => sparkle.destroy()
+                        });
+                    }
+                }
+            },
+            repeat: healDuration / healInterval - 1
+        });
+        
+        // Clean up after duration
+        this.time.delayedCall(healDuration, () => {
+            healAura.destroy();
+            heartParticles.destroy();
+            followInterval.destroy();
+            healingInterval.destroy();
+        });
+    }
+
+    createThunderSpell() {
+        // Thunder element - shoots 3 piercing projectiles that push enemies
+        const projectileCount = 3;
+        
+        // Get wizard direction
+        const direction = this.wizard.lastDirection || 'down';
+        
+        // Simple direction to angle mapping
+        let baseAngle = Math.PI / 2; // Default down
+        if (direction === 'up') baseAngle = -Math.PI / 2;
+        else if (direction === 'down') baseAngle = Math.PI / 2;
+        else if (direction === 'left') baseAngle = Math.PI;
+        else if (direction === 'right') baseAngle = 0;
+        else if (direction === 'up-left') baseAngle = -3 * Math.PI / 4;
+        else if (direction === 'up-right') baseAngle = -Math.PI / 4;
+        else if (direction === 'down-left') baseAngle = 3 * Math.PI / 4;
+        else if (direction === 'down-right') baseAngle = Math.PI / 4;
+        
+        const spreadAngle = Math.PI / 10; // 18 degrees spread
+        const projectileSpeed = 400;
+        const damage = 2;
+        const knockbackForce = 1200;
+        
+        // Create animation if it doesn't exist
+        if (!this.anims.exists('thunder-projectile')) {
+            this.anims.create({
+                key: 'thunder-projectile',
+                frames: this.anims.generateFrameNumbers('thunder-spell', { start: 0, end: 16 }),
+                frameRate: 30,
+                repeat: -1
+            });
+        }
+        
+        // Shoot 3 projectiles simultaneously in a fan pattern
+        for (let i = 0; i < projectileCount; i++) {
+            // Calculate angle for this projectile (-1, 0, 1) * spread
+            const angleOffset = (i - 1) * spreadAngle;
+            const projectileAngle = baseAngle + angleOffset;
+            
+            // Create thunder projectile
+            const thunder = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'thunder-spell', 0);
+            thunder.setScale(1.5);
+            thunder.setDepth(5);
+            
+            // Try to play animation
+            if (this.anims.exists('thunder-projectile')) {
+                thunder.play('thunder-projectile');
+            }
+            
+            // Set properties
+            thunder.element = 'thunder';
+            thunder.damage = damage;
+            thunder.knockbackForce = knockbackForce;
+            thunder.isPiercing = true; // Pierce through enemies
+            thunder.hitEnemies = new Set(); // Track hit enemies to prevent multiple hits
+            
+            // Add to projectiles group first
+            this.projectiles.add(thunder);
+            
+            // Set velocity
+            const velocityX = Math.cos(projectileAngle) * projectileSpeed;
+            const velocityY = Math.sin(projectileAngle) * projectileSpeed;
+            thunder.setVelocity(velocityX, velocityY);
+            
+            // Add electric trail effect
+            const trailInterval = this.time.addEvent({
+                delay: 50,
+                callback: () => {
+                    if (thunder.active) {
+                        // Create electric trail
+                        const trail = this.add.circle(thunder.x, thunder.y, 8, 0x00ffff, 0.6);
+                        trail.setDepth(4);
+                        this.tweens.add({
+                            targets: trail,
+                            scale: { from: 1, to: 0 },
+                            alpha: { from: 0.6, to: 0 },
+                            duration: 300,
+                            onComplete: () => trail.destroy()
+                        });
+                    } else {
+                        trailInterval.destroy();
+                    }
+                },
+                repeat: -1
+            });
+            
+            // Store trail for cleanup
+            thunder.trailInterval = trailInterval;
+            
+            // Auto-destroy after 2 seconds
+            this.time.delayedCall(2000, () => {
+                if (thunder.active) {
+                    if (thunder.trailInterval) {
+                        thunder.trailInterval.destroy();
+                    }
+                    thunder.destroy();
+                }
+            });
         }
     }
 
@@ -12827,15 +14317,27 @@ class GameScene extends Phaser.Scene {
         // Determine fusion result based on element combination
         let result;
         
-        // Sort elements to make order-independent
-        const sortedElements = [...elements].sort();
-        const fusionKey = sortedElements.join('+');
+        // Special case: Time element with any other element produces Death
+        if (elements.includes('time')) {
+            // If one element is time and the other is not time, result is death
+            const otherElement = elements.find(e => e !== 'time');
+            if (otherElement) {
+                result = 'death';
+                // Continue with normal fusion flow
+            }
+        }
+        
+        // If result wasn't set by special case, determine it normally
+        if (!result) {
+            // Sort elements to make order-independent
+            const sortedElements = [...elements].sort();
+            const fusionKey = sortedElements.join('+');
         
         // Define fusion recipes
         const fusionRecipes = {
             'earth+fire': 'volcano',
             'fire+water': 'steam',
-            'earth+water': 'wave',
+            'earth+water': 'nature',
             'air+earth': 'sand',
             'air+water': 'ice',
             'fire+lightning': 'meteor',
@@ -12845,22 +14347,24 @@ class GameScene extends Phaser.Scene {
             'earth+ice': 'crystal',
             'arcane+fire': 'lava',
             'ice+poison': 'death',
-            'arcane+lightning': 'time',
+            'moon+sun': 'time',
             'arcane+poison': 'dust',
             'earth+lightning': 'gravity',
-            'fire+holy': 'sun',
+            'fire+star': 'sun',
             'lightning+poison': 'wave',
-            'holy+ice': 'star',
-            'ice+arcane': 'moon'
+            'gravity+lightning': 'star',
+            'star+water': 'moon',
+            'arcane+nature': 'life'
         };
         
-        // Check if we have a recipe for this combination
-        if (fusionRecipes[fusionKey]) {
-            result = fusionRecipes[fusionKey];
-        } else {
-            // Random result for undefined combinations
-            const nonPrimaryElements = Object.keys(this.elementConfig).filter(e => !this.primaryElements.includes(e));
-            result = nonPrimaryElements[Math.floor(Math.random() * nonPrimaryElements.length)];
+            // Check if we have a recipe for this combination
+            if (fusionRecipes[fusionKey]) {
+                result = fusionRecipes[fusionKey];
+            } else {
+                // Random result for undefined combinations
+                const nonPrimaryElements = Object.keys(this.elementConfig).filter(e => !this.primaryElements.includes(e));
+                result = nonPrimaryElements[Math.floor(Math.random() * nonPrimaryElements.length)];
+            }
         }
         
         const resultConfig = this.elementConfig[result];
