@@ -51,6 +51,9 @@ class LoadingScene extends Phaser.Scene {
         this.load.image('lava-tile', 'lava.png');
         this.load.image('tree', 'foliage.png');
         
+        // Load charge slot upgrade sprite
+        this.load.image('charge-slot', 'chargeslot.png');
+        
         // Load level up reward icons
         this.load.image('meditate-icon', 'meditate.png');
         this.load.image('element-select-icon', 'elementsekect.png');
@@ -569,8 +572,40 @@ class TitleScene extends Phaser.Scene {
         
         elementContainer.add([elementLabel, elementText, leftArrow, rightArrow]);
         
+        // Performance mode toggle
+        const perfContainer = this.add.container(400, 370);
+        const perfLabel = this.add.text(-150, 0, 'Performance Mode:', {
+            fontSize: '20px',
+            color: '#ffffff'
+        }).setOrigin(0, 0.5);
+        
+        const perfCheckbox = this.add.rectangle(100, 0, 30, 30, 0x666666);
+        perfCheckbox.setStrokeStyle(2, 0xffffff);
+        perfCheckbox.setInteractive({ useHandCursor: true });
+        
+        const perfEnabled = localStorage.getItem('performanceMode') === 'true';
+        const perfCheck = this.add.text(100, 0, '✓', {
+            fontSize: '24px',
+            color: '#00ff00',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        perfCheck.setVisible(perfEnabled);
+        
+        const perfHint = this.add.text(0, 30, 'Enables infinite world with optimizations', {
+            fontSize: '14px',
+            color: '#aaaaaa'
+        }).setOrigin(0.5);
+        
+        perfCheckbox.on('pointerdown', () => {
+            const newPerfMode = !perfCheck.visible;
+            perfCheck.setVisible(newPerfMode);
+            localStorage.setItem('performanceMode', newPerfMode.toString());
+        });
+        
+        perfContainer.add([perfLabel, perfCheckbox, perfCheck, perfHint]);
+        
         // BGM selector
-        const bgmContainer = this.add.container(400, 370);
+        const bgmContainer = this.add.container(400, 420);
         const bgmLabel = this.add.text(-150, 0, 'Background Music:', {
             fontSize: '20px',
             color: '#ffffff'
@@ -615,7 +650,7 @@ class TitleScene extends Phaser.Scene {
         bgmContainer.add([bgmLabel, bgmText, bgmLeftArrow, bgmRightArrow]);
         
         // Close button
-        const closeButton = this.add.text(400, 440, 'CLOSE', {
+        const closeButton = this.add.text(400, 490, 'CLOSE', {
             fontSize: '24px',
             color: '#ffffff',
             backgroundColor: '#000000',
@@ -639,6 +674,7 @@ class TitleScene extends Phaser.Scene {
             debugContainer.destroy();
             volumeContainer.destroy();
             elementContainer.destroy();
+            perfContainer.destroy();
             bgmContainer.destroy();
             closeButton.destroy();
         });
@@ -646,7 +682,7 @@ class TitleScene extends Phaser.Scene {
         // Store references for cleanup
         this.optionsMenu = {
             overlay, menuBg, menuTitle, debugContainer, 
-            volumeContainer, elementContainer, bgmContainer, closeButton
+            volumeContainer, elementContainer, perfContainer, bgmContainer, closeButton
         };
     }
 }
@@ -880,8 +916,12 @@ class StageSelectScene extends Phaser.Scene {
                     if (index === 1) stageName = 'cave';
                     else if (index === 3) stageName = 'lava';
                     
+                    // Check if performance mode is enabled
+                    const performanceMode = localStorage.getItem('performanceMode') === 'true';
+                    const nextScene = performanceMode ? 'UltraOptimizedGameScene' : 'GameScene';
+                    
                     this.scene.start('LoadingScene', {
-                        nextScene: 'GameScene',
+                        nextScene: nextScene,
                         data: { stage: stageName }
                     });
                 }
@@ -1247,8 +1287,8 @@ class GameScene extends Phaser.Scene {
         this.wizard = this.physics.add.sprite(2000, 1080, 'wizard-idle');  // Center horizontally in the world
         this.wizard.setScale(1.0); // New sprites are already the right size
         console.log('Wizard sprite created successfully');
-        this.wizard.setCollideWorldBounds(true);
-        this.wizard.setDepth(10); // Ensure wizard renders above background
+        this.wizard.setCollideWorldBounds(false);
+        this.wizard.setDepth(100); // Ensure wizard renders above floor and most elements
         this.wizard.lastDirection = 'down'; // Set initial facing direction
 
         // Set physics body size smaller to prevent damage when close but not touching
@@ -1313,7 +1353,16 @@ class GameScene extends Phaser.Scene {
 
         this.enemies = this.physics.add.group();
         this.projectiles = this.physics.add.group();
-        this.trees = this.physics.add.staticGroup();
+        
+        // Initialize obstacle manager for impassable obstacles
+        this.obstacleManager = new ObstacleManager(this);
+        this.obstacleManager.initialize(this.stage);
+        
+        // Initial obstacle spawn around starting position
+        if (this.wizard) {
+            this.obstacleManager.update(this.wizard.x, this.wizard.y);
+        }
+        
         this.jewels = this.physics.add.group();
         this.muffins = this.physics.add.group();
         this.elementOrbs = this.physics.add.group();
@@ -1327,13 +1376,11 @@ class GameScene extends Phaser.Scene {
         this.physics.add.overlap(this.wizard, this.chests, this.openChest, null, this);
         this.physics.add.overlap(this.wizard, this.chargeExpansions, this.collectChargeExpansion, null, this);
 
-        // Add collisions with trees (only in forest stage)
-        if (this.stage === 'forest') {
-            this.physics.add.collider(this.wizard, this.trees);
-            this.physics.add.collider(this.enemies, this.trees);
-            // Projectiles now pass through trees without collision
-            // this.physics.add.collider(this.projectiles, this.trees, this.projectileHitTree, null, this);
-        }
+        // Add collisions with obstacles (impassable)
+        const obstacles = this.obstacleManager.getObstaclesGroup();
+        this.physics.add.collider(this.wizard, obstacles);
+        this.physics.add.collider(this.enemies, obstacles);
+        this.physics.add.collider(this.projectiles, obstacles, this.projectileHitObstacle, null, this);
         
         // Add collisions with barriers (only in cave stage)
         if (this.stage === 'cave' && this.barriers) {
@@ -1352,15 +1399,11 @@ class GameScene extends Phaser.Scene {
             return true; // Normal collision
         });
 
-        // Spawn some trees randomly (only in forest stage)
-        if (this.stage === 'forest') {
-            this.spawnTrees();
-        }
+        // Trees are now handled in createStageBackground as decorative elements only
+        // No physics trees are spawned
         
-        // Spawn cave obstacles (only in cave stage)
-        if (this.stage === 'cave') {
-            this.spawnCaveObstacles();
-        }
+        // Cave obstacles are now handled by ObstacleManager for consistency
+        // Removed spawnCaveObstacles() to prevent duplicate obstacle creation
 
         console.log('Creating UI elements');
         this.createChargeUI();
@@ -1771,12 +1814,18 @@ class GameScene extends Phaser.Scene {
 
         console.log('About to call startGameSequence');
 
-        // Start game sequence with countdown
-        try {
-            this.startGameSequence();
-            console.log('startGameSequence call completed successfully');
-        } catch (error) {
-            console.error('Error in startGameSequence:', error);
+        // Start game immediately
+        if (!this.gameStarted) {
+            // Only add starting element if it's not 'none'
+            if (this.charges.length === 0) {
+                const startElement = localStorage.getItem('startElement');
+                if (startElement && startElement !== 'none') {
+                    this.charges.push(startElement);
+                }
+                // If 'none' is selected, start with no charges
+            }
+            this.updateChargeUI();
+            this.startGame();
         }
     }
 
@@ -2154,8 +2203,11 @@ class GameScene extends Phaser.Scene {
 
         } catch (error) {
             console.error('Error in showElementSelection:', error);
-            // Fallback: start game with fire element
-            this.charges.push('fire');
+            // Fallback: start game with configured element or none
+            const startElement = localStorage.getItem('startElement');
+            if (startElement && startElement !== 'none') {
+                this.charges.push(startElement);
+            }
             this.updateChargeUI();
             console.log('Error fallback - starting game');
             this.startGame();
@@ -2267,47 +2319,60 @@ class GameScene extends Phaser.Scene {
         // Set a dark background color as base
         this.cameras.main.setBackgroundColor('#11130d');
 
-        // Update world bounds
-        this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
+        // Remove world bounds - allow infinite movement
+        this.physics.world.setBounds(false);
 
-        // Set camera bounds to prevent seeing beyond the world
-        this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
+        // Remove camera bounds - allow free camera movement
+        // Camera will follow player wherever they go
 
-        // Create floor based on stage type
+        // Create floor based on stage type - will scroll infinitely
         let tileName = 'grass-tile';
         if (this.stage === 'cave') {
             tileName = 'stone-tile';
         } else if (this.stage === 'lava') {
             tileName = 'lava-tile';
         }
-        this.floor = this.add.tileSprite(0, 0, worldWidth, worldHeight, tileName);
-        this.floor.setOrigin(0, 0);
-        this.floor.setDepth(-1); // Ensure it's behind everything
+        
+        // Create a tilesprite that covers the entire screen
+        // We'll use setScrollFactor(0) to make it stay in place relative to camera
+        const screenWidth = this.cameras.main.width;
+        const screenHeight = this.cameras.main.height;
+        // Make it slightly larger than screen to avoid edges showing
+        this.floor = this.add.tileSprite(
+            screenWidth / 2,  // Center X
+            screenHeight / 2, // Center Y
+            screenWidth + 200,  // Width with padding
+            screenHeight + 200, // Height with padding
+            tileName
+        );
+        this.floor.setScrollFactor(0); // Stay fixed to camera
+        this.floor.setDepth(-10); // Far behind everything else
 
         // Add stage-specific decorations
-        if (this.stage === 'cave') {
-            // Create invisible barriers for cave
-            this.createInvisibleBarriers();
-        } else if (this.stage === 'lava') {
-            // Lava stage has no decorations, just open burning fields
-            this.createInvisibleBarriers();
-        } else {
+        // Note: Removed invisible barriers - players can now move freely in all directions
+        if (this.stage === 'forest') {
             // Create trees for forest
             this.createTrees();
         }
+        // Cave and lava stages have no decorations for now
         
     }
 
     createTrees() {
-        // Add random trees for decoration
-        const treeCount = 50;
+        // Add random trees around starting area
+        const treeCount = 30;
+        const spawnRadius = 1500; // Trees spawn within this radius of start
+        
         for (let i = 0; i < treeCount; i++) {
-            const x = Phaser.Math.Between(100, 3900);
-            const y = Phaser.Math.Between(100, 2060);
+            // Spawn trees around the wizard's starting position
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * spawnRadius;
+            const x = 2000 + Math.cos(angle) * distance;
+            const y = 1080 + Math.sin(angle) * distance;
 
             const tree = this.add.image(x, y, 'tree');
             tree.setScale(Phaser.Math.FloatBetween(0.8, 1.2));
-            tree.setDepth(y / 10); // Depth based on Y position
+            tree.setDepth(Math.floor(y / 10)); // Depth based on Y position
             tree.setAlpha(0.8);
         }
     }
@@ -3149,6 +3214,20 @@ class GameScene extends Phaser.Scene {
         if (this.time.timeScale > 0 && !this.isPaused && !this.spellbookOpen && !this.elementsMenuOpen && !this.chestSelectionActive && this.gameStarted) {
             this.survivalTime += delta;
         }
+        
+        // Update infinite scrolling floor
+        if (this.floor) {
+            // Since floor has scrollFactor(0), it stays with camera automatically
+            // We need to update the tile positions in the same direction as camera movement
+            const cam = this.cameras.main;
+            this.floor.tilePositionX = cam.scrollX;
+            this.floor.tilePositionY = cam.scrollY;
+        }
+        
+        // Update obstacle manager to load/unload obstacles based on player position
+        if (this.obstacleManager && this.wizard) {
+            this.obstacleManager.update(this.wizard.x, this.wizard.y);
+        }
 
         // Update spawn rate over time (every minute)
         const currentMinute = Math.floor(this.survivalTime / 60000);
@@ -3758,9 +3837,7 @@ class GameScene extends Phaser.Scene {
                         break;
                 }
 
-                // Clamp to world bounds
-                enemy.x = Phaser.Math.Clamp(enemy.x, 50, 3950);
-                enemy.y = Phaser.Math.Clamp(enemy.y, 50, 2110);
+                // No clamping - infinite world!
             }
 
             // Handle summoner behavior
@@ -4009,9 +4086,18 @@ class GameScene extends Phaser.Scene {
         });
 
         // Update depths based on Y position
-        this.wizard.setDepth(this.wizard.y / 10);
+        this.wizard.setDepth(Math.max(10, Math.floor(this.wizard.y / 10))); // Ensure wizard is always above floor (-10)
         this.enemies.children.entries.forEach(enemy => {
-            if (enemy.active) enemy.setDepth(enemy.y / 10);
+            if (enemy.active) {
+                // Ensure enemies are always visible above the floor (-10)
+                // Add 1000 to ensure positive depths even at negative Y coordinates
+                enemy.setDepth(Math.max(1, Math.floor((enemy.y + 1000) / 10)));
+                
+                // Safety check: ensure enemy is visible
+                if (!enemy.visible) {
+                    enemy.setVisible(true);
+                }
+            }
         });
 
         // Update wizard health bar position
@@ -6378,6 +6464,31 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    projectileHitObstacle(projectile, obstacle) {
+        // Destroy projectile when it hits an obstacle
+        if (projectile.active) {
+            // Create hit effect
+            const hitEffect = this.add.circle(projectile.x, projectile.y, 8, 0xffffff, 0.6);
+            hitEffect.setDepth(100);
+            this.tweens.add({
+                targets: hitEffect,
+                scale: { from: 1, to: 0 },
+                alpha: { from: 0.6, to: 0 },
+                duration: 200,
+                onComplete: () => hitEffect.destroy()
+            });
+            
+            projectile.destroy();
+        }
+    }
+
+    setEnemyDepth(enemy) {
+        // Ensure enemy is always visible above floor
+        // Add offset to handle negative Y coordinates
+        const depth = Math.max(1, Math.floor((enemy.y + 1000) / 10));
+        enemy.setDepth(depth);
+    }
+
     spawnEnemy() {
         // Spawn enemies just outside viewport
         const camera = this.cameras.main;
@@ -6408,9 +6519,8 @@ class GameScene extends Phaser.Scene {
                 break;
         }
 
-        // Clamp to world bounds
-        x = Phaser.Math.Clamp(x, 50, 3950);  // Updated for wider world
-        y = Phaser.Math.Clamp(y, 50, 2110);  // Updated for taller world (2160 - 50)
+        // No clamping - infinite world!
+        // Enemies can spawn anywhere around the player
 
         // Randomly choose between enemy types based on stage
         const rand = Math.random();
@@ -6455,6 +6565,7 @@ class GameScene extends Phaser.Scene {
             enemy.play('enemy-walking');
             enemy.body.setSize(26, 39); // Widened by 30%
             enemy.body.setOffset(3, 12); // Adjusted offset for wider hitbox
+            this.setEnemyDepth(enemy); // Set initial depth
             this.enemies.add(enemy);
         } else if (enemyType === 'bat') {
             // Spawn 2 bat enemies at once
@@ -6484,6 +6595,7 @@ class GameScene extends Phaser.Scene {
                 bat.body.setOffset(45, 55);
                 bat.moveSpeed = 80; // Bats are faster than trees
                 bat.isFlying = true; // Bats can fly over obstacles
+                this.setEnemyDepth(bat); // Set initial depth
                 this.enemies.add(bat);
             }
         }
@@ -6998,23 +7110,11 @@ class GameScene extends Phaser.Scene {
     }
 
     dropChargeExpansion(x, y) {
-        if (!this.textures.exists('charge-expansion')) {
-            const graphics = this.add.graphics();
-            // Draw a special crystal
-            graphics.fillStyle(0xaa00ff, 1);
-            graphics.fillRect(5, 0, 10, 20);
-            graphics.fillRect(0, 5, 20, 10);
-            // Add sparkle
-            graphics.fillStyle(0xffffff, 0.8);
-            graphics.fillCircle(10, 10, 3);
-            graphics.generateTexture('charge-expansion', 20, 20);
-            graphics.destroy();
-        }
-
-        const expansion = this.physics.add.sprite(x, y, 'charge-expansion');
+        // Use charge-slot sprite instead of generated texture
+        const expansion = this.physics.add.sprite(x, y, 'charge-slot');
         expansion.setDepth(26);
         expansion.body.setVelocity(0, 0);
-        expansion.setScale(1.5);
+        expansion.setScale(0.15); // Scale down since charge-slot sprite is larger
 
         // Add floating and rotating animation
         this.tweens.add({
@@ -7048,30 +7148,56 @@ class GameScene extends Phaser.Scene {
     }
 
     collectChargeExpansion(wizard, expansion) {
-        // Increase max charges
-        this.maxCharges = Math.min(this.maxCharges + 1, 8); // Cap at 8
-        this.updateChargeUI();
+        // Check if player already has 8 charge slots
+        if (this.maxCharges >= 8) {
+            // Player has max slots, give level up instead
+            this.playerXP = this.xpToNextLevel; // Set XP to max to trigger level up
+            
+            // Visual feedback for level up
+            const levelUpText = this.add.text(wizard.x, wizard.y - 30, 'MAX SLOTS - LEVEL UP!', {
+                fontSize: '24px',
+                color: '#ffdd44',
+                fontStyle: 'bold'
+            });
+            levelUpText.setOrigin(0.5);
+            
+            this.tweens.add({
+                targets: levelUpText,
+                y: wizard.y - 80,
+                scale: { from: 0.8, to: 1.5 },
+                alpha: { from: 1, to: 0 },
+                duration: 1500,
+                onComplete: () => levelUpText.destroy()
+            });
+            
+            // Trigger level up through collectJewel logic
+            this.collectJewel(wizard, { xpValue: 0, destroy: () => {} });
+        } else {
+            // Increase max charges
+            this.maxCharges = Math.min(this.maxCharges + 1, 8); // Cap at 8
+            this.updateChargeUI();
 
-        // Add a random element orb as bonus
-        const randomElement = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
-        this.dropElementOrb(wizard.x, wizard.y - 50, randomElement);
+            // Add a random element orb as bonus
+            const randomElement = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
+            this.dropElementOrb(wizard.x, wizard.y - 50, randomElement);
 
-        // Visual feedback
-        const expansionText = this.add.text(wizard.x, wizard.y - 30, 'CHARGE SLOT +1', {
-            fontSize: '24px',
-            color: '#aa00ff',
-            fontStyle: 'bold'
-        });
-        expansionText.setOrigin(0.5);
+            // Visual feedback
+            const expansionText = this.add.text(wizard.x, wizard.y - 30, 'CHARGE SLOT +1', {
+                fontSize: '24px',
+                color: '#aa00ff',
+                fontStyle: 'bold'
+            });
+            expansionText.setOrigin(0.5);
 
-        this.tweens.add({
-            targets: expansionText,
-            y: wizard.y - 80,
-            scale: { from: 0.8, to: 1.5 },
-            alpha: { from: 1, to: 0 },
-            duration: 1500,
-            onComplete: () => expansionText.destroy()
-        });
+            this.tweens.add({
+                targets: expansionText,
+                y: wizard.y - 80,
+                scale: { from: 0.8, to: 1.5 },
+                alpha: { from: 1, to: 0 },
+                duration: 1500,
+                onComplete: () => expansionText.destroy()
+            });
+        }
 
         // Purple flash effect
         wizard.setTint(0xaa00ff);
@@ -15199,7 +15325,7 @@ const config = {
     input: {
         gamepad: true
     },
-    scene: [LoadingScene, TitleScene, StageSelectScene, GameScene, GameOverScene]
+    scene: [LoadingScene, TitleScene, StageSelectScene, GameScene, GameOverScene, UltraOptimizedGameScene]
 };
 
 const game = new Phaser.Game(config);
