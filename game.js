@@ -1333,7 +1333,7 @@ class GameScene extends Phaser.Scene {
             color: '#aaaaaa'
         });
         this.controllerInfo.setScrollFactor(0);
-        this.controllerInfo.setDepth(60);
+        this.controllerInfo.setDepth(560);
 
         // Enable gamepad support
         this.input.gamepad.once('connected', (pad) => {
@@ -2372,7 +2372,7 @@ class GameScene extends Phaser.Scene {
 
             const tree = this.add.image(x, y, 'tree');
             tree.setScale(Phaser.Math.FloatBetween(0.8, 1.2));
-            tree.setDepth(Math.floor(y / 10)); // Depth based on Y position
+            tree.setDepth(Math.min(400, Math.floor(y / 10))); // Depth based on Y position, capped at 400
             tree.setAlpha(0.8);
         }
     }
@@ -2500,7 +2500,7 @@ class GameScene extends Phaser.Scene {
             color: '#ffffff'
         });
         this.secondaryTimer.setScrollFactor(0); // Fix to camera
-        this.secondaryTimer.setDepth(60); // Above everything
+        this.secondaryTimer.setDepth(560); // Above everything
 
         // Add FPS meter
         this.fpsText = this.add.text(10, 10, 'FPS: 0', {
@@ -2546,13 +2546,13 @@ class GameScene extends Phaser.Scene {
             const slotBg = this.add.rectangle(xPos, yPos, 30, 30, 0x333333, 0.5);
             slotBg.setStrokeStyle(1, 0x666666);
             slotBg.setScrollFactor(0);
-            slotBg.setDepth(61);
+            slotBg.setDepth(561);
             slotBg.setVisible(i < this.maxCharges);
 
             // Element sprite indicator (default to first sheet)
             const indicator = this.add.sprite(xPos, yPos, 'element-symbols', 0);
             indicator.setScrollFactor(0);
-            indicator.setDepth(62);
+            indicator.setDepth(562);
             indicator.setVisible(false);
             indicator.setScale(0.08); // Scale down much more since frames are huge
             indicator.setTint(0xffffff); // Ensure no tint
@@ -2574,14 +2574,14 @@ class GameScene extends Phaser.Scene {
             fontStyle: 'bold'
         });
         this.levelText.setScrollFactor(0);
-        this.levelText.setDepth(60);
+        this.levelText.setDepth(560);
 
         this.xpText = this.add.text(20, 45, `XP: ${this.playerXP}/${this.xpToNextLevel}`, {
             fontSize: '14px',
             color: '#ffffff'
         });
         this.xpText.setScrollFactor(0);
-        this.xpText.setDepth(60);
+        this.xpText.setDepth(560);
     }
 
     updateChargeUI() {
@@ -2691,7 +2691,7 @@ class GameScene extends Phaser.Scene {
 
         this.spellbookUI.add([background, title, this.spellListContainer, closeText, closeButton]);
         this.spellbookUI.setVisible(false);
-        this.spellbookUI.setDepth(300);
+        this.spellbookUI.setDepth(900); // High depth to render above everything
         this.spellbookUI.setScrollFactor(0); // Fix to camera
 
         // Hide mask shape
@@ -2757,7 +2757,7 @@ class GameScene extends Phaser.Scene {
 
         this.elementsMenu.add([background, title, this.elementsListContainer, closeText, instructionText, closeButton]);
         this.elementsMenu.setVisible(false);
-        this.elementsMenu.setDepth(300);
+        this.elementsMenu.setDepth(900); // High depth to render above everything
         this.elementsMenu.setScrollFactor(0);
     }
 
@@ -2765,19 +2765,19 @@ class GameScene extends Phaser.Scene {
         this.healthBarBg = this.add.rectangle(100, 550, 150, 20, 0x333333);
         this.healthBarBg.setStrokeStyle(2, 0xffffff);
         this.healthBarBg.setScrollFactor(0); // Fix to camera
-        this.healthBarBg.setDepth(100); // Render above all game elements
+        this.healthBarBg.setDepth(600); // Render above all game elements
 
         this.healthBar = this.add.rectangle(25, 550, 150, 20, 0x44ff44);
         this.healthBar.setOrigin(0, 0.5);
         this.healthBar.setScrollFactor(0); // Fix to camera
-        this.healthBar.setDepth(101); // Render above background
+        this.healthBar.setDepth(601); // Render above background
 
         const healthLabel = this.add.text(100, 525, 'HEALTH', {
             fontSize: '14px',
             color: '#ffffff'
         }).setOrigin(0.5);
         healthLabel.setScrollFactor(0); // Fix to camera
-        healthLabel.setDepth(101); // Render above background
+        healthLabel.setDepth(601); // Render above background
 
         // Add timer display in top middle
         this.difficultyText = this.add.text(400, 20, 'Timer: 0:00', {
@@ -2786,7 +2786,7 @@ class GameScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5);
         this.difficultyText.setScrollFactor(0);
-        this.difficultyText.setDepth(60);
+        this.difficultyText.setDepth(560);
 
         // Removed duplicate timer - using difficultyText only
         // this.survivalText = this.add.text(650, 45, 'Time: 0:00', {
@@ -3080,7 +3080,7 @@ class GameScene extends Phaser.Scene {
             strokeThickness: 4
         });
         waveText.setOrigin(0.5);
-        waveText.setDepth(100);
+        waveText.setDepth(600);
 
         this.tweens.add({
             targets: waveText,
@@ -3096,11 +3096,11 @@ class GameScene extends Phaser.Scene {
         // Create health bar that floats above wizard
         this.wizardHealthBarBg = this.add.rectangle(0, -50, 40, 6, 0x333333);
         this.wizardHealthBarBg.setStrokeStyle(1, 0x000000);
-        this.wizardHealthBarBg.setDepth(50); // Above enemies (25) but below UI (100+)
+        this.wizardHealthBarBg.setDepth(550); // Above enemies (25) but below UI (100+)
 
         this.wizardHealthBar = this.add.rectangle(-20, -50, 40, 6, 0x44ff44);
         this.wizardHealthBar.setOrigin(0, 0.5);
-        this.wizardHealthBar.setDepth(51); // Above background bar
+        this.wizardHealthBar.setDepth(551); // Above background bar
 
         // Add to wizard container or update position in update loop
         this.updateWizardHealthBar();
@@ -3150,13 +3150,13 @@ class GameScene extends Phaser.Scene {
         this.xpBarBg = this.add.rectangle(barX, barY, barWidth, barHeight, 0x333333);
         this.xpBarBg.setStrokeStyle(1, 0x000000);
         this.xpBarBg.setScrollFactor(0);
-        this.xpBarBg.setDepth(100);
+        this.xpBarBg.setDepth(600);
 
         // XP fill
         this.xpBarFill = this.add.rectangle(0, barY, 0, barHeight - 2, 0x4444ff);
         this.xpBarFill.setOrigin(0, 0.5);
         this.xpBarFill.setScrollFactor(0);
-        this.xpBarFill.setDepth(101);
+        this.xpBarFill.setDepth(601);
 
         // Level text - removed for cleaner UI
         // this.levelText = this.add.text(10, barY, `Lvl ${this.playerLevel}`, {
@@ -3715,7 +3715,13 @@ class GameScene extends Phaser.Scene {
         // Element orbs are now collected by walking over them
         // No manual charging system
 
-        // Automatic shooting based on charges using the new cooldown system
+        // Always fire basic projectile regardless of charges
+        if (!this.lastFireTime || time > this.lastFireTime + this.fireRate) {
+            this.fireBasicProjectile();
+            this.lastFireTime = time;
+        }
+
+        // Also fire element projectiles if we have charges
         if (this.charges.length > 0) {
             // Fire each charge independently based on its cooldown
             for (let i = 0; i < this.charges.length; i++) {
@@ -3729,12 +3735,6 @@ class GameScene extends Phaser.Scene {
                     // Set the cooldown for this specific charge
                     this.setSpellCooldown(element, fireRate, i);
                 }
-            }
-        } else {
-            // Fire basic projectile when no charges
-            if (!this.lastFireTime || time > this.lastFireTime + this.fireRate) {
-                this.fireBasicProjectile();
-                this.lastFireTime = time;
             }
         }
 
@@ -4086,12 +4086,12 @@ class GameScene extends Phaser.Scene {
         });
 
         // Update depths based on Y position
-        this.wizard.setDepth(Math.max(10, Math.floor(this.wizard.y / 10))); // Ensure wizard is always above floor (-10)
+        this.wizard.setDepth(Math.min(400, Math.max(10, Math.floor(this.wizard.y / 10)))); // Cap at 400 to stay below HUD
         this.enemies.children.entries.forEach(enemy => {
             if (enemy.active) {
                 // Ensure enemies are always visible above the floor (-10)
                 // Add 1000 to ensure positive depths even at negative Y coordinates
-                enemy.setDepth(Math.max(1, Math.floor((enemy.y + 1000) / 10)));
+                enemy.setDepth(Math.min(400, Math.max(1, Math.floor((enemy.y + 1000) / 10)))); // Cap at 400 to stay below HUD
                 
                 // Safety check: ensure enemy is visible
                 if (!enemy.visible) {
@@ -4457,6 +4457,7 @@ class GameScene extends Phaser.Scene {
 
     createPauseMenu() {
         this.pauseMenu = this.add.container(400, 300);
+        this.pauseMenu.setDepth(900); // High depth to render above everything
 
         // Set the container size but don't make the container itself interactive
         this.pauseMenu.setSize(700, 500);
@@ -4746,7 +4747,7 @@ class GameScene extends Phaser.Scene {
 
                     // Create a temporary interactive zone at world coordinates
                     const hitZone = this.add.circle(worldX, worldY, 30, 0x00ff00, 0.01); // Very slight alpha so it's almost invisible
-                    hitZone.setDepth(300);
+                    hitZone.setDepth(901); // Above pause menu for interaction
                     hitZone.setScrollFactor(0);
 
                     // IMPORTANT: Set interactive after creating, with draggable only if slot has a charge
@@ -13761,7 +13762,7 @@ class GameScene extends Phaser.Scene {
 
             const button = this.add.container(xPos, 300); // Centered on viewport
             button.setScrollFactor(0);
-            button.setDepth(202);
+            button.setDepth(922);
 
             // Black background for frame
             const bg = this.add.rectangle(0, 0, 200, 280, 0x000000, 0.9);
@@ -13963,7 +13964,7 @@ class GameScene extends Phaser.Scene {
         // Create UI for slot upgrade selection
         const selectionBg = this.add.rectangle(400, 300, 700, 400, 0x000000, 0.9);
         selectionBg.setScrollFactor(0);
-        selectionBg.setDepth(200);
+        selectionBg.setDepth(920);
 
         const title = this.add.text(400, 150, 'SELECT SLOT UPGRADE', {
             fontSize: '24px',
@@ -13972,7 +13973,7 @@ class GameScene extends Phaser.Scene {
         });
         title.setOrigin(0.5);
         title.setScrollFactor(0);
-        title.setDepth(201);
+        title.setDepth(921);
 
         // Add control hint
         const controlHint = this.add.text(400, 480, 'Use D-pad/Arrow keys to navigate, A/SPACE to select', {
@@ -13981,7 +13982,7 @@ class GameScene extends Phaser.Scene {
         });
         controlHint.setOrigin(0.5);
         controlHint.setScrollFactor(0);
-        controlHint.setDepth(201);
+        controlHint.setDepth(921);
 
         // Create three upgrade type buttons
         const upgradeTypes = [
@@ -14012,7 +14013,7 @@ class GameScene extends Phaser.Scene {
 
             const button = this.add.container(xPos, 300);
             button.setScrollFactor(0);
-            button.setDepth(202);
+            button.setDepth(922);
 
             // Black background
             const bg = this.add.rectangle(0, 0, 200, 280, 0x000000, 0.9);
@@ -14229,7 +14230,7 @@ class GameScene extends Phaser.Scene {
         const fusionBg = this.add.rectangle(400, 300, 700, 450, 0x000000, 0.9);
         fusionBg.setStrokeStyle(3, 0xff44ff);
         fusionBg.setScrollFactor(0);
-        fusionBg.setDepth(200);
+        fusionBg.setDepth(920);
 
         const title = this.add.text(400, 100, 'FUSION RITUAL', {
             fontSize: '32px',
@@ -14238,7 +14239,7 @@ class GameScene extends Phaser.Scene {
         });
         title.setOrigin(0.5);
         title.setScrollFactor(0);
-        title.setDepth(201);
+        title.setDepth(921);
 
         const instruction = this.add.text(400, 140, 'Select two elements to combine', {
             fontSize: '16px',
@@ -14246,7 +14247,7 @@ class GameScene extends Phaser.Scene {
         });
         instruction.setOrigin(0.5);
         instruction.setScrollFactor(0);
-        instruction.setDepth(201);
+        instruction.setDepth(921);
 
         const controlHint = this.add.text(400, 480, 'Use D-pad/Arrow keys to navigate, A/SPACE to select elements', {
             fontSize: '14px',
@@ -14254,7 +14255,7 @@ class GameScene extends Phaser.Scene {
         });
         controlHint.setOrigin(0.5);
         controlHint.setScrollFactor(0);
-        controlHint.setDepth(201);
+        controlHint.setDepth(921);
 
         // Show current elements for selection
         const elementButtons = [];
@@ -14271,7 +14272,7 @@ class GameScene extends Phaser.Scene {
 
             const container = this.add.container(xPos, yPos);
             container.setScrollFactor(0);
-            container.setDepth(202);
+            container.setDepth(922);
 
             const bg = this.add.circle(0, 0, 40, 0x333333);
             // Only show frame on first element initially
@@ -14357,7 +14358,7 @@ class GameScene extends Phaser.Scene {
         });
         this.fusionButton.setOrigin(0.5);
         this.fusionButton.setScrollFactor(0);
-        this.fusionButton.setDepth(203);
+        this.fusionButton.setDepth(923);
         this.fusionButton.setInteractive();
 
         this.fusionButton.on('pointerdown', () => {
@@ -14614,7 +14615,7 @@ class GameScene extends Phaser.Scene {
             });
             controlHint.setOrigin(0.5);
             controlHint.setScrollFactor(0);
-            controlHint.setDepth(201);
+            controlHint.setDepth(921);
         }
 
         // Show current charges if full
@@ -14622,7 +14623,7 @@ class GameScene extends Phaser.Scene {
         if (chargesFull) {
             chargeDisplay = this.add.container(400, 370);
             chargeDisplay.setScrollFactor(0);
-            chargeDisplay.setDepth(201);
+            chargeDisplay.setDepth(921);
 
             const chargeLabel = this.add.text(0, -20, 'Current elements (select one to replace):', {
                 fontSize: '12px',
@@ -14703,7 +14704,7 @@ class GameScene extends Phaser.Scene {
 
             const button = this.add.container(xPos, 300); // Centered on viewport
             button.setScrollFactor(0);
-            button.setDepth(202);
+            button.setDepth(922);
 
             // Black background like level up menu
             const bg = this.add.rectangle(0, 0, 200, 280, 0x000000, 0.9);
