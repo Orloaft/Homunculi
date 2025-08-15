@@ -293,6 +293,17 @@ class LoadingScene extends Phaser.Scene {
         for (let i = 1; i <= 8; i++) {
             this.load.image(`darkeye-walk-${i}`, `newenemies/Bringer-Of-Death/Individual Sprite/Walk/Bringer-of-Death_Walk_${i}.png`);
         }
+
+        // Load chest sprites
+        this.load.spritesheet('chest-idle', 'Chests5frames.PNG', {
+            frameWidth: 48,
+            frameHeight: 27
+        });
+        
+        this.load.spritesheet('chest-open', 'Chestsopen5frames.PNG', {
+            frameWidth: 48,
+            frameHeight: 27
+        });
         }
     }
 
@@ -723,111 +734,219 @@ class StageSelectScene extends Phaser.Scene {
         super({ key: 'StageSelectScene' });
         this.selectedStage = 0;
         this.stages = [
-            { name: 'Forest', unlocked: true, description: 'A mystical forest filled with danger' },
-            { name: 'Cave', unlocked: true, description: 'Dark caverns with unknown threats' },
-            { name: 'Castle', unlocked: false, description: 'An ancient fortress of evil' },
-            { name: 'Lava', unlocked: true, description: 'Burning fields of molten rock' },
-            { name: 'Sky Temple', unlocked: false, description: 'Floating sanctuary in the clouds' },
-            { name: 'Void Realm', unlocked: false, description: 'The final dimension of darkness' }
+            { name: 'Forest Land', unlocked: true, description: 'A mystical forest filled with danger', 
+              icon: 'island-forest', color: 0x44ff44, x: 200, y: 300 },
+            { name: 'Cave Land', unlocked: true, description: 'Dark caverns with unknown threats', 
+              icon: 'island-cave', color: 0x8B4513, x: 400, y: 200 },
+            { name: 'Sand Land', unlocked: true, description: 'Ancient pyramids in endless dunes', 
+              icon: 'island-sand', color: 0xFFD700, x: 600, y: 200 },
+            { name: 'Lava Land', unlocked: true, description: 'Burning fields of molten rock', 
+              icon: 'island-volcano', color: 0xFF4500, x: 300, y: 450 },
+            { name: 'Grave Land', unlocked: false, description: 'Where the dead refuse to rest', 
+              icon: 'island-grave', color: 0x444444, x: 500, y: 400 },
+            { name: 'Castle Land', unlocked: false, description: 'An ancient fortress of evil', 
+              icon: 'island-castle', color: 0x666666, x: 700, y: 300 },
+            { name: 'Spire Land', unlocked: false, description: 'Tower reaching to the heavens', 
+              icon: 'island-spire', color: 0x8B6914, x: 150, y: 400 },
+            { name: 'The Void', unlocked: false, description: 'The final dimension of darkness', 
+              icon: 'void', color: 0x4B0082, x: 700, y: 450 },
+            { name: 'Nexus', unlocked: true, description: 'Eternal power awaits within', 
+              icon: 'island-crystal', color: 0x9966ff, x: 400, y: 350, isNexus: true }
         ];
     }
 
+    preload() {
+        // Load island sprites
+        this.load.image('island-forest', 'islands/forest.png');
+        this.load.image('island-cave', 'islands/cave.png');
+        this.load.image('island-sand', 'islands/sandpyramid.png');
+        this.load.image('island-volcano', 'islands/volcano.png');
+        this.load.image('island-grave', 'islands/grave.png');
+        this.load.image('island-castle', 'islands/castle.png');
+        this.load.image('island-spire', 'islands/spire.png');
+        this.load.image('island-crystal', 'islands/crystal.png');
+    }
+
     create() {
-        // Set background color
-        this.cameras.main.setBackgroundColor('#11130d');
+        // Create deep space/abyss background
+        this.cameras.main.setBackgroundColor('#0a0a1a');
+        
+        // Add floating particles for mystical effect
+        this.createAbyssParticles();
+        
+        // Title removed per request
 
-        // Title
-        this.add.text(400, 50, 'SELECT STAGE', {
-            fontSize: '48px',
-            color: '#ffd700',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-
-        // Stage grid
-        const startX = 150;
-        const startY = 150;
-        const stageWidth = 200;
-        const stageHeight = 150;
-        const padding = 50;
-        const cols = 3;
+        // Constellation paths will be created after node animation
 
         this.stageButtons = [];
+        this.stageNodes = [];
 
+        // Find nexus position for animation start
+        const nexusStage = this.stages.find(s => s.isNexus);
+        const nexusX = nexusStage ? nexusStage.x : 400;
+        const nexusY = nexusStage ? nexusStage.y : 350;
+        
+        // Create floating stage nodes
         this.stages.forEach((stage, index) => {
-            const row = Math.floor(index / cols);
-            const col = index % cols;
-            const x = startX + col * (stageWidth + padding);
-            const y = startY + row * (stageHeight + padding);
-
-            // Stage container
-            const container = this.add.container(x, y);
-
-            // Stage background
-            const bgColor = stage.unlocked ? 0x2d4a2b : 0x333333;
-            const bg = this.add.rectangle(0, 0, stageWidth, stageHeight, bgColor);
-            bg.setStrokeStyle(3, stage.unlocked ? 0xffd700 : 0x666666);
-            container.add(bg);
-
-            // Stage name
-            const nameText = this.add.text(0, -40, stage.name, {
-                fontSize: '24px',
-                color: stage.unlocked ? '#ffffff' : '#666666',
-                fontStyle: 'bold'
-            }).setOrigin(0.5);
-            container.add(nameText);
-
-            // Lock icon for locked stages
-            if (!stage.unlocked) {
-                const lockText = this.add.text(0, 10, '🔒', {
-                    fontSize: '48px'
-                }).setOrigin(0.5);
-                container.add(lockText);
-            } else if (index === 0) {
-                // Show "PLAY" for the first unlocked stage
-                const playText = this.add.text(0, 10, 'PLAY', {
-                    fontSize: '32px',
-                    color: '#00ff00',
+            // Create container for the stage node
+            const container = this.add.container(stage.x, stage.y);
+            
+            // Hide non-nexus nodes initially
+            if (!stage.isNexus) {
+                container.setAlpha(0);
+                container.setScale(0.1);
+                container.x = nexusX;
+                container.y = nexusY;
+            }
+            
+            // Create glowing effect
+            const glow = this.add.graphics();
+            glow.fillStyle(stage.color, 0.3);
+            glow.fillCircle(0, 0, 50);
+            container.add(glow);
+            
+            // Pulsing glow animation
+            this.tweens.add({
+                targets: glow,
+                scale: { from: 1, to: 1.2 },
+                alpha: { from: 0.3, to: 0.1 },
+                duration: 2000,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+            
+            // Main island sprite
+            let island = null;
+            if (stage.icon && this.textures.exists(stage.icon)) {
+                island = this.add.image(0, 0, stage.icon);
+                island.setScale(stage.isNexus ? 0.4 : 0.3);
+                island.setAlpha(stage.unlocked ? 1 : 0.5);
+                if (!stage.unlocked) {
+                    island.setTint(0x444444);
+                }
+                container.add(island);
+            } else {
+                // Fallback: colored circle with first letter
+                const orb = this.add.circle(0, 0, 30, stage.color, stage.unlocked ? 0.8 : 0.3);
+                orb.setStrokeStyle(3, stage.unlocked ? 0xffffff : 0x444444);
+                container.add(orb);
+                
+                const iconText = this.add.text(0, 0, stage.name[0], {
+                    fontSize: '24px',
+                    color: stage.unlocked ? '#ffffff' : '#666666',
                     fontStyle: 'bold'
                 }).setOrigin(0.5);
-                container.add(playText);
+                container.add(iconText);
+                island = orb;
             }
-
-            // Description (shown when selected)
-            const descText = this.add.text(0, 60, stage.description, {
-                fontSize: '14px',
-                color: stage.unlocked ? '#cccccc' : '#666666',
+            
+            // Lock overlay for locked stages
+            if (!stage.unlocked) {
+                const lock = this.add.text(0, 0, '🔒', {
+                    fontSize: '20px'
+                }).setOrigin(0.5);
+                container.add(lock);
+            }
+            
+            // Stage name (floating below island)
+            const nameText = this.add.text(0, 60, stage.name.toUpperCase(), {
+                fontSize: '16px',
+                color: stage.unlocked ? '#ffffff' : '#666666',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 2
+            }).setOrigin(0.5);
+            container.add(nameText);
+            
+            // Description (appears on hover/select)
+            const descText = this.add.text(0, 80, stage.description, {
+                fontSize: '12px',
+                color: stage.unlocked ? '#aaaaff' : '#666666',
                 align: 'center',
-                wordWrap: { width: stageWidth - 20 }
+                wordWrap: { width: 150 },
+                stroke: '#000000',
+                strokeThickness: 1
             }).setOrigin(0.5);
             descText.setVisible(false);
             container.add(descText);
-
-            // Make interactive if unlocked
+            
+            // Floating animation removed per request
+            
+            // Make interactive
             if (stage.unlocked) {
-                bg.setInteractive({ useHandCursor: true });
-
-                bg.on('pointerover', () => {
-                    if (stage.unlocked) {
-                        bg.setFillStyle(0x3d5a3b);
-                        descText.setVisible(true);
-                    }
+                island.setInteractive({ useHandCursor: true });
+                
+                island.on('pointerover', () => {
+                    island.setScale(island.scale * 1.2);
+                    descText.setVisible(true);
+                    glow.setScale(1.5);
                 });
-
-                bg.on('pointerout', () => {
-                    if (stage.unlocked) {
-                        bg.setFillStyle(0x2d4a2b);
-                        descText.setVisible(false);
-                    }
+                
+                island.on('pointerout', () => {
+                    island.setScale(stage.isNexus ? 0.4 : 0.3);
+                    descText.setVisible(false);
+                    glow.setScale(1);
                 });
-
-                bg.on('pointerdown', () => {
-                    if (stage.unlocked) {
-                        this.selectStage(index);
-                    }
+                
+                island.on('pointerdown', () => {
+                    this.selectStage(index);
                 });
             }
-
-            this.stageButtons.push({ container, bg, nameText, descText, stage });
+            
+            this.stageButtons.push({ 
+                container, 
+                island, 
+                glow,
+                nameText, 
+                descText, 
+                stage 
+            });
+            
+            this.stageNodes.push({ x: stage.x, y: stage.y, unlocked: stage.unlocked });
+        });
+        
+        // Animate nodes emerging from nexus
+        this.time.delayedCall(500, () => {
+            this.stageButtons.forEach((button, index) => {
+                if (!button.stage.isNexus) {
+                    // Calculate delay based on distance from nexus
+                    const distance = Phaser.Math.Distance.Between(nexusX, nexusY, button.stage.x, button.stage.y);
+                    const delay = index * 150 + (distance / 5);
+                    
+                    // Animate to final position
+                    this.tweens.add({
+                        targets: button.container,
+                        x: button.stage.x,
+                        y: button.stage.y,
+                        scale: 1,
+                        alpha: 1,
+                        duration: 1000,
+                        delay: delay,
+                        ease: 'Power2.easeOut',
+                        onStart: () => {
+                            // Create trail effect
+                            const trail = this.add.circle(nexusX, nexusY, 5, button.stage.color, 0.8);
+                            this.tweens.add({
+                                targets: trail,
+                                x: button.stage.x,
+                                y: button.stage.y,
+                                scale: 0.1,
+                                alpha: 0,
+                                duration: 1000,
+                                ease: 'Power2.easeOut',
+                                onComplete: () => trail.destroy()
+                            });
+                        }
+                    });
+                }
+            });
+            
+            // Create constellation paths after all nodes have animated in
+            const maxDelay = (this.stageButtons.length * 150) + 1500;
+            this.time.delayedCall(maxDelay, () => {
+                this.createConstellationPaths(true); // true for animated appearance
+            });
         });
 
         // Back button
@@ -859,6 +978,130 @@ class StageSelectScene extends Phaser.Scene {
         this.highlightStage(0);
     }
 
+    createAbyssParticles() {
+        // Create multiple layers of floating particles
+        for (let i = 0; i < 50; i++) {
+            const x = Phaser.Math.Between(0, 800);
+            const y = Phaser.Math.Between(0, 600);
+            const size = Phaser.Math.Between(1, 3);
+            
+            const particle = this.add.circle(x, y, size, 0xffffff, Phaser.Math.FloatBetween(0.1, 0.3));
+            
+            // Slow floating animation
+            this.tweens.add({
+                targets: particle,
+                y: y - Phaser.Math.Between(50, 150),
+                x: x + Phaser.Math.Between(-30, 30),
+                alpha: { from: particle.alpha, to: 0 },
+                duration: Phaser.Math.Between(8000, 15000),
+                repeat: -1,
+                onRepeat: () => {
+                    particle.x = Phaser.Math.Between(0, 800);
+                    particle.y = Phaser.Math.Between(600, 700);
+                    particle.setAlpha(Phaser.Math.FloatBetween(0.1, 0.3));
+                }
+            });
+        }
+    }
+    
+    createConstellationPaths(animated = false) {
+        // Create connections between stages (constellation style)
+        const connections = [
+            [0, 1], // Forest Land to Cave Land
+            [1, 2], // Cave Land to Sand Land
+            [0, 3], // Forest Land to Lava Land
+            [1, 3], // Cave Land to Lava Land
+            [2, 3], // Sand Land to Lava Land
+            [3, 4], // Lava Land to Grave Land
+            [4, 5], // Grave Land to Castle Land
+            [5, 7], // Castle Land to The Void
+            [0, 6], // Forest Land to Spire Land
+            [6, 7], // Spire Land to The Void
+            [0, 8], // Forest Land to Nexus
+            [1, 8], // Cave Land to Nexus
+            [3, 8], // Lava Land to Nexus
+            [8, 7]  // Nexus to The Void
+        ];
+        
+        const graphics = this.add.graphics();
+        if (animated) {
+            graphics.setAlpha(0);
+        }
+        
+        connections.forEach(([from, to], index) => {
+            const fromStage = this.stages[from];
+            const toStage = this.stages[to];
+            
+            // Only draw if at least one stage is unlocked
+            if (fromStage.unlocked || toStage.unlocked) {
+                const alpha = (fromStage.unlocked && toStage.unlocked) ? 0.3 : 0.1;
+                graphics.lineStyle(2, 0x9966ff, alpha);
+                
+                // Create curved path
+                const midX = (fromStage.x + toStage.x) / 2;
+                const midY = (fromStage.y + toStage.y) / 2 - 30;
+                
+                // Draw curved line using quadratic curve
+                const curve = new Phaser.Curves.QuadraticBezier(
+                    new Phaser.Math.Vector2(fromStage.x, fromStage.y),
+                    new Phaser.Math.Vector2(midX, midY),
+                    new Phaser.Math.Vector2(toStage.x, toStage.y)
+                );
+                
+                // Get points along the curve
+                const points = curve.getPoints(32);
+                
+                // Draw the curve
+                graphics.beginPath();
+                graphics.moveTo(points[0].x, points[0].y);
+                for (let i = 1; i < points.length; i++) {
+                    graphics.lineTo(points[i].x, points[i].y);
+                }
+                graphics.strokePath();
+                
+                // Add energy flow animation along paths for unlocked connections
+                if (fromStage.unlocked && toStage.unlocked) {
+                    this.createPathEnergy(fromStage, toStage, midX, midY);
+                }
+            }
+        });
+        
+        // Animate paths appearing
+        if (animated) {
+            this.tweens.add({
+                targets: graphics,
+                alpha: 1,
+                duration: 1500,
+                ease: 'Power2.easeIn'
+            });
+        }
+    }
+    
+    createPathEnergy(fromStage, toStage, midX, midY) {
+        const energy = this.add.circle(fromStage.x, fromStage.y, 3, 0xffaaff, 0.8);
+        
+        // Create path for energy to follow
+        const path = new Phaser.Curves.QuadraticBezier(
+            new Phaser.Math.Vector2(fromStage.x, fromStage.y),
+            new Phaser.Math.Vector2(midX, midY - 30),
+            new Phaser.Math.Vector2(toStage.x, toStage.y)
+        );
+        
+        // Animate energy along path
+        this.tweens.add({
+            targets: energy,
+            t: 1,
+            duration: 3000,
+            repeat: -1,
+            onUpdate: (tween) => {
+                const t = tween.getValue();
+                const point = path.getPoint(t);
+                energy.x = point.x;
+                energy.y = point.y;
+            }
+        });
+    }
+
     update() {
         // Handle gamepad
         const pad = this.input.gamepad ? this.input.gamepad.pad1 : null;
@@ -878,19 +1121,35 @@ class StageSelectScene extends Phaser.Scene {
         const backJustPressed = Phaser.Input.Keyboard.JustDown(this.escKey) ||
             (pad && pad.buttons[1].pressed && !this.backPressed);
 
-        // Navigate stages
-        const cols = 3;
-        const currentRow = Math.floor(this.selectedStage / cols);
-        const currentCol = this.selectedStage % cols;
-
-        if (leftJustPressed && currentCol > 0) {
-            this.highlightStage(this.selectedStage - 1);
-        } else if (rightJustPressed && currentCol < cols - 1 && this.selectedStage < this.stages.length - 1) {
-            this.highlightStage(this.selectedStage + 1);
-        } else if (upJustPressed && currentRow > 0) {
-            this.highlightStage(this.selectedStage - cols);
-        } else if (downJustPressed && this.selectedStage + cols < this.stages.length) {
-            this.highlightStage(this.selectedStage + cols);
+        // Navigate stages - find nearest stage in direction
+        if (leftJustPressed || rightJustPressed || upJustPressed || downJustPressed) {
+            const currentStage = this.stages[this.selectedStage];
+            let nearestIndex = this.selectedStage;
+            let nearestDistance = Infinity;
+            
+            this.stages.forEach((stage, index) => {
+                if (index === this.selectedStage || !stage.unlocked) return;
+                
+                const dx = stage.x - currentStage.x;
+                const dy = stage.y - currentStage.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Check direction
+                let validDirection = false;
+                if (leftJustPressed && dx < -20) validDirection = true;
+                else if (rightJustPressed && dx > 20) validDirection = true;
+                else if (upJustPressed && dy < -20) validDirection = true;
+                else if (downJustPressed && dy > 20) validDirection = true;
+                
+                if (validDirection && distance < nearestDistance) {
+                    nearestDistance = distance;
+                    nearestIndex = index;
+                }
+            });
+            
+            if (nearestIndex !== this.selectedStage) {
+                this.highlightStage(nearestIndex);
+            }
         }
 
         // Select stage
@@ -916,21 +1175,53 @@ class StageSelectScene extends Phaser.Scene {
         // Clear previous highlight
         if (this.stageButtons[this.selectedStage]) {
             const btn = this.stageButtons[this.selectedStage];
-            btn.bg.setFillStyle(btn.stage.unlocked ? 0x2d4a2b : 0x333333);
+            btn.orb.setScale(1);
             btn.descText.setVisible(false);
+            btn.glow.setScale(1);
         }
 
         // Set new highlight
         this.selectedStage = index;
         const btn = this.stageButtons[this.selectedStage];
         if (btn.stage.unlocked) {
-            btn.bg.setFillStyle(0x3d5a3b);
+            btn.orb.setScale(1.2);
             btn.descText.setVisible(true);
+            btn.glow.setScale(1.5);
+            
+            // Add selection ring effect
+            const ring = this.add.circle(btn.container.x, btn.container.y, 40, 0xffffff, 0);
+            ring.setStrokeStyle(3, 0xffffff, 1);
+            
+            this.tweens.add({
+                targets: ring,
+                scale: { from: 1, to: 1.5 },
+                alpha: { from: 1, to: 0 },
+                duration: 1000,
+                onComplete: () => ring.destroy()
+            });
         }
     }
 
     selectStage(index) {
-        if (index === 0 || index === 1 || index === 3) {
+        const stage = this.stages[index];
+        
+        // Check if this is the Nexus
+        if (stage.isNexus) {
+            // Fade to nexus
+            const fadeOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000);
+            fadeOverlay.setAlpha(0);
+            fadeOverlay.setDepth(1000);
+
+            this.tweens.add({
+                targets: fadeOverlay,
+                alpha: 1,
+                duration: 500,
+                ease: 'Power2',
+                onComplete: () => {
+                    this.scene.start('TalentTreeScene');
+                }
+            });
+        } else if (index === 0 || index === 1 || index === 3) {
             // Fade to black before starting game
             const fadeOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000);
             fadeOverlay.setAlpha(0);
@@ -1101,6 +1392,370 @@ class GameOverScene extends Phaser.Scene {
                 }
             }
         }
+    }
+}
+
+class TalentTreeScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'TalentTreeScene' });
+        this.selectedNode = null;
+        this.talentPoints = parseInt(localStorage.getItem('talentPoints') || '0');
+        this.talents = new Map(); // Store purchased talents
+        this.connections = [];
+        this.nodeButtons = [];
+    }
+    
+    create() {
+        // Set mystical background
+        this.cameras.main.setBackgroundColor('#0a0618');
+        
+        // Add floating particles
+        this.createMysticalParticles();
+        
+        // Title
+        const title = this.add.text(400, 30, 'NEXUS OF ETERNAL POWER', {
+            fontSize: '36px',
+            color: '#d4af37',
+            fontStyle: 'bold',
+            stroke: '#ffffff',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        
+        // Talent points display
+        this.pointsText = this.add.text(400, 70, `Essence: ${this.talentPoints}`, {
+            fontSize: '24px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        
+        // Create talent tree structure
+        this.createTalentTree();
+        
+        // Instructions
+        this.add.text(400, 550, 'Click nodes to unlock • Requires connected path from center', {
+            fontSize: '14px',
+            color: '#aaaaaa'
+        }).setOrigin(0.5);
+        
+        // Back button
+        const backButton = this.add.text(50, 550, '< BACK', {
+            fontSize: '24px',
+            color: '#ffffff'
+        }).setOrigin(0, 0.5);
+        backButton.setInteractive({ useHandCursor: true });
+        
+        backButton.on('pointerover', () => backButton.setColor('#ffd700'));
+        backButton.on('pointerout', () => backButton.setColor('#ffffff'));
+        backButton.on('pointerdown', () => {
+            this.saveTalents();
+            this.scene.start('StageSelectScene');
+        });
+        
+        // Reset button
+        const resetButton = this.add.text(750, 550, 'RESET ALL', {
+            fontSize: '24px',
+            color: '#ff6666'
+        }).setOrigin(1, 0.5);
+        resetButton.setInteractive({ useHandCursor: true });
+        
+        resetButton.on('pointerover', () => resetButton.setColor('#ff9999'));
+        resetButton.on('pointerout', () => resetButton.setColor('#ff6666'));
+        resetButton.on('pointerdown', () => {
+            this.resetTalents();
+        });
+    }
+    
+    createMysticalParticles() {
+        for (let i = 0; i < 30; i++) {
+            const x = Phaser.Math.Between(0, 800);
+            const y = Phaser.Math.Between(0, 600);
+            const particle = this.add.circle(x, y, 2, 0x9966ff, 0.3);
+            
+            this.tweens.add({
+                targets: particle,
+                y: y - 100,
+                x: x + Phaser.Math.Between(-50, 50),
+                alpha: 0,
+                duration: Phaser.Math.Between(5000, 8000),
+                repeat: -1,
+                delay: Phaser.Math.Between(0, 5000),
+                onRepeat: () => {
+                    particle.x = Phaser.Math.Between(0, 800);
+                    particle.y = 600;
+                    particle.setAlpha(0.3);
+                }
+            });
+        }
+    }
+    
+    createTalentTree() {
+        // Load saved talents
+        const savedTalents = localStorage.getItem('purchasedTalents');
+        if (savedTalents) {
+            const talentArray = JSON.parse(savedTalents);
+            talentArray.forEach(id => this.talents.set(id, true));
+        }
+        
+        // Define talent nodes (Rogue Legacy style)
+        const talentData = [
+            // Center (always unlocked)
+            { id: 'origin', x: 400, y: 300, name: 'Origin', desc: 'The beginning of power', cost: 0, 
+              effect: null, icon: '⭐', color: 0xffd700, unlocked: true },
+            
+            // First ring - Basic stats
+            { id: 'health1', x: 400, y: 200, name: 'Vitality I', desc: '+20% Max Health', cost: 1,
+              effect: { maxHealth: 1.2 }, icon: '❤️', color: 0xff4444, requires: ['origin'] },
+            { id: 'damage1', x: 500, y: 250, name: 'Power I', desc: '+15% Damage', cost: 1,
+              effect: { damage: 1.15 }, icon: '⚔️', color: 0xff8844, requires: ['origin'] },
+            { id: 'speed1', x: 500, y: 350, name: 'Swiftness I', desc: '+10% Move Speed', cost: 1,
+              effect: { moveSpeed: 1.1 }, icon: '💨', color: 0x44ffff, requires: ['origin'] },
+            { id: 'pickup1', x: 400, y: 400, name: 'Magnetism I', desc: '+30% Pickup Range', cost: 1,
+              effect: { pickupRange: 1.3 }, icon: '🧲', color: 0x8844ff, requires: ['origin'] },
+            { id: 'cooldown1', x: 300, y: 350, name: 'Haste I', desc: '-10% Cooldowns', cost: 1,
+              effect: { cooldown: 0.9 }, icon: '⏱️', color: 0x44ff44, requires: ['origin'] },
+            { id: 'regen1', x: 300, y: 250, name: 'Recovery I', desc: '+1 HP/10s', cost: 1,
+              effect: { regen: 0.1 }, icon: '✨', color: 0x44ff88, requires: ['origin'] },
+            
+            // Second ring - Advanced stats
+            { id: 'health2', x: 400, y: 120, name: 'Vitality II', desc: '+40% Max Health', cost: 2,
+              effect: { maxHealth: 1.4 }, icon: '❤️', color: 0xff4444, requires: ['health1'] },
+            { id: 'damage2', x: 580, y: 200, name: 'Power II', desc: '+30% Damage', cost: 2,
+              effect: { damage: 1.3 }, icon: '⚔️', color: 0xff8844, requires: ['damage1'] },
+            { id: 'multishot', x: 600, y: 300, name: 'Multi-Cast', desc: '+1 Projectile', cost: 3,
+              effect: { projectiles: 1 }, icon: '🎯', color: 0xffaa44, requires: ['damage1'] },
+            { id: 'speed2', x: 580, y: 400, name: 'Swiftness II', desc: '+20% Move Speed', cost: 2,
+              effect: { moveSpeed: 1.2 }, icon: '💨', color: 0x44ffff, requires: ['speed1'] },
+            { id: 'dodge', x: 500, y: 450, name: 'Evasion', desc: '10% Dodge Chance', cost: 3,
+              effect: { dodge: 0.1 }, icon: '🛡️', color: 0x4488ff, requires: ['speed1'] },
+            { id: 'lifesteal', x: 220, y: 300, name: 'Vampirism', desc: '5% Life Steal', cost: 3,
+              effect: { lifesteal: 0.05 }, icon: '🦇', color: 0xcc44cc, requires: ['regen1'] },
+            
+            // Third ring - Specializations
+            { id: 'tank', x: 300, y: 120, name: 'Fortress', desc: '+60% HP, -20% Speed', cost: 4,
+              effect: { maxHealth: 1.6, moveSpeed: 0.8 }, icon: '🏰', color: 0x888888, requires: ['health2', 'regen1'] },
+            { id: 'glass', x: 680, y: 250, name: 'Glass Cannon', desc: '+50% DMG, -30% HP', cost: 4,
+              effect: { damage: 1.5, maxHealth: 0.7 }, icon: '💎', color: 0xff00ff, requires: ['damage2', 'multishot'] },
+            { id: 'ninja', x: 600, y: 480, name: 'Shadow Walker', desc: '+30% Speed & Dodge', cost: 4,
+              effect: { moveSpeed: 1.3, dodge: 0.3 }, icon: '🥷', color: 0x333333, requires: ['speed2', 'dodge'] },
+            
+            // Ultimate center node
+            { id: 'transcend', x: 400, y: 300, name: 'Transcendence', desc: 'Unlock true potential', cost: 10,
+              effect: { all: 1.1 }, icon: '🌟', color: 0xffffff, requires: ['health2', 'damage2', 'speed2'], 
+              special: true, radius: 25 }
+        ];
+        
+        // Create talent nodes
+        talentData.forEach(talent => {
+            this.createTalentNode(talent);
+        });
+        
+        // Draw connections after all nodes are created
+        this.drawConnections();
+    }
+    
+    createTalentNode(talent) {
+        const container = this.add.container(talent.x, talent.y);
+        const radius = talent.radius || 35;
+        
+        // Check if unlocked
+        const isUnlocked = talent.unlocked || this.talents.has(talent.id);
+        const canUnlock = this.canUnlockTalent(talent);
+        
+        // Glow effect
+        if (isUnlocked || canUnlock) {
+            const glow = this.add.circle(0, 0, radius + 10, talent.color, 0.3);
+            container.add(glow);
+            
+            if (!talent.special) {
+                this.tweens.add({
+                    targets: glow,
+                    scale: { from: 1, to: 1.2 },
+                    alpha: { from: 0.3, to: 0.1 },
+                    duration: 2000,
+                    yoyo: true,
+                    repeat: -1
+                });
+            }
+        }
+        
+        // Main node
+        const node = this.add.circle(0, 0, radius, talent.color, isUnlocked ? 0.9 : 0.3);
+        node.setStrokeStyle(3, isUnlocked ? 0xffffff : (canUnlock ? talent.color : 0x444444));
+        container.add(node);
+        
+        // Icon
+        const icon = this.add.text(0, 0, talent.icon, {
+            fontSize: talent.special ? '24px' : '20px'
+        }).setOrigin(0.5);
+        container.add(icon);
+        
+        // Name
+        const name = this.add.text(0, radius + 15, talent.name, {
+            fontSize: '12px',
+            color: isUnlocked ? '#ffffff' : (canUnlock ? '#aaaaaa' : '#666666'),
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        container.add(name);
+        
+        // Cost
+        if (!talent.unlocked && talent.cost > 0) {
+            const costText = this.add.text(0, -radius - 15, `${talent.cost}`, {
+                fontSize: '14px',
+                color: canUnlock && this.talentPoints >= talent.cost ? '#44ff44' : '#ff4444',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 2
+            }).setOrigin(0.5);
+            container.add(costText);
+        }
+        
+        // Make interactive if can unlock
+        if (!isUnlocked && canUnlock) {
+            node.setInteractive({ useHandCursor: true });
+            
+            node.on('pointerover', () => {
+                node.setScale(1.1);
+                this.showTalentTooltip(talent, container);
+            });
+            
+            node.on('pointerout', () => {
+                node.setScale(1);
+                this.hideTooltip();
+            });
+            
+            node.on('pointerdown', () => {
+                if (this.talentPoints >= talent.cost) {
+                    this.unlockTalent(talent);
+                }
+            });
+        } else if (isUnlocked) {
+            node.setInteractive({ useHandCursor: true });
+            
+            node.on('pointerover', () => {
+                this.showTalentTooltip(talent, container);
+            });
+            
+            node.on('pointerout', () => {
+                this.hideTooltip();
+            });
+        }
+        
+        // Store node data
+        talent.container = container;
+        talent.node = node;
+        this.nodeButtons.push(talent);
+    }
+    
+    canUnlockTalent(talent) {
+        if (!talent.requires) return true;
+        
+        // Check if all required talents are unlocked
+        return talent.requires.every(reqId => {
+            const reqTalent = this.nodeButtons.find(t => t.id === reqId);
+            return reqTalent && (reqTalent.unlocked || this.talents.has(reqId));
+        });
+    }
+    
+    unlockTalent(talent) {
+        this.talentPoints -= talent.cost;
+        this.talents.set(talent.id, true);
+        localStorage.setItem('talentPoints', this.talentPoints.toString());
+        
+        // Update points display
+        this.pointsText.setText(`Essence: ${this.talentPoints}`);
+        
+        // Refresh the tree
+        this.nodeButtons.forEach(btn => btn.container.destroy());
+        this.nodeButtons = [];
+        this.createTalentTree();
+        
+        // Show unlock effect
+        this.showUnlockEffect(talent.x, talent.y);
+    }
+    
+    showUnlockEffect(x, y) {
+        const effect = this.add.circle(x, y, 5, 0xffffff, 1);
+        
+        this.tweens.add({
+            targets: effect,
+            scale: 10,
+            alpha: 0,
+            duration: 1000,
+            ease: 'Power2',
+            onComplete: () => effect.destroy()
+        });
+    }
+    
+    drawConnections() {
+        const graphics = this.add.graphics();
+        graphics.setDepth(-1);
+        
+        this.nodeButtons.forEach(talent => {
+            if (talent.requires) {
+                talent.requires.forEach(reqId => {
+                    const reqTalent = this.nodeButtons.find(t => t.id === reqId);
+                    if (reqTalent) {
+                        const isUnlocked = (talent.unlocked || this.talents.has(talent.id)) && 
+                                         (reqTalent.unlocked || this.talents.has(reqId));
+                        
+                        graphics.lineStyle(2, isUnlocked ? 0xffd700 : 0x444444, isUnlocked ? 0.8 : 0.3);
+                        graphics.lineBetween(reqTalent.x, reqTalent.y, talent.x, talent.y);
+                    }
+                });
+            }
+        });
+    }
+    
+    showTalentTooltip(talent, container) {
+        if (this.tooltip) this.tooltip.destroy();
+        
+        const bg = this.add.rectangle(container.x, container.y - 80, 200, 60, 0x000000, 0.9);
+        bg.setStrokeStyle(2, talent.color);
+        
+        const desc = this.add.text(container.x, container.y - 80, talent.desc, {
+            fontSize: '14px',
+            color: '#ffffff',
+            align: 'center',
+            wordWrap: { width: 180 }
+        }).setOrigin(0.5);
+        
+        this.tooltip = this.add.container(0, 0);
+        this.tooltip.add([bg, desc]);
+    }
+    
+    hideTooltip() {
+        if (this.tooltip) {
+            this.tooltip.destroy();
+            this.tooltip = null;
+        }
+    }
+    
+    saveTalents() {
+        const talentArray = Array.from(this.talents.keys());
+        localStorage.setItem('purchasedTalents', JSON.stringify(talentArray));
+    }
+    
+    resetTalents() {
+        // Refund all spent points
+        let refund = 0;
+        this.nodeButtons.forEach(talent => {
+            if (this.talents.has(talent.id) && talent.cost > 0) {
+                refund += talent.cost;
+            }
+        });
+        
+        this.talentPoints += refund;
+        this.talents.clear();
+        localStorage.setItem('talentPoints', this.talentPoints.toString());
+        localStorage.removeItem('purchasedTalents');
+        
+        // Refresh display
+        this.pointsText.setText(`Essence: ${this.talentPoints}`);
+        this.nodeButtons.forEach(btn => btn.container.destroy());
+        this.nodeButtons = [];
+        this.createTalentTree();
     }
 }
 
@@ -1874,6 +2529,21 @@ class GameScene extends Phaser.Scene {
             ],
             frameRate: 10,
             repeat: -1
+        });
+
+        // Create chest animations
+        this.anims.create({
+            key: 'chest-idle-anim',
+            frames: this.anims.generateFrameNumbers('chest-idle', { start: 0, end: 4 }),
+            frameRate: 6,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'chest-open-anim',
+            frames: this.anims.generateFrameNumbers('chest-open', { start: 0, end: 4 }),
+            frameRate: 8,
+            repeat: 0
         });
 
         console.log('About to call startGameSequence');
@@ -3527,6 +4197,18 @@ class GameScene extends Phaser.Scene {
         if (this.chestSelectionActive && this.chestUI) {
             this.handleChestSelectionController();
             return;
+        }
+        
+        // Handle chest skip animation with gamepad A button
+        if (this.chestSkipGamepad && this.gamepad) {
+            // Check if A button (button 0) is pressed
+            if (this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed && !this.gamepadButtonStates[0]) {
+                // Trigger the fast forward function if it exists
+                if (this.chestSkipKey && this.chestSkipKey.listeners('down').length > 0) {
+                    // Emit the keyboard event to trigger the same fast forward function
+                    this.chestSkipKey.emit('down');
+                }
+            }
         }
 
         // Handle pause menu controller input when paused
@@ -6502,11 +7184,11 @@ class GameScene extends Phaser.Scene {
                     });
                 } else {
                     // Final generation drops loot
-                    this.dropJewel(enemyX, enemyY);
+                    this.dropJewel(enemyX, enemyY, 2, 0.075);
 
                     // 1.25% chance to drop muffin (reduced by 75%)
                     if (Math.random() < 0.0125) {
-                        this.dropMuffin(enemyX, enemyY);
+                        this.dropItemChest(enemyX, enemyY + 20, 'muffin');
                     }
                 }
 
@@ -6521,12 +7203,12 @@ class GameScene extends Phaser.Scene {
                 alpha: 0,
                 duration: 500,
                 onComplete: () => {
-                    // Drop regular items instead of chest
+                    // Drop regular items as chests instead
                     // Drop 3-5 jewels
                     for (let i = 0; i < 3 + Math.floor(Math.random() * 3); i++) {
                         const offsetX = (Math.random() - 0.5) * 40;
                         const offsetY = (Math.random() - 0.5) * 40;
-                        this.dropJewel(enemyX + offsetX, enemyY + offsetY);
+                        this.dropJewel(enemyX + offsetX, enemyY + offsetY, 2, 0.075);
                     }
 
                     // Drop 1-2 random elements
@@ -6534,12 +7216,12 @@ class GameScene extends Phaser.Scene {
                         const element = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
                         const offsetX = (Math.random() - 0.5) * 30;
                         const offsetY = (Math.random() - 0.5) * 30;
-                        this.dropElementOrb(enemyX + offsetX, enemyY + offsetY, element);
+                        this.dropItemChest(enemyX + offsetX, enemyY + offsetY, 'element', { element: element });
                     }
 
                     // 7.5% chance to drop muffin (reduced by 75%)
                     if (Math.random() < 0.075) {
-                        this.dropMuffin(enemyX, enemyY);
+                        this.dropItemChest(enemyX, enemyY, 'muffin');
                     }
 
                     this.enemiesKilled.elite++;
@@ -6566,7 +7248,7 @@ class GameScene extends Phaser.Scene {
                 if (!enemy || !enemy.active) return; // Safety check
                 if (isLevelUpGolem) {
                     // Level-up golems always drop charge expansion
-                    this.dropChargeExpansion(enemyX, enemyY);
+                    this.dropItemChest(enemyX, enemyY, 'chargeExpansion');
 
                     // Also drop some valuable jewels as bonus
                     for (let i = 0; i < 5; i++) {
@@ -6581,11 +7263,11 @@ class GameScene extends Phaser.Scene {
 
                     // Always drop 1 random primary element
                     const element = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
-                    this.dropElementOrb(enemyX, enemyY, element);
+                    this.dropItemChest(enemyX, enemyY + 20, 'element', { element: element });
 
                     // 7.5% chance to drop muffin (reduced by 75%)
                     if (Math.random() < 0.075) {
-                        this.dropMuffin(enemyX, enemyY);
+                        this.dropItemChest(enemyX, enemyY - 20, 'muffin');
                     }
                 }
 
@@ -6609,7 +7291,7 @@ class GameScene extends Phaser.Scene {
                 onComplete: () => {
                     if (enemy.isLevelUpDarkEye) {
                         // Level-up dark eyes drop charge expansion
-                        this.dropChargeExpansion(enemyX, enemyY);
+                        this.dropItemChest(enemyX, enemyY, 'chargeExpansion');
 
                         // Also drop some valuable jewels
                         for (let i = 0; i < 3; i++) {
@@ -6621,7 +7303,7 @@ class GameScene extends Phaser.Scene {
 
                     // Always drop 1 random element
                     const element = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
-                    this.dropElementOrb(enemyX, enemyY, element);
+                    this.dropItemChest(enemyX, enemyY + 20, 'element', { element: element });
 
                     // Drop 2-3 jewels - darkeye is a medium enemy
                     for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) {
@@ -6644,11 +7326,11 @@ class GameScene extends Phaser.Scene {
                 duration: 300,
                 onComplete: () => {
                     // Drop jewel
-                    this.dropJewel(enemyX, enemyY);
+                    this.dropJewel(enemyX, enemyY, 2, 0.075);
 
                     // 1.25% chance to drop muffin (reduced by 75%)
                     if (Math.random() < 0.0125) {
-                        this.dropMuffin(enemyX, enemyY);
+                        this.dropItemChest(enemyX, enemyY + 20, 'muffin');
                     }
 
                     // Trees no longer drop elements
@@ -7240,7 +7922,7 @@ class GameScene extends Phaser.Scene {
             const enemy = this.physics.add.sprite(x, y, 'enemy-walk', 0);
             const scaleFactor = 1.2;
             enemy.setScale(scaleFactor);
-            enemy.health = 9; // Increased by 50%  // Increased by 50% from 4
+            enemy.health = 4; // Reduced by 60% from 9
             enemy.maxHealth = enemy.health;
             enemy.enemyType = 'tree';
             enemy.moveSpeed = 36; // Reduced by 25% from 48
@@ -7827,6 +8509,7 @@ class GameScene extends Phaser.Scene {
 
         // Add to the charge expansions group
         this.chargeExpansions.add(expansion);
+        return expansion;
     }
 
     collectChargeExpansion(wizard, expansion) {
@@ -8733,6 +9416,7 @@ class GameScene extends Phaser.Scene {
 
 
         this.jewels.add(jewel);
+        return jewel;
     }
 
     dropMuffin(x, y) {
@@ -8777,6 +9461,7 @@ class GameScene extends Phaser.Scene {
         });
 
         this.muffins.add(muffin);
+        return muffin;
     }
 
     collectMuffin(wizard, muffin) {
@@ -8818,6 +9503,34 @@ class GameScene extends Phaser.Scene {
         const xpGain = Math.ceil(baseXP * this.difficultyMultiplier);
         this.playerXP += xpGain;
         this.itemsCollected.jewels++;
+
+        // Chance to award talent points (10% base chance, increases with difficulty)
+        const talentChance = 0.10 * this.difficultyMultiplier;
+        if (Math.random() < talentChance) {
+            const talentGain = Math.ceil(Math.random() * 2); // 1-2 talent points
+            const currentPoints = parseInt(localStorage.getItem('talentPoints') || '0');
+            const newPoints = currentPoints + talentGain;
+            localStorage.setItem('talentPoints', newPoints.toString());
+            
+            // Visual feedback for talent point gain
+            const talentText = this.add.text(wizard.x, wizard.y - 30, `+${talentGain} Essence!`, {
+                fontSize: '20px',
+                color: '#ff00ff',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 3
+            });
+            talentText.setOrigin(0.5);
+            talentText.setDepth(150);
+
+            this.tweens.add({
+                targets: talentText,
+                y: wizard.y - 70,
+                alpha: 0,
+                duration: 1500,
+                onComplete: () => talentText.destroy()
+            });
+        }
 
         // Update XP bar
         this.updateXPBar();
@@ -8925,6 +9638,7 @@ class GameScene extends Phaser.Scene {
         });
 
         this.elementOrbs.add(orb);
+        return orb;
     }
 
     collectElementOrb(wizard, orb) {
@@ -9092,46 +9806,46 @@ class GameScene extends Phaser.Scene {
                     break;
                 case 'water':
                     // Pass all charges so water can scale based on total water elements
-                    this.createWaterOrb(linkedElements, this.charges, chargeIndex);
+                    this.createWaterOrb(linkedElements, this.charges, chargeIndex, elementTier);
                     break;
                 case 'lightning':
-                    this.fireLightningProjectile(chargeIndex);
+                    this.fireLightningProjectile(chargeIndex, elementTier);
                     break;
                 case 'earth':
-                    this.fireEarthProjectile(chargeIndex);
+                    this.fireEarthProjectile(chargeIndex, elementTier);
                     break;
                 case 'rock':
-                    this.fireRockProjectile();
+                    this.fireRockProjectile(elementTier);
                     break;
                 case 'air':
                     this.createWindGust();
                     break;
                 case 'ice':
-                    this.createIceSpell();
+                    this.createIceSpell(elementTier);
                     break;
                 case 'arcane':
-                    this.fireArcaneProjectile();
+                    this.fireArcaneProjectile(elementTier);
                     break;
                 case 'poison':
                     this.createPoisonMines();
                     break;
                 case 'volcano':
-                    this.createVolcanicEruption();
+                    this.createVolcanicEruption(elementTier);
                     break;
                 case 'wave':
-                    this.createWaveSpell();
+                    this.createWaveSpell(elementTier);
                     break;
                 case 'sand':
                     this.createSandSpell();
                     break;
                 case 'crystal':
-                    this.createCrystalSpell();
+                    this.createCrystalSpell(elementTier);
                     break;
                 case 'gravity':
                     this.createGravitySpell();
                     break;
                 case 'meteor':
-                    this.fireMeteorProjectile();
+                    this.fireMeteorProjectile(elementTier);
                     break;
                 case 'moon':
                     this.createMoonSpell();
@@ -9256,7 +9970,7 @@ class GameScene extends Phaser.Scene {
                     this.createSandSpell();
                     break;
                 case 'meteor':
-                    this.fireMeteorProjectile();
+                    this.fireMeteorProjectile(elementTier);
                     break;
                 case 'mud':
                     this.createMudTrap();
@@ -9520,7 +10234,7 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    createWaterOrb(elementGroup = ['water'], allCharges = null, slotIndex = 0) {
+    createWaterOrb(elementGroup = ['water'], allCharges = null, slotIndex = 0, elementTier = 1) {
         console.log('=== WATER SPELL START ===');
 
         // Absolute prevention of multiple water spells
@@ -9559,9 +10273,12 @@ class GameScene extends Phaser.Scene {
         // Get slot buffs and apply damage multiplier
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
         
+        // Apply tier damage scaling
+        const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
+        
         // Mark as water spell for collision detection
         waterSprite.isWaterSpell = true;
-        waterSprite.damage = 3 * slotBuff.damageMultiplier; // Apply damage buff
+        waterSprite.damage = 3 * slotBuff.damageMultiplier * tierDamageScale; // Apply damage buff and tier scaling
         waterSprite.hitEnemies = new Set(); // Track which enemies have been hit
         waterSprite.slotIndex = slotIndex; // Store slot index
 
@@ -9626,7 +10343,7 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    fireLightningProjectile(slotIndex = 0) {
+    fireLightningProjectile(slotIndex = 0, elementTier = 1) {
         // Find the closest enemy
         let closestEnemy = null;
         let closestDistance = Infinity;
@@ -9656,12 +10373,15 @@ class GameScene extends Phaser.Scene {
         // Get slot buffs and apply them
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
         
+        // Apply tier damage scaling
+        const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
+        
         // Set up projectile properties
         lightningOrb.bounceCount = 3; // Will bounce to 3 more enemies after initial hit
         lightningOrb.hitEnemies = new Set();
         lightningOrb.currentTarget = closestEnemy;
         lightningOrb.speed = 400 * slotBuff.speedMultiplier; // Apply speed buff
-        lightningOrb.damage = 1.5 * slotBuff.damageMultiplier; // Apply damage buff
+        lightningOrb.damage = 1.5 * slotBuff.damageMultiplier * tierDamageScale; // Apply damage buff and tier scaling
         lightningOrb.slotIndex = slotIndex; // Store slot index
 
         // Add to projectiles group
@@ -9833,14 +10553,17 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    fireEarthProjectile(slotIndex = 0) {
+    fireEarthProjectile(slotIndex = 0, elementTier = 1) {
         // Get slot buffs and apply them
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
+        
+        // Apply tier damage scaling
+        const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
         
         // Create earth projectile that travels in a straight line
         const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'earth-spell');
         projectile.element = 'earth';
-        projectile.damage = 3 * slotBuff.damageMultiplier; // Reduced from 4 to 3
+        projectile.damage = 3 * slotBuff.damageMultiplier * tierDamageScale; // Reduced from 4 to 3, with tier scaling
         projectile.knockbackForce = 1600; // 2x knockback force
         projectile.slotIndex = slotIndex; // Store slot index
         projectile.isPiercing = true;
@@ -9905,7 +10628,7 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    createIceSpell() {
+    createIceSpell(elementTier = 1) {
         // Create multiple ice crystals at random positions around the wizard
         const iceCount = 5; // Number of ice crystals to spawn
         const radius = 150; // Max distance from wizard
@@ -9922,7 +10645,10 @@ class GameScene extends Phaser.Scene {
             // Create ice crystal sprite
             const iceCrystal = this.physics.add.sprite(x, y, 'ice-spell');
             iceCrystal.element = 'ice';
-            iceCrystal.damage = 2;
+            
+            // Apply tier damage scaling
+            const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
+            iceCrystal.damage = 2 * tierDamageScale;
             iceCrystal.freezeDuration = 2000; // 2 seconds freeze
             iceCrystal.body.setCollideWorldBounds(false);
             iceCrystal.setDepth(5);
@@ -10337,7 +11063,7 @@ class GameScene extends Phaser.Scene {
     }
 
     // New element abilities
-    fireRockProjectile() {
+    fireRockProjectile(elementTier = 1) {
         // Find nearest enemy first
         let closestEnemy = null;
         let closestDistance = Infinity;
@@ -10360,9 +11086,12 @@ class GameScene extends Phaser.Scene {
         // Play animation
         projectile.play('rock-spell-anim');
         
+        // Apply tier damage scaling
+        const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
+        
         // Base damage is 6, with 50% crit chance
         const isCritical = Math.random() < 0.5;
-        projectile.damage = isCritical ? 12 : 6;
+        projectile.damage = (isCritical ? 12 : 6) * tierDamageScale;
         projectile.isCritical = isCritical;
         projectile.element = 'rock';
         
@@ -10562,7 +11291,7 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    fireArcaneProjectile() {
+    fireArcaneProjectile(elementTier = 1) {
         // Arcane element - lock-on homing projectile
         // Find closest enemy
         let closestEnemy = null;
@@ -10593,7 +11322,10 @@ class GameScene extends Phaser.Scene {
         });
 
         projectile.element = 'arcane';
-        projectile.damage = 3;
+        
+        // Apply tier damage scaling
+        const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
+        projectile.damage = 3 * tierDamageScale;
         projectile.setDepth(5);
         projectile.setScale(0.75);
 
@@ -11710,7 +12442,7 @@ class GameScene extends Phaser.Scene {
         this.projectiles.add(projectile);
     }
 
-    createVolcanicEruption() {
+    createVolcanicEruption(elementTier = 1) {
         // Create multiple volcano eruptions at random positions around the wizard
         const volcanoCount = 5; // Number of volcanoes to spawn
         const radius = 150; // Max distance from wizard
@@ -11727,7 +12459,10 @@ class GameScene extends Phaser.Scene {
             // Create volcano sprite
             const volcano = this.physics.add.sprite(x, y, 'volcano-spell');
             volcano.element = 'volcano';
-            volcano.damage = 6; // Heavy damage
+            
+            // Apply tier damage scaling
+            const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
+            volcano.damage = 6 * tierDamageScale; // Heavy damage
             volcano.burnDuration = 3000; // 3 seconds burn
             volcano.burnEnemy = true; // Enable burn effect
             volcano.body.setCollideWorldBounds(false);
@@ -11788,11 +12523,14 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    createWaveSpell() {
+    createWaveSpell(elementTier = 1) {
         // Wave element - similar to earth but with larger push and wet effect
         const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'wave-spell');
         projectile.element = 'wave';
-        projectile.damage = 3; // Moderate damage
+        
+        // Apply tier damage scaling
+        const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
+        projectile.damage = 3 * tierDamageScale; // Moderate damage
         projectile.knockbackForce = 1200; // Reduced by 50% from 2400
         projectile.isPiercing = true;
         projectile.body.setCollideWorldBounds(false);
@@ -12017,7 +12755,7 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    createCrystalSpell() {
+    createCrystalSpell(elementTier = 1) {
         // Create crystal burst animation centered on wizard, starting with first frame
         const crystalBurst = this.add.sprite(this.wizard.x, this.wizard.y, 'crystal-frame-2');
         crystalBurst.setScale(4); // Scale up for visibility
@@ -12046,7 +12784,10 @@ class GameScene extends Phaser.Scene {
                 // Create crystal bullet projectile
                 const bullet = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'crystal-bullet');
                 bullet.element = 'crystal';
-                bullet.damage = 6; // High damage
+                
+                // Apply tier damage scaling
+                const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
+                bullet.damage = 6 * tierDamageScale; // High damage
                 bullet.isPiercing = true; // Pierce through enemies
                 bullet.setDepth(15);
                 bullet.setScale(2); // Scale up the bullet
@@ -14036,11 +14777,14 @@ class GameScene extends Phaser.Scene {
         this.projectiles.add(projectile);
     }
 
-    fireMeteorProjectile() {
+    fireMeteorProjectile(elementTier = 1) {
+        // Apply tier damage scaling
+        const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
+        
         // Meteor element - creates several meteors falling from the sky in a wide area
         const meteorCount = 5; // Number of meteors
         const areaRadius = 400; // Wide area coverage
-        const damage = 24; // Doubled damage
+        const damage = 24 * tierDamageScale; // Doubled damage with tier scaling
         const explosionRadius = 100; // Explosion radius
         
         // Create meteors at random positions around the wizard
@@ -14377,20 +15121,14 @@ class GameScene extends Phaser.Scene {
     }
 
     dropChest(x, y) {
-        if (!this.textures.exists('chest')) {
-            const graphics = this.add.graphics();
-            graphics.fillStyle(0x8b4513, 1);
-            graphics.fillRect(0, 5, 30, 20);
-            graphics.fillStyle(0xffd700, 1);
-            graphics.fillRect(12, 0, 6, 10);
-            graphics.generateTexture('chest', 30, 25);
-            graphics.destroy();
-        }
-
-        const chest = this.physics.add.sprite(x, y, 'chest');
+        const chest = this.physics.add.sprite(x, y, 'chest-idle', 0);
         chest.setDepth(25);
         chest.body.setVelocity(0, 0);
         chest.setScale(1.5);
+        chest.body.setSize(30, 15);
+        
+        // Play animation
+        chest.play('chest-idle-anim');
 
         // Floating animation
         this.tweens.add({
@@ -14405,7 +15143,7 @@ class GameScene extends Phaser.Scene {
         // Glow effect
         this.tweens.add({
             targets: chest,
-            scale: { from: 1.5, to: 1.8 },
+            scale: { from: 1.5, to: 1.7 },
             alpha: { from: 1, to: 0.8 },
             duration: 500,
             yoyo: true,
@@ -14415,10 +15153,466 @@ class GameScene extends Phaser.Scene {
         this.chests.add(chest);
     }
 
+    dropItemChest(x, y, itemType, itemData = {}) {
+        const chest = this.physics.add.sprite(x, y, 'chest-idle', 0);
+        chest.setDepth(25);
+        chest.body.setVelocity(0, 0);
+        chest.setScale(1.5);
+        chest.body.setSize(30, 15);
+        
+        // Play animation
+        chest.play('chest-idle-anim');
+        
+        // Store the item data on the chest
+        chest.itemType = itemType;
+        chest.itemData = itemData;
+
+        // Floating animation
+        this.tweens.add({
+            targets: chest,
+            y: y - 15,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // Different glow effect for item chests - purple tint
+        this.tweens.add({
+            targets: chest,
+            scale: { from: 1.5, to: 1.7 },
+            alpha: { from: 1, to: 0.8 },
+            tint: { from: 0xffffff, to: 0xff88ff },
+            duration: 500,
+            yoyo: true,
+            repeat: -1
+        });
+
+        this.chests.add(chest);
+    }
+
+    openItemChest(wizard, chest) {
+        // Store active tweens for fast-forward
+        this.chestAnimTweens = [];
+        this.chestAnimTimers = [];
+        
+        // Create full black background
+        const blackBg = this.add.rectangle(400, 300, 800, 600, 0x000000, 1);
+        blackBg.setScrollFactor(0);
+        blackBg.setDepth(20000);
+        
+        // Make chest visible above black background
+        chest.setDepth(20001);
+        
+        // Create dramatic fade overlay (for subtle lighting effect)
+        const fadeOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0);
+        fadeOverlay.setScrollFactor(0);
+        fadeOverlay.setDepth(20002);
+        
+        // Create spotlight effect on chest
+        const spotlight = this.add.graphics();
+        spotlight.fillStyle(0xffffff, 0.1);
+        spotlight.fillCircle(chest.x, chest.y, 120);
+        spotlight.setDepth(20003);
+        spotlight.setAlpha(0);
+        
+        const spotlightTween = this.tweens.add({
+            targets: spotlight,
+            alpha: 1,
+            duration: 300,
+            ease: 'Power2'
+        });
+        this.chestAnimTweens.push(spotlightTween);
+        
+        // Add skip instruction
+        const skipText = this.add.text(400, 550, 'Press SPACE or A to skip', {
+            fontSize: '16px',
+            color: '#888888',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        skipText.setScrollFactor(0);
+        skipText.setDepth(20010);
+        skipText.setAlpha(0);
+        
+        const skipTextTween = this.tweens.add({
+            targets: skipText,
+            alpha: 1,
+            duration: 500,
+            delay: 500
+        });
+        this.chestAnimTweens.push(skipTextTween);
+        
+        // Create item display above the chest
+        const itemDisplay = this.add.container(chest.x, chest.y - 50);
+        itemDisplay.setDepth(20004);
+        itemDisplay.setAlpha(0);
+        
+        // Create item icon based on type
+        let itemText = '';
+        let itemColor = 0xffffff;
+        let itemName = '';
+        let itemDescription = '';
+        
+        // Determine what to display based on item type
+        switch (chest.itemType) {
+            case 'muffin':
+                // Create muffin texture if it doesn't exist
+                if (!this.textures.exists('muffin')) {
+                    const graphics = this.add.graphics();
+                    graphics.fillStyle(0x8B4513, 1);
+                    graphics.fillCircle(7, 9, 6);
+                    graphics.fillStyle(0xD2691E, 1);
+                    graphics.fillCircle(7, 5, 7);
+                    graphics.fillStyle(0x654321, 1);
+                    graphics.fillCircle(4, 4, 1);
+                    graphics.fillCircle(9, 5, 1);
+                    graphics.fillCircle(6, 7, 1);
+                    graphics.generateTexture('muffin', 14, 14);
+                    graphics.destroy();
+                }
+                itemColor = 0xff88ff;
+                itemName = 'MAGIC MUFFIN';
+                itemDescription = 'Restores 30% health';
+                // Create and collect the muffin after delay
+                this.time.delayedCall(1000, () => {
+                    const muffin = this.dropMuffin(chest.x, chest.y - 30);
+                    this.time.delayedCall(500, () => {
+                        this.collectMuffin(wizard, muffin);
+                    });
+                });
+                break;
+                
+            case 'element':
+                const elementEmojis = {
+                    fire: '🔥',
+                    water: '💧',
+                    earth: '🌍',
+                    air: '💨',
+                    rock: '🪨',
+                    poison: '☠️',
+                    ice: '❄️',
+                    lightning: '⚡'
+                };
+                const elementNames = {
+                    fire: 'FIRE ELEMENT',
+                    water: 'WATER ELEMENT',
+                    earth: 'EARTH ELEMENT',
+                    air: 'AIR ELEMENT',
+                    rock: 'ROCK ELEMENT',
+                    poison: 'POISON ELEMENT',
+                    ice: 'ICE ELEMENT',
+                    lightning: 'LIGHTNING ELEMENT'
+                };
+                itemText = elementEmojis[chest.itemData.element] || '✨';
+                itemColor = 0x44ff44;
+                itemName = elementNames[chest.itemData.element] || 'MYSTERY ELEMENT';
+                itemDescription = 'New magical power unlocked!';
+                // Create and collect the element orb after delay
+                this.time.delayedCall(1000, () => {
+                    const orb = this.dropElementOrb(chest.x, chest.y - 30, chest.itemData.element);
+                    this.time.delayedCall(500, () => {
+                        this.collectElementOrb(wizard, orb);
+                    });
+                });
+                break;
+                
+            case 'chargeExpansion':
+                itemText = '⚡+';
+                itemColor = 0xffff00;
+                itemName = 'CHARGE EXPANSION';
+                itemDescription = 'Increases spell capacity!';
+                this.time.delayedCall(1000, () => {
+                    const expansion = this.dropChargeExpansion(chest.x, chest.y - 30);
+                    this.time.delayedCall(500, () => {
+                        this.collectChargeExpansion(wizard, expansion);
+                    });
+                });
+                break;
+        }
+        
+        // Show the item icon
+        let icon = null;
+        
+        // Create sprite based on item type
+        switch (chest.itemType) {
+            case 'muffin':
+                icon = this.add.sprite(0, -20, 'muffin');
+                icon.setScale(4); // Scale up the 14x14 texture
+                break;
+                
+            case 'element':
+                const config = this.elementConfig[chest.itemData.element];
+                if (config) {
+                    if (config.isImage) {
+                        icon = this.add.sprite(0, -20, config.sheet);
+                    } else {
+                        icon = this.add.sprite(0, -20, config.sheet, config.frame);
+                    }
+                    icon.setScale(0.3); // Element sprites are larger, scale appropriately
+                }
+                break;
+                
+            case 'chargeExpansion':
+                icon = this.add.sprite(0, -20, 'charge-slot');
+                icon.setScale(0.6);
+                break;
+        }
+        
+        if (icon) {
+            icon.setOrigin(0.5);
+            
+            // Item name
+            const nameText = this.add.text(0, 30, itemName, {
+                fontSize: '24px',
+                color: `#${itemColor.toString(16).padStart(6, '0')}`,
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 4
+            }).setOrigin(0.5);
+            
+            // Item description
+            const descText = this.add.text(0, 55, itemDescription, {
+                fontSize: '16px',
+                color: '#ffffff',
+                stroke: '#000000',
+                strokeThickness: 2
+            }).setOrigin(0.5);
+            
+            itemDisplay.add([icon, nameText, descText]);
+            
+            // Store initial scale for animation
+            const iconInitialScale = icon.scale;
+            
+            // Dramatic reveal animation
+            icon.setScale(0);
+            nameText.setScale(0);
+            descText.setAlpha(0);
+            
+            // Setup fast-forward function
+            const fastForward = () => {
+                // Remove input listeners
+                if (this.chestSkipKey) {
+                    this.chestSkipKey.off('down');
+                    this.chestSkipKey = null;
+                }
+                this.chestSkipGamepad = false;
+                this.chestOpening = false;
+                
+                // Complete all tweens immediately
+                this.chestAnimTweens.forEach(tween => {
+                    if (tween && tween.isPlaying()) {
+                        tween.complete();
+                    }
+                });
+                
+                // Clear all timers
+                this.chestAnimTimers.forEach(timer => {
+                    if (timer) {
+                        timer.remove();
+                    }
+                });
+                
+                // Show everything immediately
+                itemDisplay.setAlpha(1);
+                itemDisplay.y = chest.y - 70;
+                icon.setScale(iconInitialScale);
+                nameText.setScale(1);
+                descText.setAlpha(1);
+                skipText.destroy();
+                
+                // Quick fade out after brief pause
+                this.time.delayedCall(500, () => {
+                    this.tweens.add({
+                        targets: [itemDisplay, blackBg, fadeOverlay, spotlight],
+                        alpha: 0,
+                        duration: 200,
+                        onComplete: () => {
+                            itemDisplay.destroy();
+                            blackBg.destroy();
+                            fadeOverlay.destroy();
+                            spotlight.destroy();
+                            this.physics.resume();
+                            this.chestSelectionActive = false;
+                            this.chestOpening = false;
+                        }
+                    });
+                });
+                
+                // Destroy chest
+                chest.destroy();
+            };
+            
+            // Setup skip input
+            this.chestSkipKey = this.input.keyboard.addKey('SPACE');
+            this.chestSkipKey.once('down', fastForward);
+            
+            // Gamepad skip support
+            this.chestSkipGamepad = true;
+            
+            // Animate item appearing with dramatic effect
+            const mainTween = this.tweens.add({
+                targets: itemDisplay,
+                alpha: 1,
+                y: chest.y - 70,
+                duration: 400,
+                ease: 'Power2',
+                onComplete: () => {
+                    // Icon burst effect
+                    const iconTween = this.tweens.add({
+                        targets: icon,
+                        scale: iconInitialScale * 1.2,
+                        duration: 400,
+                        ease: 'Back.easeOut',
+                        onComplete: () => {
+                            const iconTween2 = this.tweens.add({
+                                targets: icon,
+                                scale: iconInitialScale,
+                                duration: 200
+                            });
+                            this.chestAnimTweens.push(iconTween2);
+                        }
+                    });
+                    this.chestAnimTweens.push(iconTween);
+                    
+                    // Name appear
+                    const nameTimer = this.time.delayedCall(200, () => {
+                        const nameTween = this.tweens.add({
+                            targets: nameText,
+                            scale: 1,
+                            duration: 300,
+                            ease: 'Back.easeOut'
+                        });
+                        this.chestAnimTweens.push(nameTween);
+                    });
+                    this.chestAnimTimers.push(nameTimer);
+                    
+                    // Description fade in
+                    const descTimer = this.time.delayedCall(400, () => {
+                        const descTween = this.tweens.add({
+                            targets: descText,
+                            alpha: 1,
+                            duration: 300
+                        });
+                        this.chestAnimTweens.push(descTween);
+                    });
+                    this.chestAnimTimers.push(descTimer);
+                    
+                    // Keep display visible longer
+                    const fadeTimer = this.time.delayedCall(2500, () => {
+                        skipText.destroy();
+                        // Fade out everything
+                        const fadeTween = this.tweens.add({
+                            targets: [itemDisplay, blackBg, fadeOverlay, spotlight],
+                            alpha: 0,
+                            duration: 500,
+                            onComplete: () => {
+                                itemDisplay.destroy();
+                                blackBg.destroy();
+                                fadeOverlay.destroy();
+                                spotlight.destroy();
+                                if (this.chestSkipKey) {
+                                    this.chestSkipKey.off('down');
+                                    this.chestSkipKey = null;
+                                }
+                                this.chestSkipGamepad = false;
+                            }
+                        });
+                        this.chestAnimTweens.push(fadeTween);
+                    });
+                    this.chestAnimTimers.push(fadeTimer);
+                }
+            });
+            this.chestAnimTweens.push(mainTween);
+        }
+        
+        // Destroy chest after animation
+        const chestTimer = this.time.delayedCall(600, () => {
+            chest.destroy();
+        });
+        this.chestAnimTimers.push(chestTimer);
+
+        // Resume physics after animation completes
+        const resumeTimer = this.time.delayedCall(3200, () => {
+            this.physics.resume();
+            this.chestSelectionActive = false;
+            this.chestOpening = false;
+            if (this.chestSkipKey) {
+                this.chestSkipKey.off('down');
+                this.chestSkipKey = null;
+            }
+        });
+        this.chestAnimTimers.push(resumeTimer);
+    }
+
+    grantElement(element) {
+        // Add element to wizard's available elements if not already present
+        if (!this.wizard.elements) {
+            this.wizard.elements = [];
+        }
+        if (!this.wizard.elements.includes(element)) {
+            this.wizard.elements.push(element);
+        }
+    }
+
+    showItemMessage(message, color = 0xffffff) {
+        const text = this.add.text(400, 300, message, {
+            fontSize: '28px',
+            color: `#${color.toString(16).padStart(6, '0')}`,
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        text.setOrigin(0.5);
+        text.setScrollFactor(0);
+        text.setDepth(1000);
+
+        // Floating animation
+        this.tweens.add({
+            targets: text,
+            y: text.y - 50,
+            alpha: { from: 1, to: 0 },
+            duration: 1500,
+            ease: 'Power2',
+            onComplete: () => text.destroy()
+        });
+    }
+
     openChest(wizard, chest) {
+        // Prevent opening multiple chests at once
+        if (this.chestOpening) {
+            return;
+        }
+        this.chestOpening = true;
+        
         // Pause physics immediately
         this.physics.pause();
 
+        // Handle level-up rewards (when chest is null)
+        if (!chest) {
+            // Show reward selection UI directly for level-ups
+            this.showChestRewards(null);
+            return;
+        }
+
+        // Stop the chest's floating animations
+        this.tweens.killTweensOf(chest);
+        
+        // Play opening animation
+        chest.play('chest-open-anim');
+        chest.on('animationcomplete', () => {
+            // Check if this is an item chest with a specific item
+            if (chest.itemType) {
+                this.openItemChest(wizard, chest);
+                return;
+            }
+
+            // For regular chests, show the reward selection UI
+            this.showChestRewards(chest);
+        });
+    }
+
+    showChestRewards(chest) {
         // Store chest selection state
         this.chestSelectionActive = true;
         this.chestCursorIndex = 0;
@@ -15681,6 +16875,7 @@ class GameScene extends Phaser.Scene {
         this.chestChargeSelectMode = false;
         this.selectedChargeToReplace = -1;
         this.physics.resume();
+        this.chestOpening = false;
     }
 
     selectChestElement(element, config, selectionBg, title, controlHint, buttons) {
@@ -15818,6 +17013,7 @@ class GameScene extends Phaser.Scene {
         } else {
             this.physics.resume();
         }
+        this.chestOpening = false;
     }
 
     handleChestSelectionController() {
@@ -16217,7 +17413,7 @@ const config = {
     input: {
         gamepad: true
     },
-    scene: [LoadingScene, TitleScene, StageSelectScene, GameScene, GameOverScene, UltraOptimizedGameScene]
+    scene: [LoadingScene, TitleScene, StageSelectScene, TalentTreeScene, GameScene, GameOverScene, UltraOptimizedGameScene]
 };
 
 const game = new Phaser.Game(config);
