@@ -454,7 +454,7 @@ class TitleScene extends Phaser.Scene {
         const overlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.8);
         overlay.setInteractive(); // Block clicks to elements below
         
-        const menuBg = this.add.rectangle(400, 300, 500, 450, 0x333333, 0.95);
+        const menuBg = this.add.rectangle(400, 300, 500, 500, 0x333333, 0.95);
         menuBg.setStrokeStyle(3, 0xffd700);
         
         const menuTitle = this.add.text(400, 140, 'OPTIONS', {
@@ -489,8 +489,38 @@ class TitleScene extends Phaser.Scene {
         
         debugContainer.add([debugLabel, debugCheckbox, debugCheck]);
         
+        // Show all recipes toggle
+        const recipesContainer = this.add.container(400, 250);
+        const recipesLabel = this.add.text(-150, 0, 'Show All Recipes:', {
+            fontSize: '20px',
+            color: '#ffffff'
+        }).setOrigin(0, 0.5);
+        
+        const recipesCheckbox = this.add.rectangle(100, 0, 30, 30, 0x666666);
+        recipesCheckbox.setStrokeStyle(2, 0xffffff);
+        recipesCheckbox.setInteractive({ useHandCursor: true });
+        
+        // Check if show all recipes is enabled
+        const showAllRecipes = localStorage.getItem('showAllRecipes') === 'true';
+        
+        const recipesCheck = this.add.text(100, 0, '✓', {
+            fontSize: '24px',
+            color: '#00ff00',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        recipesCheck.setVisible(showAllRecipes);
+        
+        recipesCheckbox.on('pointerdown', () => {
+            const currentState = localStorage.getItem('showAllRecipes') === 'true';
+            const newState = !currentState;
+            recipesCheck.setVisible(newState);
+            localStorage.setItem('showAllRecipes', newState.toString());
+        });
+        
+        recipesContainer.add([recipesLabel, recipesCheckbox, recipesCheck]);
+        
         // Volume control
-        const volumeContainer = this.add.container(400, 250);
+        const volumeContainer = this.add.container(400, 300);
         const volumeLabel = this.add.text(-150, 0, 'Volume:', {
             fontSize: '20px',
             color: '#ffffff'
@@ -523,7 +553,7 @@ class TitleScene extends Phaser.Scene {
         volumeContainer.add([volumeLabel, sliderBg, sliderHandle, volumePercent]);
         
         // Starting element selection
-        const elementContainer = this.add.container(400, 320);
+        const elementContainer = this.add.container(400, 350);
         const elementLabel = this.add.text(-150, 0, 'Start Element:', {
             fontSize: '20px',
             color: '#ffffff'
@@ -573,7 +603,7 @@ class TitleScene extends Phaser.Scene {
         elementContainer.add([elementLabel, elementText, leftArrow, rightArrow]);
         
         // Performance mode toggle
-        const perfContainer = this.add.container(400, 370);
+        const perfContainer = this.add.container(400, 400);
         const perfLabel = this.add.text(-150, 0, 'Performance Mode:', {
             fontSize: '20px',
             color: '#ffffff'
@@ -605,7 +635,7 @@ class TitleScene extends Phaser.Scene {
         perfContainer.add([perfLabel, perfCheckbox, perfCheck, perfHint]);
         
         // BGM selector
-        const bgmContainer = this.add.container(400, 420);
+        const bgmContainer = this.add.container(400, 450);
         const bgmLabel = this.add.text(-150, 0, 'Background Music:', {
             fontSize: '20px',
             color: '#ffffff'
@@ -650,7 +680,7 @@ class TitleScene extends Phaser.Scene {
         bgmContainer.add([bgmLabel, bgmText, bgmLeftArrow, bgmRightArrow]);
         
         // Close button
-        const closeButton = this.add.text(400, 490, 'CLOSE', {
+        const closeButton = this.add.text(400, 520, 'CLOSE', {
             fontSize: '24px',
             color: '#ffffff',
             backgroundColor: '#000000',
@@ -672,6 +702,7 @@ class TitleScene extends Phaser.Scene {
             menuBg.destroy();
             menuTitle.destroy();
             debugContainer.destroy();
+            recipesContainer.destroy();
             volumeContainer.destroy();
             elementContainer.destroy();
             perfContainer.destroy();
@@ -681,7 +712,7 @@ class TitleScene extends Phaser.Scene {
         
         // Store references for cleanup
         this.optionsMenu = {
-            overlay, menuBg, menuTitle, debugContainer, 
+            overlay, menuBg, menuTitle, debugContainer, recipesContainer,
             volumeContainer, elementContainer, perfContainer, bgmContainer, closeButton
         };
     }
@@ -1120,6 +1151,26 @@ class GameScene extends Phaser.Scene {
         this.isPaused = false;
         this.pauseMenu = null;
         this.activeFlames = []; // Track active fire spell effects
+        
+        // Passive element bonuses system
+        this.passiveBonuses = {
+            // Stat modifiers
+            damageMultiplier: 1.0,
+            speedMultiplier: 1.0,
+            fireRateMultiplier: 1.0,
+            healthRegenRate: 0,
+            moveSpeedMultiplier: 1.0,
+            
+            // Special effects
+            lifesteal: 0, // Percentage of damage dealt returned as health
+            dodge: 0, // Chance to dodge attacks
+            thorns: 0, // Damage reflected to attackers
+            elementalResistance: {}, // Resistance to specific elements
+            
+            // Triggered abilities
+            onKillEffects: [], // Effects that trigger when killing an enemy
+            auraEffects: [] // Continuous area effects
+        };
     }
 
     init(data) {
@@ -1137,6 +1188,7 @@ class GameScene extends Phaser.Scene {
         this.gameStarted = false; // Will be set to true after countdown
         console.log('GameScene created, gameStarted set to false');
         this.charges = []; // Start with no charges
+        this.chargeSlots = new Array(8).fill(null); // Initialize all 8 slots as empty
         this.slotBuffs = []; // Track buffs for each charge slot: {damageMultiplier: 1, speedMultiplier: 1, linked: false}
         this.earnedLinks = 0; // Track how many links have been earned through level ups
         this.orbitingOrbs = [];
@@ -1181,8 +1233,6 @@ class GameScene extends Phaser.Scene {
         this.pauseMenu = null;
         this.invulnerable = false; // Reset invulnerability flag
         this.discoveredElements = new Set(); // Track discovered elements
-        this.elementsMenuOpen = false;
-        this.elementsMenu = null;
         
         // Create and start background music based on user selection
         const selectedBGM = localStorage.getItem('selectedBGM') || 'BGM 1';
@@ -1198,6 +1248,8 @@ class GameScene extends Phaser.Scene {
         const startElement = localStorage.getItem('startElement');
         if (startElement && startElement !== 'none') {
             this.charges = [startElement];
+            this.chargeSlots[0] = startElement; // Also update chargeSlots
+            this.discoveredElements.add(startElement); // Add to discovered elements
             console.log('Starting with element:', startElement);
         }
 
@@ -1245,6 +1297,19 @@ class GameScene extends Phaser.Scene {
 
         // Define primary elements (can drop from enemies)
         this.primaryElements = ['fire', 'water', 'earth', 'air', 'lightning', 'arcane', 'ice', 'poison'];
+        
+        // Element tier tracking - maps "element_slotIndex" to tier level
+        // We use element_slotIndex as key to track tier per slot, not just per element type
+        this.elementTiers = new Map();
+        
+        // Tier scaling configuration
+        this.tierScaling = {
+            damage: [1.0, 1.5, 2.0, 2.5, 3.0], // Damage multiplier per tier
+            area: [1.0, 1.2, 1.4, 1.6, 1.8], // Area/size multiplier per tier
+            fireRate: [1.0, 0.85, 0.7, 0.6, 0.5], // Fire rate multiplier per tier (lower = faster)
+            projectileCount: [1, 1, 2, 2, 3], // Number of projectiles per tier
+            duration: [1.0, 1.2, 1.4, 1.6, 1.8] // Effect duration multiplier per tier
+        };
 
         // Element descriptions for the discovery menu
         this.elementDescriptions = {
@@ -1376,17 +1441,16 @@ class GameScene extends Phaser.Scene {
         this.physics.add.overlap(this.wizard, this.chests, this.openChest, null, this);
         this.physics.add.overlap(this.wizard, this.chargeExpansions, this.collectChargeExpansion, null, this);
 
-        // Add collisions with obstacles (impassable)
+        // Add collisions with obstacles (only for player)
         const obstacles = this.obstacleManager.getObstaclesGroup();
         this.physics.add.collider(this.wizard, obstacles);
-        this.physics.add.collider(this.enemies, obstacles);
-        this.physics.add.collider(this.projectiles, obstacles, this.projectileHitObstacle, null, this);
+        // Enemies and projectiles can now pass through obstacles
         
-        // Add collisions with barriers (only in cave stage)
+        // Add collisions with barriers (only in cave stage, only for player)
         if (this.stage === 'cave' && this.barriers) {
             this.barriers.forEach(barrier => {
                 this.physics.add.collider(this.wizard, barrier);
-                this.physics.add.collider(this.enemies, barrier);
+                // Enemies can now pass through barriers
             });
         }
 
@@ -1408,6 +1472,7 @@ class GameScene extends Phaser.Scene {
         console.log('Creating UI elements');
         this.createChargeUI();
         console.log('Charge UI created');
+        this.elementCards = []; // Initialize element cards array
         this.createSpellbookUI();
         console.log('Spellbook UI created');
         // this.createHealthBar(); // Removed - using wizard health bar only
@@ -1415,7 +1480,6 @@ class GameScene extends Phaser.Scene {
         console.log('Wizard health bar created');
         this.createPauseMenu();
         console.log('Pause menu created');
-        this.createElementsMenu();
         console.log('Elements menu created');
         this.createXPBar();
         console.log('XP bar created');
@@ -1814,17 +1878,28 @@ class GameScene extends Phaser.Scene {
 
         console.log('About to call startGameSequence');
 
+        // Initialize chargeSlots array early
+        if (!this.chargeSlots) {
+            this.chargeSlots = new Array(8).fill(null);
+        }
+        
         // Start game immediately
         if (!this.gameStarted) {
             // Only add starting element if it's not 'none'
             if (this.charges.length === 0) {
                 const startElement = localStorage.getItem('startElement');
                 if (startElement && startElement !== 'none') {
-                    this.charges.push(startElement);
+                    this.chargeSlots[0] = startElement;
+                    this.charges = [startElement];
                 }
                 // If 'none' is selected, start with no charges
+            } else {
+                // Sync charges to chargeSlots if charges already exist
+                for (let i = 0; i < this.charges.length && i < 8; i++) {
+                    this.chargeSlots[i] = this.charges[i];
+                }
             }
-            this.updateChargeUI();
+            // Don't call updateChargeUI here - UI hasn't been created yet
             this.startGame();
         }
     }
@@ -1966,9 +2041,9 @@ class GameScene extends Phaser.Scene {
             obstacle.refreshBody();
         }
         
-        // Add collisions
+        // Add collisions (only for player)
         this.physics.add.collider(this.wizard, this.obstacles);
-        this.physics.add.collider(this.enemies, this.obstacles);
+        // Enemies can now pass through obstacles
     }
 
     startGameSequence() {
@@ -2129,8 +2204,24 @@ class GameScene extends Phaser.Scene {
                         console.log(`Element selected: ${element}`);
 
                         // Add selected element to charges
-                        this.charges.push(element);
-                        console.log('Charges after selection:', this.charges);
+                        if (!this.chargeSlots) {
+                            this.chargeSlots = new Array(8).fill(null);
+                        }
+                        this.chargeSlots[0] = element;
+                        this.charges = [element];
+                        console.log('Element selected:', element);
+                        console.log('ChargeSlots after selection:', [...this.chargeSlots]);
+                        console.log('Charges after selection:', [...this.charges]);
+                        
+                        // Verify element config exists
+                        if (this.elementConfig && this.elementConfig[element]) {
+                            console.log('Element config found:', this.elementConfig[element]);
+                        } else {
+                            console.error('No element config for:', element);
+                        }
+                        
+                        // Check if we have indicators at selection time
+                        console.log('Charge indicators at selection:', this.chargeIndicators ? this.chargeIndicators.length : 'No');
 
                         this.updateChargeUI();
                         console.log('Charge UI updated');
@@ -2236,7 +2327,11 @@ class GameScene extends Phaser.Scene {
         console.log(`Element selected via controller: ${element}`);
 
         // Add selected element to charges
-        this.charges.push(element);
+        if (!this.chargeSlots) {
+            this.chargeSlots = new Array(8).fill(null);
+        }
+        this.chargeSlots[0] = element;
+        this.charges = [element];
         this.updateChargeUI();
 
         // Clean up selection UI
@@ -2542,23 +2637,38 @@ class GameScene extends Phaser.Scene {
             const xPos = 380 + (col * 35);
             const yPos = 50 + (row * 35); // Second row below first
             
+            
             // Background slot
-            const slotBg = this.add.rectangle(xPos, yPos, 30, 30, 0x333333, 0.5);
-            slotBg.setStrokeStyle(1, 0x666666);
+            const slotBg = this.add.rectangle(xPos, yPos, 32, 32, 0x333333, 0.7);
+            slotBg.setStrokeStyle(2, 0x666666);
             slotBg.setScrollFactor(0);
             slotBg.setDepth(561);
             slotBg.setVisible(i < this.maxCharges);
 
-            // Element sprite indicator (default to first sheet)
-            const indicator = this.add.sprite(xPos, yPos, 'element-symbols', 0);
+            // Element sprite indicator - try using image instead of sprite
+            const indicator = this.add.image(xPos, yPos, 'element-symbols', 0);
             indicator.setScrollFactor(0);
-            indicator.setDepth(562);
+            indicator.setDepth(1000); // Very high depth to ensure visibility
             indicator.setVisible(false);
-            indicator.setScale(0.08); // Scale down much more since frames are huge
+            indicator.setScale(0.15); // Same scale as what worked in test
             indicator.setTint(0xffffff); // Ensure no tint
             indicator.setAlpha(1); // Ensure full opacity
+            
 
-            this.chargeIndicators.push({ bg: slotBg, sprite: indicator });
+            // Tier text in corner of slot
+            const tierText = this.add.text(xPos + 15, yPos - 15, '', {
+                fontSize: '8px',
+                color: '#ffffff',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 1
+            });
+            tierText.setOrigin(0.5);
+            tierText.setScrollFactor(0);
+            tierText.setDepth(1001);
+            tierText.setVisible(false);
+            
+            this.chargeIndicators.push({ bg: slotBg, sprite: indicator, tierText: tierText });
         }
 
         // Create charge hold indicator
@@ -2584,102 +2694,158 @@ class GameScene extends Phaser.Scene {
         this.xpText.setDepth(560);
     }
 
+    getTierBonusDescription(element, tier) {
+        const dmg = Math.round((this.tierScaling.damage[tier - 1] - 1) * 100);
+        const area = Math.round((this.tierScaling.area[tier - 1] - 1) * 100);
+        const rate = Math.round((1 - this.tierScaling.fireRate[tier - 1]) * 100);
+        const proj = this.tierScaling.projectileCount[tier - 1];
+        
+        let bonuses = [];
+        if (dmg > 0) bonuses.push(`+${dmg}% damage`);
+        if (area > 0) bonuses.push(`+${area}% area`);
+        if (rate > 0) bonuses.push(`+${rate}% cast speed`);
+        if (proj > 1) bonuses.push(`${proj}x projectiles`);
+        
+        return bonuses.join(', ');
+    }
+    
     updateChargeUI() {
         // Clean up charge fire times array to match current charges
         this.chargeLastFireTimes = this.chargeLastFireTimes.slice(0, this.charges.length);
 
-        // Initialize or update chargeSlots
+        // Initialize chargeSlots if needed
         if (!this.chargeSlots) {
+            console.log('updateChargeUI: Creating chargeSlots array');
             this.chargeSlots = new Array(8).fill(null);
         }
         
-        // Always sync chargeSlots with charges array
-        for (let i = 0; i < 8; i++) {
-            if (i < this.charges.length) {
-                this.chargeSlots[i] = this.charges[i];
-            } else {
-                this.chargeSlots[i] = null;
+        // Sync new elements from charges array to chargeSlots
+        // Count how many elements are in chargeSlots (excluding nulls)
+        const elementsInSlots = this.chargeSlots.filter(slot => slot !== null).length;
+        
+        // If charges has more elements than chargeSlots, we need to add the new ones
+        if (this.charges.length > elementsInSlots) {
+            console.log(`updateChargeUI: charges has ${this.charges.length} elements but chargeSlots only has ${elementsInSlots}, syncing new elements...`);
+            
+            // Find which elements from charges are not in chargeSlots
+            let chargeIndex = 0;
+            for (let slotIndex = 0; slotIndex < 8 && chargeIndex < this.charges.length; slotIndex++) {
+                if (this.chargeSlots[slotIndex] === null) {
+                    // Found empty slot, fill it with next element from charges
+                    this.chargeSlots[slotIndex] = this.charges[chargeIndex];
+                    console.log(`updateChargeUI: Added ${this.charges[chargeIndex]} to slot ${slotIndex}`);
+                    chargeIndex++;
+                } else if (this.chargeSlots[slotIndex] === this.charges[chargeIndex]) {
+                    // This slot already has the correct element, move to next
+                    chargeIndex++;
+                }
             }
+            
+            console.log('updateChargeUI: After sync, chargeSlots =', [...this.chargeSlots]);
         }
-        console.log('Updated chargeSlots:', this.chargeSlots);
-        console.log('Charges array:', this.charges);
+        
+        // Do NOT sync chargeSlots with charges array here - it breaks drag and drop!
+        // chargeSlots maintains exact positions, charges is just a list
 
+        // Check if UI has been created yet
+        if (!this.chargeIndicators || this.chargeIndicators.length === 0) {
+            console.log('Charge indicators not created yet, skipping UI update');
+            return;
+        }
+        
+        
         this.chargeIndicators.forEach((indicator, index) => {
-            // Update visibility based on max charges
-            indicator.bg.setVisible(index < this.maxCharges);
+            // Main UI only shows first 4 slots (active slots)
+            const isActiveSlot = index < 4;
+            const showInMainUI = isActiveSlot && index < this.maxCharges;
+            indicator.bg.setVisible(showInMainUI);
 
-            const element = this.chargeSlots ? this.chargeSlots[index] : (index < this.charges.length ? this.charges[index] : null);
-            if (element) {
+            const element = this.chargeSlots ? this.chargeSlots[index] : null;
+            
+            if (index < 4) {  // Only log for the main UI slots to reduce noise
+                console.log(`UpdateChargeUI - Slot ${index}: element=${element}, isActive=${isActiveSlot}, showInMainUI=${showInMainUI}`);
+            }
+            
+            // Show the element sprite if there's an element AND this slot should be visible in main UI
+            if (element && showInMainUI) {
                 const config = this.elementConfig[element];
                 if (config) {
-                    console.log(`Updating UI slot ${index}: element=${element}, sheet=${config.sheet}, frame=${config.frame}`);
                     // Check if texture exists
                     if (!this.textures.exists(config.sheet)) {
                         console.error(`Texture ${config.sheet} does not exist!`);
                         indicator.sprite.setVisible(false);
-                        return;
+                        return; // This only returns from the forEach callback, not the whole function
                     }
-                    // Update texture if needed
-                    if (indicator.sprite.texture.key !== config.sheet) {
-                        indicator.sprite.setTexture(config.sheet, config.frame);
-                    } else {
-                        indicator.sprite.setFrame(config.frame);
+                    
+                    // Update texture and frame
+                    try {
+                        // For special single-image elements, handle differently
+                        if (config.isImage) {
+                            indicator.sprite.setTexture(config.sheet);
+                        } else {
+                            indicator.sprite.setTexture(config.sheet, config.frame);
+                        }
+                        indicator.sprite.setVisible(true);
+                        indicator.sprite.setAlpha(1);
+                        indicator.sprite.setTint(0xffffff);
+                        indicator.sprite.setScale(0.15); // Increased scale to match what worked in test
+                        indicator.sprite.setDepth(2000); // High depth like in test
+                        
+                        console.log(`Set sprite for slot ${index}: ${element}, visible=${indicator.sprite.visible}`);
+                        
+                        // Update tier text
+                        const tier = this.elementTiers.get(`${element}_${index}`) || 1;
+                        if (tier > 1) {
+                            indicator.tierText.setText(tier.toString());
+                            indicator.tierText.setVisible(true);
+                        } else {
+                            indicator.tierText.setVisible(false);
+                        }
+                    } catch (error) {
+                        console.error(`Error setting sprite texture for slot ${index}:`, error);
+                        indicator.sprite.setVisible(false);
+                        indicator.tierText.setVisible(false);
                     }
-                    indicator.sprite.setVisible(true);
-                    indicator.sprite.setAlpha(1);
-                    indicator.sprite.setTint(0xffffff);
                 } else {
-                    console.log(`No config for element ${element} at slot ${index}`);
                     indicator.sprite.setVisible(false);
+                    indicator.tierText.setVisible(false);
                 }
             } else {
                 indicator.sprite.setVisible(false);
+                indicator.tierText.setVisible(false);
             }
         });
     }
 
     createSpellbookUI() {
         this.spellbookUI = this.add.container(400, 300);
+        this.spellbookUI.setDepth(950); // Very high depth to render above everything
+        this.spellbookUI.setScrollFactor(0); // Fix to camera
 
-        const background = this.add.rectangle(0, 0, 600, 400, 0x2a1810);
-        background.setStrokeStyle(4, 0x8b6914);
+        // Semi-transparent black overlay background
+        const overlayBg = this.add.rectangle(0, 0, 800, 600, 0x000000, 0.85);
+        overlayBg.setInteractive(); // Block clicks underneath
 
-        const title = this.add.text(0, -170, 'SPELLBOOK', {
-            fontSize: '32px',
+        // Main container frame
+        const mainBg = this.add.rectangle(0, 0, 700, 500, 0x2a2a2a, 1.0); // Lighter color, full opacity
+        mainBg.setStrokeStyle(3, 0xffdd44);
+
+        // Title
+        const title = this.add.text(0, -220, 'ELEMENT GUIDE', {
+            fontSize: '28px',
             color: '#ffdd44',
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        // Create a mask for the scrollable area
-        const maskShape = this.add.graphics();
-        maskShape.fillStyle(0xffffff);
-        maskShape.fillRect(100, 130, 600, 280); // Scrollable area bounds
-        const mask = maskShape.createGeometryMask();
-
-        // Create scrollable container for spell list
-        this.spellListContainer = this.add.container(0, -100);
-        this.spellListContainer.setMask(mask);
-
-        this.spellList = this.add.text(0, 0, '', {
-            fontSize: '18px',
-            color: '#ffffff',
-            align: 'center',
-            lineSpacing: 10
-        }).setOrigin(0.5, 0);
-
-        this.spellListContainer.add(this.spellList);
+        // Container for element cards (no mask for now to debug)
+        this.elementCardsContainer = this.add.container(0, 0);
 
         // Scroll position tracking
         this.spellScrollY = 0;
         this.spellMaxScrollY = 0;
 
-        const closeText = this.add.text(0, 170, 'Press ESC to close (UP/DOWN to scroll)', {
-            fontSize: '14px',
-            color: '#aaaaaa'
-        }).setOrigin(0.5);
-
-        // Add close button for mouse users
-        const closeButton = this.add.text(280, -170, 'X', {
+        // Close button
+        const closeButton = this.add.text(330, -220, 'X', {
             fontSize: '24px',
             color: '#ff6666',
             fontStyle: 'bold'
@@ -2689,77 +2855,16 @@ class GameScene extends Phaser.Scene {
         closeButton.on('pointerout', () => closeButton.setColor('#ff6666'));
         closeButton.on('pointerdown', () => this.toggleSpellbook());
 
-        this.spellbookUI.add([background, title, this.spellListContainer, closeText, closeButton]);
-        this.spellbookUI.setVisible(false);
-        this.spellbookUI.setDepth(900); // High depth to render above everything
-        this.spellbookUI.setScrollFactor(0); // Fix to camera
-
-        // Hide mask shape
-        maskShape.setVisible(false);
-    }
-
-    createElementsMenu() {
-        this.elementsMenu = this.add.container(400, 300);
-
-        const background = this.add.rectangle(0, 0, 700, 500, 0x1a0f2e);
-        background.setStrokeStyle(4, 0x8b6914);
-
-        const title = this.add.text(0, -220, 'DISCOVERED ELEMENTS', {
-            fontSize: '32px',
-            color: '#ffdd44',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-
-        // Create scrollable content area
-        this.elementsListContainer = this.add.container(0, -50);
-        this.elementsListText = this.add.text(0, 0, '', {
+        // Instructions
+        const instructions = this.add.text(0, 220, 'Press ESC to close • Use mouse wheel or arrow keys to scroll', {
             fontSize: '14px',
-            color: '#ffffff',
-            align: 'left',
-            lineSpacing: 8,
-            wordWrap: { width: 650 }
-        }).setOrigin(0.5, 0);
-
-        this.elementsListContainer.add(this.elementsListText);
-
-        const closeText = this.add.text(0, 220, 'Press TAB or SELECT to close (Scroll with mouse wheel)', {
-            fontSize: '16px',
-            color: '#aaaaaa'
-        }).setOrigin(0.5);
-
-        const instructionText = this.add.text(0, 200, 'Collect element orbs from defeated enemies to discover new elements!', {
-            fontSize: '12px',
             color: '#888888'
         }).setOrigin(0.5);
 
-        // Add close button for mouse users
-        const closeButton = this.add.text(330, -220, 'X', {
-            fontSize: '24px',
-            color: '#ff6666',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-        closeButton.setInteractive({ useHandCursor: true });
-        closeButton.on('pointerover', () => closeButton.setColor('#ff9999'));
-        closeButton.on('pointerout', () => closeButton.setColor('#ff6666'));
-        closeButton.on('pointerdown', () => this.toggleElementsMenu());
-
-        // Create mask for scrollable area
-        const maskShape = this.add.graphics();
-        maskShape.fillStyle(0xffffff);
-        maskShape.fillRect(50, 80, 700, 340); // Scrollable area bounds
-        const mask = maskShape.createGeometryMask();
-        this.elementsListContainer.setMask(mask);
-        maskShape.setVisible(false);
-
-        // Initialize scroll tracking
-        this.elementsScrollY = 0;
-        this.elementsMaxScrollY = 0;
-
-        this.elementsMenu.add([background, title, this.elementsListContainer, closeText, instructionText, closeButton]);
-        this.elementsMenu.setVisible(false);
-        this.elementsMenu.setDepth(900); // High depth to render above everything
-        this.elementsMenu.setScrollFactor(0);
+        this.spellbookUI.add([overlayBg, mainBg, title, this.elementCardsContainer, closeButton, instructions]);
+        this.spellbookUI.setVisible(false);
     }
+
 
     createHealthBar() {
         this.healthBarBg = this.add.rectangle(100, 550, 150, 20, 0x333333);
@@ -2820,16 +2925,13 @@ class GameScene extends Phaser.Scene {
 
         console.log('Game fully started!');
 
-        // Update charge indicators to show starting arcane charge
-        if (this.charges.length > 0 && this.chargeIndicators.length > 0) {
-            const element = this.charges[0];
-            const config = this.elementConfig[element];
-            if (config) {
-                this.chargeIndicators[0].sprite.setTexture(config.sheet, config.frame);
-                this.chargeIndicators[0].sprite.setVisible(true);
-            }
-        }
-
+        // updateChargeUI should handle all the display updates now
+        
+        // Force a UI update after game starts
+        this.time.delayedCall(100, () => {
+            this.updateChargeUI();
+            
+        });
     }
 
     getWaveDefinition(waveNumber) {
@@ -3211,7 +3313,7 @@ class GameScene extends Phaser.Scene {
         }
 
         // Update survival time (only when not paused, no menus open, and game started)
-        if (this.time.timeScale > 0 && !this.isPaused && !this.spellbookOpen && !this.elementsMenuOpen && !this.chestSelectionActive && this.gameStarted) {
+        if (this.time.timeScale > 0 && !this.isPaused && !this.spellbookOpen && !this.chestSelectionActive && this.gameStarted) {
             this.survivalTime += delta;
         }
         
@@ -3290,33 +3392,28 @@ class GameScene extends Phaser.Scene {
         // Only open pause menu if no other menus are active
         if ((Phaser.Input.Keyboard.JustDown(this.pKey) ||
             (startPressed && !this.gamepadButtonStates[9])) &&
-            !this.spellbookOpen && !this.elementsMenuOpen && !this.chestSelectionActive && !this.fusionUI &&
+            !this.spellbookOpen && !this.chestSelectionActive && !this.fusionUI &&
             !this.elementSelectionActive && !this.discardConfirmation && !this.discardConfirmUI) {
             this.togglePause();
         }
 
-        // Only open spellbook if no other menus are active  
-        if (Phaser.Input.Keyboard.JustDown(this.escKey) &&
-            !this.isPaused && !this.elementsMenuOpen && !this.chestSelectionActive && !this.fusionUI) {
-            this.toggleSpellbook();
-        }
-
-        // TAB key or Select button (button 8) for elements menu
+        // TAB or ESC key to open spellbook (consolidated menu)
         let selectPressed = false;
         if (this.gamepad && this.gamepad.buttons[8]) {
             selectPressed = this.gamepad.buttons[8].pressed;
         }
 
-        // Only open elements menu if no other menus are active
-        if ((Phaser.Input.Keyboard.JustDown(this.tabKey) ||
+        // Handle spellbook toggle
+        if ((Phaser.Input.Keyboard.JustDown(this.escKey) || 
+            Phaser.Input.Keyboard.JustDown(this.tabKey) ||
             (selectPressed && !this.gamepadButtonStates[8])) &&
-            !this.isPaused && !this.spellbookOpen && !this.chestSelectionActive && !this.fusionUI) {
-            this.toggleElementsMenu();
+            !this.isPaused && !this.chestSelectionActive && !this.fusionUI) {
+            this.toggleSpellbook();
         }
 
         // D key for debug mode toggle
         if (Phaser.Input.Keyboard.JustDown(this.debugKey) &&
-            !this.isPaused && !this.spellbookOpen && !this.elementsMenuOpen && !this.chestSelectionActive && !this.fusionUI) {
+            !this.isPaused && !this.spellbookOpen && !this.chestSelectionActive && !this.fusionUI) {
             // Toggle debug mode
             const debugEnabled = localStorage.getItem('debugMode') === 'true';
             const newDebugState = !debugEnabled;
@@ -3350,7 +3447,7 @@ class GameScene extends Phaser.Scene {
         
         // I key to toggle player indicators
         if (this.toggleIndicatorsKey && Phaser.Input.Keyboard.JustDown(this.toggleIndicatorsKey) &&
-            !this.isPaused && !this.spellbookOpen && !this.elementsMenuOpen && !this.chestSelectionActive && !this.fusionUI) {
+            !this.isPaused && !this.spellbookOpen && !this.chestSelectionActive && !this.fusionUI) {
             this.indicatorsVisible = !this.indicatorsVisible;
             
             // Show feedback
@@ -3384,17 +3481,17 @@ class GameScene extends Phaser.Scene {
             return;
         }
 
-        // Handle spellbook scrolling
+        // Handle spellbook when it's open
         if (this.spellbookOpen) {
-            const scrollSpeed = 10;
+            const scrollSpeed = 20; // Increased for larger cards
 
             // Keyboard scrolling
             if (this.cursors.up.isDown) {
                 this.spellScrollY = Math.max(0, this.spellScrollY - scrollSpeed);
-                this.spellListContainer.y = -100 + this.spellScrollY;
+                this.elementCardsContainer.y = -this.spellScrollY;
             } else if (this.cursors.down.isDown) {
                 this.spellScrollY = Math.min(this.spellMaxScrollY, this.spellScrollY + scrollSpeed);
-                this.spellListContainer.y = -100 + this.spellScrollY;
+                this.elementCardsContainer.y = -this.spellScrollY;
             }
 
             // Gamepad scrolling
@@ -3405,46 +3502,16 @@ class GameScene extends Phaser.Scene {
 
                 if (leftStickY < -0.5 || dpadUp) {
                     this.spellScrollY = Math.max(0, this.spellScrollY - scrollSpeed);
-                    this.spellListContainer.y = -100 + this.spellScrollY;
+                    this.elementCardsContainer.y = -this.spellScrollY;
                 } else if (leftStickY > 0.5 || dpadDown) {
                     this.spellScrollY = Math.min(this.spellMaxScrollY, this.spellScrollY + scrollSpeed);
-                    this.spellListContainer.y = -100 + this.spellScrollY;
+                    this.elementCardsContainer.y = -this.spellScrollY;
                 }
             }
 
             return;
         }
 
-        // Handle elements menu scrolling
-        if (this.elementsMenuOpen) {
-            const scrollSpeed = 10;
-
-            // Keyboard scrolling
-            if (this.cursors.up.isDown) {
-                this.elementsScrollY = Math.max(0, this.elementsScrollY - scrollSpeed);
-                this.elementsListContainer.y = -50 + this.elementsScrollY;
-            } else if (this.cursors.down.isDown) {
-                this.elementsScrollY = Math.min(this.elementsMaxScrollY, this.elementsScrollY + scrollSpeed);
-                this.elementsListContainer.y = -50 + this.elementsScrollY;
-            }
-
-            // Gamepad scrolling
-            if (this.gamepad) {
-                const leftStickY = this.gamepad.leftStick.y;
-                const dpadUp = this.gamepad.up;
-                const dpadDown = this.gamepad.down;
-
-                if (leftStickY < -0.5 || dpadUp) {
-                    this.elementsScrollY = Math.max(0, this.elementsScrollY - scrollSpeed);
-                    this.elementsListContainer.y = -50 + this.elementsScrollY;
-                } else if (leftStickY > 0.5 || dpadDown) {
-                    this.elementsScrollY = Math.min(this.elementsMaxScrollY, this.elementsScrollY + scrollSpeed);
-                    this.elementsListContainer.y = -50 + this.elementsScrollY;
-                }
-            }
-
-            return;
-        }
 
         if (this.playerHealth <= 0) {
             return;
@@ -3721,19 +3788,30 @@ class GameScene extends Phaser.Scene {
             this.lastFireTime = time;
         }
 
-        // Also fire element projectiles if we have charges
-        if (this.charges.length > 0) {
-            // Fire each charge independently based on its cooldown
-            for (let i = 0; i < this.charges.length; i++) {
-                const element = this.charges[i];
-                const elementConfig = this.elementConfig[element];
-                const fireRate = elementConfig.fireRate || 1000; // Default 1 second if not specified
+        // Also fire element projectiles from active slots only
+        if (this.chargeSlots && this.chargeSlots.length > 0) {
+            // Only check first 4 slots (active slots)
+            for (let slotIndex = 0; slotIndex < 4; slotIndex++) {
+                const element = this.chargeSlots[slotIndex];
+                if (element) {
+                    const elementConfig = this.elementConfig[element];
+                    const fireRate = elementConfig.fireRate || 1000; // Default 1 second if not specified
 
-                // Check if this charge can fire using the new cooldown system
-                if (this.canCastSpell(element, i)) {
-                    this.fireIndividualCharge(i, element);
-                    // Set the cooldown for this specific charge
-                    this.setSpellCooldown(element, fireRate, i);
+                    // Check if this charge can fire using the new cooldown system
+                    // Use slot index for cooldown tracking
+                    if (this.canCastSpell(element, slotIndex)) {
+                        // Find the charge index in the charges array
+                        let chargeIndex = 0;
+                        for (let i = 0; i < slotIndex && i < this.chargeSlots.length; i++) {
+                            if (this.chargeSlots[i] !== null) {
+                                chargeIndex++;
+                            }
+                        }
+                        
+                        this.fireIndividualCharge(chargeIndex, element);
+                        // Set the cooldown for this specific slot
+                        this.setSpellCooldown(element, fireRate, slotIndex);
+                    }
                 }
             }
         }
@@ -4368,92 +4446,197 @@ class GameScene extends Phaser.Scene {
     }
 
     updateSpellbookText() {
-        const spellDescriptions = {
-            'water-water-lightning': 'C-C-X: Shield of Waves\nPowerful water wave with extended slow effect',
-            'fire-lightning-fire': 'Z-X-Z: Explosive Bolt\nLarge projectile that explodes on impact',
-            'water-lightning-water': 'C-X-C: Storm Shotgun\nFires a spread of water and lightning orbs',
-            'lightning-water-earth': 'X-C-V: Magnetic Vortex\nCreates a grey orb that magnetizes enemies'
+        // Clear previous cards
+        if (this.elementCards) {
+            this.elementCards.forEach(card => card.destroy());
+        }
+        this.elementCards = [];
+        
+        // Define all fusion combinations
+        const fusionRecipes = {
+            // Basic fusions
+            'lava': { elements: ['fire', 'earth'], description: 'Molten projectiles that create burning pools' },
+            'steam': { elements: ['water', 'fire'], description: 'Explosive bursts that push enemies back' },
+            'mud': { elements: ['water', 'earth'], description: 'Slows enemies significantly' },
+            'dust': { elements: ['earth', 'air'], description: 'Blinds and slows enemies in large area' },
+            'ice': { elements: ['water', 'air'], description: 'Freezes enemies solid' },
+            'poison': { elements: ['water', 'dark'], description: 'Drops poison mines for continuous damage' },
+            'thunder': { elements: ['lightning', 'air'], description: 'Chain lightning between enemies' },
+            'smoke': { elements: ['fire', 'air'], description: 'Creates obscuring smoke clouds' },
+            
+            // Advanced fusions
+            'volcano': { elements: ['lava', 'fire'], description: 'Erupts projectiles in all directions' },
+            'crystal': { elements: ['earth', 'ice'], description: 'Sharp crystals that pierce enemies' },
+            'sand': { elements: ['earth', 'dust'], description: 'Sandstorm that damages over time' },
+            'wave': { elements: ['water', 'water'], description: 'Massive water wave attack' },
+            'meteor': { elements: ['rock', 'fire'], description: 'Calls down meteors from sky' },
+            'gravity': { elements: ['earth', 'arcane'], description: 'Pulls enemies together' },
+            'nature': { elements: ['earth', 'life'], description: 'Summons vines to entangle foes' },
+            
+            // Ultimate fusions
+            'time': { elements: ['arcane', 'arcane'], description: 'Slows time in an area' },
+            'death': { elements: ['dark', 'dark'], description: 'Instant kill on weak enemies' },
+            'star': { elements: ['fire', 'holy'], description: 'Bouncing star projectiles' },
+            'sun': { elements: ['star', 'fire'], description: 'Radiant damage aura' },
+            'moon': { elements: ['star', 'water'], description: 'Protective lunar shield' },
+            'life': { elements: ['holy', 'nature'], description: 'Heals and damages simultaneously' }
         };
 
-        let spellText = '';
-        this.discoveredSpells.forEach(spell => {
-            spellText += spellDescriptions[spell.combo] + '\n\n';
-        });
-
-        if (spellText === '') {
-            spellText = 'No spells discovered yet.\nExperiment with different combinations!';
+        let yOffset = -180;
+        const cardWidth = 640; // Doubled from 320
+        const cardHeight = 160; // Doubled from 80
+        const spacing = 20; // Doubled from 10
+        
+        // Create header card
+        // Check if container exists
+        if (!this.elementCardsContainer) {
+            console.error('elementCardsContainer does not exist!');
+            return;
         }
-
-        this.spellList.setText(spellText);
-
-        // Calculate max scroll based on text height
-        const textHeight = this.spellList.height;
-        const visibleHeight = 280; // Height of visible area
-        this.spellMaxScrollY = Math.max(0, textHeight - visibleHeight);
-
-        // Reset scroll position if text fits in view
-        if (this.spellMaxScrollY === 0) {
-            this.spellScrollY = 0;
-            this.spellListContainer.y = -100;
-        }
-    }
-
-    updateElementsMenu() {
-        if (!this.elementsListText) return;
-
-        // Clear previous element sprites if any
-        if (this.elementSprites) {
-            this.elementSprites.forEach(sprite => sprite.destroy());
-        }
-        this.elementSprites = [];
-
-        let elementsText = '';
+        
+        
+        const headerCard = this.add.container(0, yOffset);
+        const headerBg = this.add.rectangle(0, 0, 650, 80, 0x3a3a3a, 1.0); // Lighter color, full opacity
+        headerBg.setStrokeStyle(3, 0x666666);
+        
         const sortedElements = Array.from(this.discoveredElements).sort();
-        let yOffset = 30; // Start position for first element - declare outside the if block
-
-        if (sortedElements.length === 0) {
-            elementsText = 'No elements discovered yet.\nDefeat enemies to find element orbs!';
-        } else {
-            elementsText = `Discovered: ${sortedElements.length}/${Object.keys(this.elementConfig).length} Elements\n\n`;
-
-            sortedElements.forEach((element, index) => {
-                const config = this.elementConfig[element];
-                const description = this.elementDescriptions[element] || 'Mysterious element with unknown properties.';
-
-                // Create element sprite
-                const sprite = this.add.sprite(-325, yOffset, config.sheet, config.frame);
-                sprite.setScale(0.1);
-                sprite.setDepth(301); // Above menu background
-                sprite.setScrollFactor(0);
-                this.elementsListContainer.add(sprite);
-                this.elementSprites.push(sprite);
-
-                // Add padding for text to account for sprite
-                elementsText += `      ${config.name.toUpperCase()}\n`;
-                elementsText += `      ${description}\n`;
-
-                if (index < sortedElements.length - 1) {
-                    elementsText += '\n';
-                }
-
-                // Update y position for next element (3 lines per element)
-                yOffset += 56; // Adjust spacing based on font size and line spacing
-            });
-        }
-
-        this.elementsListText.setText(elementsText);
-
-        // Calculate max scroll based on content height
-        const contentHeight = yOffset + 50; // Total height of all elements
-        const visibleHeight = 340; // Height of visible area
-        this.elementsMaxScrollY = Math.max(0, contentHeight - visibleHeight);
-
-        // Reset scroll position if content fits in view
-        if (this.elementsMaxScrollY === 0) {
-            this.elementsScrollY = 0;
-            this.elementsListContainer.y = -50;
-        }
+        const headerText = this.add.text(0, 0, `Discovered Elements: ${sortedElements.length}/${Object.keys(this.elementConfig).length}`, {
+            fontSize: '32px', // Increased from 20px
+            color: '#ffdd44',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        
+        headerCard.add([headerBg, headerText]);
+        this.elementCardsContainer.add(headerCard);
+        this.elementCards.push(headerCard);
+        
+        yOffset += 100; // Increased spacing after header
+        
+        // Create fusion recipe cards in single column (since they're bigger now)
+        Object.entries(fusionRecipes).forEach(([result, recipe]) => {
+            const card = this.createFusionCard(0, yOffset, result, recipe, fusionRecipes);
+            this.elementCardsContainer.add(card);
+            this.elementCards.push(card);
+            yOffset += cardHeight + spacing;
+        });
+        
+        // Calculate scrollable area
+        const totalHeight = yOffset + 180 + 100; // Add buffer
+        const visibleHeight = 360;
+        this.spellMaxScrollY = Math.max(0, totalHeight - visibleHeight);
+        
+        // Reset scroll position
+        this.spellScrollY = 0;
+        this.elementCardsContainer.y = 0;
     }
+    
+    createFusionCard(x, y, resultElement, recipe, allRecipes) {
+        const card = this.add.container(x, y);
+        
+        // Card background
+        const showAllRecipes = localStorage.getItem('showAllRecipes') === 'true';
+        const isDiscovered = showAllRecipes || this.discoveredElements.has(resultElement);
+        const hasIngredients = showAllRecipes || recipe.elements.every(e => this.discoveredElements.has(e));
+        
+        let bgColor = 0x2a2a2a; // Lighter base color
+        if (isDiscovered) {
+            bgColor = 0x2a4a2a; // Green tint for discovered
+        } else if (hasIngredients) {
+            bgColor = 0x4a4a2a; // Yellow tint for available to fuse
+        }
+        
+        const bg = this.add.rectangle(0, 0, 620, 150, bgColor, 1.0); // Full opacity
+        bg.setStrokeStyle(4, isDiscovered ? 0x44ff44 : (hasIngredients ? 0xffff44 : 0x666666));
+        
+        // Add background FIRST so other elements render on top
+        card.add(bg);
+        
+        // Element icons and formula
+        const element1Config = this.elementConfig[recipe.elements[0]];
+        const element2Config = this.elementConfig[recipe.elements[1]];
+        const resultConfig = this.elementConfig[resultElement];
+        
+        // Create element sprites (all positions and sizes doubled)
+        if (element1Config && (showAllRecipes || this.discoveredElements.has(recipe.elements[0]))) {
+            const elem1Sprite = this.add.sprite(-240, -30, element1Config.sheet, element1Config.frame);
+            elem1Sprite.setScale(0.16); // Doubled from 0.08
+            elem1Sprite.setAlpha(1.0); // Ensure full visibility
+            card.add(elem1Sprite);
+        } else {
+            const unknownText1 = this.add.text(-240, -30, '?', {
+                fontSize: '48px', // Doubled from 24px
+                color: '#999999', // Brighter gray
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+            card.add(unknownText1);
+        }
+        
+        // Plus sign
+        const plusText = this.add.text(-160, -30, '+', {
+            fontSize: '40px', // Doubled from 20px
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        card.add(plusText);
+        
+        if (element2Config && (showAllRecipes || this.discoveredElements.has(recipe.elements[1]))) {
+            const elem2Sprite = this.add.sprite(-80, -30, element2Config.sheet, element2Config.frame);
+            elem2Sprite.setScale(0.16); // Doubled from 0.08
+            elem2Sprite.setAlpha(1.0); // Ensure full visibility
+            card.add(elem2Sprite);
+        } else {
+            const unknownText2 = this.add.text(-80, -30, '?', {
+                fontSize: '48px', // Doubled from 24px
+                color: '#999999', // Brighter gray
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+            card.add(unknownText2);
+        }
+        
+        // Equals sign
+        const equalsText = this.add.text(0, -30, '=', {
+            fontSize: '40px', // Doubled from 20px
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        card.add(equalsText);
+        
+        // Result element
+        if (resultConfig && isDiscovered) {
+            const resultSprite = this.add.sprite(80, -30, resultConfig.sheet, resultConfig.frame);
+            resultSprite.setScale(0.16); // Doubled from 0.08
+            resultSprite.setAlpha(1.0); // Ensure full visibility
+            card.add(resultSprite);
+            
+            const nameText = this.add.text(160, -30, resultConfig.name, {
+                fontSize: '32px', // Doubled from 16px
+                color: '#44ff44',
+                fontStyle: 'bold'
+            }).setOrigin(0, 0.5);
+            card.add(nameText);
+        } else {
+            const unknownResult = this.add.text(80, -30, '???', {
+                fontSize: '40px', // Doubled from 20px
+                color: hasIngredients ? '#ffff44' : '#999999', // Brighter gray
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+            card.add(unknownResult);
+        }
+        
+        // Description
+        const descText = isDiscovered ? recipe.description : 
+                         (hasIngredients ? 'Ready to fuse!' : 'Need ingredients');
+        const description = this.add.text(0, 40, descText, {
+            fontSize: '24px', // Doubled from 12px
+            color: isDiscovered ? '#cccccc' : (hasIngredients ? '#ffff44' : '#999999'), // Brighter colors
+            align: 'center',
+            wordWrap: { width: 580 } // Doubled from 290
+        }).setOrigin(0.5);
+        
+        // Add the description to the card
+        card.add(description);
+        
+        return card;
+    }
+
 
     createPauseMenu() {
         this.pauseMenu = this.add.container(400, 300);
@@ -4476,25 +4659,34 @@ class GameScene extends Phaser.Scene {
         this.pauseMenu.add(bg);
 
         // Title
-        const title = this.add.text(0, -200, 'ELEMENT MANAGEMENT', {
-            fontSize: '28px',
+        const title = this.add.text(0, -220, 'ELEMENT MANAGEMENT', {
+            fontSize: '24px',
             color: '#ffdd44',
             fontStyle: 'bold'
         }).setOrigin(0.5);
         this.pauseMenu.add(title);
 
-        // Instructions
-        const instructions = this.add.text(0, -150, 'Drag elements to rearrange • Click X to discard • Click between slots to link', {
-            fontSize: '16px',
-            color: '#ffffff'
-        }).setOrigin(0.5);
-        this.pauseMenu.add(instructions);
-
-        const tip = this.add.text(0, -120, 'Green links can be clicked again to unlink', {
-            fontSize: '14px',
+        // Compact instructions
+        const instructions = this.add.text(0, -195, 'Drag to rearrange • X to discard • Click between to link/unlink', {
+            fontSize: '12px',
             color: '#aaaaaa'
         }).setOrigin(0.5);
-        this.pauseMenu.add(tip);
+        this.pauseMenu.add(instructions);
+        
+        // Active/Passive labels
+        const activeLabel = this.add.text(-250, -100, 'ACTIVE', {
+            fontSize: '14px',
+            color: '#44ff44',
+            fontStyle: 'bold'
+        }).setOrigin(0, 0.5);
+        this.pauseMenu.add(activeLabel);
+        
+        const passiveLabel = this.add.text(-250, -20, 'PASSIVE', {
+            fontSize: '14px',
+            color: '#aaaaaa',
+            fontStyle: 'bold'
+        }).setOrigin(0, 0.5);
+        this.pauseMenu.add(passiveLabel);
 
         // Charge slot visuals
         this.pauseChargeSlots = [];
@@ -4504,8 +4696,8 @@ class GameScene extends Phaser.Scene {
         const slotStartX = -150;
         const slotSpacing = 100;
         const slotY = 0;
-        const slotRowY1 = -50;  // First row Y position
-        const slotRowY2 = 50;   // Second row Y position
+        const slotRowY1 = -100;  // First row Y position (moved up)
+        const slotRowY2 = -20;   // Second row Y position (moved up)
 
         for (let i = 0; i < 8; i++) {
             // Slot background - arrange in 2 rows of 4
@@ -4513,9 +4705,14 @@ class GameScene extends Phaser.Scene {
             const col = i % 4;
             const slotX = slotStartX + col * slotSpacing;
             const slotY_pos = row === 0 ? slotRowY1 : slotRowY2;
-            const slotBg = this.add.rectangle(slotX, slotY_pos, 80, 80, 0x333333);
-            slotBg.setStrokeStyle(2, 0xffffff);
+            // Different colors for active (top row) vs passive (bottom row) slots
+            const isActiveSlot = row === 0;
+            const slotColor = isActiveSlot ? 0x444444 : 0x2a2a2a;
+            const strokeColor = isActiveSlot ? 0xffffff : 0x666666;
+            const slotBg = this.add.rectangle(slotX, slotY_pos, 80, 80, slotColor);
+            slotBg.setStrokeStyle(2, strokeColor);
             slotBg.setData('slotIndex', i);
+            slotBg.setData('isActiveSlot', isActiveSlot);
             slotBg.setInteractive({ dropZone: true });
             this.pauseMenu.add(slotBg);
             
@@ -4525,13 +4722,13 @@ class GameScene extends Phaser.Scene {
                 slotBg.setStrokeStyle(3, 0xffff00);
             });
             slotBg.on('pointerout', () => {
-                slotBg.setStrokeStyle(2, 0xffffff);
+                slotBg.setStrokeStyle(2, isActiveSlot ? 0xffffff : 0x666666);
             });
 
-            // Charge indicator using sprite (make it draggable) - default to first sheet
-            const chargeSprite = this.add.sprite(slotX, slotY_pos, 'element-symbols', 0);
+            // Charge indicator using image (make it draggable) - default to first sheet
+            const chargeSprite = this.add.image(slotX, slotY_pos, 'element-symbols', 0);
             chargeSprite.setVisible(false);
-            chargeSprite.setScale(0.2); // Scale down since frames are huge
+            chargeSprite.setScale(0.15); // Match main UI scale
             chargeSprite.setTint(0xffffff); // Ensure no tint
             chargeSprite.setAlpha(1); // Ensure full opacity
             this.pauseMenu.add(chargeSprite);
@@ -4544,12 +4741,7 @@ class GameScene extends Phaser.Scene {
             chargeSprite.setData('originalX', slotX);
             chargeSprite.setData('originalY', slotY_pos);
 
-            // Slot number
-            const slotNum = this.add.text(slotX, slotY_pos + 50, `Slot ${i + 1}`, {
-                fontSize: '14px',
-                color: '#aaaaaa'
-            }).setOrigin(0.5);
-            this.pauseMenu.add(slotNum);
+            // No slot number text - removed to save space
 
             // Discard button
             const discardBtn = this.add.text(slotX + 35, slotY_pos - 35, 'X', {
@@ -4567,11 +4759,24 @@ class GameScene extends Phaser.Scene {
             const slotIndex = i;
             // Event handlers will be set up in togglePause when menu is shown
 
+            // Tier text in corner of slot
+            const tierText = this.add.text(slotX + 25, slotY_pos - 25, '', {
+                fontSize: '10px',
+                color: '#ffffff',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 1
+            });
+            tierText.setOrigin(0.5);
+            tierText.setVisible(false);
+            this.pauseMenu.add(tierText);
+
             this.pauseChargeSlots.push({
                 bg: slotBg,
                 circle: chargeSprite, // Keeping the name for compatibility
-                text: slotNum,
+                text: null, // No slot number text anymore
                 discardBtn: discardBtn,
+                tierText: tierText,
                 x: slotX,
                 y: slotY_pos
             });
@@ -4600,24 +4805,44 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        // Current combo display
-        this.comboDisplay = this.add.text(0, 100, '', {
-            fontSize: '18px',
+        // Current combo display (moved up)
+        this.comboDisplay = this.add.text(0, 60, '', {
+            fontSize: '16px',
             color: '#44ff44',
             align: 'center'
         }).setOrigin(0.5);
         this.pauseMenu.add(this.comboDisplay);
 
+        // Element description area
+        this.elementDescriptionBg = this.add.rectangle(0, 130, 600, 100, 0x222222, 0.8);
+        this.elementDescriptionBg.setStrokeStyle(2, 0x666666);
+        this.pauseMenu.add(this.elementDescriptionBg);
+
+        this.elementDescriptionTitle = this.add.text(0, 90, '', {
+            fontSize: '18px',
+            color: '#ffdd44',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.pauseMenu.add(this.elementDescriptionTitle);
+
+        this.elementDescriptionText = this.add.text(0, 130, '', {
+            fontSize: '14px',
+            color: '#ffffff',
+            align: 'center',
+            wordWrap: { width: 550 }
+        }).setOrigin(0.5);
+        this.pauseMenu.add(this.elementDescriptionText);
+
         // Close instruction
-        const closeText = this.add.text(0, 200, 'Press P or Start to resume', {
-            fontSize: '16px',
+        const closeText = this.add.text(0, 210, 'Press P or Start to resume', {
+            fontSize: '14px',
             color: '#aaaaaa'
         }).setOrigin(0.5);
         this.pauseMenu.add(closeText);
 
-        // Controller instructions
-        const controllerText = this.add.text(0, 170, 'Controller: D-pad to navigate • A to select/place • B to cancel • Y for link mode', {
-            fontSize: '14px',
+        // Controller instructions (smaller and at bottom)
+        const controllerText = this.add.text(0, 190, 'Controller: D-pad to navigate • A to select • Y for link mode', {
+            fontSize: '12px',
             color: '#888888'
         }).setOrigin(0.5);
         this.pauseMenu.add(controllerText);
@@ -4740,7 +4965,7 @@ class GameScene extends Phaser.Scene {
 
             // Move charge circles out of container and make them interactive at world level
             this.pauseChargeSlots.forEach((slot, index) => {
-                if (index < this.maxCharges) {
+                if (index < 8) {  // Create hit zones for all 8 slots
                     // Calculate world position
                     const worldX = this.pauseMenu.x + slot.circle.x;
                     const worldY = this.pauseMenu.y + slot.circle.y;
@@ -4761,6 +4986,12 @@ class GameScene extends Phaser.Scene {
                     hitZone.setData('originalX', worldX);
                     hitZone.setData('originalY', worldY);
                     hitZone.setData('isBeingDragged', false);
+                    
+                    // Store the actual source slot that contains this element
+                    if (hasCharge) {
+                        hitZone.setData('sourceSlotIndex', index);
+                        console.log(`HitZone for slot ${index} has element: ${this.chargeSlots[index]}`);
+                    }
 
                     // Store reference for visual updates
                     hitZone.visualCircle = slot.circle;
@@ -4772,8 +5003,23 @@ class GameScene extends Phaser.Scene {
                             // Removed scale effect
                             hitZone.setStrokeStyle(2, 0x00ff00, 1);
                             
-                            // Show slot upgrade info
-                            this.showSlotUpgradeTooltip(index, worldX, worldY);
+                            // Show element description
+                            if (this.chargeSlots && this.chargeSlots[index]) {
+                                const element = this.chargeSlots[index];
+                                const config = this.elementConfig[element];
+                                const isPassiveSlot = index >= 4;
+                                
+                                if (config) {
+                                    const activeDesc = this.elementDescriptions[element];
+                                    const passiveDesc = this.getPassiveDescription(element);
+                                    
+                                    this.elementDescriptionTitle.setText(config.name + (isPassiveSlot ? ' (Passive)' : ' (Active)'));
+                                    this.elementDescriptionText.setText(isPassiveSlot ? passiveDesc : activeDesc);
+                                    this.elementDescriptionTitle.setVisible(true);
+                                    this.elementDescriptionText.setVisible(true);
+                                    this.elementDescriptionBg.setVisible(true);
+                                }
+                            }
                         }
                     });
 
@@ -4782,8 +5028,9 @@ class GameScene extends Phaser.Scene {
                             // Removed scale reset
                             hitZone.setStrokeStyle(0);
                             
-                            // Hide tooltip
-                            this.hideSlotUpgradeTooltip();
+                            // Hide element description
+                            this.elementDescriptionTitle.setText('');
+                            this.elementDescriptionText.setText('');
                         }
                     });
 
@@ -4820,13 +5067,14 @@ class GameScene extends Phaser.Scene {
                     });
 
                     hitZone.on('dragend', (pointer) => {
-                        console.log(`Stopped dragging charge ${index}`);
+                        const sourceSlotIndex = hitZone.getData('sourceSlotIndex') || index;
+                        console.log(`Stopped dragging charge from slot ${sourceSlotIndex}`);
                         hitZone.setData('isBeingDragged', false);
 
-                        // Find which slot we're over
+                        // Find which slot we're over (check all 8 slots)
                         let targetIndex = -1;
                         this.pauseChargeSlots.forEach((targetSlot, idx) => {
-                            if (idx < this.maxCharges) {
+                            if (idx < 8) {  // Allow dropping in any of the 8 slots
                                 const targetWorldX = this.pauseMenu.x + targetSlot.x;
                                 const targetWorldY = this.pauseMenu.y + targetSlot.y;
                                 const dist = Phaser.Math.Distance.Between(hitZone.x, hitZone.y, targetWorldX, targetWorldY);
@@ -4836,12 +5084,18 @@ class GameScene extends Phaser.Scene {
                             }
                         });
 
-                        if (targetIndex !== -1 && targetIndex !== index) {
-                            console.log(`Swapping charges ${index} and ${targetIndex}`);
-                            this.swapCharges(index, targetIndex);
-                            // Refresh the display
-                            this.togglePause(); // Close
-                            this.togglePause(); // Reopen to refresh
+                        if (targetIndex !== -1 && targetIndex !== sourceSlotIndex) {
+                            console.log(`Moving charge from slot ${sourceSlotIndex} to slot ${targetIndex}`);
+                            
+                            // Store the element being moved before the swap
+                            const elementBeingMoved = this.chargeSlots[sourceSlotIndex];
+                            console.log(`Moving element: ${elementBeingMoved}`);
+                            
+                            // Perform the move (this will handle updating visual state)
+                            this.swapCharges(sourceSlotIndex, targetIndex);
+                            
+                            // Don't destroy hit zones here - swapCharges will call refreshPauseMenuInteractiveElements
+                            return; // Exit early to prevent position reset
                         } else {
                             // Return to original position
                             hitZone.x = hitZone.getData('originalX');
@@ -4949,7 +5203,7 @@ class GameScene extends Phaser.Scene {
             // Resume physics and timers
             this.physics.resume();
             this.time.timeScale = 1;
-            // Update charge groups based on links
+            // Update charge groups based on links and update passive bonuses
             this.updateChargeGroups();
         }
     }
@@ -4958,8 +5212,8 @@ class GameScene extends Phaser.Scene {
     toggleLink(index) {
         if (index >= 0 && index < this.linkButtons.length) {
             // Check if we have charges in both slots being linked
-            const hasLeftCharge = index < this.charges.length;
-            const hasRightCharge = (index + 1) < this.charges.length;
+            const hasLeftCharge = this.chargeSlots && this.chargeSlots[index] !== null;
+            const hasRightCharge = this.chargeSlots && this.chargeSlots[index + 1] !== null;
 
             // Count currently linked buttons
             const currentLinkedCount = this.linkButtons.filter(l => l.linked).length;
@@ -5001,25 +5255,26 @@ class GameScene extends Phaser.Scene {
     }
 
     updatePauseMenuDisplay() {
-        // Initialize or update chargeSlots
+        // Initialize chargeSlots if needed (shouldn't happen at this point)
         if (!this.chargeSlots) {
             this.chargeSlots = new Array(8).fill(null);
-        }
-        
-        // Always sync chargeSlots with charges array
-        for (let i = 0; i < 8; i++) {
-            if (i < this.charges.length) {
+            // Sync from charges array if it exists
+            for (let i = 0; i < this.charges.length && i < 8; i++) {
                 this.chargeSlots[i] = this.charges[i];
-            } else {
-                this.chargeSlots[i] = null;
             }
         }
-        console.log('Updated chargeSlots:', this.chargeSlots);
-        console.log('Charges array:', this.charges);
         
-        // Update charge slot displays
-        for (let i = 0; i < this.maxCharges && i < 8; i++) {
+        console.log('UpdatePauseMenuDisplay - chargeSlots:', [...this.chargeSlots]);
+        console.log('UpdatePauseMenuDisplay - charges array:', this.charges);
+        
+        // Update charge slot displays - show all 8 slots in pause menu
+        for (let i = 0; i < 8; i++) {
             const element = this.chargeSlots ? this.chargeSlots[i] : (i < this.charges.length ? this.charges[i] : null);
+            
+            if (i < 4) { // Only log first 4 to reduce noise
+                console.log(`Pause menu slot ${i}: element=${element}`);
+            }
+            
             if (element) {
                 const config = this.elementConfig[element];
                 if (config) {
@@ -5049,23 +5304,37 @@ class GameScene extends Phaser.Scene {
                     // Reset position in case it was dragged
                     this.pauseChargeSlots[i].circle.x = this.pauseChargeSlots[i].x;
                     this.pauseChargeSlots[i].circle.y = this.pauseChargeSlots[i].y;
+                    
+                    // Update tier text
+                    const tier = this.elementTiers.get(`${element}_${i}`) || 1;
+                    if (tier > 1) {
+                        this.pauseChargeSlots[i].tierText.setText(tier.toString());
+                        this.pauseChargeSlots[i].tierText.setVisible(true);
+                    } else {
+                        this.pauseChargeSlots[i].tierText.setVisible(false);
+                    }
                 }
             } else {
                 this.pauseChargeSlots[i].circle.setVisible(false);
                 this.pauseChargeSlots[i].discardBtn.setVisible(false);
+                this.pauseChargeSlots[i].tierText.setVisible(false);
             }
 
-            // Update visibility based on max charges
-            const isVisible = i < this.maxCharges;
+            // In pause menu, always show all 8 slots (4 active + 4 passive)
+            const isVisible = true;
             this.pauseChargeSlots[i].bg.setVisible(isVisible);
-            this.pauseChargeSlots[i].text.setVisible(isVisible);
+            // Only update text visibility if text exists (we removed slot labels)
+            if (this.pauseChargeSlots[i].text) {
+                this.pauseChargeSlots[i].text.setVisible(isVisible);
+            }
 
             // Update link button visibility and state
             if (i < this.linkButtons.length && this.linkButtons[i]) {
-                const hasCurrentCharge = i < this.charges.length;
-                const hasNextCharge = (i + 1) < this.charges.length;
+                const hasCurrentCharge = this.chargeSlots[i] !== null && this.chargeSlots[i] !== undefined;
+                const hasNextCharge = this.chargeSlots[i + 1] !== null && this.chargeSlots[i + 1] !== undefined;
                 // Only show links if they are already linked (earned from chests)
-                const shouldShowLink = this.linkButtons[i].linked && isVisible && i < this.maxCharges - 1 && hasCurrentCharge && hasNextCharge;
+                // In pause menu, allow links between any adjacent slots (not just first 4)
+                const shouldShowLink = this.linkButtons[i].linked && isVisible && i < 7 && hasCurrentCharge && hasNextCharge;
                 this.linkButtons[i].btn.setVisible(shouldShowLink);
                 this.linkButtons[i].text.setVisible(shouldShowLink);
 
@@ -5097,11 +5366,22 @@ class GameScene extends Phaser.Scene {
         const groups = [];
         let currentGroup = [];
 
-        for (let i = 0; i < this.charges.length; i++) {
-            currentGroup.push(this.charges[i]);
+        // Only consider first 4 slots as active slots
+        for (let i = 0; i < 4; i++) {
+            // Skip empty slots
+            if (!this.chargeSlots || !this.chargeSlots[i]) {
+                // If we had a group building, end it
+                if (currentGroup.length > 0) {
+                    groups.push([...currentGroup]);
+                    currentGroup = [];
+                }
+                continue;
+            }
+            
+            currentGroup.push(this.chargeSlots[i]);
 
-            // Check if this slot is linked to the next
-            if (i < this.linkButtons.length && this.linkButtons[i].linked && i < this.charges.length - 1) {
+            // Check if this slot is linked to the next (within active slots)
+            if (i < 3 && this.linkButtons[i] && this.linkButtons[i].linked && this.chargeSlots[i + 1]) {
                 // Continue group
             } else {
                 // End current group
@@ -5118,15 +5398,181 @@ class GameScene extends Phaser.Scene {
     updateChargeGroups() {
         this.chargeGroups = this.getChargeGroupsPreview();
         this.currentChargeIndex = 0;
+        this.updatePassiveBonuses();
+    }
+    
+    updatePassiveBonuses() {
+        // Reset all bonuses to default
+        this.passiveBonuses = {
+            damageMultiplier: 1.0,
+            speedMultiplier: 1.0,
+            fireRateMultiplier: 1.0,
+            healthRegenRate: 0,
+            moveSpeedMultiplier: 1.0,
+            lifesteal: 0,
+            dodge: 0,
+            thorns: 0,
+            elementalResistance: {},
+            onKillEffects: [],
+            auraEffects: []
+        };
+        
+        // Get passive elements (slots 4-7)
+        const passiveElements = [];
+        for (let i = 4; i < 8 && i < this.charges.length; i++) {
+            if (this.charges[i]) {
+                passiveElements.push(this.charges[i]);
+            }
+        }
+        
+        // Apply bonuses for each passive element
+        passiveElements.forEach(element => {
+            this.applyPassiveElementBonus(element);
+        });
+        
+        // Check for synergies between passive elements
+        if (passiveElements.length >= 2) {
+            this.checkPassiveSynergies(passiveElements);
+        }
+    }
+    
+    applyPassiveElementBonus(element) {
+        switch (element) {
+            case 'fire':
+                // Fire passive: +20% damage, burning aura
+                this.passiveBonuses.damageMultiplier *= 1.2;
+                this.passiveBonuses.auraEffects.push({ type: 'burn', damage: 0.5, radius: 100 });
+                break;
+                
+            case 'water':
+                // Water passive: +2 HP/sec regen, +10% lifesteal
+                this.passiveBonuses.healthRegenRate += 2;
+                this.passiveBonuses.lifesteal += 0.1;
+                break;
+                
+            case 'earth':
+                // Earth passive: +30% health, damage reflection
+                this.passiveBonuses.thorns += 0.25; // Reflect 25% damage
+                if (this.maxHealth === 100) { // Only apply once
+                    this.maxHealth = 130;
+                    this.playerHealth = Math.min(this.playerHealth + 30, this.maxHealth);
+                }
+                break;
+                
+            case 'air':
+                // Air passive: +20% movement speed, +15% dodge
+                this.passiveBonuses.moveSpeedMultiplier *= 1.2;
+                this.passiveBonuses.dodge += 0.15;
+                break;
+                
+            case 'lightning':
+                // Lightning passive: +30% fire rate, chain damage on kill
+                this.passiveBonuses.fireRateMultiplier *= 1.3;
+                this.passiveBonuses.onKillEffects.push({ type: 'chain', damage: 2, bounces: 2 });
+                break;
+                
+            case 'ice':
+                // Ice passive: Slow aura, +20% elemental resistance
+                this.passiveBonuses.auraEffects.push({ type: 'slow', strength: 0.5, radius: 150 });
+                this.passiveBonuses.elementalResistance.all = (this.passiveBonuses.elementalResistance.all || 0) + 0.2;
+                break;
+                
+            case 'holy':
+                // Holy passive: +3 HP/sec regen, damage boost at full health
+                this.passiveBonuses.healthRegenRate += 3;
+                if (this.playerHealth === this.maxHealth) {
+                    this.passiveBonuses.damageMultiplier *= 1.3;
+                }
+                break;
+                
+            case 'dark':
+                // Dark passive: +15% lifesteal, execute low health enemies
+                this.passiveBonuses.lifesteal += 0.15;
+                this.passiveBonuses.onKillEffects.push({ type: 'execute', threshold: 0.2 });
+                break;
+                
+            case 'poison':
+                // Poison passive: Poison aura, +10% damage per poisoned enemy
+                this.passiveBonuses.auraEffects.push({ type: 'poison', damage: 1, radius: 120 });
+                break;
+                
+            case 'arcane':
+                // Arcane passive: +25% spell damage, mana shield
+                this.passiveBonuses.damageMultiplier *= 1.25;
+                this.passiveBonuses.elementalResistance.magic = (this.passiveBonuses.elementalResistance.magic || 0) + 0.3;
+                break;
+                
+            // Add more elements as needed
+        }
+    }
+    
+    checkPassiveSynergies(elements) {
+        const elementSet = new Set(elements);
+        
+        // Fire + Earth = Lava pools on kill
+        if (elementSet.has('fire') && elementSet.has('earth')) {
+            this.passiveBonuses.onKillEffects.push({ type: 'lava_pool', duration: 3000 });
+        }
+        
+        // Water + Lightning = Energy shield
+        if (elementSet.has('water') && elementSet.has('lightning')) {
+            this.passiveBonuses.dodge += 0.1; // Additional 10% dodge
+            this.passiveBonuses.auraEffects.push({ type: 'energy_shield', absorb: 0.2 });
+        }
+        
+        // Ice + Air = Freezing winds
+        if (elementSet.has('ice') && elementSet.has('air')) {
+            this.passiveBonuses.auraEffects.push({ type: 'freezing_wind', freezeChance: 0.1, radius: 200 });
+        }
+        
+        // More synergies can be added here
+    }
+    
+    getPassiveDescription(element) {
+        const passiveDescriptions = {
+            fire: '+20% damage to all spells. Burning aura damages nearby enemies.',
+            water: '+2 HP/sec regeneration. +10% lifesteal on all damage.',
+            earth: '+30% max health. Reflects 25% of melee damage back to attackers.',
+            air: '+20% movement speed. 15% chance to dodge attacks.',
+            lightning: '+30% faster spell casting. Kills chain lightning to 2 nearby enemies.',
+            ice: 'Slowing aura reduces enemy speed. +20% resistance to all elements.',
+            holy: '+3 HP/sec regeneration. +30% damage when at full health.',
+            dark: '+15% lifesteal. Instantly kill enemies below 20% health.',
+            poison: 'Poison aura constantly damages nearby enemies.',
+            arcane: '+25% spell damage. 30% magic damage resistance.',
+            rock: '+40% max health. Immune to knockback.',
+            lava: 'Leave burning pools on enemy kills. +15% fire damage.',
+            steam: 'Obscuring mist gives 20% dodge. Wet enemies take +50% lightning damage.',
+            mud: 'Enemies near you move 30% slower. +20% earth spell damage.',
+            dust: 'Blind aura reduces enemy accuracy. +25% dodge chance.',
+            crystal: 'Projectiles pierce +1 enemy. +10% critical hit chance.',
+            sand: 'Sandstorm aura damages and blinds. +15% earth damage.',
+            wave: 'Knockback immunity. Water spells heal 5% of damage dealt.',
+            meteor: 'Meteors randomly fall near enemies. +20% fire and earth damage.',
+            gravity: 'Pull enemies slowly toward you. +30% damage to slowed enemies.',
+            volcano: 'Eruptions on spell cast. +25% fire damage, +10% area damage.',
+            thunder: 'Storm aura randomly strikes enemies. +35% lightning damage.',
+            smoke: 'Smoke screen when hit (10s cooldown). +30% dodge in smoke.',
+            nature: 'Regenerate 1% max HP/sec. Spawn healing flowers on kills.',
+            life: '+5 HP/sec regeneration. Resurrect with 50% HP once per minute.',
+            moon: 'Night aura weakens enemies. +20% damage at night (every 2 min).',
+            sun: 'Solar flare damages all enemies every 30s. +40% damage during day.',
+            star: 'Starfall randomly damages enemies. +15% to all elemental damage.',
+            time: 'Enemies move 20% slower. Cooldowns reduced by 25%.',
+            death: 'Execute enemies below 30% health. Killed enemies explode.'
+        };
+        
+        return passiveDescriptions[element] || 'Unknown passive effect.';
     }
 
     swapCharges(fromIndex, toIndex) {
-        console.log(`Swapping charges from ${fromIndex} to ${toIndex}`);
+        console.log(`Moving charge from ${fromIndex} to ${toIndex}`);
         console.log('Current charges:', this.charges);
+        console.log('Current chargeSlots before move:', [...this.chargeSlots]);
         
-        // Ensure both indices are valid slot indices
-        if (fromIndex < 0 || toIndex < 0 || fromIndex >= this.maxCharges || toIndex >= this.maxCharges) {
-            console.log('Invalid indices');
+        // Ensure both indices are valid slot indices (0-7)
+        if (fromIndex < 0 || toIndex < 0 || fromIndex >= 8 || toIndex >= 8) {
+            console.log('Invalid indices - fromIndex:', fromIndex, 'toIndex:', toIndex);
             return;
         }
         
@@ -5139,25 +5585,256 @@ class GameScene extends Phaser.Scene {
             }
         }
         
-        // Perform the swap in the slots array
-        const temp = this.chargeSlots[fromIndex];
-        this.chargeSlots[fromIndex] = this.chargeSlots[toIndex];
-        this.chargeSlots[toIndex] = temp;
+        // Get the element being moved
+        const elementToMove = this.chargeSlots[fromIndex];
         
-        // Rebuild charges array (compact, no nulls)
-        this.charges = this.chargeSlots.filter(charge => charge !== null && charge !== undefined);
+        if (!elementToMove) {
+            console.log('No element to move from slot', fromIndex);
+            return;
+        }
         
-        console.log('After swap - slots:', this.chargeSlots);
-        console.log('After swap - charges:', this.charges);
+        // Check if target slot is empty or occupied
+        const targetElement = this.chargeSlots[toIndex];
+        
+        // Get the tiers of the elements being moved
+        const fromElementTier = this.elementTiers.get(`${elementToMove}_${fromIndex}`) || 1;
+        const toElementTier = targetElement ? (this.elementTiers.get(`${targetElement}_${toIndex}`) || 1) : 0;
+        
+        if (targetElement) {
+            // Swap if target slot is occupied
+            this.chargeSlots[fromIndex] = targetElement;
+            this.chargeSlots[toIndex] = elementToMove;
+            
+            // Update tier tracking for swapped elements
+            this.elementTiers.set(`${targetElement}_${fromIndex}`, toElementTier);
+            this.elementTiers.set(`${elementToMove}_${toIndex}`, fromElementTier);
+            
+            // Clean up old tier entries
+            this.elementTiers.delete(`${elementToMove}_${fromIndex}`);
+            this.elementTiers.delete(`${targetElement}_${toIndex}`);
+        } else {
+            // Move to empty slot
+            this.chargeSlots[fromIndex] = null;
+            this.chargeSlots[toIndex] = elementToMove;
+            
+            // Update tier tracking for moved element
+            this.elementTiers.set(`${elementToMove}_${toIndex}`, fromElementTier);
+            
+            // Clean up old tier entry
+            this.elementTiers.delete(`${elementToMove}_${fromIndex}`);
+        }
+        
+        // Rebuild charges array from all non-null slots
+        this.charges = [];
+        for (let i = 0; i < 8; i++) {
+            if (this.chargeSlots[i] !== null) {
+                this.charges.push(this.chargeSlots[i]);
+            }
+        }
+        
+        console.log('After move - slots:', [...this.chargeSlots]);
+        console.log('After move - charges:', this.charges);
         
         // Update the charge UI in main game
         this.updateChargeUI();
+        
+        // Update pause menu display without closing/reopening
+        if (this.isPaused && this.pauseMenu && this.pauseMenu.visible) {
+            console.log('Updating pause menu display after swap');
+            // Don't close/reopen - just update the visual state
+            this.updatePauseMenuDisplay();
+            
+            // Refresh the interactive elements without closing menu
+            this.refreshPauseMenuInteractiveElements();
+        }
         
         // Clear any links that might be affected
         const affectedIndices = [fromIndex - 1, fromIndex, toIndex - 1, toIndex];
         affectedIndices.forEach(idx => {
             if (idx >= 0 && idx < this.linkButtons.length && this.linkButtons[idx]) {
                 this.linkButtons[idx].linked = false;
+            }
+        });
+        
+        // Update charge groups and passive bonuses
+        this.updateChargeGroups();
+    }
+    
+    refreshPauseMenuInteractiveElements() {
+        // Clean up existing interactive elements
+        if (this.tempInteractiveElements) {
+            this.tempInteractiveElements.forEach(element => element.destroy());
+            this.tempInteractiveElements = [];
+        }
+        
+        // Recreate interactive elements for the updated charge slots
+        this.pauseChargeSlots.forEach((slot, index) => {
+            if (index < 8) {  // Create hit zones for all 8 slots
+                // Calculate world position
+                const worldX = this.pauseMenu.x + slot.circle.x;
+                const worldY = this.pauseMenu.y + slot.circle.y;
+
+                // Create a temporary interactive zone at world coordinates
+                const hitZone = this.add.circle(worldX, worldY, 30, 0x00ff00, 0.01);
+                hitZone.setDepth(901);
+                hitZone.setScrollFactor(0);
+
+                // Set interactive only if slot has a charge
+                const hasCharge = this.chargeSlots && this.chargeSlots[index];
+                hitZone.setInteractive({
+                    draggable: hasCharge,
+                    useHandCursor: hasCharge
+                });
+
+                hitZone.setData('slotIndex', index);
+                hitZone.setData('originalX', worldX);
+                hitZone.setData('originalY', worldY);
+                hitZone.setData('isBeingDragged', false);
+                
+                if (hasCharge) {
+                    hitZone.setData('sourceSlotIndex', index);
+                    console.log(`Refreshed HitZone for slot ${index} with element: ${this.chargeSlots[index]}`);
+                }
+
+                // Store reference for visual updates
+                hitZone.visualCircle = slot.circle;
+
+                // Pointer events
+                hitZone.on('pointerover', () => {
+                    if (!hitZone.getData('isBeingDragged')) {
+                        hitZone.setStrokeStyle(2, 0x00ff00, 1);
+                        
+                        // Show element description
+                        if (this.chargeSlots && this.chargeSlots[index]) {
+                            const element = this.chargeSlots[index];
+                            const config = this.elementConfig[element];
+                            const isPassiveSlot = index >= 4;
+                            
+                            if (config) {
+                                const activeDesc = this.elementDescriptions[element];
+                                const passiveDesc = this.getPassiveDescription(element);
+                                const tier = this.elementTiers.get(`${element}_${index}`) || 1;
+                                
+                                let titleText = config.name;
+                                if (tier > 1) {
+                                    titleText += ` (Tier ${tier})`;
+                                }
+                                titleText += (isPassiveSlot ? ' - Passive' : ' - Active');
+                                
+                                this.elementDescriptionTitle.setText(titleText);
+                                
+                                let descText = isPassiveSlot ? passiveDesc : activeDesc;
+                                if (tier > 1) {
+                                    descText += '\n' + this.getTierBonusDescription(element, tier);
+                                }
+                                
+                                this.elementDescriptionText.setText(descText);
+                                this.elementDescriptionTitle.setVisible(true);
+                                this.elementDescriptionText.setVisible(true);
+                                this.elementDescriptionBg.setVisible(true);
+                            }
+                        }
+                    }
+                });
+
+                hitZone.on('pointerout', () => {
+                    if (!hitZone.getData('isBeingDragged')) {
+                        hitZone.setStrokeStyle(0);
+                        this.elementDescriptionTitle.setText('');
+                        this.elementDescriptionText.setText('');
+                    }
+                });
+
+                // Drag handling
+                hitZone.on('dragstart', (pointer) => {
+                    console.log(`Started dragging charge ${index}`);
+                    hitZone.setData('isBeingDragged', true);
+                    this.draggedChargeIndex = index;
+                    slot.circle.setAlpha(0.5);
+                    hitZone.setStrokeStyle(3, 0xffff00, 1);
+                });
+
+                hitZone.on('drag', (pointer, dragX, dragY) => {
+                    hitZone.x = dragX;
+                    hitZone.y = dragY;
+                    // Move the visual charge circle too
+                    slot.circle.x = dragX - this.pauseMenu.x;
+                    slot.circle.y = dragY - this.pauseMenu.y;
+                });
+
+                hitZone.on('dragend', (pointer) => {
+                    const sourceSlotIndex = hitZone.getData('sourceSlotIndex') || index;
+                    console.log(`Stopped dragging charge from slot ${sourceSlotIndex}`);
+                    hitZone.setData('isBeingDragged', false);
+
+                    // Find which slot we're over
+                    let targetIndex = -1;
+                    this.pauseChargeSlots.forEach((targetSlot, idx) => {
+                        if (idx < 8) {
+                            const targetWorldX = this.pauseMenu.x + targetSlot.x;
+                            const targetWorldY = this.pauseMenu.y + targetSlot.y;
+                            const dist = Phaser.Math.Distance.Between(hitZone.x, hitZone.y, targetWorldX, targetWorldY);
+                            if (dist < 40) {
+                                targetIndex = idx;
+                            }
+                        }
+                    });
+
+                    if (targetIndex !== -1 && targetIndex !== sourceSlotIndex) {
+                        console.log(`Moving charge from slot ${sourceSlotIndex} to slot ${targetIndex}`);
+                        this.swapCharges(sourceSlotIndex, targetIndex);
+                    } else {
+                        // Return to original position
+                        hitZone.x = hitZone.getData('originalX');
+                        hitZone.y = hitZone.getData('originalY');
+                        slot.circle.x = slot.x;
+                        slot.circle.y = slot.y;
+                    }
+
+                    slot.circle.setAlpha(1);
+                    hitZone.setStrokeStyle(0);
+                    this.draggedChargeIndex = null;
+                });
+
+                this.tempInteractiveElements.push(hitZone);
+
+                // Discard button
+                if (slot.discardBtn.visible) {
+                    const discardX = this.pauseMenu.x + slot.discardBtn.x;
+                    const discardY = this.pauseMenu.y + slot.discardBtn.y;
+
+                    const discardHitZone = this.add.rectangle(discardX, discardY, 30, 20, 0xff0000, 0.01);
+                    discardHitZone.setDepth(300);
+                    discardHitZone.setScrollFactor(0);
+                    discardHitZone.setInteractive({ useHandCursor: true });
+
+                    const slotIndex = index;
+                    discardHitZone.on('pointerdown', () => {
+                        this.discardCharge(slotIndex);
+                    });
+
+                    this.tempInteractiveElements.push(discardHitZone);
+                }
+            }
+        });
+        
+        // Recreate link button interactive zones
+        this.linkButtons.forEach((link, index) => {
+            if (link.btn.visible) {
+                const linkX = this.pauseMenu.x + link.btn.x;
+                const linkY = this.pauseMenu.y + link.btn.y;
+
+                const linkHitZone = this.add.rectangle(linkX, linkY, 30, 20, 0x00ff00, 0.01);
+                linkHitZone.setDepth(300);
+                linkHitZone.setScrollFactor(0);
+                linkHitZone.setInteractive({ useHandCursor: true });
+
+                const linkIndex = index;
+                linkHitZone.on('pointerdown', () => {
+                    this.toggleLink(linkIndex);
+                });
+
+                this.tempInteractiveElements.push(linkHitZone);
             }
         });
     }
@@ -5225,15 +5902,23 @@ class GameScene extends Phaser.Scene {
     }
 
     discardCharge(index, confirmed = false) {
-        if (index < this.charges.length) {
+        if (this.chargeSlots && this.chargeSlots[index]) {
             // If not confirmed, show confirmation dialog
             if (!confirmed) {
                 this.showDiscardConfirmation(index);
                 return;
             }
 
-            // Remove the charge
-            this.charges.splice(index, 1);
+            // Remove the charge from the slot
+            this.chargeSlots[index] = null;
+            
+            // Rebuild charges array
+            this.charges = [];
+            for (let i = 0; i < 8; i++) {
+                if (this.chargeSlots[i] !== null) {
+                    this.charges.push(this.chargeSlots[i]);
+                }
+            }
 
             // Clear any links affected by this removal
             if (index > 0 && this.linkButtons[index - 1]) {
@@ -5275,7 +5960,8 @@ class GameScene extends Phaser.Scene {
         confirmBg.setDepth(300);
         confirmBg.setScrollFactor(0);
 
-        const confirmText = this.add.text(400, 270, `Discard ${this.charges[index]} charge?`, {
+        const elementName = this.chargeSlots[index] ? this.chargeSlots[index] : 'element';
+        const confirmText = this.add.text(400, 270, `Discard ${elementName} charge?`, {
             fontSize: '18px',
             color: '#ffffff'
         }).setOrigin(0.5);
@@ -5385,16 +6071,40 @@ class GameScene extends Phaser.Scene {
             // Normal mode cursor positioning
             this.pauseMenuCursor.setStrokeStyle(3, 0x00ff00, 1); // Green for normal mode
 
-            if (this.pauseMenuCursorIndex < 4) {
-                // Hovering over a charge slot
+            if (this.pauseMenuCursorIndex < 8) {
+                // Hovering over a charge slot (now supports 8 slots)
                 const slot = this.pauseChargeSlots[this.pauseMenuCursorIndex];
-                this.pauseMenuCursor.x = this.pauseMenu.x + slot.x;
-                this.pauseMenuCursor.y = this.pauseMenu.y + slot.y;
-                // Reset to normal size for slots
-                this.pauseMenuCursor.setSize(85, 85);
+                if (slot && this.pauseMenuCursorIndex < this.maxCharges) {
+                    this.pauseMenuCursor.x = this.pauseMenu.x + slot.x;
+                    this.pauseMenuCursor.y = this.pauseMenu.y + slot.y;
+                    // Reset to normal size for slots
+                    this.pauseMenuCursor.setSize(85, 85);
+                    
+                    // Show element description for controller navigation
+                    if (this.chargeSlots && this.chargeSlots[this.pauseMenuCursorIndex]) {
+                        const element = this.chargeSlots[this.pauseMenuCursorIndex];
+                        const config = this.elementConfig[element];
+                        const isPassiveSlot = this.pauseMenuCursorIndex >= 4;
+                        
+                        if (config) {
+                            const activeDesc = this.elementDescriptions[element];
+                            const passiveDesc = this.getPassiveDescription(element);
+                            
+                            this.elementDescriptionTitle.setText(config.name + (isPassiveSlot ? ' (Passive)' : ' (Active)'));
+                            this.elementDescriptionText.setText(isPassiveSlot ? passiveDesc : activeDesc);
+                            this.elementDescriptionTitle.setVisible(true);
+                            this.elementDescriptionText.setVisible(true);
+                            this.elementDescriptionBg.setVisible(true);
+                        }
+                    } else {
+                        // Clear description if no element in slot
+                        this.elementDescriptionTitle.setText('');
+                        this.elementDescriptionText.setText('');
+                    }
+                }
             } else {
                 // Hovering over a link button
-                const linkIndex = this.pauseMenuCursorIndex - 4;
+                const linkIndex = this.pauseMenuCursorIndex - 8;
                 if (linkIndex < this.linkButtons.length) {
                     const link = this.linkButtons[linkIndex];
                     this.pauseMenuCursor.x = this.pauseMenu.x + link.btn.x;
@@ -5402,6 +6112,9 @@ class GameScene extends Phaser.Scene {
                     // Make cursor smaller for link buttons
                     this.pauseMenuCursor.setSize(35, 25);
                 }
+                // Clear element description when hovering over link button
+                this.elementDescriptionTitle.setText('');
+                this.elementDescriptionText.setText('');
             }
         }
     }
@@ -5454,7 +6167,7 @@ class GameScene extends Phaser.Scene {
                 // Normal navigation
                 this.pauseMenuCursorIndex--;
                 if (this.pauseMenuCursorIndex < 0) {
-                    this.pauseMenuCursorIndex = 6; // 4 slots + 3 links - 1
+                    this.pauseMenuCursorIndex = this.maxCharges + this.linkButtons.length - 1;
                 }
             }
             this.updatePauseMenuCursor();
@@ -5470,7 +6183,7 @@ class GameScene extends Phaser.Scene {
             } else {
                 // Normal navigation
                 this.pauseMenuCursorIndex++;
-                if (this.pauseMenuCursorIndex > 6) {
+                if (this.pauseMenuCursorIndex >= this.maxCharges + this.linkButtons.length) {
                     this.pauseMenuCursorIndex = 0;
                 }
             }
@@ -5488,7 +6201,7 @@ class GameScene extends Phaser.Scene {
                 }
             } else {
                 // Normal charge selection/placement
-                if (this.pauseMenuCursorIndex < 4) {
+                if (this.pauseMenuCursorIndex < this.maxCharges) {
                     // Charge slot
                     const slotIndex = this.pauseMenuCursorIndex;
 
@@ -5522,7 +6235,7 @@ class GameScene extends Phaser.Scene {
                 this.pauseChargeSlots[this.pauseMenuSelectedCharge].circle.setScale(1);
                 this.pauseChargeSlots[this.pauseMenuSelectedCharge].circle.setAlpha(1);
                 this.pauseMenuSelectedCharge = -1;
-            } else if (this.pauseMenuCursorIndex < 4 && this.pauseMenuCursorIndex < this.charges.length) {
+            } else if (this.pauseMenuCursorIndex < this.maxCharges && this.pauseMenuCursorIndex < this.charges.length) {
                 // Show discard confirmation
                 this.showDiscardConfirmation(this.pauseMenuCursorIndex);
             }
@@ -5662,7 +6375,6 @@ class GameScene extends Phaser.Scene {
     toggleSpellbook() {
         this.spellbookOpen = !this.spellbookOpen;
         this.spellbookUI.setVisible(this.spellbookOpen);
-        this.updateSpellbookText();
         
         // Disable interaction when hidden to prevent blocking other UI
         if (this.spellbookUI.input) {
@@ -5670,6 +6382,8 @@ class GameScene extends Phaser.Scene {
         }
 
         if (this.spellbookOpen) {
+            // Update content when opening
+            this.updateSpellbookText();
             // Pause physics and all timers
             this.physics.pause();
             this.time.timeScale = 0;
@@ -5678,9 +6392,9 @@ class GameScene extends Phaser.Scene {
             if (!this.spellbookWheelHandler) {
                 this.spellbookWheelHandler = (event) => {
                     if (this.spellbookOpen) {
-                        const scrollAmount = event.deltaY > 0 ? 30 : -30;
+                        const scrollAmount = event.deltaY > 0 ? 60 : -60; // Increased for larger cards
                         this.spellScrollY = Math.max(0, Math.min(this.spellMaxScrollY, this.spellScrollY + scrollAmount));
-                        this.spellListContainer.y = -100 + this.spellScrollY;
+                        this.elementCardsContainer.y = -this.spellScrollY;
                         event.preventDefault();
                     }
                 };
@@ -5693,39 +6407,6 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    toggleElementsMenu() {
-        this.elementsMenuOpen = !this.elementsMenuOpen;
-        this.elementsMenu.setVisible(this.elementsMenuOpen);
-        
-        // Disable interaction when hidden to prevent blocking other UI
-        if (this.elementsMenu.input) {
-            this.elementsMenu.input.enabled = this.elementsMenuOpen;
-        }
-
-        if (this.elementsMenuOpen) {
-            // Pause game and all timers when menu is open
-            this.physics.pause();
-            this.time.timeScale = 0;
-            this.updateElementsMenu();
-
-            // Add mouse wheel scrolling
-            if (!this.elementsWheelHandler) {
-                this.elementsWheelHandler = (event) => {
-                    if (this.elementsMenuOpen) {
-                        const scrollAmount = event.deltaY > 0 ? 30 : -30;
-                        this.elementsScrollY = Math.max(0, Math.min(this.elementsMaxScrollY, this.elementsScrollY + scrollAmount));
-                        this.elementsListContainer.y = -50 + this.elementsScrollY;
-                        event.preventDefault();
-                    }
-                };
-                this.input.manager.canvas.addEventListener('wheel', this.elementsWheelHandler);
-            }
-        } else {
-            // Resume game and timers when menu is closed
-            this.physics.resume();
-            this.time.timeScale = 1;
-        }
-    }
 
     cleanupEnemyEffects(enemy) {
         // Clean up poison timer if it exists
@@ -8247,8 +8928,50 @@ class GameScene extends Phaser.Scene {
     }
 
     collectElementOrb(wizard, orb) {
-        if (this.charges.length < this.maxCharges) {
-            this.charges.push(orb.element);
+        // Initialize chargeSlots if needed
+        if (!this.chargeSlots) {
+            this.chargeSlots = new Array(8).fill(null);
+        }
+        
+        // Count how many charges we have
+        let chargeCount = 0;
+        for (let i = 0; i < 8; i++) {
+            if (this.chargeSlots[i] !== null) {
+                chargeCount++;
+            }
+        }
+        
+        if (chargeCount < this.maxCharges) {
+            // Find first empty slot
+            let slotIndex = -1;
+            for (let i = 0; i < 8; i++) {
+                if (this.chargeSlots[i] === null) {
+                    slotIndex = i;
+                    break;
+                }
+            }
+            
+            if (slotIndex !== -1) {
+                this.chargeSlots[slotIndex] = orb.element;
+                
+                // Set tier to 1 for newly collected elements
+                this.elementTiers.set(`${orb.element}_${slotIndex}`, 1);
+                
+                // Rebuild charges array
+                this.charges = [];
+                for (let i = 0; i < 8; i++) {
+                    if (this.chargeSlots[i] !== null) {
+                        this.charges.push(this.chargeSlots[i]);
+                    }
+                }
+                
+                console.log('Collected element:', orb.element);
+                console.log('Placed in slot:', slotIndex);
+                console.log('Element tier:', 1);
+                console.log('ChargeSlots after collection:', [...this.chargeSlots]);
+                console.log('Charges after collection:', [...this.charges]);
+            }
+            
             this.updateChargeUI();
             this.itemsCollected.elements++;
 
@@ -8313,31 +9036,51 @@ class GameScene extends Phaser.Scene {
     }
 
     fireIndividualCharge(chargeIndex, element) {
-        // Check if charge is linked to others
+        // Check if charge is linked to others (only check links within active slots)
         const linkedIndices = [chargeIndex];
 
         // Check for links if we have link buttons
         if (this.linkButtons) {
-            // Check link to the left
-            if (chargeIndex > 0 && this.linkButtons[chargeIndex - 1] && this.linkButtons[chargeIndex - 1].linked) {
+            // Check link to the left (only if both slots are in active range)
+            if (chargeIndex > 0 && chargeIndex - 1 < 4 && this.linkButtons[chargeIndex - 1] && this.linkButtons[chargeIndex - 1].linked) {
                 linkedIndices.unshift(chargeIndex - 1);
                 // Set cooldown for linked charge
                 const linkedElement = this.charges[chargeIndex - 1];
-                const linkedConfig = this.elementConfig[linkedElement];
-                this.setSpellCooldown(linkedElement, linkedConfig.fireRate || 1000, chargeIndex - 1);
+                if (linkedElement) {
+                    const linkedConfig = this.elementConfig[linkedElement];
+                    this.setSpellCooldown(linkedElement, linkedConfig.fireRate || 1000, chargeIndex - 1);
+                }
             }
-            // Check link to the right
-            if (chargeIndex < this.charges.length - 1 && this.linkButtons[chargeIndex] && this.linkButtons[chargeIndex].linked) {
+            // Check link to the right (only if both slots are in active range)
+            if (chargeIndex < this.charges.length - 1 && chargeIndex + 1 < 4 && this.linkButtons[chargeIndex] && this.linkButtons[chargeIndex].linked) {
                 linkedIndices.push(chargeIndex + 1);
                 // Set cooldown for linked charge
                 const linkedElement = this.charges[chargeIndex + 1];
-                const linkedConfig = this.elementConfig[linkedElement];
-                this.setSpellCooldown(linkedElement, linkedConfig.fireRate || 1000, chargeIndex + 1);
+                if (linkedElement) {
+                    const linkedConfig = this.elementConfig[linkedElement];
+                    this.setSpellCooldown(linkedElement, linkedConfig.fireRate || 1000, chargeIndex + 1);
+                }
             }
         }
 
         // Get all linked elements
         const linkedElements = linkedIndices.map(i => this.charges[i]).filter(e => e !== undefined);
+        
+        // Get the slot index for this charge to look up its tier
+        let slotIndex = -1;
+        let chargeCount = 0;
+        for (let i = 0; i < this.chargeSlots.length; i++) {
+            if (this.chargeSlots[i] !== null) {
+                if (chargeCount === chargeIndex) {
+                    slotIndex = i;
+                    break;
+                }
+                chargeCount++;
+            }
+        }
+        
+        // Get the tier for this element
+        const elementTier = this.elementTiers.get(`${element}_${slotIndex}`) || 1;
 
         // Fire based on number of linked elements
         if (linkedElements.length === 1) {
@@ -8345,7 +9088,7 @@ class GameScene extends Phaser.Scene {
             switch (element) {
                 case 'fire':
                     // Pass all charges so fire can scale based on total fire elements
-                    this.fireFireProjectile([element], this.charges, chargeIndex);
+                    this.fireFireProjectile([element], this.charges, chargeIndex, elementTier);
                     break;
                 case 'water':
                     // Pass all charges so water can scale based on total water elements
@@ -8663,7 +9406,7 @@ class GameScene extends Phaser.Scene {
         this.createElementalStorm();
     }
 
-    fireFireProjectile(currentGroup = ['fire'], allCharges = null, slotIndex = 0) {
+    fireFireProjectile(currentGroup = ['fire'], allCharges = null, slotIndex = 0, elementTier = 1) {
         // Remove any existing flame for this charge
         if (this.activeFlames[0]) {
             this.activeFlames[0].destroy();
@@ -8678,9 +9421,13 @@ class GameScene extends Phaser.Scene {
             : currentGroup.filter(e => e === 'fire').length;
 
         console.log('Fire count for scaling:', fireCount);
+        console.log('Fire element tier:', elementTier);
 
-        // 100% larger (2x) for each fire element
-        const scale = baseScale * fireCount;
+        // Apply tier scaling to size
+        const tierAreaScale = this.tierScaling.area[elementTier - 1] || 1.0;
+        
+        // 100% larger (2x) for each fire element, then apply tier scaling
+        const scale = baseScale * fireCount * tierAreaScale;
 
         // Since the sprite is 32x32 and we're scaling it, calculate the actual size
         const spriteSize = 32 * scale;
@@ -8745,10 +9492,15 @@ class GameScene extends Phaser.Scene {
         flame.element = 'fire';
         // Get slot buffs and apply damage multiplier
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
-        flame.damage = 0.5 * slotBuff.damageMultiplier; // Apply slot damage buff
+        
+        // Apply tier damage scaling
+        const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
+        flame.damage = 0.5 * slotBuff.damageMultiplier * tierDamageScale; // Apply slot and tier damage buffs
+        
         flame.linkedCount = currentGroup.length;
         flame.slotIndex = slotIndex; // Store slot index for reference
         flame.isStationary = true; // Mark as stationary effect
+        flame.tier = elementTier; // Store tier for visual effects
 
         // Add to projectiles group for collision detection
         this.projectiles.add(flame);
@@ -14378,7 +15130,7 @@ class GameScene extends Phaser.Scene {
         // Create fusion cutscene
         const cutsceneBg = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.95);
         cutsceneBg.setScrollFactor(0);
-        cutsceneBg.setDepth(300);
+        cutsceneBg.setDepth(1000);
 
         // Get element configs
         const element1Config = this.elementConfig[elements[0]];
@@ -14388,12 +15140,12 @@ class GameScene extends Phaser.Scene {
         const sprite1 = this.add.sprite(250, 300, element1Config.sheet, element1Config.frame);
         sprite1.setScale(0.5);
         sprite1.setScrollFactor(0);
-        sprite1.setDepth(301);
+        sprite1.setDepth(1001);
 
         const sprite2 = this.add.sprite(550, 300, element2Config.sheet, element2Config.frame);
         sprite2.setScale(0.5);
         sprite2.setScrollFactor(0);
-        sprite2.setDepth(301);
+        sprite2.setDepth(1001);
 
         // Clean up fusion UI first
         if (this.fusionUI) {
@@ -14416,7 +15168,7 @@ class GameScene extends Phaser.Scene {
             quantity: 3
         });
         particles.setScrollFactor(0);
-        particles.setDepth(302);
+        particles.setDepth(1002);
 
         // Animate sprites moving together
         this.tweens.add({
@@ -14441,11 +15193,48 @@ class GameScene extends Phaser.Scene {
             ease: 'Linear'
         });
 
+        // Get the indices of the elements being fused
+        let elementIndices = [];
+        for (let i = 0; i < this.charges.length; i++) {
+            if (elements.includes(this.charges[i]) && elementIndices.length < 2) {
+                // Find the slot index for this charge
+                let slotIndex = -1;
+                let chargeCount = 0;
+                for (let j = 0; j < this.chargeSlots.length; j++) {
+                    if (this.chargeSlots[j] !== null) {
+                        if (chargeCount === i) {
+                            slotIndex = j;
+                            break;
+                        }
+                        chargeCount++;
+                    }
+                }
+                elementIndices.push(slotIndex);
+            }
+        }
+        
         // Determine fusion result based on element combination
         let result;
+        let resultTier = 1;
+        let isTierUpgrade = false;
         
+        // Check if both elements are the same type
+        if (elements[0] === elements[1]) {
+            // Same element fusion - tier upgrade!
+            result = elements[0];
+            isTierUpgrade = true;
+            
+            // Get current tiers of both elements
+            const tier1 = this.elementTiers.get(`${elements[0]}_${elementIndices[0]}`) || 1;
+            const tier2 = this.elementTiers.get(`${elements[1]}_${elementIndices[1]}`) || 1;
+            
+            // Result tier is the sum of both tiers, capped at 5
+            resultTier = Math.min(tier1 + tier2, 5);
+            
+            console.log(`Fusing ${elements[0]} tier ${tier1} + ${elements[1]} tier ${tier2} = ${result} tier ${resultTier}`);
+        }
         // Special case: Time element with any other element produces Death
-        if (elements.includes('time')) {
+        else if (elements.includes('time')) {
             // If one element is time and the other is not time, result is death
             const otherElement = elements.find(e => e !== 'time');
             if (otherElement) {
@@ -14496,8 +15285,8 @@ class GameScene extends Phaser.Scene {
         
         const resultConfig = this.elementConfig[result];
 
-        // Show "Fusing into..." text during animation
-        const fusingText = this.add.text(400, 200, `Fusing into ${resultConfig.name}...`, {
+        // Show "Fusing..." text during animation (without revealing result yet)
+        const fusingText = this.add.text(400, 200, 'Fusing...', {
             fontSize: '24px',
             color: '#ffdd44',
             fontStyle: 'bold',
@@ -14506,7 +15295,7 @@ class GameScene extends Phaser.Scene {
         });
         fusingText.setOrigin(0.5);
         fusingText.setScrollFactor(0);
-        fusingText.setDepth(301);
+        fusingText.setDepth(1001);
         fusingText.setAlpha(0);
 
         this.tweens.add({
@@ -14520,7 +15309,7 @@ class GameScene extends Phaser.Scene {
             // Flash effect
             const flash = this.add.rectangle(400, 300, 800, 600, 0xffffff, 0.8);
             flash.setScrollFactor(0);
-            flash.setDepth(303);
+            flash.setDepth(1003);
 
             this.tweens.add({
                 targets: flash,
@@ -14535,31 +15324,100 @@ class GameScene extends Phaser.Scene {
             fusingText.destroy();
 
             // Show result sprite
-            const resultSprite = this.add.sprite(400, 300, resultConfig.sheet, resultConfig.frame);
+            const resultSprite = this.add.sprite(400, 250, resultConfig.sheet, resultConfig.frame);
             resultSprite.setScale(0);
             resultSprite.setScrollFactor(0);
-            resultSprite.setDepth(301);
+            resultSprite.setDepth(1001);
 
             // Scale up result
             this.tweens.add({
                 targets: resultSprite,
-                scale: 0.6,
+                scale: 0.8,
                 duration: 800,
                 ease: 'Back.easeOut'
             });
 
-            // Show success text
-            const successText = this.add.text(400, 450, `${resultConfig.name} Created!`, {
-                fontSize: '32px',
-                color: resultConfig.color,
+            // Create the element name text with tier if applicable
+            let elementName = resultConfig.name.toUpperCase();
+            if (isTierUpgrade && resultTier > 1) {
+                elementName = `${resultConfig.name.toUpperCase()} ${resultTier}`;
+            }
+            
+            // Big dramatic name reveal
+            const nameText = this.add.text(400, 380, elementName, {
+                fontSize: '48px',
+                color: resultConfig.color || '#ffffff',
                 fontStyle: 'bold',
                 stroke: '#000000',
-                strokeThickness: 4
+                strokeThickness: 6
+            });
+            nameText.setOrigin(0.5);
+            nameText.setScrollFactor(0);
+            nameText.setDepth(1002);
+            nameText.setScale(0.1);
+            nameText.setAlpha(0);
+
+            // Animate name appearance with dramatic effect
+            this.tweens.add({
+                targets: nameText,
+                scale: 1,
+                alpha: 1,
+                duration: 600,
+                delay: 200,
+                ease: 'Back.easeOut'
+            });
+
+            // Add glow effect to name
+            this.tweens.add({
+                targets: nameText,
+                alpha: 0.8,
+                duration: 400,
+                yoyo: true,
+                repeat: 2,
+                delay: 800
+            });
+
+            // Show success text (smaller, below the name)
+            let successMessage = isTierUpgrade ? 'Tier Upgrade!' : 'New Discovery!';
+            
+            const successText = this.add.text(400, 440, successMessage, {
+                fontSize: '20px',
+                color: '#ffdd44',
+                fontStyle: 'italic',
+                stroke: '#000000',
+                strokeThickness: 3
             });
             successText.setOrigin(0.5);
             successText.setScrollFactor(0);
-            successText.setDepth(301);
+            successText.setDepth(1001);
             successText.setAlpha(0);
+            
+            // Show tier upgrade effects if applicable
+            if (isTierUpgrade && resultTier > 1) {
+                const bonusText = this.add.text(400, 490, this.getTierBonusDescription(result, resultTier), {
+                    fontSize: '16px',
+                    color: '#ffdd44',
+                    fontStyle: 'italic',
+                    stroke: '#000000',
+                    strokeThickness: 2
+                });
+                bonusText.setOrigin(0.5);
+                bonusText.setScrollFactor(0);
+                bonusText.setDepth(1001);
+                bonusText.setAlpha(0);
+                
+                this.tweens.add({
+                    targets: bonusText,
+                    alpha: 1,
+                    duration: 500,
+                    delay: 500
+                });
+                
+                // Destroy bonus text with other elements
+                this.time.delayedCall(3000, () => {
+                    bonusText.destroy();
+                });
+            }
 
             this.tweens.add({
                 targets: successText,
@@ -14573,15 +15431,47 @@ class GameScene extends Phaser.Scene {
                 particles.stop();
             });
 
-            // Update game state
-            elements.forEach(element => {
-                const index = this.charges.indexOf(element);
-                if (index > -1) {
-                    this.charges.splice(index, 1);
+            // Update game state - remove the fused elements from chargeSlots
+            const removedIndices = [];
+            elementIndices.forEach((slotIndex, idx) => {
+                if (slotIndex !== -1 && this.chargeSlots[slotIndex] === elements[idx]) {
+                    // Clear tier info for the removed element
+                    this.elementTiers.delete(`${elements[idx]}_${slotIndex}`);
+                    // Clear the slot
+                    this.chargeSlots[slotIndex] = null;
+                    removedIndices.push(slotIndex);
                 }
             });
-
-            this.charges.push(result);
+            
+            // Place the result in the first removed slot
+            let newSlotIndex = removedIndices[0];
+            if (newSlotIndex !== undefined && newSlotIndex !== -1) {
+                this.chargeSlots[newSlotIndex] = result;
+            } else {
+                // Fallback: find first empty slot
+                for (let i = 0; i < this.chargeSlots.length; i++) {
+                    if (this.chargeSlots[i] === null) {
+                        newSlotIndex = i;
+                        this.chargeSlots[i] = result;
+                        break;
+                    }
+                }
+            }
+            
+            // Rebuild charges array from chargeSlots
+            this.charges = [];
+            for (let i = 0; i < this.chargeSlots.length; i++) {
+                if (this.chargeSlots[i] !== null) {
+                    this.charges.push(this.chargeSlots[i]);
+                }
+            }
+            
+            // Track the tier of the new element
+            if (newSlotIndex !== -1) {
+                this.elementTiers.set(`${result}_${newSlotIndex}`, resultTier);
+                console.log(`Set tier for ${result} at slot ${newSlotIndex} to ${resultTier}`);
+            }
+            
             this.updateChargeUI();
             this.updateChargeGroups();
 
@@ -14594,6 +15484,7 @@ class GameScene extends Phaser.Scene {
                 sprite1.destroy();
                 sprite2.destroy();
                 resultSprite.destroy();
+                nameText.destroy();
                 successText.destroy();
                 cutsceneBg.destroy();
                 particles.destroy();
@@ -14732,7 +15623,7 @@ class GameScene extends Phaser.Scene {
             description.setOrigin(0.5);
 
             button.add([bg, name, sprite, description]);
-            buttons.push({ container: button, element: element, bg: bg });
+            buttons.push({ container: button, element: element, bg: bg, type: 'element' });
 
             bg.on('pointerdown', () => {
                 this.selectChestElement(element, config, null, null, null, buttons);

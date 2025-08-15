@@ -191,10 +191,10 @@ class UltraOptimizedGameScene extends Phaser.Scene {
             this
         );
         
-        // Add collisions with obstacles
+        // Add collisions with obstacles (only for player)
         const obstacles = this.obstacleManager.getObstaclesGroup();
         this.physics.add.collider(this.wizard, obstacles);
-        this.physics.add.collider(this.enemyManager.enemies, obstacles);
+        // Enemies can now pass through obstacles
         
         // Note: Projectile collisions will be handled manually with spatial grid
     }
@@ -364,16 +364,7 @@ class UltraOptimizedGameScene extends Phaser.Scene {
                 }
             });
             
-            // Check collision with obstacles
-            const obstacles = this.obstacleManager.getObstaclesGroup();
-            obstacles.children.entries.forEach(obstacle => {
-                if (obstacle.active && Phaser.Geom.Intersects.RectangleToRectangle(
-                    projectile.getBounds(),
-                    obstacle.getBounds()
-                )) {
-                    this.projectileHitObstacle(projectile, obstacle);
-                }
-            });
+            // Projectiles can now pass through obstacles
         });
         
         // Pickup collisions with wizard
