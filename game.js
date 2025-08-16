@@ -310,6 +310,9 @@ class LoadingScene extends Phaser.Scene {
             frameWidth: 153,  // 1526 / 10 = 152.6, rounded to 153
             frameHeight: 171  // 1024 / 6 = 170.67, rounded to 171
         });
+        
+        // Load kawaii muffin sprite
+        this.load.image('muffin', 'Kawaii choco muffin.png');
         }
     }
 
@@ -445,6 +448,9 @@ class TitleScene extends Phaser.Scene {
         optionsButton.on('pointerdown', () => {
             this.showOptionsMenu();
         });
+        
+        // Fullscreen button - top right corner
+        this.createFullscreenButton();
 
         this.input.keyboard.once('keydown-SPACE', () => {
             this.scene.start('StageSelectScene');
@@ -468,30 +474,29 @@ class TitleScene extends Phaser.Scene {
     
     showOptionsMenu() {
         // Create options menu overlay
-        const overlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.8);
+        const overlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.9);
         overlay.setInteractive(); // Block clicks to elements below
         
-        const menuBg = this.add.rectangle(400, 300, 500, 500, 0x333333, 0.95);
-        menuBg.setStrokeStyle(3, 0xffd700);
-        
-        const menuTitle = this.add.text(400, 140, 'OPTIONS', {
-            fontSize: '36px',
+        const menuTitle = this.add.text(400, 50, 'OPTIONS', {
+            fontSize: '42px',
             color: '#ffd700',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
         }).setOrigin(0.5);
         
         // Debug mode toggle
-        const debugContainer = this.add.container(400, 200);
-        const debugLabel = this.add.text(-150, 0, 'Debug Mode:', {
-            fontSize: '20px',
+        const debugContainer = this.add.container(400, 120);
+        const debugLabel = this.add.text(-200, 0, 'Debug Mode:', {
+            fontSize: '22px',
             color: '#ffffff'
         }).setOrigin(0, 0.5);
         
-        const debugCheckbox = this.add.rectangle(100, 0, 30, 30, 0x666666);
-        debugCheckbox.setStrokeStyle(2, 0xffffff);
+        const debugCheckbox = this.add.rectangle(150, 0, 35, 35, 0x444444);
+        debugCheckbox.setStrokeStyle(3, 0xffd700);
         debugCheckbox.setInteractive({ useHandCursor: true });
         
-        const debugCheck = this.add.text(100, 0, '✓', {
+        const debugCheck = this.add.text(150, 0, '✓', {
             fontSize: '24px',
             color: '#00ff00',
             fontStyle: 'bold'
@@ -507,20 +512,20 @@ class TitleScene extends Phaser.Scene {
         debugContainer.add([debugLabel, debugCheckbox, debugCheck]);
         
         // Show all recipes toggle
-        const recipesContainer = this.add.container(400, 250);
-        const recipesLabel = this.add.text(-150, 0, 'Show All Recipes:', {
-            fontSize: '20px',
+        const recipesContainer = this.add.container(400, 160);
+        const recipesLabel = this.add.text(-200, 0, 'Show All Recipes:', {
+            fontSize: '22px',
             color: '#ffffff'
         }).setOrigin(0, 0.5);
         
-        const recipesCheckbox = this.add.rectangle(100, 0, 30, 30, 0x666666);
-        recipesCheckbox.setStrokeStyle(2, 0xffffff);
+        const recipesCheckbox = this.add.rectangle(150, 0, 35, 35, 0x444444);
+        recipesCheckbox.setStrokeStyle(3, 0xffd700);
         recipesCheckbox.setInteractive({ useHandCursor: true });
         
         // Check if show all recipes is enabled
         const showAllRecipes = localStorage.getItem('showAllRecipes') === 'true';
         
-        const recipesCheck = this.add.text(100, 0, '✓', {
+        const recipesCheck = this.add.text(150, 0, '✓', {
             fontSize: '24px',
             color: '#00ff00',
             fontStyle: 'bold'
@@ -537,20 +542,20 @@ class TitleScene extends Phaser.Scene {
         recipesContainer.add([recipesLabel, recipesCheckbox, recipesCheck]);
         
         // Unlock all stages toggle
-        const stagesContainer = this.add.container(400, 300);
-        const stagesLabel = this.add.text(-150, 0, 'Unlock All Stages:', {
-            fontSize: '20px',
+        const stagesContainer = this.add.container(400, 200);
+        const stagesLabel = this.add.text(-200, 0, 'Unlock All Stages:', {
+            fontSize: '22px',
             color: '#ffffff'
         }).setOrigin(0, 0.5);
         
-        const stagesCheckbox = this.add.rectangle(100, 0, 30, 30, 0x666666);
-        stagesCheckbox.setStrokeStyle(2, 0xffffff);
+        const stagesCheckbox = this.add.rectangle(150, 0, 35, 35, 0x444444);
+        stagesCheckbox.setStrokeStyle(3, 0xffd700);
         stagesCheckbox.setInteractive({ useHandCursor: true });
         
         // Check if unlock all stages is enabled
         const unlockAllStages = localStorage.getItem('unlockAllStages') === 'true';
         
-        const stagesCheck = this.add.text(100, 0, '✓', {
+        const stagesCheck = this.add.text(150, 0, '✓', {
             fontSize: '24px',
             color: '#00ff00',
             fontStyle: 'bold'
@@ -573,9 +578,9 @@ class TitleScene extends Phaser.Scene {
         stagesContainer.add([stagesLabel, stagesCheckbox, stagesCheck]);
         
         // Volume control
-        const volumeContainer = this.add.container(400, 350);
-        const volumeLabel = this.add.text(-150, 0, 'Volume:', {
-            fontSize: '20px',
+        const volumeContainer = this.add.container(400, 240);
+        const volumeLabel = this.add.text(-200, 0, 'Volume:', {
+            fontSize: '22px',
             color: '#ffffff'
         }).setOrigin(0, 0.5);
         
@@ -606,9 +611,9 @@ class TitleScene extends Phaser.Scene {
         volumeContainer.add([volumeLabel, sliderBg, sliderHandle, volumePercent]);
         
         // Starting element selection
-        const elementContainer = this.add.container(400, 400);
-        const elementLabel = this.add.text(-150, 0, 'Start Element:', {
-            fontSize: '20px',
+        const elementContainer = this.add.container(400, 280);
+        const elementLabel = this.add.text(-200, 0, 'Start Element:', {
+            fontSize: '22px',
             color: '#ffffff'
         }).setOrigin(0, 0.5);
         
@@ -616,7 +621,8 @@ class TitleScene extends Phaser.Scene {
         const allElements = ['none', 'fire', 'water', 'earth', 'rock', 'air', 'lightning', 'holy', 'arcane', 
                             'dust', 'lava', 'steam', 'poison', 'volcano', 'ice', 'meteor', 'mud', 
                             'storm', 'crystal', 'death', 'time', 'sand', 'gravity', 'sun', 'smoke', 
-                            'wave', 'star', 'moon', 'nature', 'life'];
+                            'wave', 'star', 'zodiac', 'hex', 'venom', 'moon', 'nature', 'life', 
+                            'philosopherstone', 'halo'];
         const elements = allElements;
         const savedElement = localStorage.getItem('startElement') || 'none';
         let currentElementIndex = elements.indexOf(savedElement);
@@ -655,42 +661,100 @@ class TitleScene extends Phaser.Scene {
         
         elementContainer.add([elementLabel, elementText, leftArrow, rightArrow]);
         
-        // Performance mode toggle
-        const perfContainer = this.add.container(400, 400);
-        const perfLabel = this.add.text(-150, 0, 'Performance Mode:', {
-            fontSize: '20px',
+        // Hyper mode toggle
+        // Speed Mode Dial
+        const speedContainer = this.add.container(400, 320);
+        const speedLabel = this.add.text(-200, 0, 'Game Speed:', {
+            fontSize: '22px',
             color: '#ffffff'
         }).setOrigin(0, 0.5);
         
-        const perfCheckbox = this.add.rectangle(100, 0, 30, 30, 0x666666);
-        perfCheckbox.setStrokeStyle(2, 0xffffff);
-        perfCheckbox.setInteractive({ useHandCursor: true });
+        // Speed mode options
+        const speedModes = ['frolic', 'vibe', 'hyper', 'warp'];
+        const speedDescriptions = {
+            'frolic': 'Original speed (10 min games)',
+            'vibe': '1.5x speed (5 min games)',
+            'hyper': '2.25x speed (3.3 min games)',
+            'warp': '4.5x speed (1.7 min games)'
+        };
+        const speedColors = {
+            'frolic': '#00ff00',
+            'vibe': '#ffff00',
+            'hyper': '#ff8800',
+            'warp': '#ff0000'
+        };
         
-        const perfEnabled = localStorage.getItem('performanceMode') === 'true';
-        const perfCheck = this.add.text(100, 0, '✓', {
-            fontSize: '24px',
-            color: '#00ff00',
+        const currentSpeed = localStorage.getItem('speedMode') || 'frolic';
+        let currentSpeedIndex = speedModes.indexOf(currentSpeed);
+        if (currentSpeedIndex === -1) currentSpeedIndex = 0;
+        
+        // Create dial display
+        const dialBg = this.add.rectangle(150, 0, 150, 40, 0x444444);
+        dialBg.setStrokeStyle(3, 0xffd700);
+        
+        const speedText = this.add.text(150, 0, speedModes[currentSpeedIndex].toUpperCase(), {
+            fontSize: '20px',
+            color: speedColors[speedModes[currentSpeedIndex]],
             fontStyle: 'bold'
         }).setOrigin(0.5);
-        perfCheck.setVisible(perfEnabled);
         
-        const perfHint = this.add.text(0, 30, 'Enables infinite world with optimizations', {
+        // Left arrow
+        const speedLeftArrow = this.add.text(75, 0, '◄', {
+            fontSize: '24px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        speedLeftArrow.setInteractive({ useHandCursor: true });
+        
+        // Right arrow
+        const speedRightArrow = this.add.text(225, 0, '►', {
+            fontSize: '24px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        speedRightArrow.setInteractive({ useHandCursor: true });
+        
+        const speedHint = this.add.text(0, 30, speedDescriptions[speedModes[currentSpeedIndex]], {
             fontSize: '14px',
             color: '#aaaaaa'
         }).setOrigin(0.5);
         
-        perfCheckbox.on('pointerdown', () => {
-            const newPerfMode = !perfCheck.visible;
-            perfCheck.setVisible(newPerfMode);
-            localStorage.setItem('performanceMode', newPerfMode.toString());
+        // Update function
+        const updateSpeedDisplay = () => {
+            const mode = speedModes[currentSpeedIndex];
+            speedText.setText(mode.toUpperCase());
+            speedText.setColor(speedColors[mode]);
+            speedHint.setText(speedDescriptions[mode]);
+            localStorage.setItem('speedMode', mode);
+            
+            // Migrate old hyperMode setting if needed
+            if (mode === 'frolic') {
+                localStorage.setItem('hyperMode', 'false');
+            } else {
+                localStorage.setItem('hyperMode', 'true');
+            }
+        };
+        
+        speedLeftArrow.on('pointerdown', () => {
+            currentSpeedIndex = (currentSpeedIndex - 1 + speedModes.length) % speedModes.length;
+            updateSpeedDisplay();
         });
         
-        perfContainer.add([perfLabel, perfCheckbox, perfCheck, perfHint]);
+        speedRightArrow.on('pointerdown', () => {
+            currentSpeedIndex = (currentSpeedIndex + 1) % speedModes.length;
+            updateSpeedDisplay();
+        });
+        
+        // Hover effects
+        speedLeftArrow.on('pointerover', () => speedLeftArrow.setScale(1.2));
+        speedLeftArrow.on('pointerout', () => speedLeftArrow.setScale(1));
+        speedRightArrow.on('pointerover', () => speedRightArrow.setScale(1.2));
+        speedRightArrow.on('pointerout', () => speedRightArrow.setScale(1));
+        
+        speedContainer.add([speedLabel, dialBg, speedText, speedLeftArrow, speedRightArrow, speedHint]);
         
         // BGM selector
-        const bgmContainer = this.add.container(400, 450);
-        const bgmLabel = this.add.text(-150, 0, 'Background Music:', {
-            fontSize: '20px',
+        const bgmContainer = this.add.container(400, 380);
+        const bgmLabel = this.add.text(-200, 0, 'Background Music:', {
+            fontSize: '22px',
             color: '#ffffff'
         }).setOrigin(0, 0.5);
         
@@ -733,11 +797,13 @@ class TitleScene extends Phaser.Scene {
         bgmContainer.add([bgmLabel, bgmText, bgmLeftArrow, bgmRightArrow]);
         
         // Close button
-        const closeButton = this.add.text(400, 520, 'CLOSE', {
-            fontSize: '24px',
+        const closeButton = this.add.text(400, 460, 'CLOSE', {
+            fontSize: '28px',
             color: '#ffffff',
-            backgroundColor: '#000000',
-            padding: { x: 30, y: 10 }
+            backgroundColor: '#444444',
+            padding: { x: 40, y: 12 },
+            stroke: '#ffd700',
+            strokeThickness: 2
         }).setOrigin(0.5);
         closeButton.setInteractive({ useHandCursor: true });
         
@@ -752,54 +818,124 @@ class TitleScene extends Phaser.Scene {
         closeButton.on('pointerdown', () => {
             // Clean up all menu elements
             overlay.destroy();
-            menuBg.destroy();
             menuTitle.destroy();
             debugContainer.destroy();
             recipesContainer.destroy();
             stagesContainer.destroy();
             volumeContainer.destroy();
             elementContainer.destroy();
-            perfContainer.destroy();
+            speedContainer.destroy();
             bgmContainer.destroy();
             closeButton.destroy();
         });
         
         // Store references for cleanup
         this.optionsMenu = {
-            overlay, menuBg, menuTitle, debugContainer, recipesContainer,
-            volumeContainer, elementContainer, perfContainer, bgmContainer, closeButton
+            overlay, menuTitle, debugContainer, recipesContainer, stagesContainer,
+            volumeContainer, elementContainer, speedContainer, bgmContainer, closeButton
         };
+    }
+    
+    createFullscreenButton() {
+        // Create fullscreen button container
+        const buttonSize = 40;
+        const margin = 20;
+        
+        // Create button background
+        const fullscreenBtn = this.add.container(800 - margin - buttonSize/2, margin + buttonSize/2);
+        
+        // Button background
+        const btnBg = this.add.rectangle(0, 0, buttonSize, buttonSize, 0x000000, 0.7);
+        btnBg.setStrokeStyle(2, 0xffffff);
+        btnBg.setInteractive({ useHandCursor: true });
+        
+        // Create fullscreen icon using text (we'll use Unicode symbols)
+        // ⛶ for enter fullscreen, ◱ for exit fullscreen
+        const fullscreenIcon = this.add.text(0, 0, '⛶', {
+            fontSize: '24px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        
+        fullscreenBtn.add([btnBg, fullscreenIcon]);
+        
+        // Check if we're already in fullscreen
+        const updateIcon = () => {
+            // Check if the icon still exists (scene might be destroyed)
+            if (!fullscreenIcon || !fullscreenIcon.scene) return;
+            
+            if (this.scale.isFullscreen) {
+                fullscreenIcon.setText('◱'); // Exit fullscreen icon
+            } else {
+                fullscreenIcon.setText('⛶'); // Enter fullscreen icon
+            }
+        };
+        
+        // Initial icon update
+        updateIcon();
+        
+        // Handle hover effects
+        btnBg.on('pointerover', () => {
+            btnBg.setFillStyle(0x333333, 0.9);
+            fullscreenIcon.setColor('#ffd700');
+        });
+        
+        btnBg.on('pointerout', () => {
+            btnBg.setFillStyle(0x000000, 0.7);
+            fullscreenIcon.setColor('#ffffff');
+        });
+        
+        // Toggle fullscreen on click
+        btnBg.on('pointerdown', () => {
+            if (this.scale.isFullscreen) {
+                this.scale.stopFullscreen();
+            } else {
+                this.scale.startFullscreen();
+            }
+        });
+        
+        // Listen for fullscreen change events
+        this.scale.on(Phaser.Scale.Events.ENTER_FULLSCREEN, () => {
+            updateIcon();
+            // Apply scaling for fullscreen
+            this.scale.setGameSize(800, 600);
+            this.scale.displaySize.setAspectRatio(800/600);
+            this.scale.scaleMode = Phaser.Scale.FIT;
+            this.scale.autoCenter = Phaser.Scale.CENTER_BOTH;
+            this.scale.refresh();
+        });
+        
+        this.scale.on(Phaser.Scale.Events.LEAVE_FULLSCREEN, () => {
+            updateIcon();
+            // Reset to normal scaling
+            this.scale.setGameSize(800, 600);
+            this.scale.scaleMode = Phaser.Scale.NONE;
+            this.scale.autoCenter = Phaser.Scale.NO_CENTER;
+            this.scale.refresh();
+        });
+        
+        // Handle fullscreen not supported
+        this.scale.on('fullscreenunsupported', () => {
+            fullscreenBtn.setVisible(false);
+        });
+        
+        // Store event handlers for cleanup
+        this.fullscreenHandlers = {
+            enter: () => updateIcon(),
+            leave: () => updateIcon()
+        };
+        
+        // Clean up on scene shutdown
+        this.events.once('shutdown', () => {
+            this.scale.off(Phaser.Scale.Events.ENTER_FULLSCREEN);
+            this.scale.off(Phaser.Scale.Events.LEAVE_FULLSCREEN);
+        });
     }
 }
 
 class StageSelectScene extends Phaser.Scene {
     constructor() {
         super({ key: 'StageSelectScene' });
-        this.selectedStage = 0;
-        // Check if nexus has been visited or all stages unlocked
-        const nexusVisited = localStorage.getItem('nexusVisited') === 'true';
-        const unlockAllStages = localStorage.getItem('unlockAllStages') === 'true';
-        
-        this.stages = [
-            { name: 'Forest Land', unlocked: nexusVisited || unlockAllStages, description: 'A mystical forest filled with danger', 
-              icon: 'island-forest', color: 0x44ff44, x: 200, y: 300 },
-            { name: 'Cave Land', unlocked: unlockAllStages, description: 'Dark caverns with unknown threats', 
-              icon: 'island-cave', color: 0x8B4513, x: 400, y: 200 },
-            { name: 'Sand Land', unlocked: unlockAllStages, description: 'Ancient pyramids in endless dunes', 
-              icon: 'island-sand', color: 0xFFD700, x: 600, y: 200 },
-            { name: 'Lava Land', unlocked: unlockAllStages, description: 'Burning fields of molten rock', 
-              icon: 'island-volcano', color: 0xFF4500, x: 300, y: 450 },
-            { name: 'Grave Land', unlocked: unlockAllStages, description: 'Where the dead refuse to rest', 
-              icon: 'island-grave', color: 0x444444, x: 500, y: 400 },
-            { name: 'Castle Land', unlocked: unlockAllStages, description: 'An ancient fortress of evil', 
-              icon: 'island-castle', color: 0x666666, x: 700, y: 300 },
-            { name: 'Spire Land', unlocked: unlockAllStages, description: 'Tower reaching to the heavens', 
-              icon: 'island-spire', color: 0x8B6914, x: 150, y: 400 },
-            { name: 'The Void', unlocked: unlockAllStages, description: 'The final dimension of darkness', 
-              icon: 'void', color: 0x4B0082, x: 700, y: 450 },
-            { name: 'Nexus', unlocked: true, description: 'Eternal power awaits within', 
-              icon: 'island-crystal', color: 0x9966ff, x: 400, y: 350, isNexus: true }
-        ];
+        this.selectedStage = 8; // Start with Nexus selected
     }
 
     preload() {
@@ -815,6 +951,41 @@ class StageSelectScene extends Phaser.Scene {
     }
 
     create() {
+        // Add input cooldown to prevent button press carryover
+        this.inputCooldown = 500; // 500ms cooldown
+        this.inputEnabled = false;
+        this.time.delayedCall(this.inputCooldown, () => {
+            this.inputEnabled = true;
+        });
+        
+        // Initialize stages in create to get latest localStorage values
+        const nexusVisited = localStorage.getItem('nexusVisited') === 'true';
+        const unlockAllStages = localStorage.getItem('unlockAllStages') === 'true';
+        
+        console.log('StageSelectScene - nexusVisited:', nexusVisited);
+        console.log('StageSelectScene - forestLandUnlocked:', localStorage.getItem('forestLandUnlocked'));
+        
+        this.stages = [
+            { name: 'Forest Land', unlocked: nexusVisited || unlockAllStages || localStorage.getItem('forestLandUnlocked') === 'true', description: 'A mystical forest filled with danger', 
+              icon: 'island-forest', color: 0x44ff44, x: 200, y: 300 },
+            { name: 'Cave Land', unlocked: unlockAllStages || localStorage.getItem('caveLandUnlocked') === 'true', description: 'Dark caverns with unknown threats', 
+              icon: 'island-cave', color: 0x8B4513, x: 400, y: 200 },
+            { name: 'Sand Land', unlocked: unlockAllStages || localStorage.getItem('sandLandUnlocked') === 'true', description: 'Ancient pyramids in endless dunes', 
+              icon: 'island-sand', color: 0xFFD700, x: 600, y: 200 },
+            { name: 'Lava Land', unlocked: unlockAllStages || localStorage.getItem('lavaLandUnlocked') === 'true', description: 'Burning fields of molten rock', 
+              icon: 'island-volcano', color: 0xFF4500, x: 300, y: 450 },
+            { name: 'Grave Land', unlocked: unlockAllStages || localStorage.getItem('graveLandUnlocked') === 'true', description: 'Where the dead refuse to rest', 
+              icon: 'island-grave', color: 0x444444, x: 500, y: 400 },
+            { name: 'Castle Land', unlocked: unlockAllStages || localStorage.getItem('castleLandUnlocked') === 'true', description: 'An ancient fortress of evil', 
+              icon: 'island-castle', color: 0x666666, x: 700, y: 300 },
+            { name: 'Spire Land', unlocked: unlockAllStages || localStorage.getItem('spireLandUnlocked') === 'true', description: 'Tower reaching to the heavens', 
+              icon: 'island-spire', color: 0x8B6914, x: 150, y: 400 },
+            { name: 'The Void', unlocked: unlockAllStages || localStorage.getItem('voidLandUnlocked') === 'true', description: 'The final dimension of darkness', 
+              icon: 'void', color: 0x4B0082, x: 700, y: 450 },
+            { name: 'Nexus', unlocked: true, description: 'Eternal power awaits within', 
+              icon: 'island-crystal', color: 0x9966ff, x: 400, y: 350, isNexus: true }
+        ];
+        
         // Create deep space/abyss background
         this.cameras.main.setBackgroundColor('#0a0a1a');
         
@@ -912,41 +1083,31 @@ class StageSelectScene extends Phaser.Scene {
                 const originalScale = stage.isNexus ? 0.4 : 0.3;
                 
                 island.on('pointerover', () => {
-                    // Gradual scale with tween
-                    this.tweens.add({
-                        targets: island,
-                        scale: originalScale * 1.3,
-                        duration: 200,
-                        ease: 'Power2.easeOut'
-                    });
-                    
-                    this.tweens.add({
-                        targets: glow,
-                        scale: 1.5,
-                        duration: 200,
-                        ease: 'Power2.easeOut'
-                    });
-                    
-                    // Show description at top of screen
-                    this.showStageDescription(stage);
+                    // Update selected stage when hovering
+                    if (this.selectedStage !== index) {
+                        this.highlightStage(index);
+                    }
                 });
                 
                 island.on('pointerout', () => {
-                    this.tweens.add({
-                        targets: island,
-                        scale: originalScale,
-                        duration: 200,
-                        ease: 'Power2.easeOut'
-                    });
-                    
-                    this.tweens.add({
-                        targets: glow,
-                        scale: 1,
-                        duration: 200,
-                        ease: 'Power2.easeOut'
-                    });
-                    
-                    this.hideStageDescription();
+                    // Only reset scale if this isn't the currently selected stage
+                    if (this.selectedStage !== index) {
+                        this.tweens.add({
+                            targets: island,
+                            scale: originalScale,
+                            duration: 200,
+                            ease: 'Power2.easeOut'
+                        });
+                        
+                        this.tweens.add({
+                            targets: glow,
+                            scale: 1,
+                            duration: 200,
+                            ease: 'Power2.easeOut'
+                        });
+                        
+                        this.hideStageDescription();
+                    }
                 });
                 
                 island.on('pointerdown', () => {
@@ -1006,8 +1167,10 @@ class StageSelectScene extends Phaser.Scene {
             this.time.delayedCall(maxDelay, () => {
                 this.createConstellationPaths(true); // true for animated appearance
                 
-                // Check if we need to show Forest Land unlock animation
+                // Check if we need to show any unlock animations
                 const nexusVisited = localStorage.getItem('nexusVisited') === 'true';
+                
+                // Check for Forest Land unlock from Nexus visit
                 const forestLandUnlocked = localStorage.getItem('forestLandUnlocked') === 'true';
                 if (nexusVisited && !forestLandUnlocked && this.stages[0].unlocked) {
                     // Mark Forest Land as unlocked
@@ -1018,6 +1181,27 @@ class StageSelectScene extends Phaser.Scene {
                         this.showStageUnlockAnimation(0); // Forest Land is at index 0
                     });
                 }
+                
+                // Check for any stages that were just unlocked (e.g., from victory)
+                const stageKeys = ['forest', 'cave', 'sand', 'lava', 'grave', 'castle', 'spire', 'void'];
+                stageKeys.forEach((key, index) => {
+                    const unlockKey = `${key}LandUnlocked`;
+                    const justUnlockedKey = `${key}LandJustUnlocked`;
+                    
+                    // If stage is unlocked but we haven't shown the animation yet
+                    if (localStorage.getItem(unlockKey) === 'true' && 
+                        localStorage.getItem(justUnlockedKey) !== 'true' &&
+                        this.stages[index].unlocked) {
+                        
+                        // Mark that we've shown the animation
+                        localStorage.setItem(justUnlockedKey, 'true');
+                        
+                        // Show unlock animation
+                        this.time.delayedCall(1600 + (index * 200), () => {
+                            this.showStageUnlockAnimation(index);
+                        });
+                    }
+                });
             });
         });
 
@@ -1066,8 +1250,9 @@ class StageSelectScene extends Phaser.Scene {
         }).setOrigin(0.5);
         this.descriptionText.setVisible(false);
         
-        // Highlight first unlocked stage
-        this.highlightStage(0);
+        // Highlight Nexus initially (it's always unlocked)
+        this.selectedStage = 8; // Nexus is at index 8
+        this.highlightStage(8);
     }
     
     showStageDescription(stage) {
@@ -1288,8 +1473,8 @@ class StageSelectScene extends Phaser.Scene {
             }
         }
 
-        // Select stage
-        if (confirmJustPressed && this.stages[this.selectedStage].unlocked) {
+        // Select stage (only if input is enabled)
+        if (confirmJustPressed && this.inputEnabled && this.stages[this.selectedStage].unlocked) {
             this.selectStage(this.selectedStage);
         }
 
@@ -1399,9 +1584,17 @@ class StageSelectScene extends Phaser.Scene {
                 ease: 'Power2',
                 onComplete: () => {
                     // Start loading scene which will transition to the game
-                    let stageName = 'forest';
-                    if (index === 1) stageName = 'cave';
-                    else if (index === 3) stageName = 'lava';
+                    const stageMapping = {
+                        0: 'forest',
+                        1: 'cave',
+                        2: 'sand',
+                        3: 'lava',
+                        4: 'grave',
+                        5: 'castle',
+                        6: 'spire',
+                        7: 'void'
+                    };
+                    let stageName = stageMapping[index] || 'forest';
                     
                     // Check if performance mode is enabled
                     const performanceMode = localStorage.getItem('performanceMode') === 'true';
@@ -1536,9 +1729,10 @@ class GameOverScene extends Phaser.Scene {
 
     init(data) {
         this.survivalTime = data.survivalTime || 0;
-        this.enemiesKilled = data.enemiesKilled || { tree: 0, slime: 0, golem: 0, elite: 0, bat: 0, sorcerer: 0, mushroom: 0, fireworm: 0, summoner: 0, soul: 0, bloboid: 0 };
+        this.enemiesKilled = data.enemiesKilled || { tree: 0, slime: 0, golem: 0, elite: 0, bat: 0, sorcerer: 0, mushroom: 0, fireworm: 0, summoner: 0, soul: 0, bloboid: 0, darkeye: 0 };
         this.itemsCollected = data.itemsCollected || { jewels: 0, muffins: 0, elements: 0 };
         this.won = data.won || false;
+        this.stage = data.stage || 'forest';
     }
 
     create() {
@@ -1616,7 +1810,8 @@ class GameOverScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        const restartText = this.add.text(400, 500, 'Press SPACE to Try Again', {
+        const buttonText = this.won ? 'Press SPACE to Return to Stage Select' : 'Press SPACE to Try Again';
+        const restartText = this.add.text(400, 500, buttonText, {
             fontSize: '24px',
             color: '#ffffff'
         }).setOrigin(0.5);
@@ -1627,6 +1822,10 @@ class GameOverScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         this.input.keyboard.once('keydown-SPACE', () => {
+            // If player won, unlock the next stage
+            if (this.won) {
+                this.unlockNextStage();
+            }
             this.scene.start('StageSelectScene');
         });
 
@@ -1645,15 +1844,53 @@ class GameOverScene extends Phaser.Scene {
         if (this.input.gamepad && this.input.gamepad.total > 0) {
             const pad = this.input.gamepad.getPad(0);
             if (pad) {
-                // A button or Start button to retry
+                // A button or Start button to retry/continue
                 if (pad.buttons[0].pressed || pad.buttons[9].pressed) {
-                    this.scene.start('GameScene');
+                    // If player won, unlock the next stage
+                    if (this.won) {
+                        this.unlockNextStage();
+                    }
+                    this.scene.start('StageSelectScene');
                 }
                 // B button or Back button for main menu
                 if (pad.buttons[1].pressed || pad.buttons[8].pressed) {
                     this.scene.start('TitleScene');
                 }
             }
+        }
+    }
+    
+    unlockNextStage() {
+        // Define stage progression order
+        const stageOrder = ['forest', 'cave', 'sand', 'lava', 'grave', 'castle', 'spire', 'void'];
+        const stageNames = {
+            'forest': 'Forest Land',
+            'cave': 'Cave Land', 
+            'sand': 'Sand Land',
+            'lava': 'Lava Land',
+            'grave': 'Grave Land',
+            'castle': 'Castle Land',
+            'spire': 'Spire Land',
+            'void': 'The Void'
+        };
+        
+        console.log('Unlocking next stage. Current stage:', this.stage);
+        
+        // Find current stage index
+        const currentIndex = stageOrder.indexOf(this.stage);
+        console.log('Current stage index:', currentIndex);
+        
+        // If we found the stage and it's not the last one
+        if (currentIndex !== -1 && currentIndex < stageOrder.length - 1) {
+            const nextStage = stageOrder[currentIndex + 1];
+            const nextStageName = stageNames[nextStage];
+            
+            // Unlock the next stage
+            localStorage.setItem(`${nextStage}LandUnlocked`, 'true');
+            
+            console.log(`Unlocked ${nextStageName}!`);
+        } else {
+            console.log('Could not unlock next stage - either stage not found or already at last stage');
         }
     }
 }
@@ -2130,7 +2367,7 @@ class GameScene extends Phaser.Scene {
         this.chargeHoldTime = 0;
         this.chargeHoldThreshold = 500;
         this.lastFireTime = 0;
-        this.fireRate = 1500; // milliseconds between automatic shots (slowed by 50%)
+        this.fireRate = 1500 / this.speedMultiplier; // milliseconds between automatic shots (adjusted for hyper mode)
         this.chargeLastFireTimes = []; // Track last fire time for each charge slot
         this.elementFireRates = {}; // Different fire rates for each element type
         this.muffins = null;
@@ -2177,6 +2414,26 @@ class GameScene extends Phaser.Scene {
     }
 
     create() {
+        // Reset game end flags
+        this.gameEnded = false;
+        this.gameWonCalled = false;
+        
+        // Initialize speed mode and multiplier
+        this.speedMode = localStorage.getItem('speedMode') || 'frolic';
+        
+        // Set speed multiplier based on mode
+        const speedMultipliers = {
+            'frolic': 1.0,    // Original speed
+            'vibe': 1.5,      // Current hyper mode speed
+            'hyper': 2.25,    // 50% faster than vibe (1.5 * 1.5)
+            'warp': 4.5       // 100% faster than hyper (2.25 * 2)
+        };
+        
+        this.speedMultiplier = speedMultipliers[this.speedMode] || 1.0;
+        
+        // Keep hyperMode for backward compatibility checks
+        this.hyperMode = this.speedMode !== 'frolic';
+        
         // Reset game state
         this.playerHealth = 100;
         this.gameStarted = false; // Will be set to true after countdown
@@ -2199,7 +2456,7 @@ class GameScene extends Phaser.Scene {
         this.maxEnemiesPerWave = 10;
         this.waveSpawnInterval = 500; // ms between spawns in a wave
         this.lastWaveSpawn = 0;
-        this.enemiesKilled = { tree: 0, slime: 0, golem: 0, elite: 0, bat: 0, sorcerer: 0, mushroom: 0, fireworm: 0, summoner: 0, soul: 0 };
+        this.enemiesKilled = { tree: 0, slime: 0, golem: 0, elite: 0, bat: 0, sorcerer: 0, mushroom: 0, fireworm: 0, summoner: 0, soul: 0, bloboid: 0, darkeye: 0 };
         this.itemsCollected = { jewels: 0, muffins: 0, elements: 0 };
         this.eliteEnemies = [];
         this.chests = this.physics.add.group();
@@ -2213,7 +2470,7 @@ class GameScene extends Phaser.Scene {
         this.chargeHoldTime = 0;
         this.chargeHoldThreshold = 500;
         this.lastFireTime = 0;
-        this.fireRate = 1500; // milliseconds between automatic shots (slowed by 50%)
+        this.fireRate = 1500 / this.speedMultiplier; // milliseconds between automatic shots (adjusted for hyper mode)
         this.muffins = null;
         this.gamepad = null;
         this.elementOrbs = null;
@@ -2227,6 +2484,10 @@ class GameScene extends Phaser.Scene {
         this.pauseMenu = null;
         this.invulnerable = false; // Reset invulnerability flag
         this.discoveredElements = new Set(); // Track discovered elements
+        
+        // Initialize element pouch
+        const savedPouch = localStorage.getItem('elementPouch');
+        this.elementPouch = savedPouch ? JSON.parse(savedPouch) : [null, null, null, null];
         
         // Create and start background music based on user selection
         const selectedBGM = localStorage.getItem('selectedBGM') || 'BGM 1';
@@ -2245,6 +2506,13 @@ class GameScene extends Phaser.Scene {
             this.chargeSlots[0] = startElement; // Also update chargeSlots
             this.discoveredElements.add(startElement); // Add to discovered elements
             console.log('Starting with element:', startElement);
+            
+            // Auto-activate philosopher stone if it's the starting element
+            if (startElement === 'philosopherstone') {
+                // Store flag to activate later when game is ready
+                console.log('Will auto-activate philosopher stone when game starts');
+                this.shouldAutoActivatePhilosopherStone = true;
+            }
         }
 
         // Initialize cooldown system
@@ -2284,9 +2552,14 @@ class GameScene extends Phaser.Scene {
             smoke: { frame: 5, color: 0x696969, name: 'Smoke', sheet: 'element-symbols3', fireRate: 999999 },
             wave: { frame: 0, color: 0x00bcd4, name: 'Wave', sheet: 'wave-symbol', isImage: true },
             star: { frame: 0, color: 0xffffff, name: 'Star', sheet: 'star-symbol', isImage: true },
+            zodiac: { frame: 0, color: 0xffd700, name: 'Zodiac', sheet: 'star-symbol', isImage: true },
+            hex: { frame: 1, color: 0x9932cc, name: 'Hex', sheet: 'element-symbols2' },
+            venom: { frame: 2, color: 0x8b00ff, name: 'Venom', sheet: 'element-symbols2', fireRate: 2000 },
             moon: { frame: 8, color: 0xe0e0e0, name: 'Moon', sheet: 'element-symbols3', fireRate: 12000 },
             nature: { frame: 2, color: 0x00ff00, name: 'Nature', sheet: 'element-symbols' },
-            life: { frame: 0, color: 0xff6666, name: 'Life', sheet: 'life-symbol', isImage: true }
+            life: { frame: 0, color: 0xff6666, name: 'Life', sheet: 'life-symbol', isImage: true },
+            philosopherstone: { frame: 3, color: 0xffd700, name: 'Philosopher Stone', sheet: 'element-symbols3', fireRate: 999999 },
+            halo: { frame: 2, color: 0x87ceeb, name: 'Halo', sheet: 'element-symbols3', fireRate: 999999 }
         };
 
         // Define primary elements (can drop from enemies)
@@ -2333,9 +2606,14 @@ class GameScene extends Phaser.Scene {
             smoke: 'Obscures vision and causes choking damage. Suffocation element.',
             wave: 'Powerful water surge that knocks back groups of enemies. Tidal force.',
             star: 'Calls down starlight beams from the cosmos. Celestial magic.',
+            zodiac: 'Star element projectiles that bounce between enemies leaving damaging light trails.',
+            hex: 'Curses nearby enemies to deal no damage for 8 seconds. Defensive curse.',
+            venom: 'Shoots piercing venomous spines that penetrate enemies and apply poison. Toxic projectiles.',
             moon: 'Lunar energy that heals allies and curses enemies. Night magic.',
             nature: 'Summons whipping vines that strike enemies from the wizard. Nature\'s wrath.',
-            life: 'Heals the wizard over time with regenerative energy. Restoration magic.'
+            life: 'Heals the wizard over time with regenerative energy. Restoration magic.',
+            philosopherstone: 'Fusion of life and death. Grants automatic level up every 45 seconds. Ultimate alchemical achievement.',
+            halo: 'Fusion of holy and water. Creates a damaging aura that continuously hurts nearby enemies. Divine protection.'
         };
 
         console.log('Creating background for stage:', this.stage);
@@ -3133,8 +3411,8 @@ class GameScene extends Phaser.Scene {
             title.setScrollFactor(0);
             title.setDepth(501);
 
-            // For debugging - use fixed elements
-            const selectedElements = ['fire', 'water', 'earth'];
+            // For debugging - use fixed elements including philosopher stone
+            const selectedElements = ['fire', 'water', 'earth', 'philosopherstone'];
             console.log('Using fixed elements for testing:', selectedElements);
 
             // Create element cards using chest UI style
@@ -3142,7 +3420,10 @@ class GameScene extends Phaser.Scene {
 
             try {
                 for (let i = 0; i < selectedElements.length; i++) {
-                    const xPos = centerX - 220 + i * 220;
+                    // Adjust spacing for 4 elements: spread them more evenly
+                    const totalWidth = (selectedElements.length - 1) * 150; // 150px spacing
+                    const startX = centerX - totalWidth / 2;
+                    const xPos = startX + i * 150;
                     const element = selectedElements[i];
 
                     console.log(`Processing element ${i}: ${element}`);
@@ -3165,7 +3446,7 @@ class GameScene extends Phaser.Scene {
 
                     console.log(`Creating button for ${element} at position ${xPos}, 280`);
 
-                    const bg = this.add.rectangle(0, 0, 200, 280, 0x333333);
+                    const bg = this.add.rectangle(0, 0, 140, 200, 0x333333);
                     bg.setStrokeStyle(3, i === 0 ? 0xffff00 : 0xffffff);
                     bg.setInteractive({ useHandCursor: true });
 
@@ -3173,34 +3454,34 @@ class GameScene extends Phaser.Scene {
 
                     let sprite;
                     try {
-                        sprite = this.add.sprite(0, -80, config.sheet, config.frame);
-                        sprite.setScale(0.4);
+                        sprite = this.add.sprite(0, -60, config.sheet, config.frame);
+                        sprite.setScale(0.3);
                     } catch (spriteError) {
                         console.error('Error creating sprite:', spriteError);
                         // Create a placeholder rectangle instead
-                        sprite = this.add.rectangle(0, -80, 60, 60, config.color || 0xffffff);
+                        sprite = this.add.rectangle(0, -60, 40, 40, config.color || 0xffffff);
                     }
 
-                    const name = this.add.text(0, -20, config.name.toUpperCase(), {
-                        fontSize: '18px',
+                    const name = this.add.text(0, -15, config.name.toUpperCase(), {
+                        fontSize: '14px',
                         color: '#ffffff',
                         fontStyle: 'bold'
                     });
                     name.setOrigin(0.5);
 
                     const descriptionText = this.elementDescriptions[element] || 'Elemental magic';
-                    const description = this.add.text(0, 40, descriptionText, {
-                        fontSize: '12px',
+                    const description = this.add.text(0, 20, descriptionText, {
+                        fontSize: '10px',
                         color: '#cccccc',
                         align: 'center',
-                        wordWrap: { width: 180 }
+                        wordWrap: { width: 120 }
                     });
                     description.setOrigin(0.5);
 
                     button.add([bg, sprite, name, description]);
 
                     // Create an invisible hit zone at the button's world position
-                    const hitZone = this.add.rectangle(xPos, centerY - 20, 200, 280, 0x00ff00, 0.01);
+                    const hitZone = this.add.rectangle(xPos, centerY - 20, 140, 200, 0x00ff00, 0.01);
                     hitZone.setScrollFactor(0);
                     hitZone.setDepth(600);
                     hitZone.setInteractive({ useHandCursor: true });
@@ -3718,6 +3999,153 @@ class GameScene extends Phaser.Scene {
         return bonuses.join(', ');
     }
     
+    showAllChargeSlots() {
+        // Create additional charge indicators for pouch slots (indices 8-11)
+        if (!this.extraChargeIndicators) {
+            this.extraChargeIndicators = [];
+            
+            // Create 4 additional slots for pouch
+            for (let i = 8; i < 12; i++) {
+                const col = (i - 8) % 4;
+                const xPos = 380 + (col * 35);
+                const yPos = 50 + (2 * 35); // Third row
+                
+                // Background slot with pouch color
+                const slotBg = this.add.rectangle(xPos, yPos, 32, 32, 0x2a4a2a, 0.7);
+                slotBg.setStrokeStyle(2, 0x4a6a4a);
+                slotBg.setScrollFactor(0);
+                slotBg.setDepth(561);
+                slotBg.setVisible(true);
+                
+                // Element sprite indicator
+                const indicator = this.add.image(xPos, yPos, 'element-symbols', 0);
+                indicator.setScrollFactor(0);
+                indicator.setDepth(1000);
+                indicator.setVisible(false);
+                indicator.setScale(0.15);
+                indicator.setTint(0xffffff);
+                indicator.setAlpha(1);
+                
+                // Tier text (not used for pouch but kept for consistency)
+                const tierText = this.add.text(xPos + 15, yPos - 15, '', {
+                    fontSize: '8px',
+                    color: '#ffffff',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 1
+                });
+                tierText.setOrigin(0.5);
+                tierText.setScrollFactor(0);
+                tierText.setDepth(1001);
+                tierText.setVisible(false);
+                
+                this.extraChargeIndicators.push({ bg: slotBg, sprite: indicator, tierText: tierText });
+            }
+            
+            // Add label for pouch row
+            this.pouchRowLabel = this.add.text(340, 50 + (2 * 35), 'Pouch:', {
+                fontSize: '10px',
+                color: '#4a6a4a'
+            });
+            this.pouchRowLabel.setOrigin(1, 0.5);
+            this.pouchRowLabel.setScrollFactor(0);
+            this.pouchRowLabel.setDepth(561);
+        } else {
+            // Just show existing extra indicators
+            this.extraChargeIndicators.forEach(indicator => {
+                indicator.bg.setVisible(true);
+            });
+            if (this.pouchRowLabel) {
+                this.pouchRowLabel.setVisible(true);
+            }
+        }
+        
+        // Update all 12 indicators to show current elements
+        this.updateAllChargeIndicators();
+    }
+    
+    hideExtraChargeSlots() {
+        if (this.extraChargeIndicators) {
+            this.extraChargeIndicators.forEach(indicator => {
+                indicator.bg.setVisible(false);
+                indicator.sprite.setVisible(false);
+                indicator.tierText.setVisible(false);
+            });
+        }
+        if (this.pouchRowLabel) {
+            this.pouchRowLabel.setVisible(false);
+        }
+    }
+    
+    updateAllChargeIndicators() {
+        // Update regular charge indicators (0-7)
+        for (let i = 0; i < 8; i++) {
+            if (i < this.chargeIndicators.length) {
+                const element = this.chargeSlots ? this.chargeSlots[i] : null;
+                if (element) {
+                    const config = this.elementConfig[element];
+                    if (config) {
+                        this.chargeIndicators[i].sprite.setTexture(config.sheet, config.frame);
+                        this.chargeIndicators[i].sprite.setVisible(true);
+                        this.chargeIndicators[i].sprite.setScale(0.1);
+                        
+                        // Update tier text
+                        const tier = this.elementTiers.get(`${element}_${i}`) || 1;
+                        if (tier > 1) {
+                            this.chargeIndicators[i].tierText.setText(tier.toString());
+                            this.chargeIndicators[i].tierText.setVisible(true);
+                        } else {
+                            this.chargeIndicators[i].tierText.setVisible(false);
+                        }
+                    }
+                } else {
+                    this.chargeIndicators[i].sprite.setVisible(false);
+                    this.chargeIndicators[i].tierText.setVisible(false);
+                }
+            }
+        }
+        
+        // Update pouch indicators (8-11)
+        if (this.extraChargeIndicators) {
+            for (let i = 0; i < 4; i++) {
+                const element = this.elementPouch ? this.elementPouch[i] : null;
+                if (element) {
+                    const config = this.elementConfig[element];
+                    if (config) {
+                        this.extraChargeIndicators[i].sprite.setTexture(config.sheet, config.frame);
+                        this.extraChargeIndicators[i].sprite.setVisible(true);
+                        this.extraChargeIndicators[i].sprite.setScale(0.1);
+                    }
+                } else {
+                    this.extraChargeIndicators[i].sprite.setVisible(false);
+                }
+            }
+        }
+    }
+    
+    highlightChargeIndicator(index, highlight) {
+        if (index < 8 && this.chargeIndicators && this.chargeIndicators[index]) {
+            if (highlight) {
+                this.chargeIndicators[index].bg.setStrokeStyle(3, 0xffff00);
+                this.chargeIndicators[index].sprite.setScale(0.15);
+            } else {
+                this.chargeIndicators[index].bg.setStrokeStyle(2, 0x666666);
+                this.chargeIndicators[index].sprite.setScale(0.1);
+            }
+        } else if (index >= 8 && this.extraChargeIndicators) {
+            const pouchIndex = index - 8;
+            if (this.extraChargeIndicators[pouchIndex]) {
+                if (highlight) {
+                    this.extraChargeIndicators[pouchIndex].bg.setStrokeStyle(3, 0xffff00);
+                    this.extraChargeIndicators[pouchIndex].sprite.setScale(0.15);
+                } else {
+                    this.extraChargeIndicators[pouchIndex].bg.setStrokeStyle(2, 0x4a6a4a);
+                    this.extraChargeIndicators[pouchIndex].sprite.setScale(0.1);
+                }
+            }
+        }
+    }
+    
     updateChargeUI() {
         // Clean up charge fire times array to match current charges
         this.chargeLastFireTimes = this.chargeLastFireTimes.slice(0, this.charges.length);
@@ -3940,6 +4368,13 @@ class GameScene extends Phaser.Scene {
         this.time.delayedCall(100, () => {
             this.updateChargeUI();
             
+            // Auto-activate philosopher stone if needed
+            if (this.shouldAutoActivatePhilosopherStone) {
+                console.log('Auto-activating philosopher stone now that game has started');
+                this.createPhilosopherStone();
+                this.shouldAutoActivatePhilosopherStone = false;
+                
+            }
         });
     }
 
@@ -4305,10 +4740,15 @@ class GameScene extends Phaser.Scene {
 
         // Update text
         this.xpText.setText(`${this.playerXP} / ${this.xpToNextLevel}`);
-        // this.levelText.setText(`Lvl ${this.playerLevel}`);
+        if (this.levelText) {
+            this.levelText.setText(`Lvl ${this.playerLevel}`);
+        }
     }
 
     update(time, delta) {
+        // Stop all updates if game has ended
+        if (this.gameEnded) return;
+        
         // Update gamepad reference
         if (!this.gamepad && this.input.gamepad.total > 0) {
             this.gamepad = this.input.gamepad.getPad(0);
@@ -4323,7 +4763,7 @@ class GameScene extends Phaser.Scene {
 
         // Update survival time (only when not paused, no menus open, and game started)
         if (this.time.timeScale > 0 && !this.isPaused && !this.spellbookOpen && !this.chestSelectionActive && this.gameStarted) {
-            this.survivalTime += delta;
+            this.survivalTime += delta * this.speedMultiplier;
         }
         
         // Update infinite scrolling floor
@@ -4338,6 +4778,11 @@ class GameScene extends Phaser.Scene {
         // Update obstacle manager to load/unload obstacles based on player position
         if (this.obstacleManager && this.wizard) {
             this.obstacleManager.update(this.wizard.x, this.wizard.y);
+        }
+        
+        // Update hexed enemies visuals
+        if (this.hexActive) {
+            this.updateHexedEnemies();
         }
 
         // Update spawn rate over time (every minute)
@@ -4359,7 +4804,8 @@ class GameScene extends Phaser.Scene {
         const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
         if (this.difficultyText) {
-            this.difficultyText.setText(`Timer: ${timeString}`);
+            const speedLabel = this.speedMode !== 'frolic' ? ` (${this.speedMode.toUpperCase()})` : '';
+            this.difficultyText.setText(`Timer: ${timeString}${speedLabel}`);
         }
 
         // Update secondary timer (no label)
@@ -4381,8 +4827,16 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        // Check win condition (10 minutes)
-        if (minutes >= 10) {
+        // Check win condition based on speed mode
+        const winMinutesByMode = {
+            'frolic': 10,     // Original 10 minutes
+            'vibe': 5,        // Half time (was hyper mode)
+            'hyper': 3.33,    // 10 / 3 minutes
+            'warp': 1.67      // 10 / 6 minutes
+        };
+        
+        const winMinutes = winMinutesByMode[this.speedMode] || 10;
+        if (minutes >= winMinutes) {
             this.gameWon();
         }
         // Removed duplicate timer update
@@ -4619,7 +5073,7 @@ class GameScene extends Phaser.Scene {
             return;
         }
 
-        const speed = 160;
+        const speed = 160 * this.speedMultiplier;
         let moving = false;
         let velocityX = 0;
         let velocityY = 0;
@@ -4816,7 +5270,7 @@ class GameScene extends Phaser.Scene {
                 const element = this.chargeSlots[slotIndex];
                 if (element) {
                     const elementConfig = this.elementConfig[element];
-                    const fireRate = elementConfig.fireRate || 1000; // Default 1 second if not specified
+                    const fireRate = (elementConfig.fireRate || 1000) / this.speedMultiplier; // Apply hyper mode multiplier
 
                     // Check if this charge can fire using the new cooldown system
                     // Use slot index for cooldown tracking
@@ -4841,7 +5295,7 @@ class GameScene extends Phaser.Scene {
         if (this.gameStarted) {
             // Check if it's time to start a new wave (every 60 seconds)
             const waveTime = (time - this.waveStartTime) / 1000; // Convert to seconds
-            if (waveTime >= 60) {
+            if (waveTime >= (60 / this.speedMultiplier)) {
                 this.startNewWave();
             }
 
@@ -4860,7 +5314,7 @@ class GameScene extends Phaser.Scene {
 
             // Regular wave spawning
             const currentEnemyCount = this.enemies.children.entries.filter(e => e.active).length;
-            if (currentEnemyCount < waveDef.maxEnemies && time > this.lastWaveSpawn + waveDef.spawnInterval) {
+            if (currentEnemyCount < waveDef.maxEnemies && time > this.lastWaveSpawn + (waveDef.spawnInterval / this.speedMultiplier)) {
                 this.spawnWaveEnemy(waveDef);
                 this.lastWaveSpawn = time;
             }
@@ -5011,10 +5465,92 @@ class GameScene extends Phaser.Scene {
                     }
                 }
             }
+            // Handle darkeye behavior
+            else if (enemy.enemyType === 'darkeye') {
+                const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
+
+                // Move towards wizard but stop at attack range
+                if (distance > enemy.attackRange && !enemy.stunned && !enemy.blinded && !enemy.frozen && !this.wizard.invisible) {
+                    const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
+                    let speed = enemy.moveSpeed;
+
+                    // Apply slow effects
+                    if (!enemy.isDying && enemy.wet && enemy.wetEndTime && this.time.now < enemy.wetEndTime) {
+                        speed *= enemy.waterSlowFactor || 0.5;
+                    }
+                    if (!enemy.isDying && enemy.muddy && enemy.muddyEndTime && this.time.now < enemy.muddyEndTime) {
+                        speed *= enemy.mudSlowFactor || 0.2;
+                    }
+
+                    enemy.setVelocity(
+                        Math.cos(angle) * speed,
+                        Math.sin(angle) * speed
+                    );
+                } else {
+                    enemy.setVelocity(0, 0);
+                }
+
+                // Face the wizard
+                if (this.wizard.x < enemy.x) {
+                    enemy.setFlipX(true);
+                } else {
+                    enemy.setFlipX(false);
+                }
+
+                // Attack when in range
+                if (distance <= enemy.attackRange && !enemy.isAttacking) {
+                    if (!enemy.lastAttackTime) enemy.lastAttackTime = 0;
+                    if (time > enemy.lastAttackTime + enemy.attackCooldown) {
+                        this.darkeyeAttack(enemy);
+                        enemy.lastAttackTime = time;
+                    }
+                }
+            }
+            // Handle sorcerer behavior
+            else if (enemy.enemyType === 'sorcerer') {
+                const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
+
+                // Move towards wizard but stop at attack range
+                if (distance > enemy.attackRange && !enemy.stunned && !enemy.blinded && !enemy.frozen && !this.wizard.invisible) {
+                    const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
+                    let speed = enemy.moveSpeed;
+
+                    // Apply slow effects
+                    if (!enemy.isDying && enemy.wet && enemy.wetEndTime && this.time.now < enemy.wetEndTime) {
+                        speed *= enemy.waterSlowFactor || 0.5;
+                    }
+                    if (!enemy.isDying && enemy.muddy && enemy.muddyEndTime && this.time.now < enemy.muddyEndTime) {
+                        speed *= enemy.mudSlowFactor || 0.2;
+                    }
+
+                    enemy.setVelocity(
+                        Math.cos(angle) * speed,
+                        Math.sin(angle) * speed
+                    );
+                } else {
+                    enemy.setVelocity(0, 0);
+                }
+
+                // Face the wizard
+                if (this.wizard.x < enemy.x) {
+                    enemy.setFlipX(true);
+                } else {
+                    enemy.setFlipX(false);
+                }
+
+                // Attack when in range
+                if (distance <= enemy.attackRange && !enemy.isAttacking) {
+                    if (!enemy.lastAttackTime) enemy.lastAttackTime = 0;
+                    if (time > enemy.lastAttackTime + enemy.attackCooldown) {
+                        this.sorcererAttack(enemy);
+                        enemy.lastAttackTime = time;
+                    }
+                }
+            }
             // Only update velocity if not being knocked back, not stunned, and not blinded
             else if (Math.abs(enemy.body.velocity.x) < 100 && Math.abs(enemy.body.velocity.y) < 100 && !enemy.stunned && !enemy.blinded && !enemy.frozen && !this.wizard.invisible) {
                 // Get enemy speed based on type
-                let moveSpeed = enemy.moveSpeed || (enemy.enemyType === 'tree' ? 48 : 60);
+                let moveSpeed = (enemy.moveSpeed || (enemy.enemyType === 'tree' ? 48 : 60)) * this.speedMultiplier;
 
                 // Apply wet slow effect if active (check if enemy is not dying)
                 if (!enemy.isDying && enemy.wet && enemy.wetEndTime && this.time.now < enemy.wetEndTime) {
@@ -5047,7 +5583,7 @@ class GameScene extends Phaser.Scene {
                     }
 
                     // Flip enemies to face wizard
-                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'soul' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'darkeye' || enemy.enemyType === 'mushroom') {
+                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'soul' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'darkeye' || enemy.enemyType === 'mushroom' || enemy.enemyType === 'sorcerer') {
                         if (this.wizard.x < enemy.x) {
                             enemy.setFlipX(true); // Face left
                         } else {
@@ -5090,8 +5626,13 @@ class GameScene extends Phaser.Scene {
                 projectile.updateParticles();
             }
 
-            // Skip bounds check for bouncing projectiles (like star)
-            if (projectile.isBouncing) {
+            // Update boomerang behavior for arcane projectiles
+            if (projectile.updateBoomerang) {
+                projectile.updateBoomerang();
+            }
+
+            // Skip bounds check for bouncing projectiles (like star) and boomerangs
+            if (projectile.isBouncing || projectile.isBoomerang) {
                 return;
             }
 
@@ -5131,7 +5672,35 @@ class GameScene extends Phaser.Scene {
             this.moonSpellComponents.particles.y = this.wizard.y;
         }
         
-        // Auto-cast sun and moon spells when available
+        // Update halo aura position and check if still in active slot
+        if (this.haloAuraActive) {
+            // Check if halo is still in an active charge slot (first 4 slots)
+            let haloStillActive = false;
+            for (let i = 0; i < 4; i++) {
+                if (this.chargeSlots[i] === 'halo') {
+                    haloStillActive = true;
+                    break;
+                }
+            }
+            
+            if (!haloStillActive) {
+                // Deactivate halo if no longer in active slots
+                this.deactivateHaloAura();
+            } else if (this.haloAura) {
+                // Redraw the ring at wizard's position
+                if (this.haloDrawRing) {
+                    this.haloDrawRing(this.haloAura);
+                }
+                
+                // Update inner glow position
+                if (this.haloInnerGlow) {
+                    this.haloInnerGlow.x = this.wizard.x;
+                    this.haloInnerGlow.y = this.wizard.y;
+                }
+            }
+        }
+        
+        // Auto-cast sun, moon, and halo spells when available
         if (!this.sunSpellActive && !this.sunSpellCooldown && this.charges) {
             // Check if wizard has sun element in charges
             const hasSunElement = this.charges.some(charge => charge === 'sun');
@@ -5145,6 +5714,16 @@ class GameScene extends Phaser.Scene {
             const hasMoonElement = this.charges.some(charge => charge === 'moon');
             if (hasMoonElement) {
                 this.createMoonSpell();
+            }
+        }
+        
+        if (!this.haloAuraActive && this.chargeSlots) {
+            // Check if wizard has halo element in active charge slots
+            for (let i = 0; i < 4; i++) {
+                if (this.chargeSlots[i] === 'halo') {
+                    this.createHaloAura();
+                    break;
+                }
             }
         }
 
@@ -5204,6 +5783,14 @@ class GameScene extends Phaser.Scene {
         
         // Update player visibility indicators
         this.updatePlayerIndicators();
+        
+        // Update philosopher stone indicator position
+        if (this.philosopherStoneActive && this.philosopherStoneIndicator && this.philosopherStoneGlow) {
+            this.philosopherStoneIndicator.x = this.wizard.x;
+            this.philosopherStoneIndicator.y = this.wizard.y - 40;
+            this.philosopherStoneGlow.x = this.wizard.x;
+            this.philosopherStoneGlow.y = this.wizard.y - 40;
+        }
 
         // Water sprite stays at spawn position - no position update needed
 
@@ -5927,7 +6514,7 @@ class GameScene extends Phaser.Scene {
                 const currentY = gameObject.y;
 
                 this.pauseChargeSlots.forEach((slot, index) => {
-                    if (index < this.maxCharges) {
+                    if (index < 12) { // Check all 12 slots (8 charge + 4 pouch)
                         const dist = Phaser.Math.Distance.Between(
                             currentX,
                             currentY,
@@ -6635,13 +7222,13 @@ class GameScene extends Phaser.Scene {
         console.log('Current charges:', this.charges);
         console.log('Current chargeSlots before move:', [...this.chargeSlots]);
         
-        // Ensure both indices are valid slot indices (0-7)
-        if (fromIndex < 0 || toIndex < 0 || fromIndex >= 8 || toIndex >= 8) {
+        // Ensure both indices are valid slot indices (0-11 for charge + pouch)
+        if (fromIndex < 0 || toIndex < 0 || fromIndex >= 12 || toIndex >= 12) {
             console.log('Invalid indices - fromIndex:', fromIndex, 'toIndex:', toIndex);
             return;
         }
         
-        // Initialize chargeSlots array if it doesn't exist
+        // Initialize arrays if they don't exist
         if (!this.chargeSlots) {
             this.chargeSlots = new Array(8).fill(null);
             // Copy existing charges to slots
@@ -6650,48 +7237,77 @@ class GameScene extends Phaser.Scene {
             }
         }
         
-        // Get the element being moved
-        const elementToMove = this.chargeSlots[fromIndex];
+        if (!this.elementPouch) {
+            this.elementPouch = [null, null, null, null];
+        }
+        
+        // Determine which arrays we're working with
+        const fromIsCharge = fromIndex < 8;
+        const toIsCharge = toIndex < 8;
+        const fromPouchIndex = fromIndex - 8;
+        const toPouchIndex = toIndex - 8;
+        
+        // Get the elements
+        const elementToMove = fromIsCharge ? this.chargeSlots[fromIndex] : this.elementPouch[fromPouchIndex];
         
         if (!elementToMove) {
             console.log('No element to move from slot', fromIndex);
             return;
         }
         
-        // Check if target slot is empty or occupied
-        const targetElement = this.chargeSlots[toIndex];
+        // Get target element
+        const targetElement = toIsCharge ? this.chargeSlots[toIndex] : this.elementPouch[toPouchIndex];
         
-        // Get the tiers of the elements being moved
-        const fromElementTier = this.elementTiers.get(`${elementToMove}_${fromIndex}`) || 1;
-        const toElementTier = targetElement ? (this.elementTiers.get(`${targetElement}_${toIndex}`) || 1) : 0;
-        
-        if (targetElement) {
-            // Swap if target slot is occupied
+        // Handle the swap based on the slot types
+        if (fromIsCharge && toIsCharge) {
+            // Charge to charge swap
             this.chargeSlots[fromIndex] = targetElement;
             this.chargeSlots[toIndex] = elementToMove;
             
-            // Update tier tracking for swapped elements
-            this.elementTiers.set(`${targetElement}_${fromIndex}`, toElementTier);
-            this.elementTiers.set(`${elementToMove}_${toIndex}`, fromElementTier);
+            // Handle tier tracking for charge slots
+            const fromElementTier = this.elementTiers.get(`${elementToMove}_${fromIndex}`) || 1;
+            const toElementTier = targetElement ? (this.elementTiers.get(`${targetElement}_${toIndex}`) || 1) : 0;
             
-            // Clean up old tier entries
+            if (targetElement) {
+                this.elementTiers.set(`${targetElement}_${fromIndex}`, toElementTier);
+                this.elementTiers.set(`${elementToMove}_${toIndex}`, fromElementTier);
+                this.elementTiers.delete(`${elementToMove}_${fromIndex}`);
+                this.elementTiers.delete(`${targetElement}_${toIndex}`);
+            } else {
+                this.elementTiers.set(`${elementToMove}_${toIndex}`, fromElementTier);
+                this.elementTiers.delete(`${elementToMove}_${fromIndex}`);
+            }
+        } else if (fromIsCharge && !toIsCharge) {
+            // Charge to pouch
+            this.chargeSlots[fromIndex] = targetElement;
+            this.elementPouch[toPouchIndex] = elementToMove;
+            
+            // Clear tier for element moving to pouch
             this.elementTiers.delete(`${elementToMove}_${fromIndex}`);
-            this.elementTiers.delete(`${targetElement}_${toIndex}`);
-        } else {
-            // Move to empty slot
-            this.chargeSlots[fromIndex] = null;
+        } else if (!fromIsCharge && toIsCharge) {
+            // Pouch to charge
+            this.elementPouch[fromPouchIndex] = targetElement;
             this.chargeSlots[toIndex] = elementToMove;
             
-            // Update tier tracking for moved element
-            this.elementTiers.set(`${elementToMove}_${toIndex}`, fromElementTier);
+            // Set tier 1 for element moving from pouch
+            this.elementTiers.set(`${elementToMove}_${toIndex}`, 1);
             
-            // Clean up old tier entry
-            this.elementTiers.delete(`${elementToMove}_${fromIndex}`);
+            if (targetElement) {
+                // Clear tier for element moving to pouch
+                this.elementTiers.delete(`${targetElement}_${toIndex}`);
+            }
+        } else {
+            // Pouch to pouch
+            this.elementPouch[fromPouchIndex] = targetElement;
+            this.elementPouch[toPouchIndex] = elementToMove;
         }
         
-        // Rebuild charges array from all non-null slots
+        // Save pouch state
+        localStorage.setItem('elementPouch', JSON.stringify(this.elementPouch));
+        
+        // Rebuild charges array from first 4 charge slots only
         this.charges = [];
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < 4 && i < this.chargeSlots.length; i++) {
             if (this.chargeSlots[i] !== null) {
                 this.charges.push(this.chargeSlots[i]);
             }
@@ -6835,7 +7451,7 @@ class GameScene extends Phaser.Scene {
                     // Find which slot we're over
                     let targetIndex = -1;
                     this.pauseChargeSlots.forEach((targetSlot, idx) => {
-                        if (idx < 8) {
+                        if (idx < 12) { // Check all 12 slots (8 charge + 4 pouch)
                             const targetWorldX = this.pauseMenu.x + targetSlot.x;
                             const targetWorldY = this.pauseMenu.y + targetSlot.y;
                             const dist = Phaser.Math.Distance.Between(hitZone.x, hitZone.y, targetWorldX, targetWorldY);
@@ -7090,7 +7706,9 @@ class GameScene extends Phaser.Scene {
         confirmBg.setDepth(300);
         confirmBg.setScrollFactor(0);
 
-        const elementName = this.chargeSlots[index] ? this.chargeSlots[index] : 'element';
+        const elementName = (index < 8 && this.chargeSlots[index]) ? this.chargeSlots[index] : 
+                           (index >= 8 && this.elementPouch[index - 8]) ? this.elementPouch[index - 8] : 
+                           'element';
         const confirmText = this.add.text(400, 270, `Discard ${elementName} charge?`, {
             fontSize: '18px',
             color: '#ffffff'
@@ -7659,13 +8277,13 @@ class GameScene extends Phaser.Scene {
                         this.dropJewel(enemyX + offsetX, enemyY + offsetY, 2, 0.075);
                     }
 
-                    // Drop 1-2 random elements
-                    for (let i = 0; i < 1 + Math.floor(Math.random() * 2); i++) {
-                        const element = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
-                        const offsetX = (Math.random() - 0.5) * 30;
-                        const offsetY = (Math.random() - 0.5) * 30;
-                        this.dropItemChest(enemyX + offsetX, enemyY + offsetY, 'element', { element: element });
-                    }
+                    // Elements no longer drop from enemies
+                    // for (let i = 0; i < 1 + Math.floor(Math.random() * 2); i++) {
+                    //     const element = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
+                    //     const offsetX = (Math.random() - 0.5) * 30;
+                    //     const offsetY = (Math.random() - 0.5) * 30;
+                    //     this.dropItemChest(enemyX + offsetX, enemyY + offsetY, 'element', { element: element });
+                    // }
 
                     // 7.5% chance to drop muffin (reduced by 75%)
                     if (Math.random() < 0.075) {
@@ -7709,9 +8327,9 @@ class GameScene extends Phaser.Scene {
                     this.dropJewel(enemyX, enemyY, 4, 0.09);
                     this.dropJewel(enemyX + 20, enemyY, 4, 0.09);
 
-                    // Always drop 1 random primary element
-                    const element = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
-                    this.dropItemChest(enemyX, enemyY + 20, 'element', { element: element });
+                    // Elements no longer drop from enemies
+                    // const element = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
+                    // this.dropItemChest(enemyX, enemyY + 20, 'element', { element: element });
 
                     // 7.5% chance to drop muffin (reduced by 75%)
                     if (Math.random() < 0.075) {
@@ -7749,9 +8367,9 @@ class GameScene extends Phaser.Scene {
                         }
                     }
 
-                    // Always drop 1 random element
-                    const element = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
-                    this.dropItemChest(enemyX, enemyY + 20, 'element', { element: element });
+                    // Elements no longer drop from enemies
+                    // const element = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
+                    // this.dropItemChest(enemyX, enemyY + 20, 'element', { element: element });
 
                     // Drop 2-3 jewels - darkeye is a medium enemy
                     for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) {
@@ -7965,6 +8583,177 @@ class GameScene extends Phaser.Scene {
             if (soul && soul.active && !soul.isDying) {
                 soul.isAttacking = false;
                 soul.play('soul-moving');
+            }
+        });
+    }
+
+    darkeyeAttack(darkeye) {
+        // Darkeye shoots multiple dark projectiles in a spread pattern
+        darkeye.isAttacking = true;
+        darkeye.setVelocity(0, 0); // Stop moving during attack
+        
+        // Fire multiple projectiles in a cone
+        this.time.delayedCall(200, () => {
+            if (!darkeye || !darkeye.active || darkeye.isDying) return;
+            
+            const baseAngle = Phaser.Math.Angle.Between(darkeye.x, darkeye.y, this.wizard.x, this.wizard.y);
+            const spreadAngle = Math.PI / 6; // 30 degree spread
+            
+            // Fire 3 projectiles in a spread
+            for (let i = -1; i <= 1; i++) {
+                const angle = baseAngle + (i * spreadAngle / 2);
+                
+                // Create dark projectile
+                const projectile = this.physics.add.sprite(darkeye.x, darkeye.y, 'arcane-spell');
+                if (this.anims.exists('arcane-spell-anim')) {
+                    projectile.play('arcane-spell-anim');
+                }
+                projectile.setScale(0.8);
+                projectile.isEnemyProjectile = true;
+                projectile.damage = 8; // High damage
+                projectile.setDepth(5);
+                projectile.setTint(0x9900ff); // Dark purple tint
+                
+                // Set velocity
+                const speed = 200;
+                projectile.setVelocity(
+                    Math.cos(angle) * speed,
+                    Math.sin(angle) * speed
+                );
+                
+                // Add to enemy projectiles group
+                if (!this.enemyProjectiles || !this.enemyProjectiles.children) {
+                    this.enemyProjectiles = this.physics.add.group();
+                }
+                this.enemyProjectiles.add(projectile);
+                
+                // Auto-destroy after 2 seconds
+                this.time.delayedCall(2000, () => {
+                    if (projectile.active) {
+                        projectile.destroy();
+                    }
+                });
+            }
+        });
+        
+        // Return to normal after attack
+        this.time.delayedCall(800, () => {
+            if (darkeye && darkeye.active && !darkeye.isDying) {
+                darkeye.isAttacking = false;
+            }
+        });
+    }
+
+    sorcererAttack(sorcerer) {
+        // Sorcerer casts powerful arcane spells
+        sorcerer.isAttacking = true;
+        sorcerer.setVelocity(0, 0); // Stop moving during attack
+        
+        // Choose attack type randomly
+        const attackType = Math.random();
+        
+        if (attackType < 0.5) {
+            // Arcane barrage - rapid fire projectiles
+            let projectileCount = 0;
+            const fireProjectile = () => {
+                if (!sorcerer || !sorcerer.active || sorcerer.isDying || projectileCount >= 5) return;
+                
+                const angle = Phaser.Math.Angle.Between(sorcerer.x, sorcerer.y, this.wizard.x, this.wizard.y);
+                const randomSpread = (Math.random() - 0.5) * 0.3; // Small random spread
+                
+                // Create arcane projectile
+                const projectile = this.physics.add.sprite(sorcerer.x, sorcerer.y, 'arcane-spell');
+                if (this.anims.exists('arcane-spell-anim')) {
+                    projectile.play('arcane-spell-anim');
+                }
+                projectile.setScale(1.0);
+                projectile.isEnemyProjectile = true;
+                projectile.damage = 6;
+                projectile.setDepth(5);
+                projectile.setTint(0xff00ff); // Magenta tint for sorcerer
+                
+                // Set velocity with slight spread
+                const speed = 250;
+                projectile.setVelocity(
+                    Math.cos(angle + randomSpread) * speed,
+                    Math.sin(angle + randomSpread) * speed
+                );
+                
+                // Add to enemy projectiles group
+                if (!this.enemyProjectiles || !this.enemyProjectiles.children) {
+                    this.enemyProjectiles = this.physics.add.group();
+                }
+                this.enemyProjectiles.add(projectile);
+                
+                // Auto-destroy after 2 seconds
+                this.time.delayedCall(2000, () => {
+                    if (projectile.active) {
+                        projectile.destroy();
+                    }
+                });
+                
+                projectileCount++;
+                
+                // Fire next projectile
+                if (projectileCount < 5) {
+                    this.time.delayedCall(150, fireProjectile);
+                }
+            };
+            
+            // Start firing after short delay
+            this.time.delayedCall(300, fireProjectile);
+            
+        } else {
+            // Arcane explosion - area attack around wizard
+            this.time.delayedCall(500, () => {
+                if (!sorcerer || !sorcerer.active || sorcerer.isDying) return;
+                
+                // Create warning circle at wizard position
+                const warningCircle = this.add.circle(this.wizard.x, this.wizard.y, 100, 0xff00ff, 0.3);
+                warningCircle.setDepth(4);
+                
+                // Pulse warning
+                this.tweens.add({
+                    targets: warningCircle,
+                    scale: { from: 0.8, to: 1.2 },
+                    alpha: { from: 0.3, to: 0.6 },
+                    duration: 300,
+                    yoyo: true,
+                    repeat: 2
+                });
+                
+                // Explosion after delay
+                this.time.delayedCall(1000, () => {
+                    if (!this.wizard || !this.wizard.active) return;
+                    
+                    // Create explosion effect
+                    const explosion = this.add.circle(this.wizard.x, this.wizard.y, 10, 0xff00ff, 0.8);
+                    explosion.setDepth(5);
+                    
+                    this.tweens.add({
+                        targets: explosion,
+                        scale: { from: 0.1, to: 10 },
+                        alpha: { from: 0.8, to: 0 },
+                        duration: 300,
+                        onComplete: () => {
+                            explosion.destroy();
+                            warningCircle.destroy();
+                        }
+                    });
+                    
+                    // Deal damage if wizard is in range
+                    const distance = Phaser.Math.Distance.Between(explosion.x, explosion.y, this.wizard.x, this.wizard.y);
+                    if (distance < 100) {
+                        this.damagePlayer(10);
+                    }
+                });
+            });
+        }
+        
+        // Return to normal after attack
+        this.time.delayedCall(2000, () => {
+            if (sorcerer && sorcerer.active && !sorcerer.isDying) {
+                sorcerer.isAttacking = false;
             }
         });
     }
@@ -8300,6 +9089,100 @@ class GameScene extends Phaser.Scene {
         const depth = Math.max(1, Math.floor((enemy.y + 1000) / 10));
         enemy.setDepth(depth);
     }
+    
+    applyHexCurse(enemy, duration) {
+        // Apply hex curse to enemy for specified duration
+        if (!enemy.isHexed && enemy.active && !enemy.isDying) {
+            enemy.isHexed = true;
+            enemy.originalDamage = enemy.damage || 1; // Store original damage
+            enemy.damage = 0; // Hexed enemies deal no damage
+            
+            // Visual indicator - purple tint and hex symbol
+            enemy.setTint(0x9932cc);
+            
+            // Add hex symbol above enemy
+            const hexSymbol = this.add.text(enemy.x, enemy.y - 30, '⬢', {
+                fontSize: '16px',
+                color: '#9932cc',
+                stroke: '#000000',
+                strokeThickness: 2
+            });
+            hexSymbol.setOrigin(0.5);
+            hexSymbol.setDepth(enemy.depth + 1);
+            
+            // Make hex symbol follow enemy
+            enemy.hexSymbol = hexSymbol;
+            enemy.hexFollowUpdate = () => {
+                if (enemy.active && hexSymbol.active) {
+                    hexSymbol.x = enemy.x;
+                    hexSymbol.y = enemy.y - 30;
+                    hexSymbol.setDepth(enemy.depth + 1);
+                } else if (!enemy.active && hexSymbol.active) {
+                    hexSymbol.destroy();
+                }
+            };
+            
+            // Add glow effect
+            const hexGlow = this.add.graphics();
+            hexGlow.lineStyle(2, 0x9932cc, 0.5);
+            hexGlow.strokeCircle(0, 0, 20);
+            hexGlow.setDepth(enemy.depth - 1);
+            enemy.hexGlow = hexGlow;
+            
+            // Update glow position
+            enemy.hexGlowUpdate = () => {
+                if (enemy.active && hexGlow.active) {
+                    hexGlow.x = enemy.x;
+                    hexGlow.y = enemy.y;
+                    hexGlow.setDepth(enemy.depth - 1);
+                } else if (!enemy.active && hexGlow.active) {
+                    hexGlow.destroy();
+                }
+            };
+            
+            // Set up hex removal after duration
+            if (duration && duration > 0) {
+                this.time.delayedCall(duration, () => {
+                    this.removeHexCurse(enemy);
+                });
+            }
+        }
+    }
+    
+    removeHexCurse(enemy) {
+        // Remove hex curse from enemy
+        if (enemy && enemy.isHexed) {
+            enemy.isHexed = false;
+            enemy.damage = enemy.originalDamage || 1; // Restore original damage
+            enemy.clearTint(); // Remove purple tint
+            
+            // Clean up hex visual elements
+            if (enemy.hexSymbol) {
+                enemy.hexSymbol.destroy();
+                enemy.hexSymbol = null;
+            }
+            if (enemy.hexGlow) {
+                enemy.hexGlow.destroy();
+                enemy.hexGlow = null;
+            }
+            enemy.hexFollowUpdate = null;
+            enemy.hexGlowUpdate = null;
+        }
+    }
+    
+    updateHexedEnemies() {
+        // Update hex visuals for all hexed enemies
+        this.enemies.children.entries.forEach(enemy => {
+            if (enemy.active && enemy.isHexed) {
+                if (enemy.hexFollowUpdate) {
+                    enemy.hexFollowUpdate();
+                }
+                if (enemy.hexGlowUpdate) {
+                    enemy.hexGlowUpdate();
+                }
+            }
+        });
+    }
 
     spawnEnemy() {
         // Spawn enemies just outside viewport
@@ -8339,30 +9222,34 @@ class GameScene extends Phaser.Scene {
         let enemyType;
         
         if (this.stage === 'cave') {
-            // Cave enemies: slimes, lost souls, bats, golems, dark eyes
+            // Cave enemies: slimes, lost souls, bats, golems, dark eyes, sorcerer (rare)
             if (rand < 0.25) {
                 enemyType = 'slime'; // 25%
             } else if (rand < 0.45) {
                 enemyType = 'soul'; // 20%
             } else if (rand < 0.65) {
                 enemyType = 'bat'; // 20%
-            } else if (rand < 0.85) {
-                enemyType = 'golem'; // 20%
+            } else if (rand < 0.82) {
+                enemyType = 'golem'; // 17%
+            } else if (rand < 0.95) {
+                enemyType = 'darkeye'; // 13%
             } else {
-                enemyType = 'darkeye'; // 15%
+                enemyType = 'sorcerer'; // 5% - rare boss enemy
             }
         } else {
-            // Forest enemies: trees, mushrooms, bats, bloboids, summoners
+            // Forest enemies: trees, mushrooms, bats, bloboids, summoners, sorcerer (rare)
             if (rand < 0.25) {
                 enemyType = 'tree'; // 25%
             } else if (rand < 0.45) {
                 enemyType = 'mushroom'; // 20%
             } else if (rand < 0.65) {
                 enemyType = 'bat'; // 20%
-            } else if (rand < 0.85) {
-                enemyType = 'bloboid'; // 20%
+            } else if (rand < 0.82) {
+                enemyType = 'bloboid'; // 17%
+            } else if (rand < 0.95) {
+                enemyType = 'summoner'; // 13%
             } else {
-                enemyType = 'summoner'; // 15%
+                enemyType = 'sorcerer'; // 5% - rare boss enemy
             }
         }
 
@@ -8541,6 +9428,24 @@ class GameScene extends Phaser.Scene {
             darkeye.attackCooldown = 3000;
             darkeye.lastAttackTime = 0;
             this.enemies.add(darkeye);
+        } else if (enemyType === 'sorcerer') {
+            // Create sorcerer boss enemy
+            const sorcerer = this.physics.add.sprite(x, y, 'sorcerer-attack-0');
+            sorcerer.setScale(1.5); // Large boss size
+            sorcerer.health = 30; // Very high health - boss enemy
+            sorcerer.maxHealth = sorcerer.health;
+            sorcerer.enemyType = 'sorcerer';
+            sorcerer.moveSpeed = 30; // Slow but powerful
+            sorcerer.play('sorcerer-attack');
+            sorcerer.body.setSize(60, 80);
+            sorcerer.body.setOffset(10, 0);
+            sorcerer.element = 'arcane'; // Powerful magic user
+            sorcerer.attackRange = 250; // Long range attacks
+            sorcerer.attackCooldown = 2500; // Attacks frequently
+            sorcerer.lastAttackTime = 0;
+            sorcerer.isBoss = true; // Mark as boss enemy
+            this.setEnemyDepth(sorcerer); // Set initial depth
+            this.enemies.add(sorcerer);
         }
     }
 
@@ -8615,6 +9520,7 @@ class GameScene extends Phaser.Scene {
             enemy.maxHealth = enemy.health;
             enemy.enemyType = 'tree';
             enemy.moveSpeed = 36;
+            enemy.damage = 1; // Default damage
             enemy.play('enemy-walking');
             enemy.body.setSize(26, 39);
             enemy.body.setOffset(3, 12);
@@ -8807,6 +9713,23 @@ class GameScene extends Phaser.Scene {
             darkeye.attackCooldown = 3000;
             darkeye.lastAttackTime = 0;
             this.enemies.add(darkeye);
+        } else if (enemyType === 'sorcerer') {
+            // Create sorcerer boss enemy
+            const sorcerer = this.physics.add.sprite(x, y, 'sorcerer-attack-0');
+            sorcerer.setScale(1.5); // Large boss size
+            sorcerer.health = 30; // Very high health - boss enemy
+            sorcerer.maxHealth = sorcerer.health;
+            sorcerer.enemyType = 'sorcerer';
+            sorcerer.moveSpeed = 30; // Slow but powerful
+            sorcerer.play('sorcerer-attack');
+            sorcerer.body.setSize(60, 80);
+            sorcerer.body.setOffset(10, 0);
+            sorcerer.element = 'arcane'; // Powerful magic user
+            sorcerer.attackRange = 250; // Long range attacks
+            sorcerer.attackCooldown = 2500; // Attacks frequently
+            sorcerer.lastAttackTime = 0;
+            sorcerer.isBoss = true; // Mark as boss enemy
+            this.enemies.add(sorcerer);
         }
     }
 
@@ -9054,9 +9977,15 @@ class GameScene extends Phaser.Scene {
     hitEnemy(wizard, enemy) {
         // Check if player is invulnerable
         if (this.invulnerable) return;
+        
+        // Check if enemy is hexed (deals no damage)
+        if (enemy.isHexed) {
+            return; // Hexed enemies deal no damage
+        }
 
         // Don't destroy enemy on contact, just damage player
-        this.playerHealth -= 10;
+        const damage = enemy.damage || 10; // Use enemy's damage value or default to 10
+        this.playerHealth -= damage;
         this.updateHealthBar();
         this.updateWizardHealthBar();
 
@@ -9688,8 +10617,8 @@ class GameScene extends Phaser.Scene {
             projectile.onHitEnemy(enemy);
         }
         
-        // Destroy projectile unless it's a piercing type
-        if (!projectile.isPiercing) {
+        // Destroy projectile unless it's a piercing type or pass-through type
+        if (!projectile.isPiercing && !projectile.passThroughEnemies) {
             projectile.destroy();
         }
     }
@@ -9868,27 +10797,10 @@ class GameScene extends Phaser.Scene {
     }
 
     dropMuffin(x, y) {
-        if (!this.textures.exists('muffin')) {
-            const graphics = this.add.graphics();
-            // Draw at origin (0,0) then generate texture
-            graphics.fillStyle(0x8B4513, 1);
-            graphics.fillCircle(7, 9, 6);
-            // Muffin top (lighter brown)
-            graphics.fillStyle(0xD2691E, 1);
-            graphics.fillCircle(7, 5, 7);
-            // Chocolate chips
-            graphics.fillStyle(0x654321, 1);
-            graphics.fillCircle(4, 4, 1);
-            graphics.fillCircle(9, 5, 1);
-            graphics.fillCircle(6, 7, 1);
-            graphics.generateTexture('muffin', 14, 14);
-            graphics.destroy();
-        }
-
         const muffin = this.physics.add.sprite(x, y, 'muffin');
         muffin.setDepth(25);
         muffin.body.setVelocity(0, 0);
-        muffin.setScale(1.5); // Make it bigger to be more visible
+        muffin.setScale(0.2); // Reduced by 75% (25% of original size)
 
         // Add floating animation
         this.tweens.add({
@@ -10310,6 +11222,15 @@ class GameScene extends Phaser.Scene {
                 case 'star':
                     this.createStarSpell();
                     break;
+                case 'zodiac':
+                    this.createZodiacSpell();
+                    break;
+                case 'hex':
+                    this.createHexSpell();
+                    break;
+                case 'venom':
+                    this.createVenomSpell();
+                    break;
                 case 'time':
                     this.createTimeSpell();
                     break;
@@ -10336,6 +11257,10 @@ class GameScene extends Phaser.Scene {
                     break;
                 case 'mud':
                     this.createMudTrap();
+                    break;
+                case 'philosopherstone':
+                    // Don't fire philosopher stone as a regular spell
+                    console.log('Philosopher stone in charge slot - not firing as spell');
                     break;
                 default:
                     // For non-primary elements, use basic projectile with element effect
@@ -10501,6 +11426,26 @@ class GameScene extends Phaser.Scene {
             case 'earth-water':
                 // Mud trap
                 this.createMudTrap();
+                break;
+            case 'moon-star':
+                // Zodiac spell - bouncing projectiles with light trails
+                this.createZodiacSpell();
+                break;
+            case 'arcane-poison':
+                // Hex element - curse enemies to deal no damage
+                this.createHexSpell();
+                break;
+            case 'crystal-poison':
+                // Venom element - piercing spines that apply poison
+                this.createVenomSpell();
+                break;
+            case 'death-life':
+                // Philosopher Stone - grants level up every 45 seconds
+                this.createPhilosopherStone();
+                break;
+            case 'holy-water':
+                // Halo - holy water aura that damages nearby enemies
+                this.createHaloAura();
                 break;
             default:
                 // Fallback to firing single element of first type
@@ -11512,60 +12457,140 @@ class GameScene extends Phaser.Scene {
 
     // New element abilities
     fireRockProjectile(elementTier = 1) {
-        // Find nearest enemy first
-        let closestEnemy = null;
-        let closestDistance = Infinity;
-
-        this.enemies.children.entries.forEach(enemy => {
-            if (enemy.active && !enemy.isDying) {
-                const distance = Phaser.Math.Distance.Between(this.wizard.x, this.wizard.y, enemy.x, enemy.y);
-                if (distance < closestDistance) {
-                    closestDistance = distance;
-                    closestEnemy = enemy;
-                }
-            }
-        });
-
-        // Create rock projectile
-        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'rock-spell');
-        projectile.setScale(1);
-        projectile.setDepth(5);
-        
-        // Play animation
-        projectile.play('rock-spell-anim');
+        // Rock element - lobs multiple heavy stones in arcs
+        const stoneCount = 3 + Math.floor((elementTier - 1) / 2); // 3-5 stones based on tier
+        const baseAngle = Math.random() * Math.PI * 2; // Random starting direction
+        const spreadAngle = Math.PI / 3; // 60 degree spread
         
         // Apply tier damage scaling
         const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
         
-        // Base damage is 6, with 50% crit chance
-        const isCritical = Math.random() < 0.5;
-        projectile.damage = (isCritical ? 12 : 6) * tierDamageScale;
-        projectile.isCritical = isCritical;
-        projectile.element = 'rock';
-        
-        // Add visual indicator for critical
-        if (isCritical) {
-            projectile.setTint(0xff6666);
-            projectile.setScale(1.2);
-        }
-
-        // Add to projectiles group BEFORE setting velocity
-        this.projectiles.add(projectile);
-
-        // Set velocity after adding to group
-        if (closestEnemy) {
-            const angle = Phaser.Math.Angle.Between(this.wizard.x, this.wizard.y, closestEnemy.x, closestEnemy.y);
-            const speed = 400;
+        for (let i = 0; i < stoneCount; i++) {
+            // Calculate angle for this stone
+            const angleOffset = (i - (stoneCount - 1) / 2) * (spreadAngle / (stoneCount - 1));
+            const launchAngle = baseAngle + angleOffset;
+            
+            // Create rock projectile
+            const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'rock-spell');
+            projectile.setScale(0.8 + Math.random() * 0.4); // Vary sizes slightly
+            projectile.setDepth(5);
+            
+            // Play animation but stop at frame 2 (half of 6 frames)
+            projectile.play('rock-spell-anim');
+            
+            // Stop animation after reaching frame 2
+            projectile.on('animationupdate', (anim, frame) => {
+                if (frame.index >= 2) {
+                    projectile.anims.pause();
+                    projectile.setFrame(2); // Stay on frame 2
+                    projectile.off('animationupdate'); // Remove listener
+                }
+            });
+            
+            // Base damage is 4-8, with 30% crit chance
+            const isCritical = Math.random() < 0.3;
+            const baseDamage = 4 + Math.random() * 4;
+            projectile.damage = (isCritical ? baseDamage * 2 : baseDamage) * tierDamageScale;
+            projectile.isCritical = isCritical;
+            projectile.element = 'rock';
+            projectile.stuns = true; // Rock projectiles can stun
+            projectile.stunDuration = 500; // 0.5 second stun
+            projectile.body.setCollideWorldBounds(false);
+            
+            // Add visual indicator for critical
+            if (isCritical) {
+                projectile.setTint(0xff6666);
+                projectile.setScale(projectile.scale * 1.3);
+            }
+            
+            // Add to projectiles group FIRST
+            this.projectiles.add(projectile);
+            
+            // Apply gravity to create arc
+            projectile.body.setGravityY(800); // Gravity for arc trajectory
+            
+            // Set initial velocity with upward component (reduced by 50%)
+            const horizontalSpeed = 150 + Math.random() * 75; // Vary speeds (150-225)
+            const upwardSpeed = 200 + Math.random() * 100; // Upward launch (200-300)
             projectile.setVelocity(
-                Math.cos(angle) * speed,
-                Math.sin(angle) * speed
+                Math.cos(launchAngle) * horizontalSpeed,
+                Math.sin(launchAngle) * horizontalSpeed - upwardSpeed // Subtract to go up
             );
-            projectile.rotation = angle;
-        } else {
-            // Default direction if no enemy
-            const speed = 400;
-            projectile.setVelocity(0, speed); // Shoot down by default
+            
+            // Rotate the rock as it flies
+            projectile.rotationSpeed = 0.1 + Math.random() * 0.1;
+            
+            // Update rotation during flight
+            const rotationUpdate = this.time.addEvent({
+                delay: 16,
+                callback: () => {
+                    if (projectile.active) {
+                        projectile.rotation += projectile.rotationSpeed;
+                    } else {
+                        rotationUpdate.destroy();
+                    }
+                },
+                loop: true
+            });
+            
+            // Add ground impact effect
+            const groundCheck = this.time.addEvent({
+                delay: 50,
+                callback: () => {
+                    if (projectile.active && projectile.body.velocity.y > 0 && projectile.y > this.wizard.y + 200) {
+                        // Create impact effect
+                        const impact = this.add.circle(projectile.x, projectile.y, 20, 0x8b4513, 0.5);
+                        impact.setDepth(4);
+                        
+                        this.tweens.add({
+                            targets: impact,
+                            scale: { from: 0.5, to: 1.5 },
+                            alpha: { from: 0.5, to: 0 },
+                            duration: 300,
+                            onComplete: () => impact.destroy()
+                        });
+                        
+                        // Create small dust particles
+                        for (let j = 0; j < 3; j++) {
+                            const dust = this.add.circle(
+                                projectile.x + (Math.random() - 0.5) * 20,
+                                projectile.y,
+                                3,
+                                0x8b4513,
+                                0.6
+                            );
+                            dust.setDepth(4);
+                            
+                            this.tweens.add({
+                                targets: dust,
+                                y: dust.y - 20 - Math.random() * 20,
+                                x: dust.x + (Math.random() - 0.5) * 30,
+                                alpha: 0,
+                                duration: 500,
+                                onComplete: () => dust.destroy()
+                            });
+                        }
+                        
+                        projectile.destroy();
+                        groundCheck.destroy();
+                        rotationUpdate.destroy();
+                    }
+                },
+                loop: true
+            });
+            
+            // Destroy after max flight time
+            this.time.delayedCall(3000, () => {
+                if (projectile.active) {
+                    projectile.destroy();
+                }
+                groundCheck.destroy();
+                rotationUpdate.destroy();
+            });
         }
+        
+        // Screen shake effect when launching rocks
+        this.cameras.main.shake(100, 0.005);
     }
 
     createAirBlast() {
@@ -11740,26 +12765,48 @@ class GameScene extends Phaser.Scene {
     }
 
     fireArcaneProjectile(elementTier = 1) {
-        // Arcane element - lock-on homing projectile
-        // Find closest enemy
-        let closestEnemy = null;
-        let closestDistance = Infinity;
-
+        // Arcane element - boomerang projectile that passes through enemies
+        
+        // Find nearest enemy to target first (needed for spawn offset)
+        let nearestEnemy = null;
+        let nearestDistance = Infinity;
+        
         this.enemies.children.entries.forEach(enemy => {
             if (enemy.active && !enemy.isDying) {
                 const distance = Phaser.Math.Distance.Between(this.wizard.x, this.wizard.y, enemy.x, enemy.y);
-                if (distance < closestDistance) {
-                    closestDistance = distance;
-                    closestEnemy = enemy;
+                if (distance < nearestDistance) {
+                    nearestDistance = distance;
+                    nearestEnemy = enemy;
                 }
             }
         });
-
-        // If no enemy found, don't fire
-        if (!closestEnemy) return;
-
+        
+        // Get angle to nearest enemy, or use wizard's facing direction if no enemies
+        let angle;
+        if (nearestEnemy) {
+            angle = Phaser.Math.Angle.Between(this.wizard.x, this.wizard.y, nearestEnemy.x, nearestEnemy.y);
+        } else {
+            // Fallback to wizard's facing direction if no enemies found
+            const directionMap = {
+                'up': -Math.PI / 2,
+                'down': Math.PI / 2,
+                'left': Math.PI,
+                'right': 0,
+                'up-left': -3 * Math.PI / 4,
+                'up-right': -Math.PI / 4,
+                'down-left': 3 * Math.PI / 4,
+                'down-right': Math.PI / 4
+            };
+            angle = directionMap[this.wizard.lastDirection] || 0;
+        }
+        
+        // Spawn projectile slightly offset from wizard in the direction it will travel
+        const spawnOffset = 30;
+        const spawnX = this.wizard.x + Math.cos(angle) * spawnOffset;
+        const spawnY = this.wizard.y + Math.sin(angle) * spawnOffset;
+        
         // Create projectile with animated sprite
-        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'arcane-spell');
+        const projectile = this.physics.add.sprite(spawnX, spawnY, 'arcane-spell');
         if (this.anims.exists('arcane-spell-fire')) {
             projectile.play('arcane-spell-fire');  // Play firing animation
         }
@@ -11775,31 +12822,86 @@ class GameScene extends Phaser.Scene {
         const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
         projectile.damage = 3 * tierDamageScale;
         projectile.setDepth(5);
-        projectile.setScale(0.75);
+        projectile.setScale(1.5); // Double the size from 0.75
 
-        // Lock onto target
-        projectile.isHoming = true;
-        projectile.homingTarget = closestEnemy;
-        projectile.homingSpeed = 150; // Reduced by 50% from 300
+        // Boomerang properties
+        projectile.isBoomerang = true;
+        projectile.passThroughEnemies = true;
+        projectile.hitEnemies = new Set(); // Track enemies already hit to prevent multiple hits
+        projectile.returnTime = 1000; // Time before returning (1 second)
+        projectile.baseSpeed = 300;
+        projectile.returnStarted = false;
+        projectile.startX = this.wizard.x;
+        projectile.startY = this.wizard.y;
+        projectile.initialAngle = angle; // Store the initial angle
 
-        // Calculate initial velocity toward target
-        const angle = Phaser.Math.Angle.Between(this.wizard.x, this.wizard.y, closestEnemy.x, closestEnemy.y);
+        // Set initial velocity using the angle we already calculated
         projectile.setVelocity(
-            Math.cos(angle) * projectile.homingSpeed,
-            Math.sin(angle) * projectile.homingSpeed
+            Math.cos(angle) * projectile.baseSpeed,
+            Math.sin(angle) * projectile.baseSpeed
         );
 
-        // Visual effect - purple glow
+        // Visual effect - purple glow with rotation
         projectile.setTint(0xff88ff);
+        
+        // Add rotation for boomerang effect
+        projectile.rotationSpeed = 0.3;
 
-        this.projectiles.add(projectile);
-
-        // Auto-destroy after 5 seconds if it doesn't hit anything
-        this.time.delayedCall(5000, () => {
-            if (projectile.active) {
-                projectile.destroy();
+        // Start the return timer
+        this.time.delayedCall(projectile.returnTime, () => {
+            if (projectile.active && !projectile.returnStarted) {
+                projectile.returnStarted = true;
             }
         });
+
+        // Update function for boomerang behavior
+        projectile.updateBoomerang = () => {
+            if (!projectile.active) return;
+            
+            // Rotate the projectile
+            projectile.rotation += projectile.rotationSpeed;
+            
+            if (projectile.returnStarted) {
+                // Calculate return trajectory to wizard
+                const returnAngle = Phaser.Math.Angle.Between(
+                    projectile.x, 
+                    projectile.y, 
+                    this.wizard.x, 
+                    this.wizard.y
+                );
+                
+                // Smoothly adjust velocity towards wizard
+                const returnSpeed = projectile.baseSpeed * 1.5; // Faster on return
+                projectile.setVelocity(
+                    Math.cos(returnAngle) * returnSpeed,
+                    Math.sin(returnAngle) * returnSpeed
+                );
+                
+                // Check if close enough to wizard to destroy
+                const distToWizard = Phaser.Math.Distance.Between(
+                    projectile.x, 
+                    projectile.y, 
+                    this.wizard.x, 
+                    this.wizard.y
+                );
+                
+                if (distToWizard < 30) {
+                    projectile.destroy();
+                }
+            } else {
+                // Make sure projectile maintains its initial velocity until return starts
+                // This prevents the projectile from stopping or slowing down
+                if (!projectile.body.velocity.x && !projectile.body.velocity.y) {
+                    // Re-apply velocity if it somehow got zeroed
+                    projectile.setVelocity(
+                        Math.cos(projectile.initialAngle) * projectile.baseSpeed,
+                        Math.sin(projectile.initialAngle) * projectile.baseSpeed
+                    );
+                }
+            }
+        };
+
+        this.projectiles.add(projectile);
     }
 
     createDustCloud() {
@@ -14225,6 +15327,287 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    createZodiacSpell() {
+        // Check if zodiac spell is on cooldown
+        if (this.zodiacSpellCooldown) {
+            return; // Don't cast if on cooldown
+        }
+        
+        // Set cooldown (longer than regular star spell)
+        this.zodiacSpellCooldown = true;
+        const cooldownDuration = this.hasteActive ? 2400 : 3000; // 20% reduction if hasted
+        this.time.delayedCall(cooldownDuration, () => {
+            this.zodiacSpellCooldown = false;
+        });
+        
+        // Zodiac spell - creates 4 bouncing projectiles with light trails (reduced from 6 for performance)
+        const starCount = 4;
+        const speed = 350;
+        const damage = 4; // Increased damage to compensate for fewer projectiles
+        
+        // Create 6 star projectiles in a hexagonal pattern
+        for (let i = 0; i < starCount; i++) {
+            const angle = (Math.PI * 2 / starCount) * i;
+            const star = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'star-spell');
+            star.setScale(0.9); // Slightly larger than regular stars
+            star.setDepth(5);
+            
+            // Play star animation
+            if (!this.anims.exists('zodiac-spin')) {
+                this.anims.create({
+                    key: 'zodiac-spin',
+                    frames: this.anims.generateFrameNumbers('star-spell', { start: 0, end: 5 }),
+                    frameRate: 20, // Faster spin
+                    repeat: -1
+                });
+            }
+            star.play('zodiac-spin');
+            star.element = 'star';
+            star.damage = damage;
+            star.isBouncing = true;
+            star.isPiercing = true; // Pass through enemies
+            star.bounceCount = 0;
+            star.maxBounces = 15; // More bounces than regular star
+            star.enemiesHit = new Set(); // Track enemies hit to allow re-hitting after bounce
+            star.isZodiac = true; // Mark as zodiac star
+            
+            // Enable physics body
+            star.body.enable = true;
+            star.body.setSize(40, 40);
+            star.body.setCollideWorldBounds(false);
+            star.body.setImmovable(false);
+            star.body.allowGravity = false;
+            star.body.moves = true;
+            
+            // Add golden glow effect
+            star.setTint(0xffd700); // Golden tint
+            // Removed infinite tween for performance - static glow instead
+            star.setAlpha(0.9);
+            
+            // Add to projectiles group
+            this.projectiles.add(star);
+            
+            // Set initial velocity in hexagonal pattern
+            star.body.setVelocity(
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed
+            );
+            
+            // Create light trail array with max limit
+            star.lightTrail = [];
+            star.maxTrailLength = 40; // Limit trail segments per star
+            star.trailCheckCounter = 0; // Counter for reducing collision checks
+            
+            // Create persistent light trail with optimized interval
+            const trailInterval = this.time.addEvent({
+                delay: 80, // Reduced frequency from 30ms to 80ms
+                callback: () => {
+                    if (star.active) {
+                        // Limit trail length
+                        if (star.lightTrail.length >= star.maxTrailLength) {
+                            const oldTrail = star.lightTrail.shift();
+                            if (oldTrail && oldTrail.active) {
+                                oldTrail.destroy();
+                            }
+                        }
+                        
+                        // Create trail segment with reduced visual complexity
+                        const trail = this.add.circle(star.x, star.y, 6, 0xffd700, 0.3);
+                        trail.setDepth(4);
+                        trail.isActive = true;
+                        trail.x = star.x;
+                        trail.y = star.y;
+                        
+                        // Store trail
+                        star.lightTrail.push(trail);
+                        
+                        // Simple fade without tween (less overhead)
+                        trail.fadeTimer = this.time.addEvent({
+                            delay: 100,
+                            repeat: 15,
+                            callback: () => {
+                                trail.alpha -= 0.02;
+                                trail.scale -= 0.03;
+                                if (trail.alpha <= 0) {
+                                    const index = star.lightTrail.indexOf(trail);
+                                    if (index > -1) {
+                                        star.lightTrail.splice(index, 1);
+                                    }
+                                    trail.destroy();
+                                    trail.fadeTimer.destroy();
+                                }
+                            }
+                        });
+                        
+                        // Check collisions only every 3rd trail segment
+                        star.trailCheckCounter++;
+                        if (star.trailCheckCounter % 3 === 0) {
+                            // Optimized enemy collision check
+                            const nearbyEnemies = [];
+                            this.enemies.children.entries.forEach(enemy => {
+                                if (enemy.active && !enemy.isDying) {
+                                    const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, trail.x, trail.y);
+                                    if (dist < 100) { // Pre-filter by larger radius
+                                        nearbyEnemies.push(enemy);
+                                    }
+                                }
+                            });
+                            
+                            // Check only nearby enemies
+                            nearbyEnemies.forEach(enemy => {
+                                const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, trail.x, trail.y);
+                                if (dist < 20 && trail.isActive) {
+                                    // Deal damage
+                                    enemy.health -= 2; // Increased damage to compensate for less frequent checks
+                                    enemy.setTint(0xffd700);
+                                    this.time.delayedCall(100, () => {
+                                        if (enemy.active) enemy.clearTint();
+                                    });
+                                    
+                                    if (enemy.health <= 0) {
+                                        this.killEnemy(enemy);
+                                    }
+                                    
+                                    // Deactivate trail
+                                    trail.isActive = false;
+                                    trail.setAlpha(0.1);
+                                }
+                            });
+                        }
+                    } else {
+                        trailInterval.destroy();
+                        // Clean up remaining trail segments
+                        star.lightTrail.forEach(trail => {
+                            if (trail.active) trail.destroy();
+                        });
+                    }
+                },
+                repeat: -1
+            });
+            
+            // Store trail interval for cleanup
+            star.trailInterval = trailInterval;
+            
+            // Destroy after max time
+            this.time.delayedCall(8000, () => {
+                if (star.active) {
+                    if (star.trailInterval) star.trailInterval.destroy();
+                    star.lightTrail.forEach(trail => {
+                        if (trail.active) trail.destroy();
+                    });
+                    star.destroy();
+                }
+            });
+            
+            // Custom update function for bouncing with enemy collision
+            star.updateBounce = () => {
+                if (!star.active) return;
+                
+                const camera = this.cameras.main;
+                const bounds = {
+                    left: camera.scrollX,
+                    right: camera.scrollX + camera.width,
+                    top: camera.scrollY,
+                    bottom: camera.scrollY + camera.height
+                };
+                
+                // Check viewport boundaries
+                let bounced = false;
+                
+                if (star.x <= bounds.left + 10 || star.x >= bounds.right - 10) {
+                    star.setVelocityX(-star.body.velocity.x);
+                    bounced = true;
+                    if (star.x <= bounds.left + 10) star.x = bounds.left + 11;
+                    if (star.x >= bounds.right - 10) star.x = bounds.right - 11;
+                }
+                
+                if (star.y <= bounds.top + 10 || star.y >= bounds.bottom - 10) {
+                    star.setVelocityY(-star.body.velocity.y);
+                    bounced = true;
+                    if (star.y <= bounds.top + 10) star.y = bounds.top + 11;
+                    if (star.y >= bounds.bottom - 10) star.y = bounds.bottom - 11;
+                }
+                
+                // Check collision with enemies for bouncing (optimized)
+                // Only check every 2nd frame for performance
+                if (!star.skipEnemyCheck) {
+                    star.skipEnemyCheck = true; // Skip next frame
+                    
+                    // Pre-filter enemies by distance
+                    const checkRadius = 150;
+                    this.enemies.children.entries.forEach(enemy => {
+                        if (enemy.active && !enemy.isDying) {
+                            // Quick distance check first
+                            const dx = Math.abs(enemy.x - star.x);
+                            const dy = Math.abs(enemy.y - star.y);
+                            
+                            if (dx < checkRadius && dy < checkRadius) {
+                                const dist = Math.sqrt(dx * dx + dy * dy);
+                                if (dist < 30) { // Collision distance
+                                    // Bounce off enemy
+                                    const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, star.x, star.y);
+                                    const currentSpeed = Math.sqrt(star.body.velocity.x ** 2 + star.body.velocity.y ** 2);
+                                    star.setVelocity(
+                                        Math.cos(angle) * currentSpeed,
+                                        Math.sin(angle) * currentSpeed
+                                    );
+                                    
+                                    // Clear hit list on bounce to allow re-hitting
+                                    star.enemiesHit.clear();
+                                    bounced = true;
+                                    
+                                    // Simple visual feedback without tween
+                                    const flash = this.add.circle(enemy.x, enemy.y, 20, 0xffd700, 0.6);
+                                    flash.setDepth(6);
+                                    this.time.delayedCall(300, () => {
+                                        if (flash.active) flash.destroy();
+                                    });
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    star.skipEnemyCheck = false; // Check next frame
+                }
+                
+                // Visual feedback on bounce
+                if (bounced) {
+                    star.bounceCount++;
+                    
+                    // Simple bounce effect without tween
+                    if (star.bounceCount % 3 === 0) { // Only show effect every 3rd bounce
+                        const bounce = this.add.circle(star.x, star.y, 15, 0xffffff, 0.5);
+                        bounce.setDepth(6);
+                        bounce.setScale(1.5);
+                        this.time.delayedCall(150, () => {
+                            if (bounce.active) bounce.destroy();
+                        });
+                    }
+                    
+                    // Speed boost on bounce
+                    const currentVelocity = star.body.velocity;
+                    const speedBoost = 1.05; // 5% speed increase per bounce
+                    star.setVelocity(
+                        currentVelocity.x * speedBoost,
+                        currentVelocity.y * speedBoost
+                    );
+                    
+                    // Destroy if max bounces reached
+                    if (star.bounceCount >= star.maxBounces) {
+                        if (star.trailInterval) star.trailInterval.destroy();
+                        star.lightTrail.forEach(trail => {
+                            if (trail.active) trail.destroy();
+                        });
+                        star.destroy();
+                    }
+                }
+            };
+            
+            // Set the update function
+            star.starUpdate = star.updateBounce;
+        }
+    }
+
     createTimeSpell() {
         // Check if time spell is on cooldown
         if (this.timeSpellCooldown) {
@@ -14704,6 +16087,707 @@ class GameScene extends Phaser.Scene {
             heartParticles.destroy();
             followInterval.destroy();
             healingInterval.destroy();
+        });
+    }
+
+    createHexSpell() {
+        // Hex element - curse nearby enemies to deal no damage
+        const hexRadius = 200; // Radius to hex enemies
+        const hexDuration = 8000; // 8 seconds hex duration
+        
+        // Check if on cooldown
+        if (this.hexSpellCooldown) {
+            return;
+        }
+        
+        // Set cooldown
+        this.hexSpellCooldown = true;
+        const cooldownDuration = this.hasteActive ? 12800 : 16000; // 16 second cooldown (12.8s with haste)
+        this.time.delayedCall(cooldownDuration, () => {
+            this.hexSpellCooldown = false;
+        });
+        
+        // Visual activation effect
+        const hexCircle = this.add.circle(this.wizard.x, this.wizard.y, 100, 0x9932cc, 0.4);
+        hexCircle.setDepth(5);
+        
+        // Create hex symbols around the circle
+        const hexSymbols = [];
+        for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI * 2 / 6) * i;
+            const x = this.wizard.x + Math.cos(angle) * 80;
+            const y = this.wizard.y + Math.sin(angle) * 80;
+            
+            const symbol = this.add.text(x, y, '⬢', {
+                fontSize: '32px',
+                color: '#9932cc'
+            });
+            symbol.setOrigin(0.5);
+            symbol.setDepth(5);
+            hexSymbols.push(symbol);
+        }
+        
+        // Activation animation
+        this.tweens.add({
+            targets: hexCircle,
+            scale: { from: 0, to: 2 },
+            alpha: { from: 0.8, to: 0 },
+            duration: 1000,
+            ease: 'Power2'
+        });
+        
+        // Rotate hex symbols
+        hexSymbols.forEach((symbol, index) => {
+            this.tweens.add({
+                targets: symbol,
+                angle: 360,
+                scale: { from: 0.5, to: 1.5 },
+                alpha: { from: 1, to: 0 },
+                duration: 1000,
+                delay: index * 100,
+                onComplete: () => symbol.destroy()
+            });
+        });
+        
+        // Expand hex circle to show area of effect
+        this.tweens.add({
+            targets: hexCircle,
+            scale: { from: 0, to: hexRadius / 50 }, // Scale to match radius
+            alpha: { from: 0.8, to: 0 },
+            duration: 1000,
+            ease: 'Power2',
+            onComplete: () => hexCircle.destroy()
+        });
+        
+        // Find all active enemies that aren't already hexed
+        const validEnemies = this.enemies.children.entries.filter(enemy => 
+            enemy.active && !enemy.isDying && !enemy.isHexed
+        );
+        
+        if (validEnemies.length > 0) {
+            // Pick a random enemy from valid enemies
+            const randomEnemy = Phaser.Math.RND.pick(validEnemies);
+            
+            // Apply hex to the random enemy
+            this.applyHexCurse(randomEnemy, hexDuration);
+            
+            // Create hex projectile effect
+            const dist = Phaser.Math.Distance.Between(randomEnemy.x, randomEnemy.y, this.wizard.x, this.wizard.y);
+            const hexBolt = this.add.graphics();
+            hexBolt.lineStyle(3, 0x9932cc, 0.8);
+            hexBolt.beginPath();
+            hexBolt.moveTo(this.wizard.x, this.wizard.y);
+            
+            // Create wavy line to enemy
+            const points = 10;
+            for (let i = 0; i <= points; i++) {
+                const t = i / points;
+                const x = this.wizard.x + (randomEnemy.x - this.wizard.x) * t;
+                const y = this.wizard.y + (randomEnemy.y - this.wizard.y) * t;
+                const wave = Math.sin(t * Math.PI * 4) * 10;
+                const perpX = -(randomEnemy.y - this.wizard.y) / dist * wave;
+                const perpY = (randomEnemy.x - this.wizard.x) / dist * wave;
+                hexBolt.lineTo(x + perpX, y + perpY);
+            }
+            hexBolt.strokePath();
+            hexBolt.setDepth(6);
+            
+            // Fade out hex bolt
+            this.tweens.add({
+                targets: hexBolt,
+                alpha: 0,
+                duration: 500,
+                onComplete: () => hexBolt.destroy()
+            });
+            
+            // Area of effect - hex adjacent enemies
+            const aoeRadius = 80; // Small radius for adjacent enemies
+            
+            // Visual effect for AoE
+            const aoeCircle = this.add.circle(randomEnemy.x, randomEnemy.y, aoeRadius, 0x9932cc, 0.3);
+            aoeCircle.setDepth(4);
+            
+            this.tweens.add({
+                targets: aoeCircle,
+                scale: { from: 0, to: 1 },
+                alpha: { from: 0.6, to: 0 },
+                duration: 800,
+                ease: 'Power2',
+                onComplete: () => aoeCircle.destroy()
+            });
+            
+            // Hex all enemies within AoE radius of the target
+            this.enemies.children.entries.forEach(enemy => {
+                if (enemy.active && !enemy.isDying && !enemy.isHexed && enemy !== randomEnemy) {
+                    const distFromTarget = Phaser.Math.Distance.Between(enemy.x, enemy.y, randomEnemy.x, randomEnemy.y);
+                    if (distFromTarget < aoeRadius) {
+                        // Apply hex to adjacent enemy
+                        this.applyHexCurse(enemy, hexDuration);
+                        
+                        // Small visual effect for adjacent hexes
+                        const miniHex = this.add.text(enemy.x, enemy.y - 20, '⬢', {
+                            fontSize: '20px',
+                            color: '#9932cc'
+                        });
+                        miniHex.setOrigin(0.5);
+                        miniHex.setDepth(5);
+                        
+                        this.tweens.add({
+                            targets: miniHex,
+                            y: enemy.y - 40,
+                            alpha: 0,
+                            scale: 1.5,
+                            duration: 1000,
+                            onComplete: () => miniHex.destroy()
+                        });
+                    }
+                }
+            });
+        }
+    }
+
+    createVenomSpell() {
+        // Venom element - shoots piercing spines that apply poison
+        const spineCount = 5; // Number of spines to shoot
+        const spread = Math.PI / 3; // 60 degree spread
+        
+        // Get player's facing direction
+        const direction = this.wizard.lastDirection || 'down';
+        
+        // Map directions to angles
+        const directionAngles = {
+            'up': -Math.PI / 2,
+            'down': Math.PI / 2,
+            'left': Math.PI,
+            'right': 0,
+            'up-left': -3 * Math.PI / 4,
+            'up-right': -Math.PI / 4,
+            'down-left': 3 * Math.PI / 4,
+            'down-right': Math.PI / 4
+        };
+        
+        const targetAngle = directionAngles[direction] || 0;
+        
+        // Create venom spine texture if it doesn't exist
+        if (!this.textures.exists('venom-spine')) {
+            const graphics = this.add.graphics();
+            
+            // Draw a sharp spine shape (offset to positive coordinates)
+            graphics.fillStyle(0x8b00ff, 1); // Purple for venom
+            graphics.beginPath();
+            graphics.moveTo(6, 2); // Tip (offset by +6, +14)
+            graphics.lineTo(3, 14);
+            graphics.lineTo(4, 26); // Base
+            graphics.lineTo(8, 26);
+            graphics.lineTo(9, 14);
+            graphics.closePath();
+            graphics.fillPath();
+            
+            // Add poison drip effect
+            graphics.fillStyle(0x00ff00, 0.8); // Green for poison
+            graphics.fillCircle(6, 4, 2);
+            graphics.fillCircle(5, 7, 1.5);
+            graphics.fillCircle(7, 6, 1.5);
+            
+            graphics.generateTexture('venom-spine', 12, 28);
+            graphics.destroy();
+        }
+        
+        // Create venomous spines
+        for (let i = 0; i < spineCount; i++) {
+            // Calculate angle for this spine with spread
+            const angleOffset = (i - (spineCount - 1) / 2) * (spread / (spineCount - 1));
+            const spineAngle = targetAngle + angleOffset;
+            
+            const spine = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'venom-spine');
+            spine.element = 'venom';
+            spine.damage = 3;
+            spine.poisonDamage = 6; // Total poison damage over time
+            spine.isPiercing = true; // Pierce through enemies like crystal
+            spine.hitEnemies = new Set(); // Track which enemies have been hit
+            spine.body.setCollideWorldBounds(false);
+            spine.setDepth(5);
+            spine.setScale(1.5);
+            
+            // Add to projectiles group first (like earth spell)
+            this.projectiles.add(spine);
+            
+            // Set rotation to match angle
+            spine.setRotation(spineAngle + Math.PI / 2);
+            
+            // Set velocity
+            const speed = 600;
+            spine.setVelocity(
+                Math.cos(spineAngle) * speed,
+                Math.sin(spineAngle) * speed
+            );
+            
+            // Create a separate texture for particles if needed
+            if (!this.textures.exists('venom-particle')) {
+                const particleGraphics = this.add.graphics();
+                particleGraphics.fillStyle(0x8b00ff, 1);
+                particleGraphics.fillCircle(2, 2, 2);
+                particleGraphics.generateTexture('venom-particle', 4, 4);
+                particleGraphics.destroy();
+            }
+            
+            // Add poison trail particles
+            const trail = this.add.particles(spine.x, spine.y, 'venom-particle', {
+                scale: { start: 0.5, end: 0 },
+                alpha: { start: 0.6, end: 0 },
+                tint: [0x8b00ff, 0x00ff00], // Purple and green
+                speed: 0,
+                lifespan: 300,
+                frequency: 30
+            });
+            trail.setDepth(4);
+            
+            // Update trail position
+            const trailUpdate = this.time.addEvent({
+                delay: 16,
+                callback: () => {
+                    if (spine.active) {
+                        trail.setPosition(spine.x, spine.y);
+                    } else {
+                        trail.destroy();
+                        trailUpdate.destroy();
+                    }
+                },
+                loop: true
+            });
+            
+            // Add slight delay between spines for visual effect
+            this.time.delayedCall(i * 50, () => {
+                // Visual launch effect
+                const flash = this.add.circle(this.wizard.x, this.wizard.y, 10, 0x8b00ff, 0.8);
+                flash.setDepth(5);
+                this.tweens.add({
+                    targets: flash,
+                    scale: 2,
+                    alpha: 0,
+                    duration: 200,
+                    onComplete: () => flash.destroy()
+                });
+            });
+            
+            // Destroy after 2 seconds
+            this.time.delayedCall(2000, () => {
+                if (spine.active) {
+                    spine.destroy();
+                }
+                trail.destroy();
+                trailUpdate.destroy();
+            });
+        }
+        
+        // Visual effect at wizard
+        const burst = this.add.circle(this.wizard.x, this.wizard.y, 30, 0x8b00ff, 0.4);
+        burst.setDepth(4);
+        
+        // Create venom symbols around burst
+        const symbols = [];
+        for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI * 2 / 6) * i;
+            const x = this.wizard.x + Math.cos(angle) * 25;
+            const y = this.wizard.y + Math.sin(angle) * 25;
+            
+            const symbol = this.add.text(x, y, '☠', {
+                fontSize: '20px',
+                color: '#00ff00'
+            });
+            symbol.setOrigin(0.5);
+            symbol.setDepth(5);
+            symbols.push(symbol);
+        }
+        
+        // Animate burst and symbols
+        this.tweens.add({
+            targets: burst,
+            scale: { from: 0.5, to: 2 },
+            alpha: { from: 0.6, to: 0 },
+            duration: 500,
+            onComplete: () => burst.destroy()
+        });
+        
+        symbols.forEach((symbol, index) => {
+            this.tweens.add({
+                targets: symbol,
+                scale: { from: 0.5, to: 1.5 },
+                alpha: { from: 1, to: 0 },
+                angle: 360,
+                duration: 500,
+                delay: index * 50,
+                onComplete: () => symbol.destroy()
+            });
+        });
+    }
+
+    createPhilosopherStone() {
+        // Philosopher Stone - fusion of life and death, grants automatic level ups
+        
+        // Check if philosopher stone is already active
+        if (this.philosopherStoneActive) {
+            console.log('Philosopher stone is already active, skipping activation');
+            return;
+        }
+        
+        // Activate philosopher stone
+        this.philosopherStoneActive = true;
+        console.log('Philosopher stone activated!');
+        
+        // Visual activation effect
+        const stoneCircle = this.add.circle(this.wizard.x, this.wizard.y, 50, 0xffd700, 0.6); // Gold color
+        stoneCircle.setDepth(5);
+        
+        // Create alchemical symbols
+        const symbols = [];
+        const symbolTypes = ['☉', '☽', '♄', '♃', '♂', '♀', '☿', '🜍']; // Alchemical symbols
+        
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 / 8) * i;
+            const radius = 60;
+            const x = this.wizard.x + Math.cos(angle) * radius;
+            const y = this.wizard.y + Math.sin(angle) * radius;
+            
+            const symbol = this.add.text(x, y, symbolTypes[i], {
+                fontSize: '24px',
+                color: '#ffd700'
+            });
+            symbol.setOrigin(0.5);
+            symbol.setDepth(6);
+            symbols.push(symbol);
+        }
+        
+        // Activation animation
+        this.tweens.add({
+            targets: stoneCircle,
+            scale: { from: 0, to: 2 },
+            alpha: { from: 0.8, to: 0 },
+            duration: 1500,
+            ease: 'Power2',
+            onComplete: () => stoneCircle.destroy()
+        });
+        
+        // Rotate and fade symbols
+        symbols.forEach((symbol, index) => {
+            this.tweens.add({
+                targets: symbol,
+                angle: 720,
+                scale: { from: 0.5, to: 2 },
+                alpha: { from: 1, to: 0 },
+                duration: 2000,
+                delay: index * 100,
+                onComplete: () => symbol.destroy()
+            });
+        });
+        
+        // Create permanent philosopher stone indicator
+        const stoneIndicator = this.add.graphics();
+        stoneIndicator.fillStyle(0xffd700, 0.8);
+        stoneIndicator.fillCircle(0, 0, 8);
+        stoneIndicator.x = this.wizard.x;
+        stoneIndicator.y = this.wizard.y - 40;
+        stoneIndicator.setDepth(10);
+        
+        // Add glow effect
+        const glowCircle = this.add.circle(this.wizard.x, this.wizard.y - 40, 12, 0xffd700, 0.3);
+        glowCircle.setDepth(9);
+        
+        // Pulsing animation for the indicator
+        this.tweens.add({
+            targets: [stoneIndicator, glowCircle],
+            scale: { from: 0.8, to: 1.2 },
+            alpha: { from: 0.6, to: 1 },
+            duration: 1000,
+            yoyo: true,
+            loop: -1
+        });
+        
+        // Store references for position updates
+        this.philosopherStoneIndicator = stoneIndicator;
+        this.philosopherStoneGlow = glowCircle;
+        
+        // Start the level up timer
+        console.log('Starting philosopher stone timer');
+        this.philosopherStoneTimer = this.time.addEvent({
+            delay: 45000, // 45 seconds
+            callback: () => {
+                console.log('Philosopher stone timer triggered!');
+                console.log('philosopherStoneActive:', this.philosopherStoneActive);
+                console.log('Current level:', this.playerLevel);
+                
+                if (this.philosopherStoneActive) {
+                    // Grant level up by setting XP to trigger normal level up flow
+                    console.log('Philosopher stone granting level up');
+                    
+                    // Set XP to exactly what's needed to level up
+                    this.playerXP = this.xpToNextLevel;
+                    
+                    // Call collectJewel with a dummy jewel to trigger the level up logic
+                    this.collectJewel(this.wizard, { 
+                        xpValue: 0, 
+                        destroy: () => {} 
+                    });
+                    
+                    // Visual effect for level up
+                    const levelUpBurst = this.add.circle(this.wizard.x, this.wizard.y, 100, 0xffd700, 0.5);
+                    levelUpBurst.setDepth(8);
+                    
+                    this.tweens.add({
+                        targets: levelUpBurst,
+                        scale: { from: 0, to: 3 },
+                        alpha: { from: 0.8, to: 0 },
+                        duration: 1000,
+                        onComplete: () => levelUpBurst.destroy()
+                    });
+                    
+                    // Create level up text effect
+                    const levelText = this.add.text(this.wizard.x, this.wizard.y - 80, 
+                        `Level ${this.playerLevel}!`, {
+                        fontSize: '32px',
+                        color: '#ffd700',
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 4
+                    });
+                    levelText.setOrigin(0.5);
+                    levelText.setDepth(10);
+                    
+                    this.tweens.add({
+                        targets: levelText,
+                        y: this.wizard.y - 120,
+                        scale: { from: 0.5, to: 1.5 },
+                        alpha: { from: 1, to: 0 },
+                        duration: 2000,
+                        onComplete: () => levelText.destroy()
+                    });
+                }
+            },
+            loop: true
+        });
+        
+        console.log('Philosopher stone timer created:', this.philosopherStoneTimer);
+        console.log('Timer delay:', this.philosopherStoneTimer.delay);
+        console.log('Timer will repeat:', this.philosopherStoneTimer.loop);
+        
+        // Notification text
+        const activationText = this.add.text(this.wizard.x, this.wizard.y - 60, 
+            'Philosopher Stone Activated!', {
+            fontSize: '28px',
+            color: '#ffd700',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        activationText.setOrigin(0.5);
+        activationText.setDepth(10);
+        
+        this.tweens.add({
+            targets: activationText,
+            y: this.wizard.y - 100,
+            alpha: { from: 1, to: 0 },
+            duration: 3000,
+            onComplete: () => activationText.destroy()
+        });
+    }
+
+    createHaloAura() {
+        // Halo - fusion of holy and water, creates a damaging aura around the wizard
+        
+        // Check if halo aura is already active
+        if (this.haloAuraActive) {
+            return;
+        }
+        
+        // Activate halo aura
+        this.haloAuraActive = true;
+        
+        // Visual activation effect
+        const activationRing = this.add.circle(this.wizard.x, this.wizard.y, 120, 0x87ceeb, 0.3); // Light blue
+        activationRing.setDepth(4);
+        
+        this.tweens.add({
+            targets: activationRing,
+            scale: { from: 0, to: 2 },
+            alpha: { from: 0.6, to: 0 },
+            duration: 1000,
+            onComplete: () => activationRing.destroy()
+        });
+        
+        // Create the glowing ring of light
+        const auraRadius = 100;
+        const ringThickness = 8;
+        
+        // Create graphics for the ring
+        const haloRing = this.add.graphics();
+        haloRing.setDepth(3);
+        haloRing.setBlendMode(Phaser.BlendModes.ADD);
+        
+        // Draw the ring
+        const drawRing = (graphics, innerGlow = 1) => {
+            graphics.clear();
+            
+            // Outer glow
+            graphics.lineStyle(ringThickness + 6, 0xffffff, 0.1 * innerGlow);
+            graphics.strokeCircle(this.wizard.x, this.wizard.y, auraRadius);
+            
+            // Middle glow
+            graphics.lineStyle(ringThickness + 3, 0xffffcc, 0.2 * innerGlow);
+            graphics.strokeCircle(this.wizard.x, this.wizard.y, auraRadius);
+            
+            // Inner bright ring
+            graphics.lineStyle(ringThickness, 0xffd700, 0.4 * innerGlow);
+            graphics.strokeCircle(this.wizard.x, this.wizard.y, auraRadius);
+            
+            // Core bright line
+            graphics.lineStyle(2, 0xffffff, 0.8 * innerGlow);
+            graphics.strokeCircle(this.wizard.x, this.wizard.y, auraRadius);
+        };
+        
+        // Initial draw
+        drawRing(haloRing);
+        
+        // Create inner glow circle for additional effect
+        const innerGlow = this.add.circle(this.wizard.x, this.wizard.y, auraRadius - 10, 0xffd700, 0.05);
+        innerGlow.setDepth(2);
+        innerGlow.setBlendMode(Phaser.BlendModes.ADD);
+        
+        // Pulsing effect for the ring
+        let glowAmount = 1;
+        const glowTween = this.tweens.add({
+            targets: { glow: 1 },
+            glow: { from: 0.7, to: 1.3 },
+            duration: 1500,
+            yoyo: true,
+            loop: -1,
+            onUpdate: (tween) => {
+                glowAmount = tween.getValue();
+                drawRing(haloRing, glowAmount);
+                innerGlow.setAlpha(0.05 * glowAmount);
+            }
+        });
+        
+        // Store references
+        this.haloAura = haloRing;
+        this.haloInnerGlow = innerGlow;
+        this.haloGlowTween = glowTween;
+        this.haloDrawRing = drawRing;
+        this.auraRadius = auraRadius;
+        
+        // Damage tick timer
+        this.haloTickTimer = this.time.addEvent({
+            delay: 500, // Damage every 0.5 seconds
+            callback: () => {
+                if (!this.haloAuraActive) {
+                    return;
+                }
+                
+                // Damage all enemies within aura radius
+                this.enemies.children.entries.forEach(enemy => {
+                    if (enemy.active && !enemy.isDying) {
+                        const dist = Phaser.Math.Distance.Between(
+                            enemy.x, enemy.y, 
+                            this.wizard.x, this.wizard.y
+                        );
+                        
+                        if (dist < auraRadius) {
+                            // Deal damage
+                            const damage = 2; // Base damage per tick
+                            enemy.health -= damage;
+                            
+                            // Check if enemy died
+                            if (enemy.health <= 0) {
+                                this.killEnemy(enemy);
+                                return; // Skip further effects for dead enemy
+                            }
+                            
+                            // Visual hit effect
+                            const hitEffect = this.add.circle(enemy.x, enemy.y, 10, 0x87ceeb, 0.5);
+                            hitEffect.setDepth(5);
+                            
+                            this.tweens.add({
+                                targets: hitEffect,
+                                scale: { from: 0.5, to: 1.5 },
+                                alpha: 0,
+                                duration: 300,
+                                onComplete: () => hitEffect.destroy()
+                            });
+                            
+                            // Apply holy water effect - slight knockback
+                            const knockbackAngle = Math.atan2(
+                                enemy.y - this.wizard.y,
+                                enemy.x - this.wizard.x
+                            );
+                            const knockbackForce = 50;
+                            
+                            if (enemy.body) {
+                                enemy.body.velocity.x += Math.cos(knockbackAngle) * knockbackForce;
+                                enemy.body.velocity.y += Math.sin(knockbackAngle) * knockbackForce;
+                            }
+                        }
+                    }
+                });
+            },
+            loop: true
+        });
+        
+        // Notification
+        const notification = this.add.text(this.wizard.x, this.wizard.y - 80, 
+            'Halo Aura Activated!', {
+            fontSize: '24px',
+            color: '#87ceeb',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+        notification.setOrigin(0.5);
+        notification.setDepth(10);
+        
+        this.tweens.add({
+            targets: notification,
+            y: this.wizard.y - 120,
+            alpha: 0,
+            duration: 2000,
+            onComplete: () => notification.destroy()
+        });
+    }
+
+    deactivateHaloAura() {
+        // Deactivate the halo aura
+        this.haloAuraActive = false;
+        
+        // Destroy visual components
+        if (this.haloAura) {
+            this.haloAura.destroy();
+            this.haloAura = null;
+        }
+        
+        if (this.haloInnerGlow) {
+            this.haloInnerGlow.destroy();
+            this.haloInnerGlow = null;
+        }
+        
+        if (this.haloGlowTween) {
+            this.haloGlowTween.remove();
+            this.haloGlowTween = null;
+        }
+        
+        // Stop damage timer
+        if (this.haloTickTimer) {
+            this.haloTickTimer.destroy();
+            this.haloTickTimer = null;
+        }
+        
+        // Visual deactivation effect
+        const deactivationRing = this.add.circle(this.wizard.x, this.wizard.y, 100, 0x87ceeb, 0.3);
+        deactivationRing.setDepth(4);
+        
+        this.tweens.add({
+            targets: deactivationRing,
+            scale: { from: 1, to: 0 },
+            alpha: { from: 0.3, to: 0 },
+            duration: 500,
+            onComplete: () => deactivationRing.destroy()
         });
     }
 
@@ -15705,20 +17789,6 @@ class GameScene extends Phaser.Scene {
         // Determine what to display based on item type
         switch (chest.itemType) {
             case 'muffin':
-                // Create muffin texture if it doesn't exist
-                if (!this.textures.exists('muffin')) {
-                    const graphics = this.add.graphics();
-                    graphics.fillStyle(0x8B4513, 1);
-                    graphics.fillCircle(7, 9, 6);
-                    graphics.fillStyle(0xD2691E, 1);
-                    graphics.fillCircle(7, 5, 7);
-                    graphics.fillStyle(0x654321, 1);
-                    graphics.fillCircle(4, 4, 1);
-                    graphics.fillCircle(9, 5, 1);
-                    graphics.fillCircle(6, 7, 1);
-                    graphics.generateTexture('muffin', 14, 14);
-                    graphics.destroy();
-                }
                 itemColor = 0xff88ff;
                 itemName = 'MAGIC MUFFIN';
                 itemDescription = 'Restores 30% health';
@@ -15786,7 +17856,7 @@ class GameScene extends Phaser.Scene {
         switch (chest.itemType) {
             case 'muffin':
                 icon = this.add.sprite(0, -20, 'muffin');
-                icon.setScale(4); // Scale up the 14x14 texture
+                icon.setScale(0.5); // Reduced by 75% (25% of original size)
                 break;
                 
             case 'element':
@@ -17161,27 +19231,85 @@ class GameScene extends Phaser.Scene {
         chargeDisplay.setScrollFactor(0);
         chargeDisplay.setDepth(921);
 
-        const chargeLabel = this.add.text(0, -30, chargesFull ? 'Current elements (select one to replace):' : 'Current elements:', {
+        const chargeLabel = this.add.text(0, -50, chargesFull ? 'Current elements (select one to replace):' : 'Current elements:', {
             fontSize: '12px',
             color: '#ffaa44'
         });
         chargeLabel.setOrigin(0.5);
         chargeDisplay.add(chargeLabel);
+        
+        // Add row labels when showing all slots
+        if (chargesFull) {
+            const activeLabel = this.add.text(-100, -30, 'Active:', {
+                fontSize: '10px',
+                color: '#888888'
+            });
+            activeLabel.setOrigin(1, 0.5);
+            chargeDisplay.add(activeLabel);
+            
+            const passiveLabel = this.add.text(-100, 10, 'Passive:', {
+                fontSize: '10px',
+                color: '#666666'
+            });
+            passiveLabel.setOrigin(1, 0.5);
+            chargeDisplay.add(passiveLabel);
+            
+            const pouchLabel = this.add.text(-100, 50, 'Pouch:', {
+                fontSize: '10px',
+                color: '#4a6a4a'
+            });
+            pouchLabel.setOrigin(1, 0.5);
+            chargeDisplay.add(pouchLabel);
+        }
 
         // Show current charges
         const chargeButtons = [];
-        // Only show active charge slots (first 4 slots from chargeSlots)
-        for (let i = 0; i < 4; i++) {
-            const xPos = -60 + i * 40;
-            const slotBg = this.add.circle(xPos, 0, 18, 0x333333, 0.5);
-            slotBg.setStrokeStyle(2, 0x666666);
+        // When charges are full, show all 12 slots (8 charge + 4 pouch) to allow replacement selection
+        const slotsToShow = chargesFull ? 12 : 4;
+        const slotColumns = 4; // Always 4 columns per row
+        const slotYBase = chargesFull ? -30 : 0; // Adjust Y position if showing 3 rows
+        
+        for (let i = 0; i < slotsToShow; i++) {
+            const row = Math.floor(i / slotColumns);
+            const col = i % slotColumns;
+            const xPos = -60 + col * 40;
+            const yPos = slotYBase + row * 40; // Space rows 40 pixels apart
+            
+            // Different colors for different slot types
+            let slotColor = 0x333333;
+            let strokeColor = 0x666666;
+            if (chargesFull) {
+                if (i < 4) {
+                    // Active slots - brighter
+                    slotColor = 0x444444;
+                    strokeColor = 0x888888;
+                } else if (i < 8) {
+                    // Passive slots - darker
+                    slotColor = 0x2a2a2a;
+                    strokeColor = 0x555555;
+                } else {
+                    // Pouch slots - green tint
+                    slotColor = 0x2a4a2a;
+                    strokeColor = 0x4a6a4a;
+                }
+            }
+            
+            const slotBg = this.add.circle(xPos, yPos, 18, slotColor, 0.5);
+            slotBg.setStrokeStyle(2, strokeColor);
             chargeDisplay.add(slotBg);
             
             // Check chargeSlots array for element at this position
-            const charge = this.chargeSlots ? this.chargeSlots[i] : (i < this.charges.length ? this.charges[i] : null);
+            let charge = null;
+            if (i < 8) {
+                // Charge slots
+                charge = this.chargeSlots ? this.chargeSlots[i] : (i < this.charges.length ? this.charges[i] : null);
+            } else {
+                // Pouch slots (indices 8-11)
+                charge = this.elementPouch ? this.elementPouch[i - 8] : null;
+            }
             if (charge) {
                 const chargeConfig = this.elementConfig[charge];
-                const chargeSprite = this.add.sprite(xPos, 0, chargeConfig.sheet, chargeConfig.frame);
+                const chargeSprite = this.add.sprite(xPos, yPos, chargeConfig.sheet, chargeConfig.frame);
                 chargeSprite.setScale(0.15);
                 chargeSprite.setInteractive({ draggable: true });
                 chargeSprite.elementType = charge;
@@ -17191,11 +19319,11 @@ class GameScene extends Phaser.Scene {
                 // Add selection ring
                 const selectionRing = this.add.graphics();
                 selectionRing.lineStyle(3, 0xff0000, 1);
-                selectionRing.strokeCircle(xPos, 0, 25);
+                selectionRing.strokeCircle(xPos, yPos, 25);
                 selectionRing.setVisible(false);
                 chargeDisplay.add(selectionRing);
 
-                this.setupElementDragDrop(chargeSprite, chargeDisplay, xPos, 0);
+                this.setupElementDragDrop(chargeSprite, chargeDisplay, xPos, yPos);
                 
                 chargeSprite.on('pointerover', () => {
                     if (!this.draggedElement) {
@@ -17231,22 +19359,26 @@ class GameScene extends Phaser.Scene {
 
                 chargeButtons.push({ sprite: chargeSprite, slotBg: slotBg });
                 chargeDisplay.add(chargeSprite);
+            } else {
+                // Add empty slot placeholder for controller navigation
+                chargeButtons.push({ sprite: null, slotBg: slotBg });
             }
         }
 
-        // Add pouch label
-        const pouchLabel = this.add.text(0, 50, 'Inventory Pouch:', {
-            fontSize: '12px',
-            color: '#88cc88'
-        });
-        pouchLabel.setOrigin(0.5);
-        chargeDisplay.add(pouchLabel);
+        // Add pouch label - only show if not showing all slots
+        if (!chargesFull) {
+            const pouchLabel = this.add.text(0, 50, 'Inventory Pouch:', {
+                fontSize: '12px',
+                color: '#88cc88'
+            });
+            pouchLabel.setOrigin(0.5);
+            chargeDisplay.add(pouchLabel);
 
-        // Show pouch slots
-        const pouchButtons = [];
-        for (let i = 0; i < 4; i++) {
-            const xPos = -60 + i * 40;
-            const yPos = 80;
+            // Show pouch slots separately only when not showing all slots
+            const pouchButtons = [];
+            for (let i = 0; i < 4; i++) {
+                const xPos = -60 + i * 40;
+                const yPos = 80;
             const slotBg = this.add.circle(xPos, yPos, 18, 0x2a4a2a, 0.5);
             slotBg.setStrokeStyle(2, 0x4a6a4a);
             chargeDisplay.add(slotBg);
@@ -17293,11 +19425,19 @@ class GameScene extends Phaser.Scene {
                 
                 pouchButtons.push({ sprite: pouchSprite, slotBg: slotBg });
                 chargeDisplay.add(pouchSprite);
+            } else {
+                // Add empty slot to pouchButtons so it can be a drop target
+                pouchButtons.push({ sprite: null, slotBg: slotBg });
             }
+            }
+            
+            this.chestPouchButtons = pouchButtons;
+        } else {
+            // When showing all slots, pouch buttons are already included in chargeButtons
+            this.chestPouchButtons = [];
         }
 
         this.chestChargeButtons = chargeButtons;
-        this.chestPouchButtons = pouchButtons;
         this.chestSelectionRings = [];
         
         // Collect selection rings
@@ -17572,10 +19712,19 @@ class GameScene extends Phaser.Scene {
         // Reset charge indicators highlighting
         if (this.chargeIndicators) {
             this.chargeIndicators.forEach((indicator) => {
-                indicator.bg.setStrokeStyle(2, 0x222222);
+                indicator.bg.setStrokeStyle(2, 0x666666);
                 indicator.sprite.setScale(0.1);
             });
         }
+        if (this.extraChargeIndicators) {
+            this.extraChargeIndicators.forEach((indicator) => {
+                indicator.bg.setStrokeStyle(2, 0x4a6a4a);
+                indicator.sprite.setScale(0.1);
+            });
+        }
+
+        // Hide extra charge slots if they were shown
+        this.hideExtraChargeSlots();
 
         this.chestSelectionActive = false;
         this.chestUI = null;
@@ -17591,30 +19740,26 @@ class GameScene extends Phaser.Scene {
             config = this.elementConfig[element];
         }
 
-        // Check if we need to replace a charge
-        if (this.charges.length >= this.maxCharges) {
+        // Check if we need to replace a charge (check all 12 slots - 8 charge + 4 pouch)
+        const totalSlotsUsed = (this.chargeSlots ? this.chargeSlots.filter(c => c !== null).length : 0) + 
+                               (this.elementPouch ? this.elementPouch.filter(c => c !== null).length : 0);
+        if (totalSlotsUsed >= 12) {
             // Must have selected a charge to replace
             if (this.selectedChargeToReplace === -1) {
                 // Activate charge selection mode
                 this.chestChargeSelectMode = true;
                 this.selectedChargeToReplace = 0; // Start with first charge selected
 
-                // Highlight the charge indicators at the top of the screen
-                if (this.chargeIndicators && this.chargeIndicators.length > 0) {
-                    // Create selection highlight for main charge indicators
-                    this.chargeIndicators.forEach((indicator, i) => {
-                        if (i === 0) {
-                            // Highlight first charge
-                            indicator.bg.setStrokeStyle(3, 0xffff00);
-                            indicator.sprite.setScale(0.15);
-                        }
-                    });
-                }
+                // Show all 12 slots in the main UI
+                this.showAllChargeSlots();
+                
+                // Highlight the first slot
+                this.highlightChargeIndicator(0, true);
 
                 // Also highlight in the chest UI if it exists
                 if (this.chestChargeButtons && this.chestChargeButtons.length > 0) {
-                    this.chestChargeButtons[0].setScale(0.2);
-                    this.chestChargeButtons[0].setTint(0xffff00);
+                    this.chestChargeButtons[0].sprite.setScale(0.2);
+                    this.chestChargeButtons[0].sprite.setTint(0xffff00);
                     if (this.chestSelectionRings && this.chestSelectionRings[0]) {
                         this.chestSelectionRings[0].setVisible(true);
                     }
@@ -17628,19 +19773,68 @@ class GameScene extends Phaser.Scene {
                 return; // Don't proceed without selection
             }
 
-            // Replace the selected charge
-            this.charges[this.selectedChargeToReplace] = element;
+            // Replace the selected charge or pouch element
+            console.log(`Replacing slot ${this.selectedChargeToReplace} with element ${element}`);
+            
+            if (this.selectedChargeToReplace < 8) {
+                // Replace in charge slots
+                this.chargeSlots[this.selectedChargeToReplace] = element;
+                console.log('Updated chargeSlots:', this.chargeSlots);
+                
+                // Rebuild charges array from first 4 slots
+                this.charges = [];
+                for (let i = 0; i < 4 && i < this.chargeSlots.length; i++) {
+                    if (this.chargeSlots[i] !== null) {
+                        this.charges.push(this.chargeSlots[i]);
+                    }
+                }
+            } else {
+                // Replace in pouch slots (indices 8-11 map to pouch 0-3)
+                const pouchIndex = this.selectedChargeToReplace - 8;
+                this.elementPouch[pouchIndex] = element;
+                console.log(`Updated pouch slot ${pouchIndex}:`, this.elementPouch);
+                localStorage.setItem('elementPouch', JSON.stringify(this.elementPouch));
+            }
 
             // Reset charge indicators highlighting
             if (this.chargeIndicators) {
                 this.chargeIndicators.forEach((indicator) => {
-                    indicator.bg.setStrokeStyle(2, 0x222222);
+                    indicator.bg.setStrokeStyle(2, 0x666666);
+                    indicator.sprite.setScale(0.1);
+                });
+            }
+            if (this.extraChargeIndicators) {
+                this.extraChargeIndicators.forEach((indicator) => {
+                    indicator.bg.setStrokeStyle(2, 0x4a6a4a);
                     indicator.sprite.setScale(0.1);
                 });
             }
 
+            // Hide the extra charge slots after selection
+            this.hideExtraChargeSlots();
+            
+            // Update the charge indicators to show the new elements
             this.updateChargeUI();
             this.updateChargeGroups();
+            
+            // If we replaced a pouch slot, also update the pouch indicators
+            if (this.selectedChargeToReplace >= 8) {
+                this.updateAllChargeIndicators();
+                // Update pause menu pouch display
+                if (this.pauseMenu && this.pauseMenu.visible) {
+                    this.updatePauseMenuCharges();
+                }
+            }
+            
+            // Ensure charge select mode is disabled
+            this.chestChargeSelectMode = false;
+            
+            // Add a delayed call to ensure slots stay hidden
+            this.time.delayedCall(100, () => {
+                this.hideExtraChargeSlots();
+                // Force update of charge UI to ensure proper display
+                this.updateChargeUI();
+            });
 
             // Check for new discovery
             if (!this.discoveredElements.has(element)) {
@@ -17663,8 +19857,38 @@ class GameScene extends Phaser.Scene {
                 });
             }
         } else {
-            // Add element to charges normally
-            this.charges.push(element);
+            // Add element to first available slot
+            let added = false;
+            
+            // Try to add to chargeSlots first
+            for (let i = 0; i < 8; i++) {
+                if (!this.chargeSlots[i]) {
+                    this.chargeSlots[i] = element;
+                    added = true;
+                    break;
+                }
+            }
+            
+            // If no charge slot available, try pouch
+            if (!added) {
+                for (let i = 0; i < 4; i++) {
+                    if (!this.elementPouch[i]) {
+                        this.elementPouch[i] = element;
+                        localStorage.setItem('elementPouch', JSON.stringify(this.elementPouch));
+                        added = true;
+                        break;
+                    }
+                }
+            }
+            
+            // Rebuild charges array from first 4 slots
+            this.charges = [];
+            for (let i = 0; i < 4 && i < this.chargeSlots.length; i++) {
+                if (this.chargeSlots[i] !== null) {
+                    this.charges.push(this.chargeSlots[i]);
+                }
+            }
+            
             this.updateChargeUI();
             this.updateChargeGroups();
 
@@ -17709,6 +19933,9 @@ class GameScene extends Phaser.Scene {
         this.selectedChargeToReplace = -1;
         this.chestChargeSelectMode = false;
 
+        // Make sure extra charge slots are hidden
+        this.hideExtraChargeSlots();
+
         // Reset state and resume
         this.chestSelectionActive = false;
         this.chestUI = null;
@@ -17719,8 +19946,17 @@ class GameScene extends Phaser.Scene {
             this.startGame();
         } else {
             this.physics.resume();
+            // Hide extra slots when resuming physics
+            this.hideExtraChargeSlots();
         }
         this.chestOpening = false;
+        
+        // Final safeguard to ensure extra slots are hidden and mode is reset
+        this.chestChargeSelectMode = false;
+        this.selectedChargeToReplace = -1;
+        this.time.delayedCall(50, () => {
+            this.hideExtraChargeSlots();
+        });
     }
 
     handleChestSelectionController() {
@@ -17810,8 +20046,20 @@ class GameScene extends Phaser.Scene {
             // Update hint text
             if (this.chestChargeSelectMode) {
                 this.chestUI.controlHint.setText('Select a charge to replace with UP/DOWN, press TAB/Y to return');
+                // Show all 12 slots when entering charge select mode
+                this.showAllChargeSlots();
+                this.highlightChargeIndicator(this.selectedChargeToReplace, true);
             } else {
                 this.chestUI.controlHint.setText('Use LEFT/RIGHT to select element, TAB/Y to select charge to replace');
+                // Hide extra slots when exiting charge select mode
+                this.hideExtraChargeSlots();
+                // Reset highlights
+                if (this.chargeIndicators) {
+                    this.chargeIndicators.forEach((indicator) => {
+                        indicator.bg.setStrokeStyle(2, 0x666666);
+                        indicator.sprite.setScale(0.1);
+                    });
+                }
             }
         }
 
@@ -17820,26 +20068,20 @@ class GameScene extends Phaser.Scene {
             if (upPressed && !this.prevChestUpPressed) {
                 if (this.selectedChargeToReplace > 0) {
                     // Clear previous selection
-                    if (this.chargeIndicators && this.chargeIndicators[this.selectedChargeToReplace]) {
-                        this.chargeIndicators[this.selectedChargeToReplace].bg.setStrokeStyle(2, 0x222222);
-                        this.chargeIndicators[this.selectedChargeToReplace].sprite.setScale(0.1);
-                    }
-                    if (this.chestChargeButtons) {
-                        this.chestChargeButtons[this.selectedChargeToReplace].setScale(0.15);
-                        this.chestChargeButtons[this.selectedChargeToReplace].clearTint();
+                    this.highlightChargeIndicator(this.selectedChargeToReplace, false);
+                    if (this.chestChargeButtons && this.chestChargeButtons[this.selectedChargeToReplace] && this.chestChargeButtons[this.selectedChargeToReplace].sprite) {
+                        this.chestChargeButtons[this.selectedChargeToReplace].sprite.setScale(0.15);
+                        this.chestChargeButtons[this.selectedChargeToReplace].sprite.clearTint();
                         if (this.chestSelectionRings && this.chestSelectionRings[this.selectedChargeToReplace]) {
                             this.chestSelectionRings[this.selectedChargeToReplace].setVisible(false);
                         }
                     }
                     this.selectedChargeToReplace--;
                     // Highlight new selection
-                    if (this.chargeIndicators && this.chargeIndicators[this.selectedChargeToReplace]) {
-                        this.chargeIndicators[this.selectedChargeToReplace].bg.setStrokeStyle(3, 0xffff00);
-                        this.chargeIndicators[this.selectedChargeToReplace].sprite.setScale(0.15);
-                    }
-                    if (this.chestChargeButtons) {
-                        this.chestChargeButtons[this.selectedChargeToReplace].setScale(0.2);
-                        this.chestChargeButtons[this.selectedChargeToReplace].setTint(0xffff00);
+                    this.highlightChargeIndicator(this.selectedChargeToReplace, true);
+                    if (this.chestChargeButtons && this.chestChargeButtons[this.selectedChargeToReplace] && this.chestChargeButtons[this.selectedChargeToReplace].sprite) {
+                        this.chestChargeButtons[this.selectedChargeToReplace].sprite.setScale(0.2);
+                        this.chestChargeButtons[this.selectedChargeToReplace].sprite.setTint(0xffff00);
                         if (this.chestSelectionRings && this.chestSelectionRings[this.selectedChargeToReplace]) {
                             this.chestSelectionRings[this.selectedChargeToReplace].setVisible(true);
                         }
@@ -17848,28 +20090,24 @@ class GameScene extends Phaser.Scene {
             }
 
             if (downPressed && !this.prevChestDownPressed) {
-                if (this.selectedChargeToReplace < this.charges.length - 1) {
+                // When charges are full, allow navigation through all 12 slots (8 charge + 4 pouch)
+                const maxSlots = this.charges.length >= this.maxCharges ? 11 : this.charges.length - 1;
+                if (this.selectedChargeToReplace < maxSlots) {
                     // Clear previous selection
-                    if (this.chargeIndicators && this.chargeIndicators[this.selectedChargeToReplace]) {
-                        this.chargeIndicators[this.selectedChargeToReplace].bg.setStrokeStyle(2, 0x222222);
-                        this.chargeIndicators[this.selectedChargeToReplace].sprite.setScale(0.1);
-                    }
-                    if (this.chestChargeButtons && this.selectedChargeToReplace >= 0) {
-                        this.chestChargeButtons[this.selectedChargeToReplace].setScale(0.15);
-                        this.chestChargeButtons[this.selectedChargeToReplace].clearTint();
+                    this.highlightChargeIndicator(this.selectedChargeToReplace, false);
+                    if (this.chestChargeButtons && this.selectedChargeToReplace >= 0 && this.chestChargeButtons[this.selectedChargeToReplace] && this.chestChargeButtons[this.selectedChargeToReplace].sprite) {
+                        this.chestChargeButtons[this.selectedChargeToReplace].sprite.setScale(0.15);
+                        this.chestChargeButtons[this.selectedChargeToReplace].sprite.clearTint();
                         if (this.chestSelectionRings && this.chestSelectionRings[this.selectedChargeToReplace]) {
                             this.chestSelectionRings[this.selectedChargeToReplace].setVisible(false);
                         }
                     }
                     this.selectedChargeToReplace++;
                     // Highlight new selection
-                    if (this.chargeIndicators && this.chargeIndicators[this.selectedChargeToReplace]) {
-                        this.chargeIndicators[this.selectedChargeToReplace].bg.setStrokeStyle(3, 0xffff00);
-                        this.chargeIndicators[this.selectedChargeToReplace].sprite.setScale(0.15);
-                    }
-                    if (this.chestChargeButtons) {
-                        this.chestChargeButtons[this.selectedChargeToReplace].setScale(0.2);
-                        this.chestChargeButtons[this.selectedChargeToReplace].setTint(0xffff00);
+                    this.highlightChargeIndicator(this.selectedChargeToReplace, true);
+                    if (this.chestChargeButtons && this.chestChargeButtons[this.selectedChargeToReplace] && this.chestChargeButtons[this.selectedChargeToReplace].sprite) {
+                        this.chestChargeButtons[this.selectedChargeToReplace].sprite.setScale(0.2);
+                        this.chestChargeButtons[this.selectedChargeToReplace].sprite.setTint(0xffff00);
                         if (this.chestSelectionRings && this.chestSelectionRings[this.selectedChargeToReplace]) {
                             this.chestSelectionRings[this.selectedChargeToReplace].setVisible(true);
                         }
@@ -18062,6 +20300,10 @@ class GameScene extends Phaser.Scene {
     }
 
     gameWon() {
+        // Prevent multiple calls
+        if (this.gameWonCalled) return;
+        this.gameWonCalled = true;
+        
         // Stop background music
         if (this.bgMusic) {
             this.bgMusic.stop();
@@ -18069,8 +20311,15 @@ class GameScene extends Phaser.Scene {
         
         // Stop the game
         this.physics.pause();
-        this.time.removeAllEvents();
-        this.tweens.killAll();
+        
+        // Disable automatic spell casting
+        if (this.autoFireTimer) {
+            this.autoFireTimer.remove();
+            this.autoFireTimer = null;
+        }
+        
+        // Flag to stop update loop processing
+        this.gameEnded = true;
 
         // Victory effect
         const victoryText = this.add.text(400, 200, 'VICTORY!', {
@@ -18084,18 +20333,21 @@ class GameScene extends Phaser.Scene {
         victoryText.setScrollFactor(0);
         victoryText.setDepth(300);
 
+        // Create the tween for victory text
         this.tweens.add({
             targets: victoryText,
             scale: { from: 0, to: 1 },
             duration: 1000,
             ease: 'Bounce.easeOut',
             onComplete: () => {
+                // Use a simple timer for the scene transition
                 this.time.delayedCall(2000, () => {
                     this.scene.start('GameOverScene', {
                         survivalTime: this.survivalTime,
                         enemiesKilled: this.enemiesKilled,
                         itemsCollected: this.itemsCollected,
-                        won: true
+                        won: true,
+                        stage: this.stage
                     });
                 });
             }
