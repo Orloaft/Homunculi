@@ -227,8 +227,8 @@ class LoadingScene extends Phaser.Scene {
             frameHeight: 46
         });
         
-        // Load thunder spell sprite sheet
-        this.load.spritesheet('thunder-spell', 'spells/thunder1-17frames.PNG', {
+        // Load storm spell sprite sheet
+        this.load.spritesheet('storm-spell', 'spells/thunder1-17frames.PNG', {
             frameWidth: 64, // 1088 ÷ 17 frames
             frameHeight: 68
         });
@@ -303,6 +303,12 @@ class LoadingScene extends Phaser.Scene {
         this.load.spritesheet('chest-open', 'Chestsopen5frames.PNG', {
             frameWidth: 48,
             frameHeight: 27
+        });
+        
+        // Load upgrade icons sprite sheet
+        this.load.spritesheet('upgrade-icons', 'upgradeicons10x6.PNG', {
+            frameWidth: 153,  // 1526 / 10 = 152.6, rounded to 153
+            frameHeight: 171  // 1024 / 6 = 170.67, rounded to 171
         });
         }
     }
@@ -530,8 +536,44 @@ class TitleScene extends Phaser.Scene {
         
         recipesContainer.add([recipesLabel, recipesCheckbox, recipesCheck]);
         
+        // Unlock all stages toggle
+        const stagesContainer = this.add.container(400, 300);
+        const stagesLabel = this.add.text(-150, 0, 'Unlock All Stages:', {
+            fontSize: '20px',
+            color: '#ffffff'
+        }).setOrigin(0, 0.5);
+        
+        const stagesCheckbox = this.add.rectangle(100, 0, 30, 30, 0x666666);
+        stagesCheckbox.setStrokeStyle(2, 0xffffff);
+        stagesCheckbox.setInteractive({ useHandCursor: true });
+        
+        // Check if unlock all stages is enabled
+        const unlockAllStages = localStorage.getItem('unlockAllStages') === 'true';
+        
+        const stagesCheck = this.add.text(100, 0, '✓', {
+            fontSize: '24px',
+            color: '#00ff00',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        stagesCheck.setVisible(unlockAllStages);
+        
+        stagesCheckbox.on('pointerdown', () => {
+            const currentState = localStorage.getItem('unlockAllStages') === 'true';
+            const newState = !currentState;
+            stagesCheck.setVisible(newState);
+            localStorage.setItem('unlockAllStages', newState.toString());
+            
+            // Clear stage unlock flags to force refresh
+            if (newState) {
+                localStorage.setItem('nexusVisited', 'true');
+                localStorage.setItem('forestLandUnlocked', 'true');
+            }
+        });
+        
+        stagesContainer.add([stagesLabel, stagesCheckbox, stagesCheck]);
+        
         // Volume control
-        const volumeContainer = this.add.container(400, 300);
+        const volumeContainer = this.add.container(400, 350);
         const volumeLabel = this.add.text(-150, 0, 'Volume:', {
             fontSize: '20px',
             color: '#ffffff'
@@ -564,7 +606,7 @@ class TitleScene extends Phaser.Scene {
         volumeContainer.add([volumeLabel, sliderBg, sliderHandle, volumePercent]);
         
         // Starting element selection
-        const elementContainer = this.add.container(400, 350);
+        const elementContainer = this.add.container(400, 400);
         const elementLabel = this.add.text(-150, 0, 'Start Element:', {
             fontSize: '20px',
             color: '#ffffff'
@@ -573,7 +615,7 @@ class TitleScene extends Phaser.Scene {
         // Get all available elements from the game scene
         const allElements = ['none', 'fire', 'water', 'earth', 'rock', 'air', 'lightning', 'holy', 'arcane', 
                             'dust', 'lava', 'steam', 'poison', 'volcano', 'ice', 'meteor', 'mud', 
-                            'thunder', 'crystal', 'death', 'time', 'sand', 'gravity', 'sun', 'smoke', 
+                            'storm', 'crystal', 'death', 'time', 'sand', 'gravity', 'sun', 'smoke', 
                             'wave', 'star', 'moon', 'nature', 'life'];
         const elements = allElements;
         const savedElement = localStorage.getItem('startElement') || 'none';
@@ -714,6 +756,7 @@ class TitleScene extends Phaser.Scene {
             menuTitle.destroy();
             debugContainer.destroy();
             recipesContainer.destroy();
+            stagesContainer.destroy();
             volumeContainer.destroy();
             elementContainer.destroy();
             perfContainer.destroy();
@@ -733,22 +776,26 @@ class StageSelectScene extends Phaser.Scene {
     constructor() {
         super({ key: 'StageSelectScene' });
         this.selectedStage = 0;
+        // Check if nexus has been visited or all stages unlocked
+        const nexusVisited = localStorage.getItem('nexusVisited') === 'true';
+        const unlockAllStages = localStorage.getItem('unlockAllStages') === 'true';
+        
         this.stages = [
-            { name: 'Forest Land', unlocked: true, description: 'A mystical forest filled with danger', 
+            { name: 'Forest Land', unlocked: nexusVisited || unlockAllStages, description: 'A mystical forest filled with danger', 
               icon: 'island-forest', color: 0x44ff44, x: 200, y: 300 },
-            { name: 'Cave Land', unlocked: true, description: 'Dark caverns with unknown threats', 
+            { name: 'Cave Land', unlocked: unlockAllStages, description: 'Dark caverns with unknown threats', 
               icon: 'island-cave', color: 0x8B4513, x: 400, y: 200 },
-            { name: 'Sand Land', unlocked: true, description: 'Ancient pyramids in endless dunes', 
+            { name: 'Sand Land', unlocked: unlockAllStages, description: 'Ancient pyramids in endless dunes', 
               icon: 'island-sand', color: 0xFFD700, x: 600, y: 200 },
-            { name: 'Lava Land', unlocked: true, description: 'Burning fields of molten rock', 
+            { name: 'Lava Land', unlocked: unlockAllStages, description: 'Burning fields of molten rock', 
               icon: 'island-volcano', color: 0xFF4500, x: 300, y: 450 },
-            { name: 'Grave Land', unlocked: false, description: 'Where the dead refuse to rest', 
+            { name: 'Grave Land', unlocked: unlockAllStages, description: 'Where the dead refuse to rest', 
               icon: 'island-grave', color: 0x444444, x: 500, y: 400 },
-            { name: 'Castle Land', unlocked: false, description: 'An ancient fortress of evil', 
+            { name: 'Castle Land', unlocked: unlockAllStages, description: 'An ancient fortress of evil', 
               icon: 'island-castle', color: 0x666666, x: 700, y: 300 },
-            { name: 'Spire Land', unlocked: false, description: 'Tower reaching to the heavens', 
+            { name: 'Spire Land', unlocked: unlockAllStages, description: 'Tower reaching to the heavens', 
               icon: 'island-spire', color: 0x8B6914, x: 150, y: 400 },
-            { name: 'The Void', unlocked: false, description: 'The final dimension of darkness', 
+            { name: 'The Void', unlocked: unlockAllStages, description: 'The final dimension of darkness', 
               icon: 'void', color: 0x4B0082, x: 700, y: 450 },
             { name: 'Nexus', unlocked: true, description: 'Eternal power awaits within', 
               icon: 'island-crystal', color: 0x9966ff, x: 400, y: 350, isNexus: true }
@@ -841,16 +888,11 @@ class StageSelectScene extends Phaser.Scene {
                 island = orb;
             }
             
-            // Lock overlay for locked stages
-            if (!stage.unlocked) {
-                const lock = this.add.text(0, 0, '🔒', {
-                    fontSize: '20px'
-                }).setOrigin(0.5);
-                container.add(lock);
-            }
+            // No lock icon per request
             
             // Stage name (floating below island)
-            const nameText = this.add.text(0, 60, stage.name.toUpperCase(), {
+            const displayName = stage.unlocked ? stage.name.toUpperCase() : '???';
+            const nameText = this.add.text(0, 60, displayName, {
                 fontSize: '16px',
                 color: stage.unlocked ? '#ffffff' : '#666666',
                 fontStyle: 'bold',
@@ -859,17 +901,7 @@ class StageSelectScene extends Phaser.Scene {
             }).setOrigin(0.5);
             container.add(nameText);
             
-            // Description (appears on hover/select)
-            const descText = this.add.text(0, 80, stage.description, {
-                fontSize: '12px',
-                color: stage.unlocked ? '#aaaaff' : '#666666',
-                align: 'center',
-                wordWrap: { width: 150 },
-                stroke: '#000000',
-                strokeThickness: 1
-            }).setOrigin(0.5);
-            descText.setVisible(false);
-            container.add(descText);
+            // Description text removed from container - will be created separately
             
             // Floating animation removed per request
             
@@ -877,16 +909,44 @@ class StageSelectScene extends Phaser.Scene {
             if (stage.unlocked) {
                 island.setInteractive({ useHandCursor: true });
                 
+                const originalScale = stage.isNexus ? 0.4 : 0.3;
+                
                 island.on('pointerover', () => {
-                    island.setScale(island.scale * 1.2);
-                    descText.setVisible(true);
-                    glow.setScale(1.5);
+                    // Gradual scale with tween
+                    this.tweens.add({
+                        targets: island,
+                        scale: originalScale * 1.3,
+                        duration: 200,
+                        ease: 'Power2.easeOut'
+                    });
+                    
+                    this.tweens.add({
+                        targets: glow,
+                        scale: 1.5,
+                        duration: 200,
+                        ease: 'Power2.easeOut'
+                    });
+                    
+                    // Show description at top of screen
+                    this.showStageDescription(stage);
                 });
                 
                 island.on('pointerout', () => {
-                    island.setScale(stage.isNexus ? 0.4 : 0.3);
-                    descText.setVisible(false);
-                    glow.setScale(1);
+                    this.tweens.add({
+                        targets: island,
+                        scale: originalScale,
+                        duration: 200,
+                        ease: 'Power2.easeOut'
+                    });
+                    
+                    this.tweens.add({
+                        targets: glow,
+                        scale: 1,
+                        duration: 200,
+                        ease: 'Power2.easeOut'
+                    });
+                    
+                    this.hideStageDescription();
                 });
                 
                 island.on('pointerdown', () => {
@@ -899,7 +959,6 @@ class StageSelectScene extends Phaser.Scene {
                 island, 
                 glow,
                 nameText, 
-                descText, 
                 stage 
             });
             
@@ -946,6 +1005,19 @@ class StageSelectScene extends Phaser.Scene {
             const maxDelay = (this.stageButtons.length * 150) + 1500;
             this.time.delayedCall(maxDelay, () => {
                 this.createConstellationPaths(true); // true for animated appearance
+                
+                // Check if we need to show Forest Land unlock animation
+                const nexusVisited = localStorage.getItem('nexusVisited') === 'true';
+                const forestLandUnlocked = localStorage.getItem('forestLandUnlocked') === 'true';
+                if (nexusVisited && !forestLandUnlocked && this.stages[0].unlocked) {
+                    // Mark Forest Land as unlocked
+                    localStorage.setItem('forestLandUnlocked', 'true');
+                    
+                    // Show unlock animation after paths appear
+                    this.time.delayedCall(1600, () => {
+                        this.showStageUnlockAnimation(0); // Forest Land is at index 0
+                    });
+                }
             });
         });
 
@@ -974,8 +1046,72 @@ class StageSelectScene extends Phaser.Scene {
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
         this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
+        // Create description text area at top of screen (initially hidden)
+        this.descriptionBg = this.add.rectangle(400, 60, 600, 80, 0x000000, 0.8);
+        this.descriptionBg.setStrokeStyle(2, 0xffd700);
+        this.descriptionBg.setVisible(false);
+        
+        this.descriptionTitle = this.add.text(400, 40, '', {
+            fontSize: '24px',
+            color: '#ffd700',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.descriptionTitle.setVisible(false);
+        
+        this.descriptionText = this.add.text(400, 70, '', {
+            fontSize: '16px',
+            color: '#ffffff',
+            align: 'center',
+            wordWrap: { width: 550 }
+        }).setOrigin(0.5);
+        this.descriptionText.setVisible(false);
+        
         // Highlight first unlocked stage
         this.highlightStage(0);
+    }
+    
+    showStageDescription(stage) {
+        if (!this.descriptionBg || !this.descriptionTitle || !this.descriptionText) {
+            return;
+        }
+        
+        const title = stage.unlocked ? stage.name.toUpperCase() : '???';
+        const desc = stage.unlocked ? stage.description : '???';
+        
+        this.descriptionTitle.setText(title);
+        this.descriptionText.setText(desc);
+        
+        this.descriptionBg.setVisible(true);
+        this.descriptionTitle.setVisible(true);
+        this.descriptionText.setVisible(true);
+        
+        // Fade in animation
+        this.descriptionBg.setAlpha(0);
+        this.descriptionTitle.setAlpha(0);
+        this.descriptionText.setAlpha(0);
+        
+        this.tweens.add({
+            targets: [this.descriptionBg, this.descriptionTitle, this.descriptionText],
+            alpha: 1,
+            duration: 200,
+            ease: 'Power2.easeOut'
+        });
+    }
+    
+    hideStageDescription() {
+        if (this.descriptionBg && this.descriptionTitle && this.descriptionText) {
+            this.tweens.add({
+                targets: [this.descriptionBg, this.descriptionTitle, this.descriptionText],
+                alpha: 0,
+                duration: 200,
+                ease: 'Power2.easeOut',
+                onComplete: () => {
+                    if (this.descriptionBg) this.descriptionBg.setVisible(false);
+                    if (this.descriptionTitle) this.descriptionTitle.setVisible(false);
+                    if (this.descriptionText) this.descriptionText.setVisible(false);
+                }
+            });
+        }
     }
 
     createAbyssParticles() {
@@ -1175,18 +1311,44 @@ class StageSelectScene extends Phaser.Scene {
         // Clear previous highlight
         if (this.stageButtons[this.selectedStage]) {
             const btn = this.stageButtons[this.selectedStage];
-            btn.orb.setScale(1);
-            btn.descText.setVisible(false);
-            btn.glow.setScale(1);
+            if (btn.island) {
+                const originalScale = btn.stage.isNexus ? 0.4 : 0.3;
+                this.tweens.add({
+                    targets: btn.island,
+                    scale: originalScale,
+                    duration: 200,
+                    ease: 'Power2.easeOut'
+                });
+            }
+            this.hideStageDescription();
+            this.tweens.add({
+                targets: btn.glow,
+                scale: 1,
+                duration: 200,
+                ease: 'Power2.easeOut'
+            });
         }
 
         // Set new highlight
         this.selectedStage = index;
         const btn = this.stageButtons[this.selectedStage];
         if (btn.stage.unlocked) {
-            btn.orb.setScale(1.2);
-            btn.descText.setVisible(true);
-            btn.glow.setScale(1.5);
+            if (btn.island) {
+                const originalScale = btn.stage.isNexus ? 0.4 : 0.3;
+                this.tweens.add({
+                    targets: btn.island,
+                    scale: originalScale * 1.3,
+                    duration: 200,
+                    ease: 'Power2.easeOut'
+                });
+            }
+            this.showStageDescription(btn.stage);
+            this.tweens.add({
+                targets: btn.glow,
+                scale: 1.5,
+                duration: 200,
+                ease: 'Power2.easeOut'
+            });
             
             // Add selection ring effect
             const ring = this.add.circle(btn.container.x, btn.container.y, 40, 0xffffff, 0);
@@ -1207,6 +1369,9 @@ class StageSelectScene extends Phaser.Scene {
         
         // Check if this is the Nexus
         if (stage.isNexus) {
+            // Mark nexus as visited
+            localStorage.setItem('nexusVisited', 'true');
+            
             // Fade to nexus
             const fadeOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000);
             fadeOverlay.setAlpha(0);
@@ -1263,6 +1428,104 @@ class StageSelectScene extends Phaser.Scene {
                 ease: 'Power2'
             });
         }
+    }
+    
+    showStageUnlockAnimation(stageIndex) {
+        const stage = this.stages[stageIndex];
+        const button = this.stageButtons[stageIndex];
+        
+        if (!button || !stage) return;
+        
+        // Create spotlight effect on the stage
+        const spotlight = this.add.graphics();
+        spotlight.fillStyle(0xffffff, 0);
+        spotlight.fillCircle(stage.x, stage.y, 100);
+        spotlight.setDepth(999);
+        
+        // Fade in spotlight
+        this.tweens.add({
+            targets: spotlight,
+            alpha: 0.3,
+            duration: 500,
+            ease: 'Power2'
+        });
+        
+        // Create unlock text
+        const unlockText = this.add.text(stage.x, stage.y - 100, 'UNLOCKED!', {
+            fontSize: '32px',
+            color: '#ffff00',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+        unlockText.setDepth(1000);
+        unlockText.setScale(0);
+        
+        // Animate unlock text
+        this.tweens.add({
+            targets: unlockText,
+            scale: 1.2,
+            duration: 500,
+            ease: 'Back.easeOut',
+            onComplete: () => {
+                this.tweens.add({
+                    targets: unlockText,
+                    scale: 1,
+                    duration: 200
+                });
+            }
+        });
+        
+        // Update the stage visuals to show it's unlocked
+        if (button.island) {
+            // Remove tint and increase alpha
+            button.island.clearTint();
+            button.island.setAlpha(1);
+            
+            // Update name text color
+            if (button.nameText) {
+                button.nameText.setText(stage.name.toUpperCase());
+                button.nameText.setColor('#ffffff');
+            }
+            
+            // Update description
+            if (button.descText) {
+                button.descText.setText(stage.description);
+                button.descText.setColor('#aaaaff');
+            }
+            
+            // Make it interactive
+            button.island.setInteractive({ useHandCursor: true });
+            
+            button.island.on('pointerover', () => {
+                button.island.setScale(button.island.scale * 1.2);
+                button.descText.setVisible(true);
+                button.glow.setScale(1.5);
+            });
+            
+            button.island.on('pointerout', () => {
+                button.island.setScale(stage.isNexus ? 0.4 : 0.3);
+                button.descText.setVisible(false);
+                button.glow.setScale(1);
+            });
+            
+            button.island.on('pointerdown', () => {
+                this.selectStage(stageIndex);
+            });
+        }
+        
+        // Fade out spotlight and text after delay
+        this.time.delayedCall(2000, () => {
+            this.tweens.add({
+                targets: [spotlight, unlockText],
+                alpha: 0,
+                duration: 1000,
+                onComplete: () => {
+                    spotlight.destroy();
+                    unlockText.destroy();
+                }
+            });
+        });
     }
 }
 
@@ -1497,65 +1760,129 @@ class TalentTreeScene extends Phaser.Scene {
             talentArray.forEach(id => this.talents.set(id, true));
         }
         
-        // Define talent nodes (Rogue Legacy style)
+        // Define talent nodes with sprite sheet icons
+        // Icon mapping: 10x6 grid (0-59), row-major order
         const talentData = [
             // Center (always unlocked)
             { id: 'origin', x: 400, y: 300, name: 'Origin', desc: 'The beginning of power', cost: 0, 
-              effect: null, icon: '⭐', color: 0xffd700, unlocked: true },
+              effect: null, iconFrame: 10, color: 0xffd700, unlocked: true }, // Star icon
             
             // First ring - Basic stats
             { id: 'health1', x: 400, y: 200, name: 'Vitality I', desc: '+20% Max Health', cost: 1,
-              effect: { maxHealth: 1.2 }, icon: '❤️', color: 0xff4444, requires: ['origin'] },
+              effect: { maxHealth: 1.2 }, iconFrame: 51, color: 0xff4444, requires: ['origin'] }, // Heart
             { id: 'damage1', x: 500, y: 250, name: 'Power I', desc: '+15% Damage', cost: 1,
-              effect: { damage: 1.15 }, icon: '⚔️', color: 0xff8844, requires: ['origin'] },
+              effect: { damage: 1.15 }, iconFrame: 22, color: 0xff8844, requires: ['origin'] }, // Sword
             { id: 'speed1', x: 500, y: 350, name: 'Swiftness I', desc: '+10% Move Speed', cost: 1,
-              effect: { moveSpeed: 1.1 }, icon: '💨', color: 0x44ffff, requires: ['origin'] },
+              effect: { moveSpeed: 1.1 }, iconFrame: 11, color: 0x44ffff, requires: ['origin'] }, // Boot/Wing
             { id: 'pickup1', x: 400, y: 400, name: 'Magnetism I', desc: '+30% Pickup Range', cost: 1,
-              effect: { pickupRange: 1.3 }, icon: '🧲', color: 0x8844ff, requires: ['origin'] },
+              effect: { pickupRange: 1.3 }, iconFrame: 4, color: 0x8844ff, requires: ['origin'] }, // Magnet/Leaf
             { id: 'cooldown1', x: 300, y: 350, name: 'Haste I', desc: '-10% Cooldowns', cost: 1,
-              effect: { cooldown: 0.9 }, icon: '⏱️', color: 0x44ff44, requires: ['origin'] },
+              effect: { cooldown: 0.9 }, iconFrame: 41, color: 0x44ff44, requires: ['origin'] }, // Hourglass
             { id: 'regen1', x: 300, y: 250, name: 'Recovery I', desc: '+1 HP/10s', cost: 1,
-              effect: { regen: 0.1 }, icon: '✨', color: 0x44ff88, requires: ['origin'] },
+              effect: { regen: 0.1 }, iconFrame: 5, color: 0x44ff88, requires: ['origin'] }, // Potion
             
             // Second ring - Advanced stats
             { id: 'health2', x: 400, y: 120, name: 'Vitality II', desc: '+40% Max Health', cost: 2,
-              effect: { maxHealth: 1.4 }, icon: '❤️', color: 0xff4444, requires: ['health1'] },
+              effect: { maxHealth: 1.4 }, iconFrame: 51, color: 0xff4444, requires: ['health1'] }, // Heart
             { id: 'damage2', x: 580, y: 200, name: 'Power II', desc: '+30% Damage', cost: 2,
-              effect: { damage: 1.3 }, icon: '⚔️', color: 0xff8844, requires: ['damage1'] },
+              effect: { damage: 1.3 }, iconFrame: 22, color: 0xff8844, requires: ['damage1'] }, // Sword
             { id: 'multishot', x: 600, y: 300, name: 'Multi-Cast', desc: '+1 Projectile', cost: 3,
-              effect: { projectiles: 1 }, icon: '🎯', color: 0xffaa44, requires: ['damage1'] },
+              effect: { projectiles: 1 }, iconFrame: 16, color: 0xffaa44, requires: ['damage1'] }, // Orb
             { id: 'speed2', x: 580, y: 400, name: 'Swiftness II', desc: '+20% Move Speed', cost: 2,
-              effect: { moveSpeed: 1.2 }, icon: '💨', color: 0x44ffff, requires: ['speed1'] },
+              effect: { moveSpeed: 1.2 }, iconFrame: 11, color: 0x44ffff, requires: ['speed1'] }, // Boot
             { id: 'dodge', x: 500, y: 450, name: 'Evasion', desc: '10% Dodge Chance', cost: 3,
-              effect: { dodge: 0.1 }, icon: '🛡️', color: 0x4488ff, requires: ['speed1'] },
+              effect: { dodge: 0.1 }, iconFrame: 6, color: 0x4488ff, requires: ['speed1'] }, // Shield
             { id: 'lifesteal', x: 220, y: 300, name: 'Vampirism', desc: '5% Life Steal', cost: 3,
-              effect: { lifesteal: 0.05 }, icon: '🦇', color: 0xcc44cc, requires: ['regen1'] },
+              effect: { lifesteal: 0.05 }, iconFrame: 29, color: 0xcc44cc, requires: ['regen1'] }, // Mask/Skull
             
             // Third ring - Specializations
             { id: 'tank', x: 300, y: 120, name: 'Fortress', desc: '+60% HP, -20% Speed', cost: 4,
-              effect: { maxHealth: 1.6, moveSpeed: 0.8 }, icon: '🏰', color: 0x888888, requires: ['health2', 'regen1'] },
+              effect: { maxHealth: 1.6, moveSpeed: 0.8 }, iconFrame: 45, color: 0x888888, requires: ['health2', 'regen1'] }, // Castle
             { id: 'glass', x: 680, y: 250, name: 'Glass Cannon', desc: '+50% DMG, -30% HP', cost: 4,
-              effect: { damage: 1.5, maxHealth: 0.7 }, icon: '💎', color: 0xff00ff, requires: ['damage2', 'multishot'] },
+              effect: { damage: 1.5, maxHealth: 0.7 }, iconFrame: 17, color: 0xff00ff, requires: ['damage2', 'multishot'] }, // Crystal
             { id: 'ninja', x: 600, y: 480, name: 'Shadow Walker', desc: '+30% Speed & Dodge', cost: 4,
-              effect: { moveSpeed: 1.3, dodge: 0.3 }, icon: '🥷', color: 0x333333, requires: ['speed2', 'dodge'] },
+              effect: { moveSpeed: 1.3, dodge: 0.3 }, iconFrame: 26, color: 0x333333, requires: ['speed2', 'dodge'] }, // Shadow/Hood
             
             // Ultimate center node
             { id: 'transcend', x: 400, y: 300, name: 'Transcendence', desc: 'Unlock true potential', cost: 10,
-              effect: { all: 1.1 }, icon: '🌟', color: 0xffffff, requires: ['health2', 'damage2', 'speed2'], 
-              special: true, radius: 25 }
+              effect: { all: 1.1 }, iconFrame: 24, color: 0xffffff, requires: ['health2', 'damage2', 'speed2'], 
+              special: true, radius: 25 } // Sun/Ultimate
         ];
         
-        // Create talent nodes
-        talentData.forEach(talent => {
-            this.createTalentNode(talent);
+        // Store talent data for animation
+        this.talentData = talentData;
+        
+        // Create center node immediately
+        const centerNode = talentData.find(t => t.id === 'origin');
+        this.createTalentNode(centerNode);
+        
+        // Animate other nodes emerging from center
+        this.time.delayedCall(500, () => {
+            talentData.forEach((talent, index) => {
+                if (talent.id !== 'origin') {
+                    // Calculate delay based on distance from center
+                    const distance = Phaser.Math.Distance.Between(400, 300, talent.x, talent.y);
+                    const delay = index * 100 + (distance / 3);
+                    
+                    this.time.delayedCall(delay, () => {
+                        this.createTalentNodeAnimated(talent);
+                    });
+                }
+            });
+            
+            // Draw connections after animation completes
+            const maxDelay = talentData.length * 100 + 300;
+            this.time.delayedCall(maxDelay, () => {
+                this.drawConnections();
+            });
+        });
+    }
+    
+    createTalentNodeAnimated(talent) {
+        // Start at center for animation
+        const container = this.add.container(400, 300);
+        container.setScale(0.1);
+        container.setAlpha(0);
+        
+        // Create the node
+        this.createTalentNodeContent(talent, container);
+        
+        // Animate to final position
+        this.tweens.add({
+            targets: container,
+            x: talent.x,
+            y: talent.y,
+            scale: 1,
+            alpha: 1,
+            duration: 600,
+            ease: 'Power2.easeOut',
+            onStart: () => {
+                // Create trail effect
+                const trail = this.add.circle(400, 300, 5, talent.color, 0.8);
+                this.tweens.add({
+                    targets: trail,
+                    x: talent.x,
+                    y: talent.y,
+                    scale: 0.1,
+                    alpha: 0,
+                    duration: 600,
+                    ease: 'Power2.easeOut',
+                    onComplete: () => trail.destroy()
+                });
+            }
         });
         
-        // Draw connections after all nodes are created
-        this.drawConnections();
+        // Store reference
+        this.nodeButtons.push({ container, talent, components: {} });
     }
     
     createTalentNode(talent) {
         const container = this.add.container(talent.x, talent.y);
+        this.createTalentNodeContent(talent, container);
+        this.nodeButtons.push({ container, talent, components: {} });
+    }
+    
+    createTalentNodeContent(talent, container) {
         const radius = talent.radius || 35;
         
         // Check if unlocked
@@ -1584,11 +1911,16 @@ class TalentTreeScene extends Phaser.Scene {
         node.setStrokeStyle(3, isUnlocked ? 0xffffff : (canUnlock ? talent.color : 0x444444));
         container.add(node);
         
-        // Icon
-        const icon = this.add.text(0, 0, talent.icon, {
-            fontSize: talent.special ? '24px' : '20px'
-        }).setOrigin(0.5);
-        container.add(icon);
+        // Icon using sprite
+        if (talent.iconFrame !== undefined) {
+            const icon = this.add.image(0, 0, 'upgrade-icons', talent.iconFrame);
+            // Scale down the large icons to fit in the nodes
+            icon.setScale(talent.special ? 0.15 : 0.2);
+            if (!isUnlocked && !canUnlock) {
+                icon.setTint(0x444444);
+            }
+            container.add(icon);
+        }
         
         // Name
         const name = this.add.text(0, radius + 15, talent.name, {
@@ -1692,10 +2024,10 @@ class TalentTreeScene extends Phaser.Scene {
         const graphics = this.add.graphics();
         graphics.setDepth(-1);
         
-        this.nodeButtons.forEach(talent => {
+        this.talentData.forEach(talent => {
             if (talent.requires) {
                 talent.requires.forEach(reqId => {
-                    const reqTalent = this.nodeButtons.find(t => t.id === reqId);
+                    const reqTalent = this.talentData.find(t => t.id === reqId);
                     if (reqTalent) {
                         const isUnlocked = (talent.unlocked || this.talents.has(talent.id)) && 
                                          (reqTalent.unlocked || this.talents.has(reqId));
@@ -1740,7 +2072,7 @@ class TalentTreeScene extends Phaser.Scene {
     resetTalents() {
         // Refund all spent points
         let refund = 0;
-        this.nodeButtons.forEach(talent => {
+        this.talentData.forEach(talent => {
             if (this.talents.has(talent.id) && talent.cost > 0) {
                 refund += talent.cost;
             }
@@ -1755,7 +2087,14 @@ class TalentTreeScene extends Phaser.Scene {
         this.pointsText.setText(`Essence: ${this.talentPoints}`);
         this.nodeButtons.forEach(btn => btn.container.destroy());
         this.nodeButtons = [];
-        this.createTalentTree();
+        
+        // Recreate nodes without animation
+        this.talentData.forEach(talent => {
+            this.createTalentNode(talent);
+        });
+        
+        // Redraw connections
+        this.drawConnections();
     }
 }
 
@@ -1933,7 +2272,7 @@ class GameScene extends Phaser.Scene {
             ice: { frame: 4, color: 0x00ddff, name: 'Ice', sheet: 'element-symbols2', fireRate: 2500 },
             meteor: { frame: 5, color: 0xff8800, name: 'Meteor', sheet: 'element-symbols2', fireRate: 1500 },
             mud: { frame: 9, color: 0x664422, name: 'Mud', sheet: 'element-symbols3' },
-            thunder: { frame: 7, color: 0xffff00, name: 'Thunder', sheet: 'element-symbols2' },
+            storm: { frame: 7, color: 0xffff00, name: 'Storm', sheet: 'element-symbols2' },
             crystal: { frame: 8, color: 0xffaaff, name: 'Crystal', sheet: 'element-symbols2' },
 
             // Third sprite sheet (elements3.PNG)
@@ -1984,7 +2323,7 @@ class GameScene extends Phaser.Scene {
             ice: 'Creates ice crystals that freeze enemies in place for 2 seconds. Frost magic.',
             meteor: 'Calls down meteors from above with area damage. Celestial destruction.',
             mud: 'Creates slowing puddles that trap enemies. Terrain control.',
-            thunder: 'Instant lightning strikes on random enemies. Divine punishment.',
+            storm: 'Instant lightning strikes on random enemies. Divine punishment.',
             crystal: 'Fires 8 piercing crystal needles in all directions dealing heavy damage.',
             death: 'Dark magic that instantly destroys weakened enemies. Finisher element.',
             time: 'Slows down time for enemies in an area. Temporal manipulation.',
@@ -5143,7 +5482,7 @@ class GameScene extends Phaser.Scene {
             'dust': { elements: ['earth', 'air'], description: 'Blinds and slows enemies in large area' },
             'ice': { elements: ['water', 'air'], description: 'Freezes enemies solid' },
             'poison': { elements: ['water', 'dark'], description: 'Drops poison mines for continuous damage' },
-            'thunder': { elements: ['lightning', 'air'], description: 'Chain lightning between enemies' },
+            'storm': { elements: ['lightning', 'air'], description: 'Chain lightning between enemies' },
             'smoke': { elements: ['fire', 'air'], description: 'Creates obscuring smoke clouds' },
             
             // Advanced fusions
@@ -5369,6 +5708,13 @@ class GameScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0, 0.5);
         this.pauseMenu.add(passiveLabel);
+        
+        const pouchLabel = this.add.text(-250, 60, 'POUCH', {
+            fontSize: '14px',
+            color: '#88cc88',
+            fontStyle: 'bold'
+        }).setOrigin(0, 0.5);
+        this.pauseMenu.add(pouchLabel);
 
         // Charge slot visuals
         this.pauseChargeSlots = [];
@@ -5378,23 +5724,33 @@ class GameScene extends Phaser.Scene {
         const slotStartX = -150;
         const slotSpacing = 100;
         const slotY = 0;
-        const slotRowY1 = -100;  // First row Y position (moved up)
-        const slotRowY2 = -20;   // Second row Y position (moved up)
+        const slotRowY1 = -100;  // First row Y position (active)
+        const slotRowY2 = -20;   // Second row Y position (passive)
+        const slotRowY3 = 60;    // Third row Y position (pouch)
+        
+        // Initialize pouch if not exists
+        if (!this.elementPouch) {
+            const savedPouch = localStorage.getItem('elementPouch');
+            this.elementPouch = savedPouch ? JSON.parse(savedPouch) : [null, null, null, null];
+        }
 
-        for (let i = 0; i < 8; i++) {
-            // Slot background - arrange in 2 rows of 4
+        // Create slots for charges (8) and pouch (4)
+        for (let i = 0; i < 12; i++) {
+            // Slot background - arrange in 3 rows of 4
             const row = Math.floor(i / 4);
             const col = i % 4;
             const slotX = slotStartX + col * slotSpacing;
-            const slotY_pos = row === 0 ? slotRowY1 : slotRowY2;
-            // Different colors for active (top row) vs passive (bottom row) slots
+            const slotY_pos = row === 0 ? slotRowY1 : (row === 1 ? slotRowY2 : slotRowY3);
+            // Different colors for active, passive, and pouch slots
             const isActiveSlot = row === 0;
-            const slotColor = isActiveSlot ? 0x444444 : 0x2a2a2a;
-            const strokeColor = isActiveSlot ? 0xffffff : 0x666666;
+            const isPouchSlot = row === 2;
+            const slotColor = isPouchSlot ? 0x2a4a2a : (isActiveSlot ? 0x444444 : 0x2a2a2a);
+            const strokeColor = isPouchSlot ? 0x4a6a4a : (isActiveSlot ? 0xffffff : 0x666666);
             const slotBg = this.add.rectangle(slotX, slotY_pos, 80, 80, slotColor);
             slotBg.setStrokeStyle(2, strokeColor);
             slotBg.setData('slotIndex', i);
             slotBg.setData('isActiveSlot', isActiveSlot);
+            slotBg.setData('isPouchSlot', isPouchSlot);
             slotBg.setInteractive({ dropZone: true });
             this.pauseMenu.add(slotBg);
             
@@ -5404,7 +5760,7 @@ class GameScene extends Phaser.Scene {
                 slotBg.setStrokeStyle(3, 0xffff00);
             });
             slotBg.on('pointerout', () => {
-                slotBg.setStrokeStyle(2, isActiveSlot ? 0xffffff : 0x666666);
+                slotBg.setStrokeStyle(2, strokeColor);
             });
 
             // Charge indicator using image (make it draggable) - default to first sheet
@@ -5463,8 +5819,8 @@ class GameScene extends Phaser.Scene {
                 y: slotY_pos
             });
 
-            // Link button (between slots) - only for slots in the same row
-            if (i < 7 && (i % 4) < 3) {
+            // Link button (between slots) - only for charge slots in the same row, not pouch
+            if (i < 7 && (i % 4) < 3 && !isPouchSlot) {
                 const linkX = slotX + slotSpacing / 2;
                 const linkY = slotY_pos;
                 const linkBtn = this.add.rectangle(linkX, linkY, 30, 20, 0x555555);
@@ -5487,27 +5843,27 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        // Current combo display (moved up)
-        this.comboDisplay = this.add.text(0, 60, '', {
+        // Current combo display (moved down due to pouch row)
+        this.comboDisplay = this.add.text(0, 140, '', {
             fontSize: '16px',
             color: '#44ff44',
             align: 'center'
         }).setOrigin(0.5);
         this.pauseMenu.add(this.comboDisplay);
 
-        // Element description area
-        this.elementDescriptionBg = this.add.rectangle(0, 130, 600, 100, 0x222222, 0.8);
+        // Element description area (moved down)
+        this.elementDescriptionBg = this.add.rectangle(0, 200, 600, 80, 0x222222, 0.8);
         this.elementDescriptionBg.setStrokeStyle(2, 0x666666);
         this.pauseMenu.add(this.elementDescriptionBg);
 
-        this.elementDescriptionTitle = this.add.text(0, 90, '', {
+        this.elementDescriptionTitle = this.add.text(0, 170, '', {
             fontSize: '18px',
             color: '#ffdd44',
             fontStyle: 'bold'
         }).setOrigin(0.5);
         this.pauseMenu.add(this.elementDescriptionTitle);
 
-        this.elementDescriptionText = this.add.text(0, 130, '', {
+        this.elementDescriptionText = this.add.text(0, 200, '', {
             fontSize: '14px',
             color: '#ffffff',
             align: 'center',
@@ -5516,7 +5872,7 @@ class GameScene extends Phaser.Scene {
         this.pauseMenu.add(this.elementDescriptionText);
 
         // Close instruction
-        const closeText = this.add.text(0, 210, 'Press P or Start to resume', {
+        const closeText = this.add.text(0, 250, 'Press P or Start to resume', {
             fontSize: '14px',
             color: '#aaaaaa'
         }).setOrigin(0.5);
@@ -5647,7 +6003,7 @@ class GameScene extends Phaser.Scene {
 
             // Move charge circles out of container and make them interactive at world level
             this.pauseChargeSlots.forEach((slot, index) => {
-                if (index < 8) {  // Create hit zones for all 8 slots
+                if (index < 12) {  // Create hit zones for all 12 slots (8 charge + 4 pouch)
                     // Calculate world position
                     const worldX = this.pauseMenu.x + slot.circle.x;
                     const worldY = this.pauseMenu.y + slot.circle.y;
@@ -5657,11 +6013,16 @@ class GameScene extends Phaser.Scene {
                     hitZone.setDepth(901); // Above pause menu for interaction
                     hitZone.setScrollFactor(0);
 
-                    // IMPORTANT: Set interactive after creating, with draggable only if slot has a charge
-                    const hasCharge = slot.circle.visible && this.chargeSlots && this.chargeSlots[index];
+                    // IMPORTANT: Set interactive after creating, with draggable only if slot has an element
+                    let hasElement = false;
+                    if (index < 8) {
+                        hasElement = slot.circle.visible && this.chargeSlots && this.chargeSlots[index];
+                    } else {
+                        hasElement = slot.circle.visible && this.elementPouch && this.elementPouch[index - 8];
+                    }
                     hitZone.setInteractive({
-                        draggable: hasCharge,
-                        useHandCursor: hasCharge
+                        draggable: hasElement,
+                        useHandCursor: hasElement
                     });
 
                     hitZone.setData('slotIndex', index);
@@ -5670,9 +6031,10 @@ class GameScene extends Phaser.Scene {
                     hitZone.setData('isBeingDragged', false);
                     
                     // Store the actual source slot that contains this element
-                    if (hasCharge) {
+                    if (hasElement) {
                         hitZone.setData('sourceSlotIndex', index);
-                        console.log(`HitZone for slot ${index} has element: ${this.chargeSlots[index]}`);
+                        const element = index < 8 ? this.chargeSlots[index] : this.elementPouch[index - 8];
+                        console.log(`HitZone for slot ${index} has element: ${element}`);
                     }
 
                     // Store reference for visual updates
@@ -5686,17 +6048,25 @@ class GameScene extends Phaser.Scene {
                             hitZone.setStrokeStyle(2, 0x00ff00, 1);
                             
                             // Show element description
-                            if (this.chargeSlots && this.chargeSlots[index]) {
-                                const element = this.chargeSlots[index];
+                            let element = null;
+                            if (index < 8 && this.chargeSlots && this.chargeSlots[index]) {
+                                element = this.chargeSlots[index];
+                            } else if (index >= 8 && this.elementPouch && this.elementPouch[index - 8]) {
+                                element = this.elementPouch[index - 8];
+                            }
+                            
+                            if (element) {
                                 const config = this.elementConfig[element];
-                                const isPassiveSlot = index >= 4;
+                                const isPassiveSlot = index >= 4 && index < 8;
+                                const isPouchSlot = index >= 8;
                                 
                                 if (config) {
                                     const activeDesc = this.elementDescriptions[element];
                                     const passiveDesc = this.getPassiveDescription(element);
                                     
-                                    this.elementDescriptionTitle.setText(config.name + (isPassiveSlot ? ' (Passive)' : ' (Active)'));
-                                    this.elementDescriptionText.setText(isPassiveSlot ? passiveDesc : activeDesc);
+                                    let slotType = isPouchSlot ? ' (Pouch)' : (isPassiveSlot ? ' (Passive)' : ' (Active)');
+                                    this.elementDescriptionTitle.setText(config.name + slotType);
+                                    this.elementDescriptionText.setText(isPouchSlot ? activeDesc : (isPassiveSlot ? passiveDesc : activeDesc));
                                     this.elementDescriptionTitle.setVisible(true);
                                     this.elementDescriptionText.setVisible(true);
                                     this.elementDescriptionBg.setVisible(true);
@@ -5753,10 +6123,10 @@ class GameScene extends Phaser.Scene {
                         console.log(`Stopped dragging charge from slot ${sourceSlotIndex}`);
                         hitZone.setData('isBeingDragged', false);
 
-                        // Find which slot we're over (check all 8 slots)
+                        // Find which slot we're over (check all 12 slots)
                         let targetIndex = -1;
                         this.pauseChargeSlots.forEach((targetSlot, idx) => {
-                            if (idx < 8) {  // Allow dropping in any of the 8 slots
+                            if (idx < 12) {  // Allow dropping in any of the 12 slots
                                 const targetWorldX = this.pauseMenu.x + targetSlot.x;
                                 const targetWorldY = this.pauseMenu.y + targetSlot.y;
                                 const dist = Phaser.Math.Distance.Between(hitZone.x, hitZone.y, targetWorldX, targetWorldY);
@@ -5770,11 +6140,17 @@ class GameScene extends Phaser.Scene {
                             console.log(`Moving charge from slot ${sourceSlotIndex} to slot ${targetIndex}`);
                             
                             // Store the element being moved before the swap
-                            const elementBeingMoved = this.chargeSlots[sourceSlotIndex];
+                            const elementBeingMoved = sourceSlotIndex < 8 ? this.chargeSlots[sourceSlotIndex] : this.elementPouch[sourceSlotIndex - 8];
                             console.log(`Moving element: ${elementBeingMoved}`);
                             
-                            // Perform the move (this will handle updating visual state)
-                            this.swapCharges(sourceSlotIndex, targetIndex);
+                            // Perform the move based on slot types
+                            if (sourceSlotIndex < 8 && targetIndex < 8) {
+                                // Both are charge slots
+                                this.swapCharges(sourceSlotIndex, targetIndex);
+                            } else {
+                                // One or both are pouch slots - use new swap function
+                                this.swapBetweenChargeAndPouch(sourceSlotIndex, targetIndex);
+                            }
                             
                             // Don't destroy hit zones here - swapCharges will call refreshPauseMenuInteractiveElements
                             return; // Exit early to prevent position reset
@@ -5949,9 +6325,16 @@ class GameScene extends Phaser.Scene {
         console.log('UpdatePauseMenuDisplay - chargeSlots:', [...this.chargeSlots]);
         console.log('UpdatePauseMenuDisplay - charges array:', this.charges);
         
-        // Update charge slot displays - show all 8 slots in pause menu
-        for (let i = 0; i < 8; i++) {
-            const element = this.chargeSlots ? this.chargeSlots[i] : (i < this.charges.length ? this.charges[i] : null);
+        // Update charge slot displays - show all 8 charge slots + 4 pouch slots
+        for (let i = 0; i < 12; i++) {
+            let element;
+            if (i < 8) {
+                // Charge slots
+                element = this.chargeSlots ? this.chargeSlots[i] : (i < this.charges.length ? this.charges[i] : null);
+            } else {
+                // Pouch slots (i - 8 gives us index 0-3)
+                element = this.elementPouch ? this.elementPouch[i - 8] : null;
+            }
             
             if (i < 4) { // Only log first 4 to reduce noise
                 console.log(`Pause menu slot ${i}: element=${element}`);
@@ -6233,7 +6616,7 @@ class GameScene extends Phaser.Scene {
             meteor: 'Meteors randomly fall near enemies. +20% fire and earth damage.',
             gravity: 'Pull enemies slowly toward you. +30% damage to slowed enemies.',
             volcano: 'Eruptions on spell cast. +25% fire damage, +10% area damage.',
-            thunder: 'Storm aura randomly strikes enemies. +35% lightning damage.',
+            storm: 'Storm aura randomly strikes enemies. +35% lightning damage.',
             smoke: 'Smoke screen when hit (10s cooldown). +30% dodge in smoke.',
             nature: 'Regenerate 1% max HP/sec. Spawn healing flowers on kills.',
             life: '+5 HP/sec regeneration. Resurrect with 50% HP once per minute.',
@@ -6583,20 +6966,85 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    swapBetweenChargeAndPouch(sourceIndex, targetIndex) {
+        console.log(`Swapping between slots ${sourceIndex} and ${targetIndex}`);
+        
+        // Initialize pouch if needed
+        if (!this.elementPouch) {
+            const savedPouch = localStorage.getItem('elementPouch');
+            this.elementPouch = savedPouch ? JSON.parse(savedPouch) : [null, null, null, null];
+        }
+        
+        // Get source and target elements
+        let sourceElement = null;
+        let targetElement = null;
+        
+        if (sourceIndex < 8) {
+            sourceElement = this.chargeSlots[sourceIndex];
+        } else {
+            sourceElement = this.elementPouch[sourceIndex - 8];
+        }
+        
+        if (targetIndex < 8) {
+            targetElement = this.chargeSlots[targetIndex];
+        } else {
+            targetElement = this.elementPouch[targetIndex - 8];
+        }
+        
+        // Perform the swap
+        if (sourceIndex < 8) {
+            this.chargeSlots[sourceIndex] = targetElement;
+        } else {
+            this.elementPouch[sourceIndex - 8] = targetElement;
+        }
+        
+        if (targetIndex < 8) {
+            this.chargeSlots[targetIndex] = sourceElement;
+        } else {
+            this.elementPouch[targetIndex - 8] = sourceElement;
+        }
+        
+        // Save pouch state
+        localStorage.setItem('elementPouch', JSON.stringify(this.elementPouch));
+        
+        // Rebuild charges array from first 4 chargeSlots
+        this.charges = [];
+        for (let i = 0; i < 4 && i < this.chargeSlots.length; i++) {
+            if (this.chargeSlots[i] !== null) {
+                this.charges.push(this.chargeSlots[i]);
+            }
+        }
+        
+        // Update displays
+        this.updateChargeUI();
+        this.updateChargeGroups();
+        this.updatePauseMenuDisplay();
+        
+        // Refresh interactive elements
+        this.refreshPauseMenuInteractiveElements();
+    }
+    
     discardCharge(index, confirmed = false) {
-        if (this.chargeSlots && this.chargeSlots[index]) {
+        if ((index < 8 && this.chargeSlots && this.chargeSlots[index]) || 
+            (index >= 8 && this.elementPouch && this.elementPouch[index - 8])) {
             // If not confirmed, show confirmation dialog
             if (!confirmed) {
                 this.showDiscardConfirmation(index);
                 return;
             }
 
-            // Remove the charge from the slot
-            this.chargeSlots[index] = null;
+            // Remove the element from the appropriate slot
+            if (index < 8) {
+                this.chargeSlots[index] = null;
+            } else {
+                this.elementPouch[index - 8] = null;
+                // Save pouch state
+                localStorage.setItem('elementPouch', JSON.stringify(this.elementPouch));
+            }
             
-            // Rebuild charges array
+            // Rebuild charges array from first 4 slots only
             this.charges = [];
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 4 && i < this.chargeSlots.length; i++) {
                 if (this.chargeSlots[i] !== null) {
                     this.charges.push(this.chargeSlots[i]);
                 }
@@ -9871,8 +10319,8 @@ class GameScene extends Phaser.Scene {
                 case 'life':
                     this.createLifeSpell();
                     break;
-                case 'thunder':
-                    this.createThunderSpell();
+                case 'storm':
+                    this.createStormSpell();
                     break;
                 case 'holy':
                     this.createHolySpell();
@@ -9975,8 +10423,8 @@ class GameScene extends Phaser.Scene {
                 case 'mud':
                     this.createMudTrap();
                     break;
-                case 'thunder':
-                    this.fireThunderBolt();
+                case 'storm':
+                    this.fireStormBolt();
                     break;
                 case 'crystal':
                     this.createCrystalSpell();
@@ -14259,8 +14707,8 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    createThunderSpell() {
-        // Thunder element - shoots 3 piercing projectiles that push enemies
+    createStormSpell() {
+        // Storm element - shoots 3 piercing projectiles that push enemies
         const projectileCount = 3;
         
         // Get wizard direction
@@ -14283,10 +14731,10 @@ class GameScene extends Phaser.Scene {
         const knockbackForce = 1200;
         
         // Create animation if it doesn't exist
-        if (!this.anims.exists('thunder-projectile')) {
+        if (!this.anims.exists('storm-projectile')) {
             this.anims.create({
-                key: 'thunder-projectile',
-                frames: this.anims.generateFrameNumbers('thunder-spell', { start: 0, end: 16 }),
+                key: 'storm-projectile',
+                frames: this.anims.generateFrameNumbers('storm-spell', { start: 0, end: 16 }),
                 frameRate: 30,
                 repeat: -1
             });
@@ -14298,38 +14746,38 @@ class GameScene extends Phaser.Scene {
             const angleOffset = (i - 1) * spreadAngle;
             const projectileAngle = baseAngle + angleOffset;
             
-            // Create thunder projectile
-            const thunder = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'thunder-spell', 0);
-            thunder.setScale(1.5);
-            thunder.setDepth(5);
+            // Create storm projectile
+            const storm = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'storm-spell', 0);
+            storm.setScale(1.5);
+            storm.setDepth(5);
             
             // Try to play animation
-            if (this.anims.exists('thunder-projectile')) {
-                thunder.play('thunder-projectile');
+            if (this.anims.exists('storm-projectile')) {
+                storm.play('storm-projectile');
             }
             
             // Set properties
-            thunder.element = 'thunder';
-            thunder.damage = damage;
-            thunder.knockbackForce = knockbackForce;
-            thunder.isPiercing = true; // Pierce through enemies
-            thunder.hitEnemies = new Set(); // Track hit enemies to prevent multiple hits
+            storm.element = 'storm';
+            storm.damage = damage;
+            storm.knockbackForce = knockbackForce;
+            storm.isPiercing = true; // Pierce through enemies
+            storm.hitEnemies = new Set(); // Track hit enemies to prevent multiple hits
             
             // Add to projectiles group first
-            this.projectiles.add(thunder);
+            this.projectiles.add(storm);
             
             // Set velocity
             const velocityX = Math.cos(projectileAngle) * projectileSpeed;
             const velocityY = Math.sin(projectileAngle) * projectileSpeed;
-            thunder.setVelocity(velocityX, velocityY);
+            storm.setVelocity(velocityX, velocityY);
             
             // Add electric trail effect
             const trailInterval = this.time.addEvent({
                 delay: 50,
                 callback: () => {
-                    if (thunder.active) {
+                    if (storm.active) {
                         // Create electric trail
-                        const trail = this.add.circle(thunder.x, thunder.y, 8, 0x00ffff, 0.6);
+                        const trail = this.add.circle(storm.x, storm.y, 8, 0x00ffff, 0.6);
                         trail.setDepth(4);
                         this.tweens.add({
                             targets: trail,
@@ -14346,15 +14794,15 @@ class GameScene extends Phaser.Scene {
             });
             
             // Store trail for cleanup
-            thunder.trailInterval = trailInterval;
+            storm.trailInterval = trailInterval;
             
             // Auto-destroy after 2 seconds
             this.time.delayedCall(2000, () => {
-                if (thunder.active) {
-                    if (thunder.trailInterval) {
-                        thunder.trailInterval.destroy();
+                if (storm.active) {
+                    if (storm.trailInterval) {
+                        storm.trailInterval.destroy();
                     }
-                    thunder.destroy();
+                    storm.destroy();
                 }
             });
         }
@@ -14918,8 +15366,8 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    fireThunderBolt() {
-        // Thunder element - instant strike on random enemy
+    fireStormBolt() {
+        // Storm element - instant strike on random enemy
         const activeEnemies = this.enemies.children.entries.filter(e => e.active);
         if (activeEnemies.length > 0) {
             const target = activeEnemies[Math.floor(Math.random() * activeEnemies.length)];
@@ -14939,7 +15387,7 @@ class GameScene extends Phaser.Scene {
                 onComplete: () => strike.destroy()
             });
 
-            // Thunder sound effect visual
+            // Storm sound effect visual
             const flash = this.add.rectangle(400, 300, 800, 600, 0xffffff, 0.3);
             flash.setScrollFactor(0);
             flash.setDepth(100);
@@ -16452,7 +16900,7 @@ class GameScene extends Phaser.Scene {
             'air+water': 'ice',
             'fire+lightning': 'meteor',
             'air+fire': 'smoke',
-            'lightning+water': 'thunder',
+            'lightning+water': 'storm',
             'fire+sand': 'crystal',
             'earth+ice': 'crystal',
             'arcane+fire': 'lava',
@@ -16690,43 +17138,55 @@ class GameScene extends Phaser.Scene {
     setupElementSelection(selectionBg, title, choices) {
         const chargesFull = this.charges.length >= this.maxCharges;
         
+        // Initialize pouch if not exists
+        if (!this.elementPouch) {
+            const savedPouch = localStorage.getItem('elementPouch');
+            this.elementPouch = savedPouch ? JSON.parse(savedPouch) : [null, null, null, null];
+        }
+        
         let controlHint = null;
         
-        // Add control hint when charges are full
-        if (chargesFull) {
-            controlHint = this.add.text(400, 480, 'Use LEFT/RIGHT to select element, TAB/Y to select charge to replace', {
-                fontSize: '14px',
-                color: '#aaaaaa'
-            });
-            controlHint.setOrigin(0.5);
-            controlHint.setScrollFactor(0);
-            controlHint.setDepth(921);
-        }
+        // Add control hint with updated text for drag and drop
+        controlHint = this.add.text(400, 540, 'LEFT/RIGHT to select • TAB/Y to toggle charge selection • Drag elements between slots', {
+            fontSize: '12px',
+            color: '#aaaaaa'
+        });
+        controlHint.setOrigin(0.5);
+        controlHint.setScrollFactor(0);
+        controlHint.setDepth(921);
 
-        // Show current charges if full
+        // Always show current charges and pouch
         let chargeDisplay = null;
-        if (chargesFull) {
-            chargeDisplay = this.add.container(400, 370);
-            chargeDisplay.setScrollFactor(0);
-            chargeDisplay.setDepth(921);
+        chargeDisplay = this.add.container(400, 360);
+        chargeDisplay.setScrollFactor(0);
+        chargeDisplay.setDepth(921);
 
-            const chargeLabel = this.add.text(0, -20, 'Current elements (select one to replace):', {
-                fontSize: '12px',
-                color: '#ffaa44'
-            });
-            chargeLabel.setOrigin(0.5);
-            chargeDisplay.add(chargeLabel);
+        const chargeLabel = this.add.text(0, -30, chargesFull ? 'Current elements (select one to replace):' : 'Current elements:', {
+            fontSize: '12px',
+            color: '#ffaa44'
+        });
+        chargeLabel.setOrigin(0.5);
+        chargeDisplay.add(chargeLabel);
 
-            // Show current charges
-            const chargeButtons = [];
-            for (let i = 0; i < this.charges.length; i++) {
-                const charge = this.charges[i];
+        // Show current charges
+        const chargeButtons = [];
+        // Only show active charge slots (first 4 slots from chargeSlots)
+        for (let i = 0; i < 4; i++) {
+            const xPos = -60 + i * 40;
+            const slotBg = this.add.circle(xPos, 0, 18, 0x333333, 0.5);
+            slotBg.setStrokeStyle(2, 0x666666);
+            chargeDisplay.add(slotBg);
+            
+            // Check chargeSlots array for element at this position
+            const charge = this.chargeSlots ? this.chargeSlots[i] : (i < this.charges.length ? this.charges[i] : null);
+            if (charge) {
                 const chargeConfig = this.elementConfig[charge];
-
-                const xPos = -60 + i * 40;
                 const chargeSprite = this.add.sprite(xPos, 0, chargeConfig.sheet, chargeConfig.frame);
                 chargeSprite.setScale(0.15);
-                chargeSprite.setInteractive();
+                chargeSprite.setInteractive({ draggable: true });
+                chargeSprite.elementType = charge;
+                chargeSprite.slotType = 'charge';
+                chargeSprite.slotIndex = i;
 
                 // Add selection ring
                 const selectionRing = this.add.graphics();
@@ -16735,50 +17195,118 @@ class GameScene extends Phaser.Scene {
                 selectionRing.setVisible(false);
                 chargeDisplay.add(selectionRing);
 
+                this.setupElementDragDrop(chargeSprite, chargeDisplay, xPos, 0);
+                
                 chargeSprite.on('pointerover', () => {
-                    chargeSprite.setScale(0.2);
-                    chargeSprite.setTint(0xff6666);
+                    if (!this.draggedElement) {
+                        chargeSprite.setScale(0.2);
+                        chargeSprite.setTint(0xffaaaa);
+                    }
                 });
 
                 chargeSprite.on('pointerout', () => {
-                    if (this.selectedChargeToReplace !== i) {
+                    if (!this.draggedElement && this.selectedChargeToReplace !== i) {
                         chargeSprite.setScale(0.15);
                         chargeSprite.clearTint();
                     }
                 });
 
                 chargeSprite.on('pointerdown', () => {
-                    this.selectedChargeToReplace = i;
-                    chargeButtons.forEach((btn, idx) => {
-                        const ring = chargeDisplay.list[chargeDisplay.list.indexOf(btn) + 1];
-                        if (idx === i) {
-                            btn.setScale(0.2);
-                            btn.setTint(0xff0000);
-                            if (ring && ring.type === 'Graphics') {
-                                ring.setVisible(true);
+                    if (!this.draggedElement && chargesFull) {
+                        this.selectedChargeToReplace = i;
+                        chargeButtons.forEach((btn, idx) => {
+                            const ring = this.chestSelectionRings[idx];
+                            if (idx === i) {
+                                btn.sprite.setScale(0.2);
+                                btn.sprite.setTint(0xff0000);
+                                if (ring) ring.setVisible(true);
+                            } else {
+                                btn.sprite.setScale(0.15);
+                                btn.sprite.clearTint();
+                                if (ring) ring.setVisible(false);
                             }
-                        } else {
-                            btn.setScale(0.15);
-                            btn.clearTint();
-                            if (ring && ring.type === 'Graphics') {
-                                ring.setVisible(false);
-                            }
-                        }
-                    });
+                        });
+                    }
                 });
 
-                chargeButtons.push(chargeSprite);
+                chargeButtons.push({ sprite: chargeSprite, slotBg: slotBg });
                 chargeDisplay.add(chargeSprite);
             }
+        }
 
-            this.chestChargeButtons = chargeButtons;
-            this.chestSelectionRings = [];
-            for (let i = 1; i < chargeDisplay.list.length; i += 2) {
-                if (chargeDisplay.list[i] && chargeDisplay.list[i].type === 'Graphics') {
-                    this.chestSelectionRings.push(chargeDisplay.list[i]);
-                }
+        // Add pouch label
+        const pouchLabel = this.add.text(0, 50, 'Inventory Pouch:', {
+            fontSize: '12px',
+            color: '#88cc88'
+        });
+        pouchLabel.setOrigin(0.5);
+        chargeDisplay.add(pouchLabel);
+
+        // Show pouch slots
+        const pouchButtons = [];
+        for (let i = 0; i < 4; i++) {
+            const xPos = -60 + i * 40;
+            const yPos = 80;
+            const slotBg = this.add.circle(xPos, yPos, 18, 0x2a4a2a, 0.5);
+            slotBg.setStrokeStyle(2, 0x4a6a4a);
+            chargeDisplay.add(slotBg);
+            
+            if (this.elementPouch[i]) {
+                const element = this.elementPouch[i];
+                const elementConfig = this.elementConfig[element];
+                const pouchSprite = this.add.sprite(xPos, yPos, elementConfig.sheet, elementConfig.frame);
+                pouchSprite.setScale(0.15);
+                pouchSprite.setInteractive({ draggable: true });
+                pouchSprite.elementType = element;
+                pouchSprite.slotType = 'pouch';
+                pouchSprite.slotIndex = i;
+                
+                this.setupElementDragDrop(pouchSprite, chargeDisplay, xPos, yPos);
+                
+                pouchSprite.on('pointerover', () => {
+                    if (!this.draggedElement) {
+                        pouchSprite.setScale(0.2);
+                        const descText = this.add.text(400, 440, this.elementDescriptions[element], {
+                            fontSize: '12px',
+                            color: '#ffffff',
+                            align: 'center',
+                            wordWrap: { width: 300 },
+                            backgroundColor: '#000000',
+                            padding: { x: 10, y: 5 }
+                        });
+                        descText.setOrigin(0.5);
+                        descText.setScrollFactor(0);
+                        descText.setDepth(925);
+                        pouchSprite.descText = descText;
+                    }
+                });
+                
+                pouchSprite.on('pointerout', () => {
+                    if (!this.draggedElement) {
+                        pouchSprite.setScale(0.15);
+                        if (pouchSprite.descText) {
+                            pouchSprite.descText.destroy();
+                            pouchSprite.descText = null;
+                        }
+                    }
+                });
+                
+                pouchButtons.push({ sprite: pouchSprite, slotBg: slotBg });
+                chargeDisplay.add(pouchSprite);
             }
         }
+
+        this.chestChargeButtons = chargeButtons;
+        this.chestPouchButtons = pouchButtons;
+        this.chestSelectionRings = [];
+        
+        // Collect selection rings
+        chargeButtons.forEach((btn, i) => {
+            const ringIndex = chargeDisplay.list.indexOf(btn.sprite) + 1;
+            if (chargeDisplay.list[ringIndex] && chargeDisplay.list[ringIndex].type === 'Graphics') {
+                this.chestSelectionRings.push(chargeDisplay.list[ringIndex]);
+            }
+        });
 
         // Create element buttons
         const buttons = [];
@@ -16858,6 +17386,185 @@ class GameScene extends Phaser.Scene {
         // Set initial selection frame on first button only
         if (buttons.length > 0) {
             buttons[0].bg.setStrokeStyle(3, 0xffff00);
+        }
+    }
+    
+    setupElementDragDrop(sprite, container, originalX, originalY) {
+        sprite.on('dragstart', (pointer) => {
+            this.draggedElement = sprite;
+            sprite.setScale(0.25);
+            sprite.setDepth(930);
+            // Hide description if shown
+            if (sprite.descText) {
+                sprite.descText.destroy();
+                sprite.descText = null;
+            }
+        });
+        
+        sprite.on('drag', (pointer, dragX, dragY) => {
+            // Convert from world to UI coordinates
+            const cam = this.cameras.main;
+            const uiX = (pointer.x - cam.scrollX) * cam.zoom + cam.scrollX;
+            const uiY = (pointer.y - cam.scrollY) * cam.zoom + cam.scrollY;
+            sprite.x = uiX - container.x;
+            sprite.y = uiY - container.y;
+        });
+        
+        sprite.on('dragend', (pointer) => {
+            // Find drop target
+            const dropTarget = this.findDropTarget(pointer, sprite);
+            
+            if (dropTarget && dropTarget !== sprite) {
+                // Perform swap or move
+                this.swapElements(sprite, dropTarget);
+            } else {
+                // Return to original position
+                sprite.x = originalX;
+                sprite.y = originalY;
+            }
+            
+            sprite.setScale(0.15);
+            sprite.setDepth(922);
+            this.draggedElement = null;
+        });
+    }
+    
+    findDropTarget(pointer, draggedSprite) {
+        // Convert pointer to UI coordinates
+        const cam = this.cameras.main;
+        const uiX = (pointer.x - cam.scrollX) * cam.zoom + cam.scrollX;
+        const uiY = (pointer.y - cam.scrollY) * cam.zoom + cam.scrollY;
+        
+        // Check charge slots
+        if (this.chestChargeButtons) {
+            for (let btn of this.chestChargeButtons) {
+                if (btn.sprite && btn.sprite !== draggedSprite) {
+                    const bounds = btn.sprite.getBounds();
+                    if (bounds.contains(uiX, uiY)) {
+                        return btn.sprite;
+                    }
+                }
+                // Check empty slot
+                if (!btn.sprite && btn.slotBg) {
+                    const bounds = btn.slotBg.getBounds();
+                    if (bounds.contains(uiX, uiY)) {
+                        btn.slotType = 'charge';
+                        btn.slotIndex = this.chestChargeButtons.indexOf(btn);
+                        return btn;
+                    }
+                }
+            }
+        }
+        
+        // Check pouch slots
+        if (this.chestPouchButtons) {
+            for (let btn of this.chestPouchButtons) {
+                if (btn.sprite && btn.sprite !== draggedSprite) {
+                    const bounds = btn.sprite.getBounds();
+                    if (bounds.contains(uiX, uiY)) {
+                        return btn.sprite;
+                    }
+                }
+                // Check empty slot
+                if (!btn.sprite && btn.slotBg) {
+                    const bounds = btn.slotBg.getBounds();
+                    if (bounds.contains(uiX, uiY)) {
+                        btn.slotType = 'pouch';
+                        btn.slotIndex = this.chestPouchButtons.indexOf(btn);
+                        return btn;
+                    }
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    swapElements(source, target) {
+        const sourceElement = source.elementType;
+        const sourceSlotType = source.slotType;
+        const sourceSlotIndex = source.slotIndex;
+        
+        // Initialize chargeSlots if needed
+        if (!this.chargeSlots) {
+            this.chargeSlots = new Array(8).fill(null);
+            // Fill from charges array
+            this.charges.forEach((charge, i) => {
+                if (i < 8) this.chargeSlots[i] = charge;
+            });
+        }
+        
+        if (target.elementType) {
+            // Swap with existing element
+            const targetElement = target.elementType;
+            const targetSlotType = target.slotType;
+            const targetSlotIndex = target.slotIndex;
+            
+            // Update arrays based on slot types
+            if (sourceSlotType === 'charge' && targetSlotType === 'charge') {
+                // Swapping between charge slots
+                const temp = this.chargeSlots[sourceSlotIndex];
+                this.chargeSlots[sourceSlotIndex] = this.chargeSlots[targetSlotIndex];
+                this.chargeSlots[targetSlotIndex] = temp;
+            } else if (sourceSlotType === 'charge' && targetSlotType === 'pouch') {
+                // Moving from charge to pouch
+                this.chargeSlots[sourceSlotIndex] = targetElement;
+                this.elementPouch[targetSlotIndex] = sourceElement;
+            } else if (sourceSlotType === 'pouch' && targetSlotType === 'charge') {
+                // Moving from pouch to charge
+                this.elementPouch[sourceSlotIndex] = targetElement;
+                this.chargeSlots[targetSlotIndex] = sourceElement;
+            } else if (sourceSlotType === 'pouch' && targetSlotType === 'pouch') {
+                // Swapping between pouch slots
+                const temp = this.elementPouch[sourceSlotIndex];
+                this.elementPouch[sourceSlotIndex] = this.elementPouch[targetSlotIndex];
+                this.elementPouch[targetSlotIndex] = temp;
+            }
+        } else {
+            // Move to empty slot
+            const targetSlotType = target.slotType;
+            const targetSlotIndex = target.slotIndex;
+            
+            if (sourceSlotType === 'charge' && targetSlotType === 'charge') {
+                // Moving within charge slots
+                const element = this.chargeSlots[sourceSlotIndex];
+                this.chargeSlots[sourceSlotIndex] = null;
+                this.chargeSlots[targetSlotIndex] = element;
+            } else if (sourceSlotType === 'charge' && targetSlotType === 'pouch') {
+                // Moving from charge to empty pouch slot
+                this.elementPouch[targetSlotIndex] = this.chargeSlots[sourceSlotIndex];
+                this.chargeSlots[sourceSlotIndex] = null;
+            } else if (sourceSlotType === 'pouch' && targetSlotType === 'charge') {
+                // Moving from pouch to empty charge slot
+                this.chargeSlots[targetSlotIndex] = this.elementPouch[sourceSlotIndex];
+                this.elementPouch[sourceSlotIndex] = null;
+            } else if (sourceSlotType === 'pouch' && targetSlotType === 'pouch') {
+                // Moving within pouch slots
+                this.elementPouch[targetSlotIndex] = this.elementPouch[sourceSlotIndex];
+                this.elementPouch[sourceSlotIndex] = null;
+            }
+        }
+        
+        // Rebuild charges array from first 4 chargeSlots
+        this.charges = [];
+        for (let i = 0; i < 4 && i < this.chargeSlots.length; i++) {
+            if (this.chargeSlots[i] !== null) {
+                this.charges.push(this.chargeSlots[i]);
+            }
+        }
+        
+        // Save pouch state
+        localStorage.setItem('elementPouch', JSON.stringify(this.elementPouch));
+        
+        // Update UI
+        this.updateChargeUI();
+        
+        // Refresh the element selection display
+        if (this.chestUI && this.chestUI.chargeDisplay) {
+            this.chestUI.chargeDisplay.destroy();
+            // Recreate the display by calling setupElementSelection again
+            const { bg, title, choices } = this.chestUI;
+            this.setupElementSelection(bg, title, choices);
         }
     }
 
