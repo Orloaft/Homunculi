@@ -184,6 +184,22 @@ class LoadingScene extends Phaser.Scene {
         this.load.image('cave-crystal', 'cave/crystal.PNG');
         this.load.image('cave-rock', 'cave/rock.PNG');
         this.load.image('cave-stala', 'cave/stala.PNG');
+        
+        // Boss sprites
+        this.load.spritesheet('obelisk-boss', 'obeliskBoss.png', {
+            frameWidth: 100,
+            frameHeight: 100
+        });
+        
+        this.load.spritesheet('boss-laser', 'laser.png', {
+            frameWidth: 100,  // Adjust based on actual sprite width
+            frameHeight: 100
+        });
+        
+        this.load.spritesheet('boss-arm-projectile', 'arm_projectile_glowing.png', {
+            frameWidth: 50,  // Adjust based on actual sprite width
+            frameHeight: 50
+        });
 
         this.load.spritesheet('lightning-spell', 'spells/lightning1.png', {
             frameWidth: 32,
@@ -2707,6 +2723,7 @@ class GameScene extends Phaser.Scene {
 
         this.physics.add.overlap(this.wizard, this.enemies, this.hitEnemy, null, this);
         this.physics.add.overlap(this.projectiles, this.enemies, this.projectileHitEnemy, null, this);
+        this.physics.add.overlap(this.projectiles, this.wizard, this.bossProjectileHitPlayer, null, this);
         this.physics.add.overlap(this.wizard, this.jewels, this.collectJewel, null, this);
         this.physics.add.overlap(this.wizard, this.muffins, this.collectMuffin, null, this);
         this.physics.add.overlap(this.wizard, this.elementOrbs, this.collectElementOrb, null, this);
@@ -2907,6 +2924,87 @@ class GameScene extends Phaser.Scene {
             frames: this.anims.generateFrameNumbers('meteor-spell', { start: 0, end: 5 }),
             frameRate: 10,
             repeat: -1  // Loop forever
+        });
+        
+        // Create Obelisk Boss animations
+        // Idle (frames 0-3)
+        this.anims.create({
+            key: 'obelisk-idle',
+            frames: this.anims.generateFrameNumbers('obelisk-boss', { start: 0, end: 3 }),
+            frameRate: 8,
+            repeat: -1
+        });
+        
+        // Glow (frames 4-11)
+        this.anims.create({
+            key: 'obelisk-glow',
+            frames: this.anims.generateFrameNumbers('obelisk-boss', { start: 4, end: 11 }),
+            frameRate: 10,
+            repeat: 0
+        });
+        
+        // Shoot (frames 12-20)
+        this.anims.create({
+            key: 'obelisk-shoot',
+            frames: this.anims.generateFrameNumbers('obelisk-boss', { start: 12, end: 20 }),
+            frameRate: 12,
+            repeat: 0
+        });
+        
+        // Immune (frames 21-27)
+        this.anims.create({
+            key: 'obelisk-immune',
+            frames: this.anims.generateFrameNumbers('obelisk-boss', { start: 21, end: 27 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        
+        // Melee (frames 28-34)
+        this.anims.create({
+            key: 'obelisk-melee',
+            frames: this.anims.generateFrameNumbers('obelisk-boss', { start: 28, end: 34 }),
+            frameRate: 12,
+            repeat: 0
+        });
+        
+        // Laser cast (frames 35-41)
+        this.anims.create({
+            key: 'obelisk-laser-cast',
+            frames: this.anims.generateFrameNumbers('obelisk-boss', { start: 35, end: 41 }),
+            frameRate: 10,
+            repeat: 0
+        });
+        
+        // Shield cast (frames 42-51)
+        this.anims.create({
+            key: 'obelisk-shield-cast',
+            frames: this.anims.generateFrameNumbers('obelisk-boss', { start: 42, end: 51 }),
+            frameRate: 10,
+            repeat: 0
+        });
+        
+        // Death (frames 52-64)
+        this.anims.create({
+            key: 'obelisk-death',
+            frames: this.anims.generateFrameNumbers('obelisk-boss', { start: 52, end: 64 }),
+            frameRate: 10,
+            repeat: 0
+        });
+        
+        // Boss laser beam animation
+        this.anims.create({
+            key: 'boss-laser-anim',
+            frames: this.anims.generateFrameNumbers('boss-laser', { start: 0, end: 13 }),
+            frameRate: 12,
+            repeat: -1
+        });
+        
+        // Boss arm projectile animation
+        this.anims.create({
+            key: 'boss-arm-anim',
+            frames: this.anims.generateFrameNumbers('boss-arm-projectile', { start: 0, end: 5 }),
+            frameRate: 10,
+            repeat: -1
         });
 
         // Create air spell animation from individual frames - plays backwards then forwards
@@ -4836,8 +4934,8 @@ class GameScene extends Phaser.Scene {
         };
         
         const winMinutes = winMinutesByMode[this.speedMode] || 10;
-        if (minutes >= winMinutes) {
-            this.gameWon();
+        if (minutes >= winMinutes && !this.bossSpawned) {
+            this.spawnBoss();
         }
         // Removed duplicate timer update
 
@@ -5420,6 +5518,27 @@ class GameScene extends Phaser.Scene {
                 if (time > enemy.lastSummonTime + enemy.summonCooldown && !enemy.isSummoning) {
                     this.summonMinions(enemy);
                     enemy.lastSummonTime = time;
+                }
+            }
+            // Handle boss behavior
+            else if (enemy.isBoss) {
+                // Boss moves slowly towards player
+                if (!enemy.stunned && !enemy.frozen) {
+                    const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
+                    const speed = enemy.moveSpeed || 30;
+                    enemy.setVelocity(
+                        Math.cos(angle) * speed,
+                        Math.sin(angle) * speed
+                    );
+                    
+                    // Face direction of movement
+                    if (Math.cos(angle) < 0) {
+                        enemy.setFlipX(true);
+                    } else {
+                        enemy.setFlipX(false);
+                    }
+                } else {
+                    enemy.setVelocity(0, 0);
                 }
             }
             // Handle lost soul behavior
@@ -8211,6 +8330,12 @@ class GameScene extends Phaser.Scene {
         
         // Clean up any active effects
         this.cleanupEnemyEffects(enemy);
+        
+        // Handle boss death specially
+        if (enemy.isBoss) {
+            this.handleBossDeath(enemy);
+            return;
+        }
 
         if (enemy.enemyType === 'slime') {
             // Play slime death animation
@@ -10116,6 +10241,35 @@ class GameScene extends Phaser.Scene {
     }
 
     projectileHitEnemy(projectile, enemy) {
+        // Skip if projectile is from boss hitting player
+        if (projectile.fromBoss) return;
+        
+        // Check boss immunity
+        if (enemy.isBoss && enemy.immuneTime > 0) {
+            // Create immunity effect
+            const immuneText = this.add.text(enemy.x, enemy.y - 50, 'IMMUNE', {
+                fontSize: '20px',
+                color: '#00ffff',
+                fontStyle: 'bold'
+            });
+            immuneText.setOrigin(0.5);
+            
+            this.tweens.add({
+                targets: immuneText,
+                y: immuneText.y - 30,
+                alpha: 0,
+                duration: 1000,
+                ease: 'Power2',
+                onComplete: () => immuneText.destroy()
+            });
+            
+            // Destroy non-piercing projectiles
+            if (!projectile.isPiercing && !projectile.passThroughEnemies) {
+                projectile.destroy();
+            }
+            return;
+        }
+        
         // Initialize hit tracking for piercing projectiles
         if (!projectile.hitEnemies) {
             projectile.hitEnemies = new Set();
@@ -20297,6 +20451,613 @@ class GameScene extends Phaser.Scene {
             this.fusionUI = null;
         }
         this.closeChestUI();
+    }
+    
+    bossProjectileHitPlayer(projectile, wizard) {
+        // Only handle boss projectiles
+        if (!projectile.fromBoss) return;
+        
+        // Check if player is invulnerable
+        if (this.invulnerable) return;
+        
+        // Deal damage
+        this.damagePlayer(projectile.damage || 20);
+        
+        // Destroy projectile unless it's a laser
+        if (!projectile.isLaser && !projectile.isPiercing) {
+            projectile.destroy();
+        }
+    }
+    
+    damagePlayer(damage) {
+        if (this.invulnerable || this.playerHealth <= 0) return;
+        
+        this.playerHealth -= damage;
+        this.updateHealthBar();
+        this.updateWizardHealthBar();
+        
+        // Flash red
+        this.wizard.setTint(0xff0000);
+        this.time.delayedCall(200, () => {
+            if (this.wizard && this.wizard.active) {
+                this.wizard.clearTint();
+            }
+        });
+        
+        // Set invulnerability
+        this.invulnerable = true;
+        this.time.delayedCall(1000, () => {
+            this.invulnerable = false;
+        });
+        
+        // Check for death
+        if (this.playerHealth <= 0) {
+            this.gameOver();
+        }
+    }
+    
+    spawnBoss() {
+        // Mark boss as spawned
+        this.bossSpawned = true;
+        
+        // Stop normal enemy spawning
+        if (this.waveTimer) {
+            this.waveTimer.remove();
+            this.waveTimer = null;
+        }
+        
+        // Kill all existing enemies with a dramatic effect
+        this.killAllEnemies();
+        
+        // Start boss cutscene after a brief delay
+        this.time.delayedCall(1000, () => {
+            this.startBossCutscene();
+        });
+    }
+    
+    killAllEnemies() {
+        // Create a shockwave effect
+        const shockwave = this.add.graphics();
+        shockwave.lineStyle(4, 0xffffff, 1);
+        shockwave.strokeCircle(this.wizard.x, this.wizard.y, 10);
+        shockwave.setDepth(100);
+        
+        // Expand shockwave
+        this.tweens.add({
+            targets: shockwave,
+            scale: 100,
+            alpha: 0,
+            duration: 1000,
+            ease: 'Power2',
+            onComplete: () => shockwave.destroy()
+        });
+        
+        // Kill all enemies
+        this.enemies.children.entries.forEach(enemy => {
+            if (enemy && enemy.active) {
+                // Create death effect
+                const deathEffect = this.add.sprite(enemy.x, enemy.y, 'fire-spell', 0);
+                deathEffect.setScale(2);
+                deathEffect.play('fire-spell-anim');
+                deathEffect.once('animationcomplete', () => deathEffect.destroy());
+                
+                // Destroy enemy
+                enemy.destroy();
+            }
+        });
+        
+        // Clear any projectiles
+        this.projectiles.clear(true, true);
+    }
+    
+    startBossCutscene() {
+        // Pause game temporarily
+        this.physics.pause();
+        
+        // Darken screen
+        const darkOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0);
+        darkOverlay.setScrollFactor(0);
+        darkOverlay.setDepth(200);
+        
+        this.tweens.add({
+            targets: darkOverlay,
+            alpha: 0.7,
+            duration: 1000,
+            ease: 'Power2'
+        });
+        
+        // Boss title text
+        const bossTitle = this.add.text(400, 200, 'AWAKENED OBELISK', {
+            fontSize: '48px',
+            color: '#ff0000',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 6
+        });
+        bossTitle.setOrigin(0.5);
+        bossTitle.setScrollFactor(0);
+        bossTitle.setDepth(201);
+        bossTitle.setAlpha(0);
+        
+        // Subtitle
+        const subtitle = this.add.text(400, 250, 'Ancient Guardian of the Realm', {
+            fontSize: '24px',
+            color: '#ffffff',
+            fontStyle: 'italic',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        subtitle.setOrigin(0.5);
+        subtitle.setScrollFactor(0);
+        subtitle.setDepth(201);
+        subtitle.setAlpha(0);
+        
+        // Animate text appearance
+        this.tweens.add({
+            targets: [bossTitle, subtitle],
+            alpha: 1,
+            duration: 1000,
+            delay: 500,
+            ease: 'Power2'
+        });
+        
+        // Create the boss after cutscene
+        this.time.delayedCall(3000, () => {
+            // Fade out text
+            this.tweens.add({
+                targets: [bossTitle, subtitle, darkOverlay],
+                alpha: 0,
+                duration: 1000,
+                ease: 'Power2',
+                onComplete: () => {
+                    bossTitle.destroy();
+                    subtitle.destroy();
+                    darkOverlay.destroy();
+                    
+                    // Spawn the boss
+                    this.createBoss();
+                    
+                    // Resume physics
+                    this.physics.resume();
+                }
+            });
+        });
+    }
+    
+    createBoss() {
+        // Calculate boss spawn position (center of screen, slightly above player)
+        const bossX = this.wizard.x;
+        const bossY = this.wizard.y - 200;
+        
+        // Create boss sprite
+        const boss = this.physics.add.sprite(bossX, bossY, 'obelisk-boss', 0);
+        boss.setScale(2); // Make boss large
+        boss.health = 500; // High health
+        boss.maxHealth = 500;
+        boss.enemyType = 'boss';
+        boss.isBoss = true;
+        boss.moveSpeed = 30; // Slow but steady
+        
+        // Boss properties
+        boss.attackCooldown = 0;
+        boss.currentPhase = 1; // Boss has multiple phases
+        boss.shieldActive = false;
+        boss.immuneTime = 0;
+        
+        // Set up physics
+        boss.body.setSize(80, 90);
+        boss.body.setOffset(10, 5);
+        
+        // Play idle animation
+        boss.play('obelisk-idle');
+        
+        // Add to enemies group
+        this.enemies.add(boss);
+        
+        // Store boss reference
+        this.boss = boss;
+        
+        // Create boss health bar
+        this.createBossHealthBar();
+        
+        // Start boss AI
+        this.time.addEvent({
+            delay: 2000,
+            callback: () => this.updateBossAI(),
+            loop: true
+        });
+    }
+    
+    createBossHealthBar() {
+        // Boss health bar background
+        const barWidth = 600;
+        const barHeight = 30;
+        
+        this.bossHealthBarBg = this.add.rectangle(400, 50, barWidth, barHeight, 0x000000);
+        this.bossHealthBarBg.setStrokeStyle(3, 0xff0000);
+        this.bossHealthBarBg.setScrollFactor(0);
+        this.bossHealthBarBg.setDepth(100);
+        
+        // Boss health bar fill
+        this.bossHealthBar = this.add.rectangle(400, 50, barWidth - 6, barHeight - 6, 0xff0000);
+        this.bossHealthBar.setScrollFactor(0);
+        this.bossHealthBar.setDepth(101);
+        
+        // Boss name
+        this.bossNameText = this.add.text(400, 25, 'AWAKENED OBELISK', {
+            fontSize: '20px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        this.bossNameText.setOrigin(0.5);
+        this.bossNameText.setScrollFactor(0);
+        this.bossNameText.setDepth(102);
+    }
+    
+    updateBossAI() {
+        if (!this.boss || !this.boss.active || this.boss.health <= 0) return;
+        
+        // Update boss health bar
+        const healthPercent = this.boss.health / this.boss.maxHealth;
+        this.bossHealthBar.width = (600 - 6) * healthPercent;
+        
+        // Check phase transitions
+        if (healthPercent <= 0.66 && this.boss.currentPhase === 1) {
+            this.boss.currentPhase = 2;
+            this.bossPhaseTwoTransition();
+        } else if (healthPercent <= 0.33 && this.boss.currentPhase === 2) {
+            this.boss.currentPhase = 3;
+            this.bossPhaseThreeTransition();
+        }
+        
+        // Reduce cooldowns
+        if (this.boss.attackCooldown > 0) {
+            this.boss.attackCooldown -= 2000; // 2 second tick
+        }
+        
+        if (this.boss.immuneTime > 0) {
+            this.boss.immuneTime -= 2000;
+            if (this.boss.immuneTime <= 0) {
+                this.boss.clearTint();
+                this.boss.play('obelisk-idle');
+            }
+        }
+        
+        // Skip attacks if on cooldown or immune
+        if (this.boss.attackCooldown > 0 || this.boss.immuneTime > 0) return;
+        
+        // Choose attack based on phase and randomness
+        const attackRoll = Math.random();
+        
+        if (this.boss.currentPhase === 1) {
+            // Phase 1: Basic attacks
+            if (attackRoll < 0.5) {
+                this.bossShootAttack();
+            } else {
+                this.bossArmProjectileAttack();
+            }
+        } else if (this.boss.currentPhase === 2) {
+            // Phase 2: Add laser and shield
+            if (attackRoll < 0.3) {
+                this.bossShootAttack();
+            } else if (attackRoll < 0.5) {
+                this.bossArmProjectileAttack();
+            } else if (attackRoll < 0.7) {
+                this.bossLaserAttack();
+            } else {
+                this.bossShieldCast();
+            }
+        } else {
+            // Phase 3: All attacks, faster
+            if (attackRoll < 0.2) {
+                this.bossShootAttack();
+            } else if (attackRoll < 0.4) {
+                this.bossArmProjectileAttack();
+            } else if (attackRoll < 0.6) {
+                this.bossLaserAttack();
+            } else if (attackRoll < 0.8) {
+                this.bossMeleeAttack();
+            } else {
+                this.bossShieldCast();
+            }
+        }
+    }
+    
+    bossShootAttack() {
+        this.boss.play('obelisk-shoot');
+        this.boss.attackCooldown = 3000;
+        
+        // Fire projectiles in multiple directions
+        const projectileCount = 3 + this.boss.currentPhase;
+        const angleStep = (Math.PI * 2) / projectileCount;
+        
+        for (let i = 0; i < projectileCount; i++) {
+            const angle = angleStep * i;
+            const projectile = this.physics.add.sprite(this.boss.x, this.boss.y, 'fire-spell', 0);
+            projectile.setScale(1.5);
+            projectile.play('fire-spell-anim');
+            
+            const speed = 200;
+            projectile.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+            projectile.damage = 20;
+            projectile.fromBoss = true;
+            
+            this.projectiles.add(projectile);
+        }
+    }
+    
+    bossArmProjectileAttack() {
+        this.boss.play('obelisk-shoot');
+        this.boss.attackCooldown = 4000;
+        
+        // Create boomerang arm projectile
+        const arm = this.physics.add.sprite(this.boss.x, this.boss.y, 'boss-arm-projectile', 0);
+        arm.setScale(2);
+        arm.play('boss-arm-anim');
+        arm.damage = 30;
+        arm.fromBoss = true;
+        arm.isBoomerang = true;
+        
+        // Calculate angle to player
+        const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, this.wizard.x, this.wizard.y);
+        const speed = 300;
+        arm.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+        
+        // Boomerang behavior
+        this.time.delayedCall(1000, () => {
+            if (arm && arm.active) {
+                // Reverse direction back to boss
+                const returnAngle = Phaser.Math.Angle.Between(arm.x, arm.y, this.boss.x, this.boss.y);
+                arm.setVelocity(Math.cos(returnAngle) * speed, Math.sin(returnAngle) * speed);
+                
+                // Destroy when it reaches boss
+                const returnTimer = this.time.addEvent({
+                    delay: 50,
+                    callback: () => {
+                        if (arm && arm.active && this.boss && this.boss.active) {
+                            const dist = Phaser.Math.Distance.Between(arm.x, arm.y, this.boss.x, this.boss.y);
+                            if (dist < 50) {
+                                arm.destroy();
+                                returnTimer.remove();
+                            }
+                        }
+                    },
+                    loop: true
+                });
+            }
+        });
+        
+        this.projectiles.add(arm);
+    }
+    
+    bossLaserAttack() {
+        this.boss.play('obelisk-laser-cast');
+        this.boss.attackCooldown = 5000;
+        
+        // Telegraph laser
+        const laserWarning = this.add.rectangle(this.boss.x, this.boss.y, 10, 1000, 0xff0000, 0.3);
+        laserWarning.setOrigin(0.5, 1);
+        
+        // Aim at player
+        const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, this.wizard.x, this.wizard.y);
+        laserWarning.rotation = angle + Math.PI / 2;
+        
+        // Flash warning
+        this.tweens.add({
+            targets: laserWarning,
+            alpha: { from: 0.3, to: 0.8 },
+            duration: 500,
+            yoyo: true,
+            repeat: 2,
+            onComplete: () => {
+                laserWarning.destroy();
+                
+                // Fire actual laser
+                const laser = this.physics.add.sprite(this.boss.x, this.boss.y, 'boss-laser', 0);
+                laser.setScale(1, 5);
+                laser.setOrigin(0.5, 1);
+                laser.rotation = angle + Math.PI / 2;
+                laser.play('boss-laser-anim');
+                laser.damage = 50;
+                laser.fromBoss = true;
+                laser.isLaser = true;
+                
+                // Laser doesn't move, just damages anything in its path
+                this.time.delayedCall(1000, () => {
+                    if (laser && laser.active) {
+                        laser.destroy();
+                    }
+                });
+                
+                // Check laser collision with player
+                const laserLine = new Phaser.Geom.Line(
+                    this.boss.x, 
+                    this.boss.y,
+                    this.boss.x + Math.cos(angle) * 500,
+                    this.boss.y + Math.sin(angle) * 500
+                );
+                
+                // Simple distance check for laser hit
+                const playerPoint = new Phaser.Geom.Point(this.wizard.x, this.wizard.y);
+                const distance = Phaser.Geom.Line.GetShortestDistance(laserLine, playerPoint);
+                
+                if (distance < 30) {
+                    this.damagePlayer(50);
+                }
+            }
+        });
+    }
+    
+    bossMeleeAttack() {
+        this.boss.play('obelisk-melee');
+        this.boss.attackCooldown = 3000;
+        
+        // Create shockwave around boss
+        const shockwave = this.add.circle(this.boss.x, this.boss.y, 50, 0xff6600, 0.5);
+        shockwave.setDepth(10);
+        
+        this.tweens.add({
+            targets: shockwave,
+            scale: 3,
+            alpha: 0,
+            duration: 500,
+            ease: 'Power2',
+            onComplete: () => shockwave.destroy()
+        });
+        
+        // Damage nearby player
+        const dist = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, this.wizard.x, this.wizard.y);
+        if (dist < 150) {
+            this.damagePlayer(40);
+            // Knockback
+            const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, this.wizard.x, this.wizard.y);
+            this.wizard.body.setVelocity(Math.cos(angle) * 500, Math.sin(angle) * 500);
+        }
+    }
+    
+    bossShieldCast() {
+        this.boss.play('obelisk-shield-cast');
+        this.boss.attackCooldown = 6000;
+        this.boss.shieldActive = true;
+        
+        // Create shield visual
+        const shield = this.add.circle(this.boss.x, this.boss.y, 100, 0x00ffff, 0.3);
+        shield.setStrokeStyle(3, 0x00ffff);
+        shield.setDepth(11);
+        
+        // Make boss immune during shield
+        this.boss.immuneTime = 4000;
+        this.boss.setTint(0x00ffff);
+        
+        // Shield follows boss
+        const shieldTimer = this.time.addEvent({
+            delay: 50,
+            callback: () => {
+                if (shield && this.boss && this.boss.active) {
+                    shield.x = this.boss.x;
+                    shield.y = this.boss.y;
+                }
+            },
+            loop: true
+        });
+        
+        // Remove shield after duration
+        this.time.delayedCall(4000, () => {
+            shield.destroy();
+            shieldTimer.remove();
+            this.boss.shieldActive = false;
+        });
+    }
+    
+    bossPhaseTwoTransition() {
+        // Visual effect for phase transition
+        this.boss.play('obelisk-glow');
+        
+        const phaseText = this.add.text(this.boss.x, this.boss.y - 100, 'PHASE 2', {
+            fontSize: '32px',
+            color: '#ff6600',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        phaseText.setOrigin(0.5);
+        
+        this.tweens.add({
+            targets: phaseText,
+            y: phaseText.y - 50,
+            alpha: 0,
+            duration: 2000,
+            ease: 'Power2',
+            onComplete: () => phaseText.destroy()
+        });
+        
+        // Increase boss speed
+        this.boss.moveSpeed = 50;
+    }
+    
+    bossPhaseThreeTransition() {
+        // Visual effect for final phase
+        this.boss.play('obelisk-glow');
+        
+        const phaseText = this.add.text(this.boss.x, this.boss.y - 100, 'FINAL PHASE', {
+            fontSize: '32px',
+            color: '#ff0000',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        phaseText.setOrigin(0.5);
+        
+        this.tweens.add({
+            targets: phaseText,
+            y: phaseText.y - 50,
+            alpha: 0,
+            duration: 2000,
+            ease: 'Power2',
+            onComplete: () => phaseText.destroy()
+        });
+        
+        // Increase boss speed and add permanent glow
+        this.boss.moveSpeed = 70;
+        this.boss.setTint(0xff6666);
+    }
+    
+    handleBossDeath(boss) {
+        // Play death animation
+        boss.play('obelisk-death');
+        boss.setVelocity(0, 0);
+        
+        // Remove boss health bar
+        if (this.bossHealthBar) {
+            this.bossHealthBar.destroy();
+            this.bossHealthBarBg.destroy();
+            this.bossNameText.destroy();
+        }
+        
+        // Create epic death effect
+        const deathEffect = this.add.graphics();
+        deathEffect.fillStyle(0xffffff, 1);
+        deathEffect.fillCircle(boss.x, boss.y, 50);
+        deathEffect.setDepth(200);
+        
+        // Expanding shockwave
+        this.tweens.add({
+            targets: deathEffect,
+            scale: 10,
+            alpha: 0,
+            duration: 2000,
+            ease: 'Power2',
+            onComplete: () => deathEffect.destroy()
+        });
+        
+        // Screen shake
+        this.cameras.main.shake(1000, 0.02);
+        
+        // Wait for death animation
+        boss.once('animationcomplete', () => {
+            // Drop massive rewards
+            for (let i = 0; i < 10; i++) {
+                const angle = (Math.PI * 2 * i) / 10;
+                const distance = 100;
+                const dropX = boss.x + Math.cos(angle) * distance;
+                const dropY = boss.y + Math.sin(angle) * distance;
+                this.dropJewel(dropX, dropY, 20, 0.15); // Large jewels
+            }
+            
+            // Drop special chest
+            this.dropChest(boss.x, boss.y);
+            
+            // Destroy boss
+            boss.destroy();
+            this.boss = null;
+            
+            // Trigger actual victory after delay
+            this.time.delayedCall(2000, () => {
+                this.gameWon();
+            });
+        });
     }
 
     gameWon() {
