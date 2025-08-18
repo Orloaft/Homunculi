@@ -305,10 +305,6 @@ class LoadingScene extends Phaser.Scene {
             frameHeight: 35
         });
 
-        // Load dark eye enemy sprites (individual frames)
-        for (let i = 1; i <= 8; i++) {
-            this.load.image(`darkeye-walk-${i}`, `newenemies/Bringer-Of-Death/Individual Sprite/Walk/Bringer-of-Death_Walk_${i}.png`);
-        }
 
         // Load chest sprites
         this.load.spritesheet('chest-idle', 'Chests5frames.PNG', {
@@ -1745,7 +1741,7 @@ class GameOverScene extends Phaser.Scene {
 
     init(data) {
         this.survivalTime = data.survivalTime || 0;
-        this.enemiesKilled = data.enemiesKilled || { tree: 0, slime: 0, golem: 0, elite: 0, bat: 0, sorcerer: 0, mushroom: 0, fireworm: 0, summoner: 0, soul: 0, bloboid: 0, darkeye: 0 };
+        this.enemiesKilled = data.enemiesKilled || { tree: 0, slime: 0, golem: 0, elite: 0, bat: 0, sorcerer: 0, mushroom: 0, fireworm: 0, summoner: 0, soul: 0, bloboid: 0 };
         this.itemsCollected = data.itemsCollected || { jewels: 0, muffins: 0, elements: 0 };
         this.won = data.won || false;
         this.stage = data.stage || 'forest';
@@ -2366,8 +2362,8 @@ class GameScene extends Phaser.Scene {
         this.discoveredSpells = [];
         this.spellbookOpen = false;
         this.spellbookUI = null;
-        this.playerHealth = 100;
-        this.maxHealth = 100;
+        this.playerHealth = 300;
+        this.maxHealth = 300;
         this.healthBar = null;
         this.healthBarBg = null;
         this.invulnerable = false;
@@ -2377,7 +2373,7 @@ class GameScene extends Phaser.Scene {
         this.jewels = null;
         this.playerXP = 0;
         this.playerLevel = 1;
-        this.xpToNextLevel = 25; // Reduced by 50%
+        this.xpToNextLevel = 10; // Reduced for easier early progression
         this.maxCharges = 4; // Start with 4 charge slots
         this.chargingElement = null;
         this.chargeHoldTime = 0;
@@ -2633,7 +2629,7 @@ class GameScene extends Phaser.Scene {
         this.hyperMode = this.speedMode !== 'frolic';
         
         // Reset game state
-        this.playerHealth = 100;
+        this.playerHealth = this.maxHealth; // Start with full health
         this.gameStarted = false; // Will be set to true after countdown
         console.log('GameScene created, gameStarted set to false');
         this.charges = []; // Start with no charges
@@ -2653,7 +2649,7 @@ class GameScene extends Phaser.Scene {
         this.enemiesInCurrentWave = 0;
         this.maxEnemiesPerWave = 10;
         this.waveSpawnInterval = 500; // ms between spawns in a wave
-        this.lastWaveSpawn = 0;
+        this.lastWaveSpawn = 0; // Initialize spawn timer
         
         // Chrome-specific garbage collection optimization
         if (navigator.userAgent.includes('Chrome')) {
@@ -2665,13 +2661,13 @@ class GameScene extends Phaser.Scene {
                 projectiles: new Array(100)
             };
         }
-        this.enemiesKilled = { tree: 0, slime: 0, golem: 0, elite: 0, bat: 0, sorcerer: 0, mushroom: 0, fireworm: 0, summoner: 0, soul: 0, bloboid: 0, darkeye: 0 };
+        this.enemiesKilled = { tree: 0, slime: 0, golem: 0, elite: 0, bat: 0, sorcerer: 0, mushroom: 0, fireworm: 0, summoner: 0, soul: 0, bloboid: 0 };
         this.itemsCollected = { jewels: 0, muffins: 0, elements: 0 };
         this.eliteEnemies = [];
         this.chests = this.physics.add.group();
         this.playerXP = 0;
         this.playerLevel = 1;
-        this.xpToNextLevel = 25; // Reduced by 50%
+        this.xpToNextLevel = 10; // Reduced for easier early progression
         this.maxCharges = 4; // Start with 4 charge slots
         this.lastFireTime = 0;
         this.currentChargeIndex = 0;
@@ -3503,22 +3499,6 @@ class GameScene extends Phaser.Scene {
             repeat: -1
         });
 
-        // Dark eye animation
-        createAnimIfNotExists({
-            key: 'darkeye-walking',
-            frames: [
-                { key: 'darkeye-walk-1' },
-                { key: 'darkeye-walk-2' },
-                { key: 'darkeye-walk-3' },
-                { key: 'darkeye-walk-4' },
-                { key: 'darkeye-walk-5' },
-                { key: 'darkeye-walk-6' },
-                { key: 'darkeye-walk-7' },
-                { key: 'darkeye-walk-8' }
-            ],
-            frameRate: 10,
-            repeat: -1
-        });
 
         // Create sorcerer animation
         createAnimIfNotExists({
@@ -4150,22 +4130,64 @@ class GameScene extends Phaser.Scene {
     }
 
     createTrees() {
-        // Add random trees around starting area
-        const treeCount = 30;
-        const spawnRadius = 1500; // Trees spawn within this radius of start
+        // Initialize tree management for infinite world
+        this.trees = [];
+        this.treeGrid = new Map(); // Track which grid cells have trees
+        this.lastTreeUpdateX = 0;
+        this.lastTreeUpdateY = 0;
         
-        for (let i = 0; i < treeCount; i++) {
-            // Spawn trees around the wizard's starting position
-            const angle = Math.random() * Math.PI * 2;
-            const distance = Math.random() * spawnRadius;
-            const x = 2000 + Math.cos(angle) * distance;
-            const y = 1080 + Math.sin(angle) * distance;
-
-            const tree = this.add.image(x, y, 'tree');
-            tree.setScale(Phaser.Math.FloatBetween(0.8, 1.2));
-            tree.setDepth(Math.min(400, Math.floor(y / 10))); // Depth based on Y position, capped at 400
-            tree.setAlpha(0.8);
+        // Create initial trees around starting position
+        this.updateTreesAroundPosition(2000, 1080);
+    }
+    
+    updateTreesAroundPosition(centerX, centerY) {
+        const gridSize = 500; // Size of each grid cell
+        const viewRadius = 1000; // How far around the player to spawn trees
+        
+        // Calculate grid cells we need trees in
+        const minGridX = Math.floor((centerX - viewRadius) / gridSize);
+        const maxGridX = Math.floor((centerX + viewRadius) / gridSize);
+        const minGridY = Math.floor((centerY - viewRadius) / gridSize);
+        const maxGridY = Math.floor((centerY + viewRadius) / gridSize);
+        
+        // Create trees in grid cells that don't have them yet
+        for (let gx = minGridX; gx <= maxGridX; gx++) {
+            for (let gy = minGridY; gy <= maxGridY; gy++) {
+                const gridKey = `${gx},${gy}`;
+                if (!this.treeGrid.has(gridKey)) {
+                    this.treeGrid.set(gridKey, true);
+                    
+                    // Create 2-3 trees per grid cell
+                    const treeCount = Phaser.Math.Between(2, 3);
+                    for (let i = 0; i < treeCount; i++) {
+                        const x = gx * gridSize + Math.random() * gridSize;
+                        const y = gy * gridSize + Math.random() * gridSize;
+                        
+                        const tree = this.add.image(x, y, 'tree');
+                        tree.setScale(Phaser.Math.FloatBetween(0.8, 1.2));
+                        tree.setDepth(Math.min(400, Math.max(10, Math.floor(y / 10) + 200))); // Ensure minimum depth of 10
+                        tree.setAlpha(0.8);
+                        
+                        this.trees.push({
+                            sprite: tree,
+                            x: x,
+                            y: y,
+                            gridKey: gridKey
+                        });
+                    }
+                }
+            }
         }
+        
+        // Remove trees that are too far away
+        this.trees = this.trees.filter(treeData => {
+            const dist = Phaser.Math.Distance.Between(treeData.x, treeData.y, centerX, centerY);
+            if (dist > viewRadius * 2) {
+                treeData.sprite.destroy();
+                return false;
+            }
+            return true;
+        });
     }
 
     createInvisibleBarriers() {
@@ -4843,7 +4865,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'summoner', weight: 20, count: 1 },
                         { type: 'fireworm', weight: 30, count: 3 }
                     ],
-                    spawnInterval: 800,
+                    spawnInterval: 2000,
                     maxEnemies: 65,
                     specialEvent: { time: 30, type: 'circle', enemy: 'fireslime', count: 12 }
                 },
@@ -4856,7 +4878,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'fireworm', weight: 20, count: 4 },
                         { type: 'bat', weight: 15, count: 5 }
                     ],
-                    spawnInterval: 600,
+                    spawnInterval: 1500,
                     maxEnemies: 80
                 }
             ];
@@ -4905,15 +4927,14 @@ class GameScene extends Phaser.Scene {
                     spawnInterval: 1000,
                     maxEnemies: 55
                 },
-                // Wave 4 (4:00-5:00) - Add dark eyes
+                // Wave 4 (4:00-5:00) - Intensify challenge
                 {
                     enemies: [
                         { type: 'soul', weight: 20, count: 3 },
                         { type: 'golem', weight: 30, count: 2 },
-                        { type: 'slime', weight: 30, count: 3 },
-                        { type: 'darkeye', weight: 20, count: 1 }
+                        { type: 'slime', weight: 50, count: 3 }
                     ],
-                    spawnInterval: 800,
+                    spawnInterval: 2000,
                     maxEnemies: 65,
                     specialEvent: { time: 30, type: 'circle', enemy: 'soul', count: 10 }
                 },
@@ -4922,11 +4943,10 @@ class GameScene extends Phaser.Scene {
                     enemies: [
                         { type: 'golem', weight: 25, count: 2 },
                         { type: 'soul', weight: 20, count: 3 },
-                        { type: 'slime', weight: 20, count: 4 },
-                        { type: 'darkeye', weight: 20, count: 1 },
+                        { type: 'slime', weight: 40, count: 4 },
                         { type: 'bat', weight: 15, count: 4 }
                     ],
-                    spawnInterval: 600,
+                    spawnInterval: 1500,
                     maxEnemies: 80
                 }
             ];
@@ -4983,7 +5003,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'tree', weight: 30, count: 3 },
                         { type: 'summoner', weight: 20, count: 1 }
                     ],
-                    spawnInterval: 800,
+                    spawnInterval: 2000,
                     maxEnemies: 65,
                     specialEvent: { time: 30, type: 'circle', enemy: 'mushroom', count: 10 }
                 },
@@ -4996,7 +5016,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'mushroom', weight: 20, count: 3 },
                         { type: 'bat', weight: 15, count: 4 }
                     ],
-                    spawnInterval: 600,
+                    spawnInterval: 1500,
                     maxEnemies: 80
                 }
             ];
@@ -5020,7 +5040,7 @@ class GameScene extends Phaser.Scene {
         this.currentWave++;
         this.waveStartTime = this.time.now;
         this.enemiesInCurrentWave = 0;
-        this.lastWaveSpawn = 0; // Reset spawn timer for new wave
+        this.lastWaveSpawn = this.time.now; // Set to current time
         
         console.log(`Starting wave ${this.currentWave}`);
 
@@ -5610,6 +5630,15 @@ class GameScene extends Phaser.Scene {
             this.wizard.lastDirection = this.wizard.lastStableDirection;
         }
 
+        // Normalize diagonal movement
+        if (velocityX !== 0 && velocityY !== 0) {
+            // When moving diagonally, normalize the vector to maintain consistent speed
+            const magnitude = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
+            const normalizedMagnitude = speed;
+            velocityX = (velocityX / magnitude) * normalizedMagnitude;
+            velocityY = (velocityY / magnitude) * normalizedMagnitude;
+        }
+
         this.wizard.setVelocity(velocityX, velocityY);
 
         // Direction is preserved when not moving, no need to change it
@@ -5661,6 +5690,16 @@ class GameScene extends Phaser.Scene {
                 this.wizard.once('animationcomplete', () => {
                     this.wizard.play('wizard-idle-loop');
                 });
+            }
+        }
+
+        // Update trees around player position for infinite world
+        if (this.selectedStage === 'forest' && this.trees && this.wizard) {
+            const distanceMoved = Math.abs(this.wizard.x - this.lastTreeUpdateX) + Math.abs(this.wizard.y - this.lastTreeUpdateY);
+            if (distanceMoved > 200) { // Update trees every 200 pixels of movement
+                this.updateTreesAroundPosition(this.wizard.x, this.wizard.y);
+                this.lastTreeUpdateX = this.wizard.x;
+                this.lastTreeUpdateY = this.wizard.y;
             }
         }
 
@@ -5735,11 +5774,31 @@ class GameScene extends Phaser.Scene {
             for (let i = 0; i < enemyEntries.length; i++) {
                 if (enemyEntries[i].active) currentEnemyCount++;
             }
-            if (currentEnemyCount < waveDef.maxEnemies && this.time.now > this.lastWaveSpawn + (waveDef.spawnInterval / this.speedMultiplier)) {
-                console.log(`Spawning enemy for wave ${this.currentWave}, enemy count: ${currentEnemyCount}/${waveDef.maxEnemies}`);
+            
+            // Movement-based spawning (Vampire Survivors style)
+            if (!this.lastPlayerX) this.lastPlayerX = this.wizard.x;
+            if (!this.lastPlayerY) this.lastPlayerY = this.wizard.y;
+            if (!this.distanceTraveled) this.distanceTraveled = 0;
+            
+            const deltaX = this.wizard.x - this.lastPlayerX;
+            const deltaY = this.wizard.y - this.lastPlayerY;
+            const distanceMoved = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            this.distanceTraveled += distanceMoved;
+            
+            // Spawn enemy every 50 pixels of movement OR based on time
+            const spawnByMovement = this.distanceTraveled > 50;
+            const spawnByTime = this.time.now > this.lastWaveSpawn + (waveDef.spawnInterval / this.speedMultiplier);
+            
+            if (currentEnemyCount < waveDef.maxEnemies && (spawnByMovement || spawnByTime)) {
                 this.spawnWaveEnemy(waveDef);
                 this.lastWaveSpawn = this.time.now;
+                if (spawnByMovement) {
+                    this.distanceTraveled = 0;
+                }
             }
+            
+            this.lastPlayerX = this.wizard.x;
+            this.lastPlayerY = this.wizard.y;
         }
 
         // Safety check for enemies group
@@ -5783,13 +5842,62 @@ class GameScene extends Phaser.Scene {
                 continue;
             }
             
+            // Check distance for teleportation/destruction BEFORE culling check
+            const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
+            
+            // Destroy enemy if extremely far away (beyond 1000 pixels) to prevent accumulation
+            if (distance > 1000 && !enemy.isDying) {
+                enemy.destroy();
+                continue;
+            }
+            
+            // Teleport enemy if too far from wizard (beyond 500 pixels) - but not if dying
+            if (distance > 500 && !enemy.isDying) {
+                // Teleport to outside viewport
+                const camera = this.cameras.main;
+                const viewportWidth = camera.width;
+                const viewportHeight = camera.height;
+                const spawnMargin = 50;
+
+                // Calculate spawn position outside current viewport
+                const side = Phaser.Math.Between(0, 3);
+                switch (side) {
+                    case 0: // Top
+                        enemy.x = camera.scrollX + Phaser.Math.Between(0, viewportWidth);
+                        enemy.y = camera.scrollY - spawnMargin;
+                        break;
+                    case 1: // Right
+                        enemy.x = camera.scrollX + viewportWidth + spawnMargin;
+                        enemy.y = camera.scrollY + Phaser.Math.Between(0, viewportHeight);
+                        break;
+                    case 2: // Bottom
+                        enemy.x = camera.scrollX + Phaser.Math.Between(0, viewportWidth);
+                        enemy.y = camera.scrollY + viewportHeight + spawnMargin;
+                        break;
+                    case 3: // Left
+                        enemy.x = camera.scrollX - spawnMargin;
+                        enemy.y = camera.scrollY + Phaser.Math.Between(0, viewportHeight);
+                        break;
+                }
+            }
+            
             // Skip enemies that are far off-screen (culling)
             if (enemy.x < camLeft || enemy.x > camRight || 
                 enemy.y < camTop || enemy.y > camBottom) {
                 // For off-screen enemies, still update movement toward player but skip expensive operations
                 if (enemy.body && !enemy.stunned && !enemy.frozen) {
                     const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
-                    const moveSpeed = enemy.moveSpeed || 40;
+                    // Use proper enemy speed with multipliers for off-screen enemies too
+                    let moveSpeed = (enemy.moveSpeed || (enemy.enemyType === 'tree' ? 48 : 60)) * this.speedMultiplier;
+                    
+                    // Apply slow effects even when off-screen
+                    if (enemy.wet && enemy.wetEndTime && this.time.now < enemy.wetEndTime) {
+                        moveSpeed *= enemy.waterSlowFactor || 0.5;
+                    }
+                    if (enemy.muddy && enemy.muddyEndTime && this.time.now < enemy.muddyEndTime) {
+                        moveSpeed *= enemy.mudSlowFactor || 0.2;
+                    }
+                    
                     enemy.setVelocity(
                         Math.cos(angle) * moveSpeed,
                         Math.sin(angle) * moveSpeed
@@ -5834,39 +5942,7 @@ class GameScene extends Phaser.Scene {
                 }
             }
 
-            const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
-
-            // Teleport enemy if too far from wizard (beyond 800 pixels) - but not if dying
-            if (distance > 800 && !enemy.isDying) {
-                // Teleport to outside viewport
-                const camera = this.cameras.main;
-                const viewportWidth = camera.width;
-                const viewportHeight = camera.height;
-                const spawnMargin = 50;
-
-                // Calculate spawn position outside current viewport
-                const side = Phaser.Math.Between(0, 3);
-                switch (side) {
-                    case 0: // Top
-                        enemy.x = camera.scrollX + Phaser.Math.Between(0, viewportWidth);
-                        enemy.y = camera.scrollY - spawnMargin;
-                        break;
-                    case 1: // Right
-                        enemy.x = camera.scrollX + viewportWidth + spawnMargin;
-                        enemy.y = camera.scrollY + Phaser.Math.Between(0, viewportHeight);
-                        break;
-                    case 2: // Bottom
-                        enemy.x = camera.scrollX + Phaser.Math.Between(0, viewportWidth);
-                        enemy.y = camera.scrollY + viewportHeight + spawnMargin;
-                        break;
-                    case 3: // Left
-                        enemy.x = camera.scrollX - spawnMargin;
-                        enemy.y = camera.scrollY + Phaser.Math.Between(0, viewportHeight);
-                        break;
-                }
-
-                // No clamping - infinite world!
-            }
+            // Distance already calculated above, no need to recalculate
 
             // Handle summoner behavior
             if (enemy.enemyType === 'summoner') {
@@ -5961,47 +6037,6 @@ class GameScene extends Phaser.Scene {
                     }
                 }
             }
-            // Handle darkeye behavior
-            else if (enemy.enemyType === 'darkeye') {
-                const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
-
-                // Move towards wizard but stop at attack range
-                if (distance > enemy.attackRange && !enemy.stunned && !enemy.blinded && !enemy.frozen && !this.wizard.invisible) {
-                    const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
-                    let speed = enemy.moveSpeed;
-
-                    // Apply slow effects
-                    if (!enemy.isDying && enemy.wet && enemy.wetEndTime && this.time.now < enemy.wetEndTime) {
-                        speed *= enemy.waterSlowFactor || 0.5;
-                    }
-                    if (!enemy.isDying && enemy.muddy && enemy.muddyEndTime && this.time.now < enemy.muddyEndTime) {
-                        speed *= enemy.mudSlowFactor || 0.2;
-                    }
-
-                    enemy.setVelocity(
-                        Math.cos(angle) * speed,
-                        Math.sin(angle) * speed
-                    );
-                } else {
-                    enemy.setVelocity(0, 0);
-                }
-
-                // Face the wizard
-                if (this.wizard.x < enemy.x) {
-                    enemy.setFlipX(true);
-                } else {
-                    enemy.setFlipX(false);
-                }
-
-                // Attack when in range
-                if (distance <= enemy.attackRange && !enemy.isAttacking) {
-                    if (!enemy.lastAttackTime) enemy.lastAttackTime = 0;
-                    if (time > enemy.lastAttackTime + enemy.attackCooldown) {
-                        this.darkeyeAttack(enemy);
-                        enemy.lastAttackTime = time;
-                    }
-                }
-            }
             // Handle sorcerer behavior
             else if (enemy.enemyType === 'sorcerer') {
                 const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
@@ -6043,8 +6078,8 @@ class GameScene extends Phaser.Scene {
                     }
                 }
             }
-            // Only update velocity if not being knocked back, not stunned, and not blinded
-            else if (Math.abs(enemy.body.velocity.x) < 100 && Math.abs(enemy.body.velocity.y) < 100 && !enemy.stunned && !enemy.blinded && !enemy.frozen && !this.wizard.invisible) {
+            // Only update velocity if not stunned, blinded, or frozen
+            else if (!enemy.stunned && !enemy.blinded && !enemy.frozen && !this.wizard.invisible) {
                 // Get enemy speed based on type
                 let moveSpeed = (enemy.moveSpeed || (enemy.enemyType === 'tree' ? 48 : 60)) * this.speedMultiplier;
 
@@ -6079,7 +6114,7 @@ class GameScene extends Phaser.Scene {
                     }
 
                     // Flip enemies to face wizard
-                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'soul' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'darkeye' || enemy.enemyType === 'mushroom' || enemy.enemyType === 'sorcerer') {
+                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'soul' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'mushroom' || enemy.enemyType === 'sorcerer') {
                         if (this.wizard.x < enemy.x) {
                             enemy.setFlipX(true); // Face left
                         } else {
@@ -6096,7 +6131,7 @@ class GameScene extends Phaser.Scene {
                     }
 
                     // Flip enemies to face wizard even when stopped
-                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'darkeye' || enemy.enemyType === 'mushroom') {
+                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'mushroom') {
                         if (this.wizard.x < enemy.x) {
                             enemy.setFlipX(true); // Face left
                         } else {
@@ -6104,11 +6139,11 @@ class GameScene extends Phaser.Scene {
                         }
                     }
                 }
-            } else if (this.wizard.invisible && Math.abs(enemy.body.velocity.x) < 100 && Math.abs(enemy.body.velocity.y) < 100) {
+            } else if (this.wizard.invisible) {
                 // Stop enemies when wizard is invisible
                 enemy.setVelocity(0, 0);
-            } else {
-                // Gradually slow down knockback
+            } else if (Math.abs(enemy.body.velocity.x) > 100 || Math.abs(enemy.body.velocity.y) > 100) {
+                // Gradually slow down knockback only if velocity is high
                 enemy.setVelocity(
                     enemy.body.velocity.x * 0.85,
                     enemy.body.velocity.y * 0.85
@@ -6137,12 +6172,13 @@ class GameScene extends Phaser.Scene {
                 return;
             }
 
-            // Use world bounds instead of fixed screen coordinates
-            const bounds = this.physics.world.bounds;
-            if (projectile.x < bounds.x - 50 ||
-                projectile.x > bounds.x + bounds.width + 50 ||
-                projectile.y < bounds.y - 50 ||
-                projectile.y > bounds.y + bounds.height + 50) {
+            // Use camera-relative bounds for infinite world
+            const camera = this.cameras.main;
+            const margin = 500; // Keep projectiles alive within 500px of camera view
+            if (projectile.x < camera.scrollX - margin ||
+                projectile.x > camera.scrollX + camera.width + margin ||
+                projectile.y < camera.scrollY - margin ||
+                projectile.y > camera.scrollY + camera.height + margin) {
                 this.safeDestroyProjectile(projectile);
             }
         });
@@ -7103,6 +7139,18 @@ class GameScene extends Phaser.Scene {
             // Pause physics and all timers
             this.physics.pause();
             this.time.timeScale = 0;
+            
+            // Handle active boss laser
+            if (this.activeBossLaser && this.activeBossLaser.active) {
+                // Stop laser animation
+                if (this.activeBossLaser.anims) {
+                    this.activeBossLaser.anims.pause();
+                }
+                // Pause the destroy timer
+                if (this.activeBossLaser.destroyTimer) {
+                    this.activeBossLaser.destroyTimer.paused = true;
+                }
+            }
 
             // Initialize controller cursor
             this.pauseMenuCursorIndex = 0;
@@ -7391,6 +7439,19 @@ class GameScene extends Phaser.Scene {
             // Resume physics and timers
             this.physics.resume();
             this.time.timeScale = 1;
+            
+            // Resume active boss laser
+            if (this.activeBossLaser && this.activeBossLaser.active) {
+                // Resume laser animation
+                if (this.activeBossLaser.anims) {
+                    this.activeBossLaser.anims.resume();
+                }
+                // Resume the destroy timer
+                if (this.activeBossLaser.destroyTimer) {
+                    this.activeBossLaser.destroyTimer.paused = false;
+                }
+            }
+            
             // Update charge groups based on links and update passive bonuses
             this.updateChargeGroups();
         }
@@ -7648,9 +7709,9 @@ class GameScene extends Phaser.Scene {
             case 'earth':
                 // Earth passive: +30% health, damage reflection
                 this.passiveBonuses.thorns += 0.25; // Reflect 25% damage
-                if (this.maxHealth === 100) { // Only apply once
-                    this.maxHealth = 130;
-                    this.playerHealth = Math.min(this.playerHealth + 30, this.maxHealth);
+                if (this.maxHealth === 300) { // Only apply once
+                    this.maxHealth = 390; // 300 + 30% = 390
+                    this.playerHealth = Math.min(this.playerHealth + 90, this.maxHealth);
                 }
                 break;
                 
@@ -8879,21 +8940,18 @@ class GameScene extends Phaser.Scene {
             enemy.setVelocity(0, 0); // Stop movement
             enemy.isAttacking = false; // Cancel any attack
 
-            // Store if this is a level-up golem
-            const isLevelUpGolem = enemy.isLevelUpGolem;
+            // Store if this is an elite golem
+            const isEliteGolem = enemy.isEliteGolem;
 
             // Wait for animation to complete
             enemy.once('animationcomplete', () => {
                 if (!enemy || !enemy.active) return; // Safety check
-                if (isLevelUpGolem) {
-                    // Level-up golems always drop charge expansion
-                    this.dropItemChest(enemyX, enemyY, 'chargeExpansion');
-
-                    // Also drop some valuable jewels as bonus
-                    for (let i = 0; i < 5; i++) {
+                if (isEliteGolem) {
+                    // Elite golems drop extra valuable jewels instead of charge expansion
+                    for (let i = 0; i < 12; i++) { // Increased from 8 to 12 jewels
                         const offsetX = (Math.random() - 0.5) * 40;
                         const offsetY = (Math.random() - 0.5) * 40;
-                        this.dropJewel(enemyX + offsetX, enemyY + offsetY, 4, 0.09); // 4 XP, medium-large size
+                        this.dropJewel(enemyX + offsetX, enemyY + offsetY, 5, 0.10); // 5 XP, larger size
                     }
                 } else {
                     // Regular golem drops valuable gems
@@ -8916,53 +8974,6 @@ class GameScene extends Phaser.Scene {
                     enemy.body.enable = false;
                 }
                 enemy.destroy();
-            });
-        } else if (enemy.enemyType === 'darkeye') {
-            // Mark as dying to prevent further updates
-            enemy.isDying = true;
-            enemy.setVelocity(0, 0);
-            
-            // Clean up any effects immediately
-            this.cleanupEnemyEffects(enemy);
-
-            // Death effect - fade out with purple flash
-            this.tweens.add({
-                targets: enemy,
-                alpha: 0,
-                tint: 0x9933ff,
-                duration: 500,
-                onComplete: () => {
-                    if (enemy.isLevelUpDarkEye) {
-                        // Level-up dark eyes drop charge expansion
-                        this.dropItemChest(enemyX, enemyY, 'chargeExpansion');
-
-                        // Also drop some valuable jewels
-                        for (let i = 0; i < 3; i++) {
-                            const offsetX = (Math.random() - 0.5) * 40;
-                            const offsetY = (Math.random() - 0.5) * 40;
-                            this.dropJewel(enemyX + offsetX, enemyY + offsetY, 10, 0.12); // 10 XP, large size for level-up enemy
-                        }
-                    }
-
-                    // Elements no longer drop from enemies
-                    // const element = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
-                    // this.dropItemChest(enemyX, enemyY + 20, 'element', { element: element });
-
-                    // Drop 2-3 jewels - darkeye is a medium enemy
-                    for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) {
-                        const offsetX = (Math.random() - 0.5) * 30;
-                        const offsetY = (Math.random() - 0.5) * 30;
-                        this.dropJewel(enemyX + offsetX, enemyY + offsetY, 3, 0.085); // 3 XP, slightly larger
-                    }
-
-                    if (!this.enemiesKilled.darkeye) this.enemiesKilled.darkeye = 0;
-                    this.enemiesKilled.darkeye++;
-                    // Ensure physics body is disabled before destroy
-                if (enemy.body) {
-                    enemy.body.enable = false;
-                }
-                enemy.destroy();
-                }
             });
         } else {
             // Original tree enemy death animation - spin and fade
@@ -9182,66 +9193,6 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    darkeyeAttack(darkeye) {
-        // Darkeye shoots multiple dark projectiles in a spread pattern
-        darkeye.isAttacking = true;
-        darkeye.setVelocity(0, 0); // Stop moving during attack
-        
-        // Fire multiple projectiles in a cone
-        this.time.delayedCall(200, () => {
-            if (!darkeye || !darkeye.active || darkeye.isDying) return;
-            
-            const baseAngle = Phaser.Math.Angle.Between(darkeye.x, darkeye.y, this.wizard.x, this.wizard.y);
-            const spreadAngle = Math.PI / 6; // 30 degree spread
-            
-            // Fire 3 projectiles in a spread
-            for (let i = -1; i <= 1; i++) {
-                const angle = baseAngle + (i * spreadAngle / 2);
-                
-                // Create dark projectile
-                const projectile = this.physics.add.sprite(darkeye.x, darkeye.y, 'arcane-spell');
-                if (this.anims.exists('arcane-spell-anim')) {
-                    projectile.play('arcane-spell-anim');
-                }
-                projectile.setScale(0.8);
-                projectile.isEnemyProjectile = true;
-                projectile.damage = 8; // High damage
-                projectile.setDepth(5);
-                projectile.setTint(0x9900ff); // Dark purple tint
-                
-                // Set velocity
-                const speed = 200;
-                projectile.setVelocity(
-                    Math.cos(angle) * speed,
-                    Math.sin(angle) * speed
-                );
-                
-                // Add to enemy projectiles group
-                if (!this.enemyProjectiles || !this.enemyProjectiles.children) {
-                    this.enemyProjectiles = this.physics.add.group();
-                }
-                this.enemyProjectiles.add(projectile);
-                
-                // Auto-destroy after 2 seconds
-                this.time.delayedCall(2000, () => {
-                    if (projectile.active) {
-                        // Disable physics body before destroying
-                        if (projectile.body) {
-                            projectile.body.enable = false;
-                        }
-                        projectile.destroy();
-                    }
-                });
-            }
-        });
-        
-        // Return to normal after attack
-        this.time.delayedCall(800, () => {
-            if (darkeye && darkeye.active && !darkeye.isDying) {
-                darkeye.isAttacking = false;
-            }
-        });
-    }
 
     sorcererAttack(sorcerer) {
         // Sorcerer casts powerful arcane spells
@@ -9420,7 +9371,7 @@ class GameScene extends Phaser.Scene {
             }
             bat.body.setSize(60, 40);
             bat.body.setOffset(45, 55);
-            bat.moveSpeed = 90; // Slightly faster than regular bats
+            bat.moveSpeed = 180; // Summoned bats are very fast
             bat.isFlying = true;
             bat.isSummoned = true; // Mark as summoned
 
@@ -9521,46 +9472,49 @@ class GameScene extends Phaser.Scene {
 
                 // Set up collision with wizard
                 this.physics.add.overlap(this.wizard, this.enemyProjectiles, (wizard, projectile) => {
-                    if (!this.invulnerable) {
-                        this.playerHealth -= projectile.damage;
-                        this.updateHealthBar();
-                        this.updateWizardHealthBar();
+                    // Skip damage if game is paused, chest selection is active, or wizard is invulnerable
+                    if (this.isPaused || this.chestSelectionActive || this.invulnerable) {
+                        return;
+                    }
+                    
+                    this.playerHealth -= projectile.damage;
+                    this.updateHealthBar();
+                    this.updateWizardHealthBar();
 
-                        // Flash red when hit
-                        this.wizard.setTint(0xff0000);
-                        this.time.delayedCall(100, () => {
-                            this.wizard.clearTint();
-                        });
+                    // Flash red when hit
+                    this.wizard.setTint(0xff0000);
+                    this.time.delayedCall(100, () => {
+                        this.wizard.clearTint();
+                    });
 
-                        // Brief invulnerability
-                        this.invulnerable = true;
-                        this.time.delayedCall(500, () => {
-                            this.invulnerable = false;
-                        });
+                    // Brief invulnerability
+                    this.invulnerable = true;
+                    this.time.delayedCall(500, () => {
+                        this.invulnerable = false;
+                    });
 
-                        if (this.playerHealth <= 0) {
-                            // Stop background music
-                            if (this.bgMusic) {
-                                this.bgMusic.stop();
-                            }
-                            
-                            // Play death animation
-                            this.wizard.play('wizard-death');
-                            this.wizard.setVelocity(0, 0); // Stop movement
-
-                            // Wait for death animation to complete
-                            this.wizard.once('animationcomplete', () => {
-                                // Clear any pending timers before changing scene
-                                this.time.removeAllEvents();
-                                this.tweens.killAll();
-                                this.scene.start('GameOverScene', {
-                                    survivalTime: this.survivalTime,
-                                    enemiesKilled: this.enemiesKilled,
-                                    itemsCollected: this.itemsCollected,
-                                    won: false
-                                });
-                            });
+                    if (this.playerHealth <= 0) {
+                        // Stop background music
+                        if (this.bgMusic) {
+                            this.bgMusic.stop();
                         }
+                        
+                        // Play death animation
+                        this.wizard.play('wizard-death');
+                        this.wizard.setVelocity(0, 0); // Stop movement
+
+                        // Wait for death animation to complete
+                        this.wizard.once('animationcomplete', () => {
+                            // Clear any pending timers before changing scene
+                            this.time.removeAllEvents();
+                            this.tweens.killAll();
+                            this.scene.start('GameOverScene', {
+                                survivalTime: this.survivalTime,
+                                enemiesKilled: this.enemiesKilled,
+                                itemsCollected: this.itemsCollected,
+                                won: false
+                            });
+                        });
                     }
 
                     projectile.destroy();
@@ -9832,10 +9786,8 @@ class GameScene extends Phaser.Scene {
                 enemyType = 'soul'; // 20%
             } else if (rand < 0.65) {
                 enemyType = 'bat'; // 20%
-            } else if (rand < 0.82) {
-                enemyType = 'golem'; // 17%
             } else if (rand < 0.95) {
-                enemyType = 'darkeye'; // 13%
+                enemyType = 'golem'; // 30%
             } else {
                 enemyType = 'sorcerer'; // 5% - rare boss enemy
             }
@@ -9860,10 +9812,10 @@ class GameScene extends Phaser.Scene {
             const enemy = this.physics.add.sprite(x, y, 'enemy-walk', 0);
             const scaleFactor = 1.2;
             enemy.setScale(scaleFactor);
-            enemy.health = 4; // Reduced by 60% from 9
+            enemy.health = 2; // Reduced by 50% from 4
             enemy.maxHealth = enemy.health;
             enemy.enemyType = 'tree';
-            enemy.moveSpeed = 36; // Reduced by 25% from 48
+            enemy.moveSpeed = 120; // Increased for better player tracking
             enemy.play('enemy-walking');
             enemy.body.setSize(26, 39); // Widened by 30%
             enemy.body.setOffset(3, 12); // Adjusted offset for wider hitbox
@@ -9875,8 +9827,8 @@ class GameScene extends Phaser.Scene {
                 // Slightly offset each bat spawn position
                 const offsetX = (Math.random() - 0.5) * 100;
                 const offsetY = (Math.random() - 0.5) * 100;
-                const batX = Phaser.Math.Clamp(x + offsetX, 50, 3950);
-                const batY = Phaser.Math.Clamp(y + offsetY, 50, 2110);
+                const batX = x + offsetX;
+                const batY = y + offsetY;
 
                 const bat = this.physics.add.sprite(batX, batY, 'bat-fly', 0);
                 bat.setScale(0.8); // 2x larger than 0.4
@@ -9895,7 +9847,7 @@ class GameScene extends Phaser.Scene {
             }
                 bat.body.setSize(60, 40);
                 bat.body.setOffset(45, 55);
-                bat.moveSpeed = 80; // Bats are faster than trees
+                bat.moveSpeed = 165; // Fast flying enemies
                 bat.isFlying = true; // Bats can fly over obstacles
                 this.setEnemyDepth(bat); // Set initial depth
                 this.enemies.add(bat);
@@ -9908,7 +9860,7 @@ class GameScene extends Phaser.Scene {
             mushroom.health = 5; // Increased by 50% // Medium health
             mushroom.maxHealth = mushroom.health;
             mushroom.enemyType = 'mushroom';
-            mushroom.moveSpeed = 50; // Medium speed
+            mushroom.moveSpeed = 105; // Increased medium speed
             // Play animation with safety check
             try {
                 if (this.anims.exists('mushroom-running')) {
@@ -9928,7 +9880,7 @@ class GameScene extends Phaser.Scene {
             fireworm.health = 3; // Increased by 50% // Low-medium health
             fireworm.maxHealth = fireworm.health;
             fireworm.enemyType = 'fireworm';
-            fireworm.moveSpeed = 65; // Fast
+            fireworm.moveSpeed = 135; // Very fast
             // Play animation with safety check
             try {
                 if (this.anims.exists('fireworm-walking')) {
@@ -9949,7 +9901,7 @@ class GameScene extends Phaser.Scene {
             summoner.health = 12; // Increased by 50% // High health
             summoner.maxHealth = summoner.health;
             summoner.enemyType = 'summoner';
-            summoner.moveSpeed = 20; // Very slow
+            summoner.moveSpeed = 45; // Slow but mobile
             summoner.play('summoner-idling');
             summoner.body.setSize(40, 60);
             summoner.body.setOffset(20, 10);
@@ -9963,7 +9915,7 @@ class GameScene extends Phaser.Scene {
             soul.health = 6; // Increased by 50% // Medium health
             soul.maxHealth = soul.health;
             soul.enemyType = 'soul';
-            soul.moveSpeed = 40; // Slow floating speed
+            soul.moveSpeed = 90; // Medium floating speed
             soul.play('soul-moving');
             soul.body.setSize(60, 60);
             soul.body.setOffset(18, 18);
@@ -9981,7 +9933,7 @@ class GameScene extends Phaser.Scene {
             bloboid.health = 8; // Increased by 50% // Medium-high health
             bloboid.maxHealth = bloboid.health;
             bloboid.enemyType = 'bloboid';
-            bloboid.moveSpeed = 35; // Slow blob movement
+            bloboid.moveSpeed = 75; // Moderate blob movement
             bloboid.play('bloboid-walking');
             bloboid.body.setSize(50, 30);
             bloboid.body.setOffset(15, 2);
@@ -9994,7 +9946,7 @@ class GameScene extends Phaser.Scene {
             slime.health = 4; // Increased by 50%
             slime.maxHealth = slime.health;
             slime.enemyType = 'slime';
-            slime.moveSpeed = 30; // Slow
+            slime.moveSpeed = 67.5; // Moderate speed
             slime.play('slime-idle');
             slime.body.setSize(40, 40);
             slime.body.setOffset(10, 10);
@@ -10009,28 +9961,12 @@ class GameScene extends Phaser.Scene {
             golem.maxHealth = golem.health;
             golem.enemyType = 'golem';
             golem.golemColor = golemColor;
-            golem.moveSpeed = 25; // Very slow but tanky
+            golem.moveSpeed = 60; // Slow but persistent
             golem.play(`golem-${golemColor}-walk`);
             golem.body.setSize(60, 50);
             golem.body.setOffset(15, 10);
             golem.element = golemColor === 'orange' ? 'fire' : 'water';
             this.enemies.add(golem);
-        } else if (enemyType === 'darkeye') {
-            // Create dark eye enemy
-            const darkeye = this.physics.add.sprite(x, y, 'darkeye-walk', 0);
-            darkeye.setScale(0.8);
-            darkeye.health = 20; // Increased by 50% - Boss-level health
-            darkeye.maxHealth = darkeye.health;
-            darkeye.enemyType = 'darkeye';
-            darkeye.moveSpeed = 45; // Medium speed
-            darkeye.play('darkeye-walking');
-            darkeye.body.setSize(80, 80);
-            darkeye.body.setOffset(40, 30);
-            darkeye.element = 'arcane'; // Powerful arcane enemy
-            darkeye.attackRange = 200;
-            darkeye.attackCooldown = 3000;
-            darkeye.lastAttackTime = 0;
-            this.enemies.add(darkeye);
         } else if (enemyType === 'sorcerer') {
             // Create sorcerer boss enemy
             const sorcerer = this.physics.add.sprite(x, y, 'sorcerer-attack-0');
@@ -10038,7 +9974,7 @@ class GameScene extends Phaser.Scene {
             sorcerer.health = 30; // Very high health - boss enemy
             sorcerer.maxHealth = sorcerer.health;
             sorcerer.enemyType = 'sorcerer';
-            sorcerer.moveSpeed = 30; // Slow but powerful
+            sorcerer.moveSpeed = 67.5; // Moderate boss speed
             sorcerer.play('sorcerer-attack');
             sorcerer.body.setSize(60, 80);
             sorcerer.body.setOffset(10, 0);
@@ -10109,9 +10045,7 @@ class GameScene extends Phaser.Scene {
                 break;
         }
 
-        // Clamp to world bounds
-        x = Phaser.Math.Clamp(x, 50, 3950);
-        y = Phaser.Math.Clamp(y, 50, 2110);
+        // No clamping for infinite world - enemies can spawn anywhere
 
         // Create the specific enemy type
         this.createEnemy(enemyType, x, y);
@@ -10122,10 +10056,10 @@ class GameScene extends Phaser.Scene {
             const enemy = this.physics.add.sprite(x, y, 'enemy-walk', 0);
             const scaleFactor = 1.2;
             enemy.setScale(scaleFactor);
-            enemy.health = 9; // Increased by 50%
+            enemy.health = 5; // Reduced by 50% from 9
             enemy.maxHealth = enemy.health;
             enemy.enemyType = 'tree';
-            enemy.moveSpeed = 36;
+            enemy.moveSpeed = 120; // Increased for better player tracking
             enemy.damage = 1; // Default damage
             enemy.play('enemy-walking');
             enemy.body.setSize(26, 39);
@@ -10139,7 +10073,7 @@ class GameScene extends Phaser.Scene {
             bat.enemyType = 'bat';
             bat.body.setSize(60, 40);
             bat.body.setOffset(45, 55);
-            bat.moveSpeed = 80;
+            bat.moveSpeed = 120;
             bat.isFlying = true;
             this.enemies.add(bat);
             
@@ -10162,7 +10096,7 @@ class GameScene extends Phaser.Scene {
             mushroom.health = 5; // Increased by 50%
             mushroom.maxHealth = mushroom.health;
             mushroom.enemyType = 'mushroom';
-            mushroom.moveSpeed = 50;
+            mushroom.moveSpeed = 75;
             mushroom.body.setSize(80, 30);  // Adjusted height for smaller sprite
             mushroom.body.setOffset(35, 8);  // Adjusted offset for smaller sprite
             this.enemies.add(mushroom);
@@ -10185,7 +10119,7 @@ class GameScene extends Phaser.Scene {
             fireworm.health = 3; // Increased by 50%
             fireworm.maxHealth = fireworm.health;
             fireworm.enemyType = 'fireworm';
-            fireworm.moveSpeed = 65;
+            fireworm.moveSpeed = 97.5;
             fireworm.body.setSize(70, 50);
             fireworm.body.setOffset(10, 20);
             fireworm.element = 'fire';
@@ -10209,7 +10143,7 @@ class GameScene extends Phaser.Scene {
             summoner.health = 12; // Increased by 50%
             summoner.maxHealth = summoner.health;
             summoner.enemyType = 'summoner';
-            summoner.moveSpeed = 20;
+            summoner.moveSpeed = 30;
             summoner.play('summoner-walking');
             summoner.body.setSize(80, 100);
             summoner.body.setOffset(40, 20);
@@ -10223,7 +10157,7 @@ class GameScene extends Phaser.Scene {
             soul.health = 6; // Increased by 50%
             soul.maxHealth = soul.health;
             soul.enemyType = 'soul';
-            soul.moveSpeed = 40;
+            soul.moveSpeed = 60;
             soul.play('soul-moving');
             soul.body.setSize(60, 60);
             soul.body.setOffset(18, 18);
@@ -10241,7 +10175,7 @@ class GameScene extends Phaser.Scene {
             bloboid.health = 8; // Increased by 50%
             bloboid.maxHealth = bloboid.health;
             bloboid.enemyType = 'bloboid';
-            bloboid.moveSpeed = 35;
+            bloboid.moveSpeed = 52.5;
             bloboid.play('bloboid-walking');
             bloboid.body.setSize(50, 30);
             bloboid.body.setOffset(15, 2);
@@ -10253,7 +10187,7 @@ class GameScene extends Phaser.Scene {
             slime.health = 4; // Increased by 50%
             slime.maxHealth = slime.health;
             slime.enemyType = 'slime';
-            slime.moveSpeed = 30;
+            slime.moveSpeed = 45;
             slime.play('slime-idle');
             slime.body.setSize(40, 40);
             slime.body.setOffset(10, 10);
@@ -10266,7 +10200,7 @@ class GameScene extends Phaser.Scene {
             slime.health = 5; // Slightly more health than regular slime
             slime.maxHealth = slime.health;
             slime.enemyType = 'fireslime';
-            slime.moveSpeed = 35; // Slightly faster
+            slime.moveSpeed = 52.5; // Slightly faster
             slime.play('slime-idle');
             slime.body.setSize(40, 40);
             slime.body.setOffset(10, 10);
@@ -10282,7 +10216,7 @@ class GameScene extends Phaser.Scene {
             golem.maxHealth = golem.health;
             golem.enemyType = 'golem';
             golem.golemColor = golemColor;
-            golem.moveSpeed = 25;
+            golem.moveSpeed = 37.5;
             golem.play(`golem-${golemColor}-walk`);
             golem.body.setSize(60, 50);
             golem.body.setOffset(15, 10);
@@ -10296,7 +10230,7 @@ class GameScene extends Phaser.Scene {
             golem.maxHealth = golem.health;
             golem.enemyType = 'golem';
             golem.golemColor = 'orange';
-            golem.moveSpeed = 25;
+            golem.moveSpeed = 37.5;
             golem.play('golem-orange-walk');
             golem.body.setSize(60, 50);
             golem.body.setOffset(15, 10);
@@ -10304,21 +10238,6 @@ class GameScene extends Phaser.Scene {
             golem.burnDamage = 3; // Applies burn on contact
             golem.burnDuration = 2000; // 2 seconds
             this.enemies.add(golem);
-        } else if (enemyType === 'darkeye') {
-            const darkeye = this.physics.add.sprite(x, y, 'darkeye-walk', 0);
-            darkeye.setScale(0.8);
-            darkeye.health = 20; // Increased by 50%
-            darkeye.maxHealth = darkeye.health;
-            darkeye.enemyType = 'darkeye';
-            darkeye.moveSpeed = 45;
-            darkeye.play('darkeye-walking');
-            darkeye.body.setSize(80, 80);
-            darkeye.body.setOffset(40, 30);
-            darkeye.element = 'arcane';
-            darkeye.attackRange = 200;
-            darkeye.attackCooldown = 3000;
-            darkeye.lastAttackTime = 0;
-            this.enemies.add(darkeye);
         } else if (enemyType === 'sorcerer') {
             // Create sorcerer boss enemy
             const sorcerer = this.physics.add.sprite(x, y, 'sorcerer-attack-0');
@@ -10326,7 +10245,7 @@ class GameScene extends Phaser.Scene {
             sorcerer.health = 30; // Very high health - boss enemy
             sorcerer.maxHealth = sorcerer.health;
             sorcerer.enemyType = 'sorcerer';
-            sorcerer.moveSpeed = 30; // Slow but powerful
+            sorcerer.moveSpeed = 67.5; // Moderate boss speed
             sorcerer.play('sorcerer-attack');
             sorcerer.body.setSize(60, 80);
             sorcerer.body.setOffset(10, 0);
@@ -10385,9 +10304,9 @@ class GameScene extends Phaser.Scene {
     }
 
     spawnLevelUpGolem() {
-        // Now spawns a Dark Eye enemy instead of sorcerer
+        // Spawns a special elite golem on level up
         const angle = Math.random() * Math.PI * 2;
-        const distance = 250; // Slightly further than golem
+        const distance = 250;
 
         const x = this.wizard.x + Math.cos(angle) * distance;
         const y = this.wizard.y + Math.sin(angle) * distance;
@@ -10396,48 +10315,35 @@ class GameScene extends Phaser.Scene {
         const spawnX = Phaser.Math.Clamp(x, 100, 3900);
         const spawnY = Phaser.Math.Clamp(y, 100, 2060);
 
-        const darkEye = this.physics.add.sprite(spawnX, spawnY, 'darkeye-walk-1');
+        // Create elite golem - randomly fire or water
+        const golemColor = Math.random() < 0.5 ? 'orange' : 'blue';
+        const golem = this.physics.add.sprite(spawnX, spawnY, `golem-${golemColor}-walk`, 0);
 
         // Scale based on level
-        const scaleFactor = 1.0 + (this.playerLevel * 0.05);
-        darkEye.setScale(scaleFactor);
-        darkEye.setFlipX(true); // Flip horizontally
-        darkEye.health = Math.floor((15 + (this.playerLevel * 3)) * 10);
-        darkEye.maxHealth = darkEye.health;
-        darkEye.enemyType = 'darkeye';
-        darkEye.moveSpeed = 25; // Slow menacing walk
-        darkEye.isLevelUpDarkEye = true; // Mark as special dark eye that drops charge expansion
-        darkEye.play('darkeye-walking');
-        darkEye.element = 'dark'; // Dark element
+        const scaleFactor = 1.2 + (this.playerLevel * 0.05);
+        golem.setScale(scaleFactor);
+        golem.health = Math.floor((20 + (this.playerLevel * 4)) * 10);
+        golem.maxHealth = golem.health;
+        golem.enemyType = 'golem';
+        golem.golemColor = golemColor;
+        golem.moveSpeed = 82.5;
+        golem.isEliteGolem = true; // Mark as special golem that drops charge expansion
+        golem.play(`golem-${golemColor}-walk`);
+        golem.body.setSize(60, 50);
+        golem.body.setOffset(15, 10);
+        golem.element = golemColor === 'orange' ? 'fire' : 'water';
 
         // Ensure enemies group exists before adding
         if (!this.enemies || !this.enemies.children) {
             this.enemies = this.physics.add.group();
         }
 
-        // Add to enemies group first before modifying physics
-        this.enemies.add(darkEye);
+        // Add to enemies group
+        this.enemies.add(golem);
 
-        // Now set up physics body after it's in the group
-        if (darkEye.body) {
-            darkEye.body.enable = true;
-            darkEye.body.immovable = false; // Allow collision responses
-            darkEye.body.moves = true; // Allow physics system to track it
-
-            // Get sprite dimensions to center hitbox properly
-            const spriteWidth = darkEye.width * darkEye.scaleX;
-            const spriteHeight = darkEye.height * darkEye.scaleY;
-
-            // Set hitbox size and center it
-            darkEye.body.setSize(spriteWidth * 0.7, spriteHeight * 0.9);
-            darkEye.body.setOffset(
-                (darkEye.width - darkEye.body.width) / 2,
-                (darkEye.height - darkEye.body.height) / 2
-            );
-        }
-
-        // Special spawn effect - dark purple for dark eye
-        const spawnEffect = this.add.circle(spawnX, spawnY, 50, 0x9933ff, 0.8);
+        // Special spawn effect - elemental color for golem
+        const effectColor = golemColor === 'orange' ? 0xff6600 : 0x0099ff;
+        const spawnEffect = this.add.circle(spawnX, spawnY, 50, effectColor, 0.8);
         spawnEffect.setDepth(10);
         this.tweens.add({
             targets: spawnEffect,
@@ -10571,7 +10477,7 @@ class GameScene extends Phaser.Scene {
         slime.health = Math.floor((3 * Math.pow(difficultyMultiplier, 2)) / Math.pow(2, generation));
         slime.maxHealth = slime.health;
         slime.enemyType = 'slime';
-        slime.moveSpeed = 32 + (generation * 8); // Split slimes are faster but 20% slower base
+        slime.moveSpeed = 48 + (generation * 12); // Split slimes are faster but 20% slower base
         slime.generation = generation;
         slime.play('slime-idle');
 
@@ -10591,8 +10497,8 @@ class GameScene extends Phaser.Scene {
     }
 
     hitEnemy(wizard, enemy) {
-        // Check if player is invulnerable
-        if (this.invulnerable) return;
+        // Check if player is invulnerable or game is paused/in chest selection
+        if (this.invulnerable || this.isPaused || this.chestSelectionActive) return;
         
         // Check if enemy is hexed (deals no damage)
         if (enemy.isHexed) {
@@ -10689,7 +10595,7 @@ class GameScene extends Phaser.Scene {
         const burnTimer = this.time.addEvent({
             delay: tickInterval,
             callback: () => {
-                if (this.playerHealth > 0) {
+                if (this.playerHealth > 0 && !this.isPaused && !this.chestSelectionActive) {
                     this.playerHealth -= damage;
                     this.updateHealthBar();
                     this.updateWizardHealthBar();
@@ -11760,7 +11666,14 @@ class GameScene extends Phaser.Scene {
         while (this.playerXP >= this.xpToNextLevel) {
             this.playerXP -= this.xpToNextLevel;
             this.playerLevel++;
-            this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.25); // 25% increase per level (reduced by 50% from 1.5)
+            // Progressive scaling - easier early levels
+            if (this.playerLevel <= 5) {
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.15); // 15% increase for levels 1-5
+            } else if (this.playerLevel <= 10) {
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.20); // 20% increase for levels 6-10
+            } else {
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.25); // 25% increase for levels 11+
+            }
             
             // Unlock charge slot every 10 levels
             if (this.playerLevel % 10 === 0 && this.maxCharges < 8) {
@@ -16407,7 +16320,7 @@ class GameScene extends Phaser.Scene {
             
             // Play star animation
             if (!this.anims.exists('zodiac-spin')) {
-                createAnimIfNotExists({
+                this.anims.create({
                     key: 'zodiac-spin',
                     frames: this.anims.generateFrameNumbers('star-spell', { start: 0, end: 5 }),
                     frameRate: 20, // Faster spin
@@ -17879,7 +17792,7 @@ class GameScene extends Phaser.Scene {
         
         // Create animation if it doesn't exist
         if (!this.anims.exists('storm-projectile')) {
-            createAnimIfNotExists({
+            this.anims.create({
                 key: 'storm-projectile',
                 frames: this.anims.generateFrameNumbers('storm-spell', { start: 0, end: 16 }),
                 frameRate: 30,
@@ -21383,8 +21296,8 @@ class GameScene extends Phaser.Scene {
         // Only handle boss projectiles
         if (!projectile.fromBoss) return;
         
-        // Check if player is invulnerable
-        if (this.invulnerable) return;
+        // Check if player is invulnerable or game is paused/in chest selection
+        if (this.invulnerable || this.isPaused || this.chestSelectionActive) return;
         
         // Deal damage
         this.damagePlayer(projectile.damage || 20);
@@ -21396,7 +21309,7 @@ class GameScene extends Phaser.Scene {
     }
     
     damagePlayer(damage, source = null) {
-        if (this.invulnerable || this.playerHealth <= 0) return;
+        if (this.invulnerable || this.playerHealth <= 0 || this.isPaused || this.chestSelectionActive) return;
         
         // Check for metal shield thorns effect
         if (this.metalShieldActive && source && source.active) {
@@ -21631,7 +21544,7 @@ class GameScene extends Phaser.Scene {
         boss.maxHealth = 4500;
         boss.enemyType = 'boss';
         boss.isBoss = true;
-        boss.moveSpeed = 30; // Slow but steady
+        boss.moveSpeed = 45; // Slow but steady
         
         // Boss properties
         boss.attackCooldown = 0;
@@ -21694,6 +21607,9 @@ class GameScene extends Phaser.Scene {
     updateBossAI() {
         if (!this.boss || !this.boss.active || this.boss.health <= 0) return;
         
+        // Don't update boss during pause or chest opening
+        if (this.isPaused || this.chestOpening || this.chestSelectionActive) return;
+        
         // Update boss health bar
         const healthPercent = this.boss.health / this.boss.maxHealth;
         this.bossHealthBar.width = (600 - 6) * healthPercent;
@@ -21727,31 +21643,27 @@ class GameScene extends Phaser.Scene {
         const attackRoll = Math.random();
         
         if (this.boss.currentPhase === 1) {
-            // Phase 1: Basic attacks
-            if (attackRoll < 0.5) {
-                this.bossShootAttack();
-            } else {
-                this.bossArmProjectileAttack();
-            }
-        } else if (this.boss.currentPhase === 2) {
-            // Phase 2: Add laser and shield
+            // Phase 1: Basic attacks with more lasers
             if (attackRoll < 0.3) {
                 this.bossShootAttack();
-            } else if (attackRoll < 0.5) {
-                this.bossArmProjectileAttack();
+            } else {
+                this.bossLaserAttack(); // 70% laser in phase 1
+            }
+        } else if (this.boss.currentPhase === 2) {
+            // Phase 2: Add shield, heavy laser focus
+            if (attackRoll < 0.2) {
+                this.bossShootAttack();
             } else if (attackRoll < 0.7) {
-                this.bossLaserAttack();
+                this.bossLaserAttack(); // 50% laser in phase 2
             } else {
                 this.bossShieldCast();
             }
         } else {
-            // Phase 3: All attacks, faster
-            if (attackRoll < 0.2) {
+            // Phase 3: All attacks, laser dominant
+            if (attackRoll < 0.15) {
                 this.bossShootAttack();
-            } else if (attackRoll < 0.4) {
-                this.bossArmProjectileAttack();
             } else if (attackRoll < 0.6) {
-                this.bossLaserAttack();
+                this.bossLaserAttack(); // 45% laser in phase 3
             } else if (attackRoll < 0.8) {
                 this.bossMeleeAttack();
             } else {
@@ -21787,40 +21699,74 @@ class GameScene extends Phaser.Scene {
         this.boss.play('obelisk-shoot');
         this.boss.attackCooldown = 4000;
         
-        // Create boomerang arm projectile
+        // Create homing arm projectile
         const arm = this.physics.add.sprite(this.boss.x, this.boss.y, 'boss-arm-projectile', 0);
         arm.setScale(2);
         arm.play('boss-arm-anim');
         arm.damage = 30;
         arm.fromBoss = true;
-        arm.isBoomerang = true;
+        arm.isHoming = true;
         
-        // Calculate angle to player
+        // Initial velocity toward player
         const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, this.wizard.x, this.wizard.y);
-        const speed = this.getScaledVelocity(300);
+        const speed = this.getScaledVelocity(200); // Initial speed matching homing speed
         arm.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
         
-        // Boomerang behavior
-        this.addScaledDelay(1000, () => {
+        // Homing behavior - slowly chase player
+        const homingTimer = this.time.addEvent({
+            delay: 50,
+            callback: () => {
+                if (arm && arm.active && this.wizard && this.wizard.active) {
+                    // Calculate angle to player
+                    const currentAngle = Phaser.Math.Angle.Between(arm.x, arm.y, this.wizard.x, this.wizard.y);
+                    const currentSpeed = this.getScaledVelocity(200); // Increased speed
+                    
+                    // Get current velocity
+                    const currentVelX = arm.body.velocity.x;
+                    const currentVelY = arm.body.velocity.y;
+                    
+                    // Calculate target velocity
+                    const targetVelX = Math.cos(currentAngle) * currentSpeed;
+                    const targetVelY = Math.sin(currentAngle) * currentSpeed;
+                    
+                    // Smoothly adjust velocity to track player
+                    const turnSpeed = 0.1; // Increased turn speed
+                    const newVelX = currentVelX + (targetVelX - currentVelX) * turnSpeed;
+                    const newVelY = currentVelY + (targetVelY - currentVelY) * turnSpeed;
+                    
+                    arm.setVelocity(newVelX, newVelY);
+                    
+                    // Rotate sprite to face direction of movement
+                    arm.rotation = Math.atan2(newVelY, newVelX);
+                }
+            },
+            loop: true
+        });
+        
+        // Explode after 3 seconds
+        this.addScaledDelay(3000, () => {
             if (arm && arm.active) {
-                // Reverse direction back to boss
-                const returnAngle = Phaser.Math.Angle.Between(arm.x, arm.y, this.boss.x, this.boss.y);
-                arm.setVelocity(Math.cos(returnAngle) * speed, Math.sin(returnAngle) * speed);
+                // Create explosion effect
+                this.createExplosion(arm.x, arm.y, 40, 100); // 40 damage in 100 pixel radius
                 
-                // Destroy when it reaches boss
-                const returnTimer = this.time.addEvent({
-                    delay: 50,
-                    callback: () => {
-                        if (arm && arm.active && this.boss && this.boss.active) {
-                            const dist = Phaser.Math.Distance.Between(arm.x, arm.y, this.boss.x, this.boss.y);
-                            if (dist < 50) {
-                                arm.destroy();
-                                returnTimer.remove();
-                            }
-                        }
-                    },
-                    loop: true
+                // Visual explosion effect
+                const explosion = this.add.sprite(arm.x, arm.y, 'boss-arm-projectile', 0);
+                explosion.setScale(4);
+                explosion.setTint(0xff6600);
+                explosion.setAlpha(0.8);
+                
+                // Explosion animation
+                this.tweens.add({
+                    targets: explosion,
+                    scale: 8,
+                    alpha: 0,
+                    duration: 300,
+                    onComplete: () => explosion.destroy()
                 });
+                
+                // Cleanup
+                homingTimer.remove();
+                arm.destroy();
             }
         });
         
@@ -21829,45 +21775,71 @@ class GameScene extends Phaser.Scene {
     
     bossLaserAttack() {
         this.boss.play('obelisk-laser-cast');
-        this.boss.attackCooldown = 5000;
+        this.boss.attackCooldown = 2500; // Even faster laser attacks
         
         // Telegraph laser
-        const laserWarning = this.add.rectangle(this.boss.x, this.boss.y, 10, 1000, 0xff0000, 0.3);
+        const laserWarning = this.add.rectangle(this.boss.x, this.boss.y, 15, 1200, 0xff0000, 0.4);
         laserWarning.setOrigin(0.5, 1);
         
-        // Aim at player
-        const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, this.wizard.x, this.wizard.y);
+        // Aim at player with slight prediction
+        const playerVelX = this.wizard.body ? this.wizard.body.velocity.x : 0;
+        const playerVelY = this.wizard.body ? this.wizard.body.velocity.y : 0;
+        const predictTime = 0.3; // Predict player position 0.3 seconds ahead
+        const predictedX = this.wizard.x + (playerVelX * predictTime);
+        const predictedY = this.wizard.y + (playerVelY * predictTime);
+        
+        const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, predictedX, predictedY);
         laserWarning.rotation = angle + Math.PI / 2;
         
-        // Flash warning
-        this.tweens.add({
+        // Faster warning flash
+        const warningTween = this.tweens.add({
             targets: laserWarning,
-            alpha: { from: 0.3, to: 0.8 },
-            duration: 500,
+            alpha: { from: 0.4, to: 1 },
+            duration: 150, // Even faster
             yoyo: true,
-            repeat: 2,
+            repeat: 1, // Fewer but faster flashes
+            ease: 'Power2',
             onComplete: () => {
                 laserWarning.destroy();
                 
+                // Don't fire laser if game is paused
+                if (this.isPaused || this.chestOpening || this.chestSelectionActive) {
+                    return;
+                }
+                
                 // Fire actual laser
                 const laser = this.physics.add.sprite(this.boss.x, this.boss.y, 'boss-laser', 0);
-                // Calculate distance to player for laser length
-                const distance = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, this.wizard.x, this.wizard.y);
-                // Scale laser to reach from boss to beyond player (300px base width)
-                laser.setScale(Math.max(2, distance / 300), 1);
+                // Calculate distance for laser length
+                const distance = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, predictedX, predictedY);
+                // Scale laser to reach far beyond predicted position
+                laser.setScale(Math.max(3, (distance + 300) / 300), 2); // Wider and longer laser
                 laser.setOrigin(0, 0.5); // Origin at left center of laser
-                laser.rotation = angle; // Direct angle to player (no need to add PI/2)
+                laser.rotation = angle; // Direct angle to predicted position
+                
+                // Position laser at boss center, accounting for rotation
+                const offsetX = Math.cos(angle) * 0; // No offset needed since origin is at start
+                const offsetY = Math.sin(angle) * 0;
+                laser.setPosition(this.boss.x + offsetX, this.boss.y + offsetY);
+                
                 laser.play('boss-laser-anim');
                 laser.damage = 50;
                 laser.fromBoss = true;
                 laser.isLaser = true;
+                laser.isPausable = true; // Mark as pausable
                 
-                // Laser doesn't move, just damages anything in its path
-                this.time.delayedCall(1000, () => {
+                // Store laser reference for pause handling
+                this.activeBossLaser = laser;
+                
+                // Laser stays active slightly longer for more danger
+                const laserTimer = this.time.delayedCall(1200, () => { // Increased from 1000ms
                     if (laser && laser.active) {
                         laser.destroy();
+                        this.activeBossLaser = null;
                     }
                 });
+                
+                // Store timer reference
+                laser.destroyTimer = laserTimer;
                 
                 // Check laser collision with player
                 const laserLine = new Phaser.Geom.Line(
@@ -21881,7 +21853,8 @@ class GameScene extends Phaser.Scene {
                 const playerPoint = new Phaser.Geom.Point(this.wizard.x, this.wizard.y);
                 const laserDistance = Phaser.Geom.Line.GetShortestDistance(laserLine, playerPoint);
                 
-                if (laserDistance < 30) {
+                // Only damage if not paused or in chest selection
+                if (laserDistance < 30 && !this.isPaused && !this.chestOpening && !this.chestSelectionActive) {
                     this.damagePlayer(50, this.boss);
                 }
             }
@@ -21905,13 +21878,15 @@ class GameScene extends Phaser.Scene {
             onComplete: () => shockwave.destroy()
         });
         
-        // Damage nearby player
-        const dist = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, this.wizard.x, this.wizard.y);
-        if (dist < 150) {
-            this.damagePlayer(40, this.boss);
-            // Knockback
-            const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, this.wizard.x, this.wizard.y);
-            this.wizard.body.setVelocity(Math.cos(angle) * 500, Math.sin(angle) * 500);
+        // Damage nearby player (only if not paused)
+        if (!this.isPaused && !this.chestOpening && !this.chestSelectionActive) {
+            const dist = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, this.wizard.x, this.wizard.y);
+            if (dist < 150) {
+                this.damagePlayer(40, this.boss);
+                // Knockback
+                const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, this.wizard.x, this.wizard.y);
+                this.wizard.body.setVelocity(Math.cos(angle) * 500, Math.sin(angle) * 500);
+            }
         }
     }
     
@@ -21972,7 +21947,7 @@ class GameScene extends Phaser.Scene {
         });
         
         // Increase boss speed
-        this.boss.moveSpeed = 50;
+        this.boss.moveSpeed = 75;
     }
     
     bossPhaseThreeTransition() {
@@ -21998,7 +21973,7 @@ class GameScene extends Phaser.Scene {
         });
         
         // Increase boss speed and add permanent glow
-        this.boss.moveSpeed = 70;
+        this.boss.moveSpeed = 105;
         this.boss.setTint(0xff6666);
     }
     

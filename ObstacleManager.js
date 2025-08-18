@@ -310,7 +310,7 @@ class ObstacleManager {
         
         // Set depth based on Y position - ensure it's always positive and above floor tiles
         // Add offset to handle negative Y coordinates, but cap at 400 to stay below UI
-        const depth = Math.min(400, Math.floor(y / 10) + 100); // Offset for negative Y, capped at 400
+        const depth = Math.min(400, Math.max(10, Math.floor(y / 10) + 200)); // Ensure minimum depth of 10
         obstacle.setDepth(depth);
         
         // Debug visibility for non-forest
