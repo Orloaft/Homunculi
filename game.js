@@ -2372,8 +2372,8 @@ class GameScene extends Phaser.Scene {
         this.trees = null;
         this.jewels = null;
         this.playerXP = 0;
-        this.playerLevel = 1;
-        this.xpToNextLevel = 10; // Reduced for easier early progression
+        this.playerLevel = 0; // Start at level 0 for easier first level up
+        this.xpToNextLevel = 15; // Balanced for early game - first 5 levels are faster
         this.maxCharges = 4; // Start with 4 charge slots
         this.chargingElement = null;
         this.chargeHoldTime = 0;
@@ -2666,8 +2666,8 @@ class GameScene extends Phaser.Scene {
         this.eliteEnemies = [];
         this.chests = this.physics.add.group();
         this.playerXP = 0;
-        this.playerLevel = 1;
-        this.xpToNextLevel = 10; // Reduced for easier early progression
+        this.playerLevel = 0; // Start at level 0 for easier first level up
+        this.xpToNextLevel = 15; // Balanced for early game - first 5 levels are faster
         this.maxCharges = 4; // Start with 4 charge slots
         this.lastFireTime = 0;
         this.currentChargeIndex = 0;
@@ -2769,7 +2769,7 @@ class GameScene extends Phaser.Scene {
         };
 
         // Define primary elements (can drop from enemies)
-        this.primaryElements = ['fire', 'water', 'earth', 'air', 'lightning', 'arcane', 'ice', 'poison'];
+        this.primaryElements = ['fire', 'water', 'earth', 'air', 'lightning', 'arcane', 'poison'];
         
         // Element tier tracking - maps "element_slotIndex" to tier level
         // We use element_slotIndex as key to track tier per slot, not just per element type
@@ -8872,9 +8872,17 @@ class GameScene extends Phaser.Scene {
                     // Final generation drops loot
                     this.dropJewel(enemyX, enemyY, 2, 0.075);
 
-                    // 1.25% chance to drop muffin (reduced by 75%)
-                    if (Math.random() < 0.0125) {
+                    // Item drop chances
+                    const dropRoll = Math.random();
+                    if (dropRoll < 0.0125) {
+                        // 1.25% chance to drop muffin
                         this.dropItemChest(enemyX, enemyY + 20, 'muffin');
+                    } else if (dropRoll < 0.0175) {
+                        // 0.5% chance to drop shield
+                        this.dropItemChest(enemyX, enemyY + 20, 'shield');
+                    } else if (dropRoll < 0.0225) {
+                        // 0.5% chance to drop flamethrower
+                        this.dropItemChest(enemyX, enemyY + 20, 'flamethrower');
                     }
                 }
 
@@ -8915,9 +8923,17 @@ class GameScene extends Phaser.Scene {
                     //     this.dropItemChest(enemyX + offsetX, enemyY + offsetY, 'element', { element: element });
                     // }
 
-                    // 7.5% chance to drop muffin (reduced by 75%)
-                    if (Math.random() < 0.075) {
+                    // Item drop chances - higher for elite enemies
+                    const dropRoll = Math.random();
+                    if (dropRoll < 0.075) {
+                        // 7.5% chance to drop muffin
                         this.dropItemChest(enemyX, enemyY, 'muffin');
+                    } else if (dropRoll < 0.095) {
+                        // 2% chance to drop shield
+                        this.dropItemChest(enemyX, enemyY, 'shield');
+                    } else if (dropRoll < 0.115) {
+                        // 2% chance to drop flamethrower
+                        this.dropItemChest(enemyX, enemyY, 'flamethrower');
                     }
 
                     this.enemiesKilled.elite++;
@@ -8962,9 +8978,17 @@ class GameScene extends Phaser.Scene {
                     // const element = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
                     // this.dropItemChest(enemyX, enemyY + 20, 'element', { element: element });
 
-                    // 7.5% chance to drop muffin (reduced by 75%)
-                    if (Math.random() < 0.075) {
+                    // Item drop chances - higher for golems
+                    const dropRoll = Math.random();
+                    if (dropRoll < 0.075) {
+                        // 7.5% chance to drop muffin
                         this.dropItemChest(enemyX, enemyY - 20, 'muffin');
+                    } else if (dropRoll < 0.085) {
+                        // 1% chance to drop shield
+                        this.dropItemChest(enemyX, enemyY - 20, 'shield');
+                    } else if (dropRoll < 0.095) {
+                        // 1% chance to drop flamethrower
+                        this.dropItemChest(enemyX, enemyY - 20, 'flamethrower');
                     }
                 }
 
@@ -8992,9 +9016,17 @@ class GameScene extends Phaser.Scene {
                     // Drop jewel
                     this.dropJewel(enemyX, enemyY, 2, 0.075);
 
-                    // 1.25% chance to drop muffin (reduced by 75%)
-                    if (Math.random() < 0.0125) {
+                    // Item drop chances
+                    const dropRoll = Math.random();
+                    if (dropRoll < 0.0125) {
+                        // 1.25% chance to drop muffin
                         this.dropItemChest(enemyX, enemyY + 20, 'muffin');
+                    } else if (dropRoll < 0.0175) {
+                        // 0.5% chance to drop shield
+                        this.dropItemChest(enemyX, enemyY + 20, 'shield');
+                    } else if (dropRoll < 0.0225) {
+                        // 0.5% chance to drop flamethrower
+                        this.dropItemChest(enemyX, enemyY + 20, 'flamethrower');
                     }
 
                     // Trees no longer drop elements
@@ -9473,7 +9505,27 @@ class GameScene extends Phaser.Scene {
                 // Set up collision with wizard
                 this.physics.add.overlap(this.wizard, this.enemyProjectiles, (wizard, projectile) => {
                     // Skip damage if game is paused, chest selection is active, or wizard is invulnerable
-                    if (this.isPaused || this.chestSelectionActive || this.invulnerable) {
+                    if (this.isPaused || this.chestSelectionActive || this.invulnerable || this.wizard.isInvulnerable) {
+                        if (this.wizard.isInvulnerable) {
+                            // Show immunity effect for shield
+                            const immuneText = this.add.text(this.wizard.x, this.wizard.y - 50, 'IMMUNE', {
+                                fontSize: '16px',
+                                color: '#44ffff',
+                                fontStyle: 'bold'
+                            });
+                            immuneText.setOrigin(0.5);
+                            immuneText.setDepth(150);
+                            
+                            this.tweens.add({
+                                targets: immuneText,
+                                y: immuneText.y - 30,
+                                alpha: 0,
+                                duration: 800,
+                                ease: 'Power2',
+                                onComplete: () => immuneText.destroy()
+                            });
+                        }
+                        projectile.destroy();
                         return;
                     }
                     
@@ -9815,7 +9867,7 @@ class GameScene extends Phaser.Scene {
             enemy.health = 2; // Reduced by 50% from 4
             enemy.maxHealth = enemy.health;
             enemy.enemyType = 'tree';
-            enemy.moveSpeed = 120; // Increased for better player tracking
+            enemy.moveSpeed = 90; // Reduced by 25% from 120 for better balance
             enemy.play('enemy-walking');
             enemy.body.setSize(26, 39); // Widened by 30%
             enemy.body.setOffset(3, 12); // Adjusted offset for wider hitbox
@@ -10059,7 +10111,7 @@ class GameScene extends Phaser.Scene {
             enemy.health = 5; // Reduced by 50% from 9
             enemy.maxHealth = enemy.health;
             enemy.enemyType = 'tree';
-            enemy.moveSpeed = 120; // Increased for better player tracking
+            enemy.moveSpeed = 90; // Reduced by 25% from 120 for better balance
             enemy.damage = 1; // Default damage
             enemy.play('enemy-walking');
             enemy.body.setSize(26, 39);
@@ -10395,6 +10447,242 @@ class GameScene extends Phaser.Scene {
         return expansion;
     }
 
+    activateShield() {
+        // Prevent multiple shields
+        if (this.shieldActive) return;
+        
+        this.shieldActive = true;
+        this.wizard.isInvulnerable = true;
+        
+        // Create shield visual effect
+        const shieldEffect = this.add.circle(this.wizard.x, this.wizard.y, 50, 0x44ffff, 0.3);
+        shieldEffect.setStrokeStyle(3, 0x44ffff, 0.8);
+        shieldEffect.setDepth(this.wizard.depth + 1);
+        
+        // Shield follows wizard
+        const shieldUpdate = this.time.addEvent({
+            delay: 16,
+            callback: () => {
+                if (shieldEffect && this.wizard) {
+                    shieldEffect.x = this.wizard.x;
+                    shieldEffect.y = this.wizard.y;
+                }
+            },
+            loop: true
+        });
+        
+        // Pulsing effect
+        this.tweens.add({
+            targets: shieldEffect,
+            scale: { from: 1, to: 1.2 },
+            alpha: { from: 0.3, to: 0.5 },
+            duration: 500,
+            yoyo: true,
+            repeat: -1
+        });
+        
+        // Display shield timer
+        const timerText = this.add.text(this.wizard.x, this.wizard.y - 70, '5', {
+            fontSize: '24px',
+            color: '#44ffff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+        timerText.setOrigin(0.5);
+        timerText.setDepth(150);
+        
+        // Update timer countdown
+        let timeRemaining = 5;
+        const countdownEvent = this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                timeRemaining--;
+                if (timeRemaining > 0 && timerText) {
+                    timerText.setText(timeRemaining.toString());
+                    timerText.x = this.wizard.x;
+                    timerText.y = this.wizard.y - 70;
+                }
+            },
+            repeat: 4
+        });
+        
+        // End shield after 5 seconds
+        this.time.delayedCall(5000, () => {
+            this.shieldActive = false;
+            this.wizard.isInvulnerable = false;
+            shieldUpdate.destroy();
+            shieldEffect.destroy();
+            timerText.destroy();
+            
+            // Flash effect when shield ends
+            this.tweens.add({
+                targets: this.wizard,
+                alpha: { from: 0.5, to: 1 },
+                duration: 100,
+                repeat: 3,
+                yoyo: true
+            });
+        });
+    }
+    
+    activateFlamethrower() {
+        // Prevent multiple flamethrowers
+        if (this.flamethrowerActive) return;
+        
+        this.flamethrowerActive = true;
+        
+        // Create flamethrower particles
+        const flameParticles = this.add.particles(this.wizard.x, this.wizard.y, 'particle', {
+            speed: { min: 200, max: 400 },
+            scale: { start: 0.8, end: 0 },
+            lifespan: 600,
+            quantity: 5,
+            frequency: 30,
+            tint: [0xff0000, 0xff6600, 0xffaa00],
+            alpha: { start: 0.8, end: 0 },
+            blendMode: 'ADD'
+        });
+        flameParticles.setDepth(this.wizard.depth + 1);
+        
+        // Track flame direction based on wizard movement
+        let lastX = this.wizard.x;
+        let lastY = this.wizard.y;
+        
+        // Update flame direction and damage
+        const flameUpdate = this.time.addEvent({
+            delay: 50,
+            callback: () => {
+                if (!this.wizard || !flameParticles) return;
+                
+                // Update particle position
+                flameParticles.x = this.wizard.x;
+                flameParticles.y = this.wizard.y;
+                
+                // Calculate movement direction
+                const dx = this.wizard.x - lastX;
+                const dy = this.wizard.y - lastY;
+                const moveAngle = Math.atan2(dy, dx);
+                
+                // Set particle direction based on movement or last direction
+                if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
+                    flameParticles.setParticleSpeed(200, 400);
+                    flameParticles.setEmitterAngle({
+                        min: (moveAngle * 180 / Math.PI) - 30,
+                        max: (moveAngle * 180 / Math.PI) + 30
+                    });
+                } else if (this.lastFlameAngle !== undefined) {
+                    // Use last angle if not moving
+                    flameParticles.setEmitterAngle({
+                        min: (this.lastFlameAngle * 180 / Math.PI) - 30,
+                        max: (this.lastFlameAngle * 180 / Math.PI) + 30
+                    });
+                }
+                
+                // Store last angle
+                if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
+                    this.lastFlameAngle = moveAngle;
+                }
+                
+                lastX = this.wizard.x;
+                lastY = this.wizard.y;
+                
+                // Damage enemies in flame cone
+                this.enemies.children.entries.forEach(enemy => {
+                    if (!enemy.active || enemy.isDying) return;
+                    
+                    const distToEnemy = Phaser.Math.Distance.Between(
+                        this.wizard.x, this.wizard.y, enemy.x, enemy.y
+                    );
+                    
+                    if (distToEnemy < 250) {
+                        // Check if enemy is in cone
+                        const angleToEnemy = Math.atan2(
+                            enemy.y - this.wizard.y,
+                            enemy.x - this.wizard.x
+                        );
+                        
+                        const flameAngle = this.lastFlameAngle || 0;
+                        let angleDiff = Math.abs(angleToEnemy - flameAngle);
+                        if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
+                        
+                        if (angleDiff < Math.PI / 4) { // 45 degree cone
+                            // Apply damage
+                            enemy.health -= 2;
+                            
+                            // Apply burn effect
+                            if (!enemy.burning) {
+                                enemy.burning = true;
+                                enemy.burnEndTime = this.time.now + 3000;
+                                enemy.setTint(0xff6600);
+                                
+                                // Burn tick damage
+                                if (!enemy.burnTimer) {
+                                    enemy.burnTimer = this.time.addEvent({
+                                        delay: 500,
+                                        callback: () => {
+                                            if (enemy.active && enemy.burning) {
+                                                enemy.health -= 1;
+                                                this.showDamageNumber(enemy.x, enemy.y - 20, '1', '#ff6600');
+                                                if (enemy.health <= 0) {
+                                                    this.killEnemy(enemy);
+                                                }
+                                            }
+                                        },
+                                        repeat: 5
+                                    });
+                                }
+                            }
+                            
+                            // Show damage
+                            this.showDamageNumber(enemy.x, enemy.y - 20, '2', '#ff4444');
+                            
+                            if (enemy.health <= 0) {
+                                this.killEnemy(enemy);
+                            }
+                        }
+                    }
+                });
+            },
+            loop: true
+        });
+        
+        // Display timer
+        const timerText = this.add.text(this.wizard.x, this.wizard.y - 70, '6', {
+            fontSize: '24px',
+            color: '#ff4444',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+        timerText.setOrigin(0.5);
+        timerText.setDepth(150);
+        
+        // Update timer countdown
+        let timeRemaining = 6;
+        const countdownEvent = this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                timeRemaining--;
+                if (timeRemaining > 0 && timerText) {
+                    timerText.setText(timeRemaining.toString());
+                    timerText.x = this.wizard.x;
+                    timerText.y = this.wizard.y - 70;
+                }
+            },
+            repeat: 5
+        });
+        
+        // End flamethrower after 6 seconds
+        this.time.delayedCall(6000, () => {
+            this.flamethrowerActive = false;
+            flameUpdate.destroy();
+            flameParticles.destroy();
+            timerText.destroy();
+            delete this.lastFlameAngle;
+        });
+    }
+    
     collectChargeExpansion(wizard, expansion) {
         // Extra safety check
         if (!wizard || !expansion || expansion.isDestroying || !expansion.active) {
@@ -10503,6 +10791,28 @@ class GameScene extends Phaser.Scene {
         // Check if enemy is hexed (deals no damage)
         if (enemy.isHexed) {
             return; // Hexed enemies deal no damage
+        }
+        
+        // Check if wizard is invulnerable (shield active)
+        if (this.wizard.isInvulnerable || this.invulnerable) {
+            // Show immunity effect
+            const immuneText = this.add.text(this.wizard.x, this.wizard.y - 50, 'IMMUNE', {
+                fontSize: '16px',
+                color: '#44ffff',
+                fontStyle: 'bold'
+            });
+            immuneText.setOrigin(0.5);
+            immuneText.setDepth(150);
+            
+            this.tweens.add({
+                targets: immuneText,
+                y: immuneText.y - 30,
+                alpha: 0,
+                duration: 800,
+                ease: 'Power2',
+                onComplete: () => immuneText.destroy()
+            });
+            return;
         }
 
         // Don't destroy enemy on contact, just damage player
@@ -10646,6 +10956,32 @@ class GameScene extends Phaser.Scene {
         
         // Mark as destroying to prevent double processing
         projectile.isDestroying = true;
+        
+        // Clean up any associated timers
+        if (projectile.destroyTimer) {
+            projectile.destroyTimer.remove();
+            projectile.destroyTimer = null;
+        }
+        if (projectile.returnTimer) {
+            projectile.returnTimer.remove();
+            projectile.returnTimer = null;
+        }
+        if (projectile.particleTimer) {
+            projectile.particleTimer.remove();
+            projectile.particleTimer = null;
+        }
+        if (projectile.trailInterval) {
+            projectile.trailInterval.remove();
+            projectile.trailInterval = null;
+        }
+        if (projectile.trailUpdate) {
+            projectile.trailUpdate.remove();
+            projectile.trailUpdate = null;
+        }
+        if (projectile.updateEvent) {
+            projectile.updateEvent.remove();
+            projectile.updateEvent = null;
+        }
         
         // Use Phaser's disableBody method when available
         if (projectile.disableBody) {
@@ -11666,13 +12002,17 @@ class GameScene extends Phaser.Scene {
         while (this.playerXP >= this.xpToNextLevel) {
             this.playerXP -= this.xpToNextLevel;
             this.playerLevel++;
-            // Progressive scaling - easier early levels
-            if (this.playerLevel <= 5) {
-                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.15); // 15% increase for levels 1-5
+            // Progressive scaling - easy first 2 levels, then much harder
+            if (this.playerLevel <= 2) {
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.10); // Only 10% increase for levels 0-2 (very easy start)
+            } else if (this.playerLevel <= 5) {
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 2.00); // 100% increase for levels 3-5 (massive jump in difficulty)
             } else if (this.playerLevel <= 10) {
-                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.20); // 20% increase for levels 6-10
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.60); // 60% increase for levels 6-10
+            } else if (this.playerLevel <= 20) {
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.70); // 70% increase for levels 11-20
             } else {
-                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.25); // 25% increase for levels 11+
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.80); // 80% increase for levels 21+ (extremely slow)
             }
             
             // Unlock charge slot every 10 levels
@@ -15336,6 +15676,9 @@ class GameScene extends Phaser.Scene {
                     loop: true
                 });
                 
+                // Store trail update timer on bullet for cleanup
+                bullet.trailUpdate = trailUpdate;
+                
                 // Destroy after 3 seconds (long distance)
                 this.time.delayedCall(3000, () => {
                     if (bullet.active) {
@@ -17332,6 +17675,9 @@ class GameScene extends Phaser.Scene {
                 loop: true
             });
             
+            // Store trail update timer on spine for cleanup
+            spine.trailUpdate = trailUpdate;
+            
             // Add slight delay between spines for visual effect
             this.time.delayedCall(i * 50, () => {
                 // Visual launch effect
@@ -18827,6 +19173,26 @@ class GameScene extends Phaser.Scene {
                     });
                 });
                 break;
+                
+            case 'shield':
+                itemText = '🛡️';
+                itemColor = 0x44ffff;
+                itemName = 'MAGIC SHIELD';
+                itemDescription = 'Grants 5 seconds of invincibility!';
+                this.time.delayedCall(1500, () => {
+                    this.activateShield();
+                });
+                break;
+                
+            case 'flamethrower':
+                itemText = '🔥';
+                itemColor = 0xff4444;
+                itemName = 'FLAMETHROWER';
+                itemDescription = 'Unleash continuous fire damage!';
+                this.time.delayedCall(1500, () => {
+                    this.activateFlamethrower();
+                });
+                break;
         }
         
         // Show the item icon
@@ -18855,10 +19221,33 @@ class GameScene extends Phaser.Scene {
                 icon = this.add.sprite(0, -20, 'charge-slot');
                 icon.setScale(0.6);
                 break;
+                
+            case 'shield':
+                // Create a shield icon using a container with graphics
+                const shieldGraphics = this.add.graphics();
+                shieldGraphics.fillStyle(0x44ffff, 1);
+                shieldGraphics.fillCircle(0, 0, 30);
+                shieldGraphics.lineStyle(3, 0xffffff, 1);
+                shieldGraphics.strokeCircle(0, 0, 30);
+                icon = this.add.container(0, -20, [shieldGraphics]);
+                break;
+                
+            case 'flamethrower':
+                // Create a flame icon using a container with graphics
+                const flameGraphics = this.add.graphics();
+                flameGraphics.fillStyle(0xff4444, 1);
+                flameGraphics.fillTriangle(-15, 15, 15, 15, 0, -15);
+                flameGraphics.fillStyle(0xffaa00, 1);
+                flameGraphics.fillTriangle(-10, 10, 10, 10, 0, -10);
+                icon = this.add.container(0, -20, [flameGraphics]);
+                break;
         }
         
         if (icon) {
-            icon.setOrigin(0.5);
+            // Only sprites have setOrigin, not containers
+            if (icon.setOrigin) {
+                icon.setOrigin(0.5);
+            }
             
             // Item name
             const nameText = this.add.text(0, 30, itemName, {
@@ -18880,7 +19269,7 @@ class GameScene extends Phaser.Scene {
             itemDisplay.add([icon, nameText, descText]);
             
             // Store initial scale for animation
-            const iconInitialScale = icon.scale;
+            const iconInitialScale = icon.scale || 1;
             
             // Dramatic reveal animation
             icon.setScale(0);
@@ -19138,7 +19527,7 @@ class GameScene extends Phaser.Scene {
 
         if (this.initialElementSelection) {
             // For initial game start, directly show element choices
-            const primaryElements = ['fire', 'water', 'earth', 'air', 'rock', 'poison'];
+            const primaryElements = ['fire', 'water', 'earth', 'air', 'lightning', 'arcane', 'poison'];
             const selectedElements = [];
 
             // Select 3 random primary elements
@@ -19708,11 +20097,15 @@ class GameScene extends Phaser.Scene {
         // Reset controller states to prevent input carry-over
         this.prevChestConfirmPressed = true; // Prevent immediate selection
 
-        for (let i = 0; i < this.charges.length; i++) {
-            const element = this.charges[i];
+        // Show all elements from all 8 slots (including pouch slots)
+        let buttonIndex = 0;
+        for (let i = 0; i < 8; i++) {
+            const element = this.chargeSlots[i];
+            if (!element) continue; // Skip empty slots
+            
             const config = this.elementConfig[element];
-            const xPos = 200 + (i % 4) * 100;
-            const yPos = 220 + Math.floor(i / 4) * 100;
+            const xPos = 200 + (buttonIndex % 4) * 100;
+            const yPos = 220 + Math.floor(buttonIndex / 4) * 100;
 
             const container = this.add.container(xPos, yPos);
             container.setScrollFactor(0);
@@ -19720,7 +20113,7 @@ class GameScene extends Phaser.Scene {
 
             const bg = this.add.circle(0, 0, 40, 0x333333);
             // Only show frame on first element initially
-            if (i === 0) {
+            if (buttonIndex === 0) {
                 bg.setStrokeStyle(2, 0xffff00);
             }
             bg.setInteractive();
@@ -19735,26 +20128,18 @@ class GameScene extends Phaser.Scene {
             name.setOrigin(0.5);
 
             container.add([bg, sprite, name]);
-            // Find the slot index for this charge
-            let slotIndex = -1;
-            let chargeCount = 0;
-            for (let j = 0; j < this.chargeSlots.length; j++) {
-                if (this.chargeSlots[j] !== null) {
-                    if (chargeCount === i && this.chargeSlots[j] === element) {
-                        slotIndex = j;
-                        console.log(`Fusion UI: Element ${element} at charge index ${i} maps to slot ${j}`);
-                        break;
-                    }
-                    chargeCount++;
-                }
-            }
-            elementButtons.push({ container, element, bg, selected: false, index: i, slotIndex });
+            // Slot index is just i since we're iterating through chargeSlots directly
+            const slotIndex = i;
+            console.log(`Fusion UI: Element ${element} at slot ${slotIndex}`);
+            
+            elementButtons.push({ container, element, bg, selected: false, index: buttonIndex, slotIndex });
 
             bg.on('pointerdown', () => {
-                if (!elementButtons[i].selected && selectedElements.length < 2) {
+                const btnIndex = buttonIndex; // Capture current buttonIndex value
+                if (!elementButtons[btnIndex].selected && selectedElements.length < 2) {
                     // Select element
-                    elementButtons[i].selected = true;
-                    selectedElements.push({ element, slotIndex: elementButtons[i].slotIndex });
+                    elementButtons[btnIndex].selected = true;
+                    selectedElements.push({ element, slotIndex: elementButtons[btnIndex].slotIndex });
                     bg.setFillStyle(0xff44ff, 0.5);
                     bg.setStrokeStyle(3, 0xff44ff);
 
@@ -19762,10 +20147,10 @@ class GameScene extends Phaser.Scene {
                         // Show fusion button
                         this.showFusionButton(fusionBg, title, instruction, elementButtons, selectedElements);
                     }
-                } else if (elementButtons[i].selected) {
+                } else if (elementButtons[btnIndex].selected) {
                     // Deselect element
-                    elementButtons[i].selected = false;
-                    const index = selectedElements.findIndex(sel => sel.element === element && sel.slotIndex === elementButtons[i].slotIndex);
+                    elementButtons[btnIndex].selected = false;
+                    const index = selectedElements.findIndex(sel => sel.element === element && sel.slotIndex === elementButtons[btnIndex].slotIndex);
                     if (index > -1) selectedElements.splice(index, 1);
                     bg.setFillStyle(0x333333);
                     bg.setStrokeStyle(0); // Remove stroke instead of white
@@ -19779,16 +20164,20 @@ class GameScene extends Phaser.Scene {
             });
 
             bg.on('pointerover', () => {
-                if (!elementButtons[i].selected) {
+                const btnIndex = buttonIndex; // Capture current buttonIndex value
+                if (!elementButtons[btnIndex].selected) {
                     bg.setFillStyle(0x555555);
                 }
             });
 
             bg.on('pointerout', () => {
-                if (!elementButtons[i].selected) {
+                const btnIndex = buttonIndex; // Capture current buttonIndex value
+                if (!elementButtons[btnIndex].selected) {
                     bg.setFillStyle(0x333333);
                 }
             });
+            
+            buttonIndex++; // Increment button index for next element
         }
 
         // Store for cleanup (no cancel button)
@@ -19939,29 +20328,55 @@ class GameScene extends Phaser.Scene {
             const sortedElements = [...elements].sort();
             const fusionKey = sortedElements.join('+');
         
-        // Define fusion recipes
+        // Define fusion recipes based on alchemy diagram
         const fusionRecipes = {
-            'earth+fire': 'volcano',
+            // Primary element fusions
+            'earth+fire': 'lava',
             'fire+water': 'steam',
-            'earth+water': 'nature',
+            'earth+water': 'mud',
             'air+earth': 'sand',
             'air+water': 'ice',
-            'fire+lightning': 'meteor',
-            'air+fire': 'smoke',
+            'air+fire': 'thunder',
+            'air+lightning': 'thunder',
             'lightning+water': 'storm',
+            'earth+lightning': 'gravity',
+            'arcane+earth': 'gravity',
+            'arcane+poison': 'life',
+            'earth+poison': 'life',
+            'lightning+poison': 'life',
+            
+            // Secondary fusions
             'fire+sand': 'crystal',
             'earth+ice': 'crystal',
-            'air+lava': 'rock',
-            'fire+rock': 'metal',
-            'ice+poison': 'death',
-            'moon+sun': 'time',
-            'arcane+poison': 'dust',
-            'earth+lightning': 'gravity',
+            'earth+lava': 'volcano',
+            'fire+rock': 'volcano',
+            'fire+lava': 'volcano',
+            'mud+sand': 'rock',
+            'earth+sand': 'rock',
+            'earth+mud': 'rock',
+            'air+smoke': 'dust',
+            
+            // Advanced fusions
             'fire+star': 'sun',
-            'lightning+poison': 'wave',
-            'gravity+lightning': 'star',
             'star+water': 'moon',
-            'arcane+nature': 'life'
+            'fire+sun': 'meteor',
+            'earth+star': 'meteor',
+            'gravity+star': 'meteor',
+            'life+nature': 'holy',
+            'earth+life': 'nature',
+            'arcane+life': 'holy',
+            'gravity+life': 'holy',
+            'rock+arcane': 'metal',
+            
+            // Time-related fusions
+            'moon+sun': 'time',
+            'any+time': 'death',
+            
+            // Other fusions from diagram
+            'fire+thunder': 'star',
+            'gravity+thunder': 'star',
+            'ice+water': 'wave',
+            'poison+smoke': 'smog'
         };
         
             // Check if we have a recipe for this combination
