@@ -81,6 +81,11 @@ export class DamageSystem {
             }
         }
         
+        // Apply vulnerability multiplier (e.g., boss takes 200% damage during laser attack)
+        if (enemy.vulnerabilityMultiplier) {
+            multiplier *= enemy.vulnerabilityMultiplier;
+        }
+        
         return baseDamage * multiplier;
     }
     

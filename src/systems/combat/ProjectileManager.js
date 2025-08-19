@@ -260,7 +260,6 @@ export class ProjectileManager {
                 );
                 
                 // Small damage
-                enemy.health -= 0.5 * group.length;
                 this.scene.events.emit('enemyDamaged', {
                     enemy: enemy,
                     damage: 0.5 * group.length,
@@ -483,7 +482,6 @@ export class ProjectileManager {
             
             if (distSquared < radiusSquared) {
                 const damage = COMBAT_CONFIG.explosiveDamage;
-                enemy.health -= damage;
                 
                 // Knockback
                 const dist = Math.sqrt(distSquared);
@@ -601,7 +599,6 @@ export class ProjectileManager {
                     );
                     
                     if (dist < pool.radius) {
-                        enemy.health -= pool.damage;
                         this.scene.events.emit('enemyDamaged', {
                             enemy: enemy,
                             damage: pool.damage,
@@ -646,7 +643,6 @@ export class ProjectileManager {
                     );
                     
                     // Small damage
-                    enemy.health -= zone.damage;
                     this.scene.events.emit('enemyDamaged', {
                         enemy: enemy,
                         damage: zone.damage,
@@ -681,10 +677,7 @@ export class ProjectileManager {
             COMBAT_CONFIG.explosiveDamage : COMBAT_CONFIG.baseDamage;
         const damage = baseDamage * (projectile.damage || 1);
         
-        // Apply damage
-        enemy.health -= damage;
-        
-        // Emit damage event
+        // Emit damage event (let DamageSystem handle the actual damage application)
         this.scene.events.emit('enemyDamaged', {
             enemy: enemy,
             damage: damage,
@@ -761,7 +754,6 @@ export class ProjectileManager {
         
         this.scene.time.delayedCall(duration, () => {
             if (enemy && enemy.active) {
-                enemy.health -= damage;
                 enemy.burning = false;
                 enemy.clearTint();
                 
@@ -834,8 +826,6 @@ export class ProjectileManager {
         for (let i = 1; i <= ticks; i++) {
             this.scene.time.delayedCall(tickInterval * i, () => {
                 if (enemy && enemy.active) {
-                    enemy.health -= damagePerTick;
-                    
                     this.scene.events.emit('enemyDamaged', {
                         enemy: enemy,
                         damage: damagePerTick,
@@ -861,8 +851,6 @@ export class ProjectileManager {
             delay: 2000,
             callback: () => {
                 if (enemy && enemy.active) {
-                    enemy.health -= damagePerTick;
-                    
                     this.scene.events.emit('enemyDamaged', {
                         enemy: enemy,
                         damage: damagePerTick,
@@ -870,11 +858,8 @@ export class ProjectileManager {
                         isDot: true
                     });
                     
-                    // Check if enemy is dead
-                    if (enemy.health <= 0) {
-                        enemy.poisoned = false;
-                        poisonTimer.remove();
-                    }
+                    // DamageSystem will handle death checking
+                }
                 } else {
                     // Enemy no longer exists, stop poison
                     poisonTimer.remove();

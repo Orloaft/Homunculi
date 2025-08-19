@@ -325,6 +325,9 @@ class LoadingScene extends Phaser.Scene {
         
         // Load kawaii muffin sprite
         this.load.image('muffin', 'Kawaii choco muffin.png');
+        
+        // Load weakspot rune sprite
+        this.load.image('weakspot-rune', 'weakspotrune.png');
         }
     }
 
@@ -763,8 +766,97 @@ class TitleScene extends Phaser.Scene {
         
         speedContainer.add([speedLabel, dialBg, speedText, speedLeftArrow, speedRightArrow, speedHint]);
         
+        // Enemy Density Dial
+        const densityContainer = this.add.container(400, 370);
+        const densityLabel = this.add.text(-200, 0, 'Enemy Density:', {
+            fontSize: '22px',
+            color: '#ffffff'
+        }).setOrigin(0, 0.5);
+        
+        // Density mode options
+        const densityModes = ['sparse', 'normal', 'dense', 'swarm'];
+        const densityDescriptions = {
+            'sparse': '25% enemies (easier)',
+            'normal': '50% enemies (standard)',
+            'dense': '75% enemies (harder)',
+            'swarm': '100% enemies (chaos!)'
+        };
+        const densityColors = {
+            'sparse': '#00ff00',
+            'normal': '#ffffff',
+            'dense': '#ff8800',
+            'swarm': '#ff0000'
+        };
+        const densityMultipliers = {
+            'sparse': 0.25,
+            'normal': 0.5,
+            'dense': 0.75,
+            'swarm': 1.0
+        };
+        
+        const currentDensity = localStorage.getItem('enemyDensity') || 'normal';
+        let currentDensityIndex = densityModes.indexOf(currentDensity);
+        if (currentDensityIndex === -1) currentDensityIndex = 1; // Default to normal
+        
+        // Create dial display
+        const densityDialBg = this.add.rectangle(150, 0, 150, 40, 0x444444);
+        densityDialBg.setStrokeStyle(3, 0xffd700);
+        
+        const densityText = this.add.text(150, 0, densityModes[currentDensityIndex].toUpperCase(), {
+            fontSize: '20px',
+            color: densityColors[densityModes[currentDensityIndex]],
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        
+        // Left arrow
+        const densityLeftArrow = this.add.text(75, 0, '◄', {
+            fontSize: '24px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        densityLeftArrow.setInteractive({ useHandCursor: true });
+        
+        // Right arrow
+        const densityRightArrow = this.add.text(225, 0, '►', {
+            fontSize: '24px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        densityRightArrow.setInteractive({ useHandCursor: true });
+        
+        const densityHint = this.add.text(0, 30, densityDescriptions[densityModes[currentDensityIndex]], {
+            fontSize: '14px',
+            color: '#aaaaaa'
+        }).setOrigin(0.5);
+        
+        // Update function
+        const updateDensityDisplay = () => {
+            const mode = densityModes[currentDensityIndex];
+            densityText.setText(mode.toUpperCase());
+            densityText.setColor(densityColors[mode]);
+            densityHint.setText(densityDescriptions[mode]);
+            localStorage.setItem('enemyDensity', mode);
+            localStorage.setItem('enemyDensityMultiplier', densityMultipliers[mode]);
+        };
+        
+        densityLeftArrow.on('pointerdown', () => {
+            currentDensityIndex = (currentDensityIndex - 1 + densityModes.length) % densityModes.length;
+            updateDensityDisplay();
+        });
+        
+        densityRightArrow.on('pointerdown', () => {
+            currentDensityIndex = (currentDensityIndex + 1) % densityModes.length;
+            updateDensityDisplay();
+        });
+        
+        // Hover effects
+        densityLeftArrow.on('pointerover', () => densityLeftArrow.setScale(1.2));
+        densityLeftArrow.on('pointerout', () => densityLeftArrow.setScale(1));
+        densityRightArrow.on('pointerover', () => densityRightArrow.setScale(1.2));
+        densityRightArrow.on('pointerout', () => densityRightArrow.setScale(1));
+        
+        densityContainer.add([densityLabel, densityDialBg, densityText, densityLeftArrow, densityRightArrow, densityHint]);
+        
         // BGM selector
-        const bgmContainer = this.add.container(400, 380);
+        const bgmContainer = this.add.container(400, 430);
         const bgmLabel = this.add.text(-200, 0, 'Background Music:', {
             fontSize: '22px',
             color: '#ffffff'
@@ -837,6 +929,7 @@ class TitleScene extends Phaser.Scene {
             volumeContainer.destroy();
             elementContainer.destroy();
             speedContainer.destroy();
+            densityContainer.destroy();
             bgmContainer.destroy();
             closeButton.destroy();
         });
@@ -844,7 +937,7 @@ class TitleScene extends Phaser.Scene {
         // Store references for cleanup
         this.optionsMenu = {
             overlay, menuTitle, debugContainer, recipesContainer, stagesContainer,
-            volumeContainer, elementContainer, speedContainer, bgmContainer, closeButton
+            volumeContainer, elementContainer, speedContainer, densityContainer, bgmContainer, closeButton
         };
     }
     
@@ -2628,6 +2721,16 @@ class GameScene extends Phaser.Scene {
         // Keep hyperMode for backward compatibility checks
         this.hyperMode = this.speedMode !== 'frolic';
         
+        // Set enemy density multiplier
+        const enemyDensity = localStorage.getItem('enemyDensity') || 'normal';
+        const densityMultipliers = {
+            'sparse': 0.25,
+            'normal': 0.5,
+            'dense': 0.75,
+            'swarm': 1.0
+        };
+        this.enemyDensityMultiplier = densityMultipliers[enemyDensity] || 0.5;
+        
         // Reset game state
         this.playerHealth = this.maxHealth; // Start with full health
         this.gameStarted = false; // Will be set to true after countdown
@@ -2650,6 +2753,7 @@ class GameScene extends Phaser.Scene {
         this.maxEnemiesPerWave = 10;
         this.waveSpawnInterval = 500; // ms between spawns in a wave
         this.lastWaveSpawn = 0; // Initialize spawn timer
+        this.bossSpawned = false; // Track if boss has spawned
         
         // Chrome-specific garbage collection optimization
         if (navigator.userAgent.includes('Chrome')) {
@@ -2665,6 +2769,7 @@ class GameScene extends Phaser.Scene {
         this.itemsCollected = { jewels: 0, muffins: 0, elements: 0 };
         this.eliteEnemies = [];
         this.chests = this.physics.add.group();
+        this.standaloneItems = this.physics.add.group();
         this.playerXP = 0;
         this.playerLevel = 0; // Start at level 0 for easier first level up
         this.xpToNextLevel = 15; // Balanced for early game - first 5 levels are faster
@@ -2867,6 +2972,7 @@ class GameScene extends Phaser.Scene {
         };
         this.escKey = this.input.keyboard.addKey('ESC');
         this.spaceKey = this.input.keyboard.addKey('SPACE');
+        this.enterKey = this.input.keyboard.addKey('ENTER');
         this.pKey = this.input.keyboard.addKey('P');
         this.tabKey = this.input.keyboard.addKey('TAB');
         this.debugKey = this.input.keyboard.addKey('D');
@@ -2919,6 +3025,23 @@ class GameScene extends Phaser.Scene {
                 }
             }
         });
+        
+        // Initialize directional indicators for offscreen objects
+        this.directionalIndicators = [];
+        
+        // Initialize rune system for boss weakspots
+        this.runeGroup = this.physics.add.group({
+            runChildUpdate: false,
+            removeCallback: (rune) => {
+                if (rune.body) {
+                    rune.body.enable = false;
+                }
+            }
+        });
+        
+        // Track which chunks have runes (max 1 per chunk)
+        this.runeChunks = new Set();
+        this.chunkSize = 1024; // Same as ChunkManager
         
         // Initialize obstacle manager for impassable obstacles
         this.obstacleManager = new ObstacleManager(this);
@@ -3004,9 +3127,23 @@ class GameScene extends Phaser.Scene {
             (wizard, chest) => {
                 return wizard && wizard.active && chest && chest.active && !chest.opened;
             }, this);
+        
+        // Add overlap for standalone items (muffin, shield, flamethrower)
+        this.physics.add.overlap(this.wizard, this.standaloneItems, this.collectStandaloneItem,
+            (wizard, item) => {
+                return wizard && wizard.active && item && item.active;
+            }, this);
+            
         this.physics.add.overlap(this.wizard, this.chargeExpansions, this.collectChargeExpansion, 
             (wizard, expansion) => {
                 return wizard && wizard.active && expansion && expansion.active && !expansion.isDestroying;
+            }, this);
+
+        // Add laser-rune collision for weakspot mechanic
+        this.physics.add.overlap(this.projectiles, this.runeGroup, this.laserHitRune,
+            (projectile, rune) => {
+                return projectile && projectile.active && projectile.isLaser && projectile.fromBoss &&
+                       rune && rune.active && rune.isRune;
             }, this);
 
         // Add collisions with obstacles (only for player)
@@ -4370,6 +4507,83 @@ class GameScene extends Phaser.Scene {
             slotBg.setScrollFactor(0);
             slotBg.setDepth(561);
             slotBg.setVisible(i < this.maxCharges);
+            slotBg.setInteractive({ useHandCursor: true });
+            
+            // Store the index for click handler
+            slotBg.slotIndex = i;
+            
+            // Add click handler
+            slotBg.on('pointerdown', () => {
+                if (this.fusionElementDiscardMode) {
+                    // Clear previous selection
+                    this.highlightChargeIndicator(this.selectedChargeToReplace, false);
+                    
+                    // Select this slot
+                    this.selectedChargeToReplace = i;
+                    this.highlightChargeIndicator(i, true);
+                    
+                    // Handle the discard immediately on click
+                    const selectedSlot = i;
+                    let discardedElement = null;
+                    
+                    if (selectedSlot < 8) {
+                        // Discarding from charge slots
+                        discardedElement = this.chargeSlots[selectedSlot];
+                        this.chargeSlots[selectedSlot] = this.pendingFusionElement;
+                    }
+                    
+                    // Rebuild charges array
+                    this.charges = [];
+                    for (let j = 0; j < 4 && j < this.chargeSlots.length; j++) {
+                        if (this.chargeSlots[j] !== null) {
+                            this.charges.push(this.chargeSlots[j]);
+                        }
+                    }
+                    
+                    // Update UI
+                    this.updateChargeUI();
+                    this.updateChargeGroups();
+                    
+                    // Hide extra slots
+                    this.hideExtraChargeSlots();
+                    
+                    // Clean up UI
+                    if (this.fusionDiscardUI) {
+                        if (this.fusionDiscardUI.instructionText) this.fusionDiscardUI.instructionText.destroy();
+                        if (this.fusionDiscardUI.controlHint) this.fusionDiscardUI.controlHint.destroy();
+                        this.fusionDiscardUI = null;
+                    }
+                    
+                    // Reset states
+                    this.fusionElementDiscardMode = false;
+                    this.selectedChargeToReplace = -1;
+                    this.chestChargeSelectMode = false;
+                    
+                    // Show success message
+                    const successText = this.add.text(400, 300, `${discardedElement.toUpperCase()} discarded!\n${this.pendingFusionElement.toUpperCase()} acquired!`, {
+                        fontSize: '24px',
+                        color: '#44ff44',
+                        fontStyle: 'bold',
+                        align: 'center'
+                    });
+                    successText.setOrigin(0.5);
+                    successText.setScrollFactor(0);
+                    successText.setDepth(922);
+                    
+                    this.tweens.add({
+                        targets: successText,
+                        y: 250,
+                        alpha: 0,
+                        duration: 2000,
+                        onComplete: () => {
+                            successText.destroy();
+                            this.physics.resume();
+                            this.chestOpening = false;
+                            this.pendingFusionElement = null;
+                        }
+                    });
+                }
+            });
 
             // Element sprite indicator - try using image instead of sprite
             const indicator = this.add.image(xPos, yPos, 'element-symbols', 0);
@@ -4452,6 +4666,80 @@ class GameScene extends Phaser.Scene {
                 slotBg.setScrollFactor(0);
                 slotBg.setDepth(561);
                 slotBg.setVisible(true);
+                slotBg.setInteractive({ useHandCursor: true });
+                
+                // Store the index for click handler
+                slotBg.slotIndex = i;
+                
+                // Add click handler
+                slotBg.on('pointerdown', () => {
+                    if (this.fusionElementDiscardMode) {
+                        // Clear previous selection
+                        this.highlightChargeIndicator(this.selectedChargeToReplace, false);
+                        
+                        // Select this slot
+                        this.selectedChargeToReplace = i;
+                        this.highlightChargeIndicator(i, true);
+                        
+                        // Handle the discard immediately on click
+                        const selectedSlot = i;
+                        let discardedElement = null;
+                        
+                        // Discarding from pouch
+                        const pouchIndex = selectedSlot - 8;
+                        discardedElement = this.elementPouch[pouchIndex];
+                        this.elementPouch[pouchIndex] = this.pendingFusionElement;
+                        localStorage.setItem('elementPouch', JSON.stringify(this.elementPouch));
+                        
+                        // Update UI
+                        this.updateChargeUI();
+                        this.updateChargeGroups();
+                        
+                        // Hide extra slots
+                        this.hideExtraChargeSlots();
+                        
+                        // Clean up UI
+                        if (this.fusionDiscardUI) {
+                            if (this.fusionDiscardUI.instructionText) this.fusionDiscardUI.instructionText.destroy();
+                            if (this.fusionDiscardUI.controlHint) this.fusionDiscardUI.controlHint.destroy();
+                            this.fusionDiscardUI = null;
+                        }
+                        
+                        // Reset states
+                        this.fusionElementDiscardMode = false;
+                        this.selectedChargeToReplace = -1;
+                        this.chestChargeSelectMode = false;
+                        
+                        // Show success message
+                        const successText = this.add.text(400, 300, `${discardedElement.toUpperCase()} discarded!\n${this.pendingFusionElement.toUpperCase()} acquired!`, {
+                            fontSize: '24px',
+                            color: '#44ff44',
+                            fontStyle: 'bold',
+                            align: 'center'
+                        });
+                        successText.setOrigin(0.5);
+                        successText.setScrollFactor(0);
+                        successText.setDepth(922);
+                        
+                        this.tweens.add({
+                            targets: successText,
+                            y: 250,
+                            alpha: 0,
+                            duration: 2000,
+                            onComplete: () => {
+                                successText.destroy();
+                                this.physics.resume();
+                                this.chestOpening = false;
+                                this.pendingFusionElement = null;
+                                
+                                // Resume boss AI timer if it exists
+                                if (this.bossAITimer) {
+                                    this.bossAITimer.paused = false;
+                                }
+                            }
+                        });
+                    }
+                });
                 
                 // Element sprite indicator
                 const indicator = this.add.image(xPos, yPos, 'element-symbols', 0);
@@ -5038,6 +5326,16 @@ class GameScene extends Phaser.Scene {
             wave.maxEnemies = wave.maxEnemies + (cycleNumber * 10);
         }
 
+        // Apply enemy density multiplier
+        wave.maxEnemies = Math.floor(wave.maxEnemies * this.enemyDensityMultiplier);
+        
+        // Adjust spawn interval inversely with density (more enemies = faster spawning)
+        if (this.enemyDensityMultiplier > 1) {
+            wave.spawnInterval = Math.max(300, wave.spawnInterval / Math.sqrt(this.enemyDensityMultiplier));
+        } else if (this.enemyDensityMultiplier < 1) {
+            wave.spawnInterval = wave.spawnInterval / this.enemyDensityMultiplier;
+        }
+
         return wave;
     }
 
@@ -5086,7 +5384,7 @@ class GameScene extends Phaser.Scene {
 
     updateHealthBar() {
         // Bottom health bar removed - only updating wizard health bar
-        return;
+        this.updateWizardHealthBar();
     }
 
     updateWizardHealthBar() {
@@ -5218,6 +5516,63 @@ class GameScene extends Phaser.Scene {
         // Update hexed enemies visuals
         if (this.hexActive) {
             this.updateHexedEnemies();
+        }
+        
+        // Update directional indicators
+        this.updateDirectionalIndicators();
+        
+        // Update rune glow effects to follow runes
+        if (this.runeGroup) {
+            this.runeGroup.children.entries.forEach(rune => {
+                if (rune.active && rune.glowEffect) {
+                    rune.glowEffect.x = rune.x;
+                    rune.glowEffect.y = rune.y;
+                }
+            });
+        }
+        
+        // Spawn runes based on player movement when boss exists
+        if (this.boss && this.boss.isObeliskBoss && this.boss.active) {
+            if (!this.lastRuneSpawnX) this.lastRuneSpawnX = this.wizard.x;
+            if (!this.lastRuneSpawnY) this.lastRuneSpawnY = this.wizard.y;
+            
+            const distanceFromLastSpawn = Phaser.Math.Distance.Between(
+                this.wizard.x, this.wizard.y,
+                this.lastRuneSpawnX, this.lastRuneSpawnY
+            );
+            
+            // Spawn a new rune every 500 pixels of movement, max 3 runes
+            if (distanceFromLastSpawn > 500 && this.runeGroup.children.size < 3) {
+                // Try to find a valid chunk position for rune spawning
+                let runeSpawned = false;
+                let attempts = 0;
+                
+                while (!runeSpawned && attempts < 10) {
+                    // Generate potential rune position around player
+                    const angle = Math.random() * Math.PI * 2;
+                    const distance = 300 + Math.random() * 500; // 300-800 pixels away
+                    const runeX = this.wizard.x + Math.cos(angle) * distance;
+                    const runeY = this.wizard.y + Math.sin(angle) * distance;
+                    
+                    // Calculate which chunk this position is in
+                    const chunkX = Math.floor(runeX / this.chunkSize);
+                    const chunkY = Math.floor(runeY / this.chunkSize);
+                    const chunkKey = `${chunkX},${chunkY}`;
+                    
+                    // Check if this chunk already has a rune
+                    if (!this.runeChunks.has(chunkKey)) {
+                        // Spawn rune in this chunk
+                        this.createGlowingRune(runeX, runeY, chunkKey);
+                        runeSpawned = true;
+                    }
+                    
+                    attempts++;
+                }
+                
+                // Update last spawn position
+                this.lastRuneSpawnX = this.wizard.x;
+                this.lastRuneSpawnY = this.wizard.y;
+            }
         }
 
         // Update spawn rate over time (every minute)
@@ -5424,6 +5779,24 @@ class GameScene extends Phaser.Scene {
         // Handle chest selection controller input
         if (this.chestSelectionActive && this.chestUI) {
             this.handleChestSelectionController();
+            return;
+        }
+        
+        // Handle element upgrade controller input
+        if (this.elementUpgradeSelectionActive && this.elementUpgradeUI) {
+            this.handleElementUpgradeController();
+            return;
+        }
+        
+        // Handle fusion discard dialog controller input
+        if (this.fusionDiscardDialogActive && this.fusionDiscardDialog) {
+            this.handleFusionDiscardDialogController();
+            return;
+        }
+        
+        // Handle fusion element discard mode controller input
+        if (this.fusionElementDiscardMode) {
+            this.handleFusionElementDiscardController();
             return;
         }
         
@@ -5745,8 +6118,8 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        // Wave-based spawning system
-        if (this.gameStarted) {
+        // Wave-based spawning system (disabled when boss spawns)
+        if (this.gameStarted && !this.bossSpawned) {
             // Check if it's time to start a new wave (every 60 seconds)
             const waveTime = (this.time.now - this.waveStartTime) / 1000; // Convert to seconds
             if (waveTime >= (60 / this.speedMultiplier)) {
@@ -5978,27 +6351,6 @@ class GameScene extends Phaser.Scene {
                     enemy.lastSummonTime = time;
                 }
             }
-            // Handle boss behavior
-            else if (enemy.isBoss) {
-                // Boss moves slowly towards player
-                if (!enemy.stunned && !enemy.frozen) {
-                    const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
-                    const speed = enemy.moveSpeed || 30;
-                    enemy.setVelocity(
-                        Math.cos(angle) * speed,
-                        Math.sin(angle) * speed
-                    );
-                    
-                    // Face direction of movement
-                    if (Math.cos(angle) < 0) {
-                        enemy.setFlipX(true);
-                    } else {
-                        enemy.setFlipX(false);
-                    }
-                } else {
-                    enemy.setVelocity(0, 0);
-                }
-            }
             // Handle lost soul behavior
             else if (enemy.enemyType === 'soul') {
                 const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
@@ -6083,8 +6435,8 @@ class GameScene extends Phaser.Scene {
                     }
                 }
             }
-            // Only update velocity if not stunned, blinded, or frozen
-            else if (!enemy.stunned && !enemy.blinded && !enemy.frozen && !this.wizard.invisible) {
+            // Only update velocity if not stunned, blinded, frozen
+            else if (!enemy.stunned && !enemy.blinded && !enemy.frozen && !this.wizard.invisible && !enemy.isObeliskBoss) {
                 // Get enemy speed based on type
                 let moveSpeed = (enemy.moveSpeed || (enemy.enemyType === 'tree' ? 48 : 60)) * this.speedMultiplier;
 
@@ -8959,17 +9311,17 @@ class GameScene extends Phaser.Scene {
                     const xpValue = baseXP + waveBonus;
                     this.dropJewel(enemyX, enemyY, xpValue, 0.075);
 
-                    // Item drop chances
+                    // Item drop chances - now as standalone items
                     const dropRoll = Math.random();
                     if (dropRoll < 0.0125) {
                         // 1.25% chance to drop muffin
-                        this.dropItemChest(enemyX, enemyY + 20, 'muffin');
+                        this.dropStandaloneItem(enemyX, enemyY + 20, 'muffin');
                     } else if (dropRoll < 0.0175) {
                         // 0.5% chance to drop shield
-                        this.dropItemChest(enemyX, enemyY + 20, 'shield');
+                        this.dropStandaloneItem(enemyX, enemyY + 20, 'shield');
                     } else if (dropRoll < 0.0225) {
                         // 0.5% chance to drop flamethrower
-                        this.dropItemChest(enemyX, enemyY + 20, 'flamethrower');
+                        this.dropStandaloneItem(enemyX, enemyY + 20, 'flamethrower');
                     }
                 }
 
@@ -8981,7 +9333,7 @@ class GameScene extends Phaser.Scene {
                 enemy.destroy();
             });
         } else if (enemy.isElite) {
-            // Elite enemy death - no chest drop
+            // Elite enemy death - drops reward chest
             enemy.setVelocity(0, 0);
             
             // Immediately disable physics body to prevent collision errors
@@ -8994,7 +9346,6 @@ class GameScene extends Phaser.Scene {
                 alpha: 0,
                 duration: 500,
                 onComplete: () => {
-                    // Drop regular items as chests instead
                     // Drop 3-5 jewels - XP scales with wave
                     const baseXP = 2;
                     const waveBonus = Math.floor(this.currentWave / 2); // +1 XP every 2 waves
@@ -9005,26 +9356,8 @@ class GameScene extends Phaser.Scene {
                         this.dropJewel(enemyX + offsetX, enemyY + offsetY, xpValue, 0.075);
                     }
 
-                    // Elements no longer drop from enemies
-                    // for (let i = 0; i < 1 + Math.floor(Math.random() * 2); i++) {
-                    //     const element = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
-                    //     const offsetX = (Math.random() - 0.5) * 30;
-                    //     const offsetY = (Math.random() - 0.5) * 30;
-                    //     this.dropItemChest(enemyX + offsetX, enemyY + offsetY, 'element', { element: element });
-                    // }
-
-                    // Item drop chances - higher for elite enemies
-                    const dropRoll = Math.random();
-                    if (dropRoll < 0.075) {
-                        // 7.5% chance to drop muffin
-                        this.dropItemChest(enemyX, enemyY, 'muffin');
-                    } else if (dropRoll < 0.095) {
-                        // 2% chance to drop shield
-                        this.dropItemChest(enemyX, enemyY, 'shield');
-                    } else if (dropRoll < 0.115) {
-                        // 2% chance to drop flamethrower
-                        this.dropItemChest(enemyX, enemyY, 'flamethrower');
-                    }
+                    // Elite enemies always drop a reward chest
+                    this.dropRewardChest(enemyX, enemyY);
 
                     this.enemiesKilled.elite++;
                     // Ensure physics body is disabled before destroy
@@ -9074,17 +9407,17 @@ class GameScene extends Phaser.Scene {
                     // const element = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
                     // this.dropItemChest(enemyX, enemyY + 20, 'element', { element: element });
 
-                    // Item drop chances - higher for golems
+                    // Item drop chances - higher for golems, now as standalone items
                     const dropRoll = Math.random();
                     if (dropRoll < 0.075) {
                         // 7.5% chance to drop muffin
-                        this.dropItemChest(enemyX, enemyY - 20, 'muffin');
+                        this.dropStandaloneItem(enemyX, enemyY - 20, 'muffin');
                     } else if (dropRoll < 0.085) {
                         // 1% chance to drop shield
-                        this.dropItemChest(enemyX, enemyY - 20, 'shield');
+                        this.dropStandaloneItem(enemyX, enemyY - 20, 'shield');
                     } else if (dropRoll < 0.095) {
                         // 1% chance to drop flamethrower
-                        this.dropItemChest(enemyX, enemyY - 20, 'flamethrower');
+                        this.dropStandaloneItem(enemyX, enemyY - 20, 'flamethrower');
                     }
                 }
 
@@ -9115,17 +9448,17 @@ class GameScene extends Phaser.Scene {
                     const xpValue = baseXP + waveBonus;
                     this.dropJewel(enemyX, enemyY, xpValue, 0.075);
 
-                    // Item drop chances
+                    // Item drop chances - now as standalone items
                     const dropRoll = Math.random();
                     if (dropRoll < 0.0125) {
                         // 1.25% chance to drop muffin
-                        this.dropItemChest(enemyX, enemyY + 20, 'muffin');
+                        this.dropStandaloneItem(enemyX, enemyY + 20, 'muffin');
                     } else if (dropRoll < 0.0175) {
                         // 0.5% chance to drop shield
-                        this.dropItemChest(enemyX, enemyY + 20, 'shield');
+                        this.dropStandaloneItem(enemyX, enemyY + 20, 'shield');
                     } else if (dropRoll < 0.0225) {
                         // 0.5% chance to drop flamethrower
-                        this.dropItemChest(enemyX, enemyY + 20, 'flamethrower');
+                        this.dropStandaloneItem(enemyX, enemyY + 20, 'flamethrower');
                     }
 
                     // Trees no longer drop elements
@@ -9444,6 +9777,9 @@ class GameScene extends Phaser.Scene {
     }
 
     summonMinions(summoner) {
+        // Don't summon minions if boss is active
+        if (this.bossSpawned) return;
+        
         // Play summoning animation
         summoner.play('summoner-summoning');
         summoner.isSummoning = true;
@@ -10469,6 +10805,9 @@ class GameScene extends Phaser.Scene {
     }
 
     spawnLevelUpGolem() {
+        // Don't spawn golem if boss is active
+        if (this.bossSpawned) return;
+        
         // Spawns a special elite golem on level up
         const angle = Math.random() * Math.PI * 2;
         const distance = 250;
@@ -10491,8 +10830,9 @@ class GameScene extends Phaser.Scene {
         golem.maxHealth = golem.health;
         golem.enemyType = 'golem';
         golem.golemColor = golemColor;
-        golem.moveSpeed = 82.5;
+        golem.moveSpeed = 25; // Reduced from 82.5 to make boss slower
         golem.isEliteGolem = true; // Mark as special golem that drops charge expansion
+        // golem.isBoss = true; // Removed - no longer a boss with laser attacks
         golem.play(`golem-${golemColor}-walk`);
         golem.body.setSize(60, 50);
         golem.body.setOffset(15, 10);
@@ -10868,6 +11208,9 @@ class GameScene extends Phaser.Scene {
     }
 
     spawnSplitSlime(x, y, generation, difficultyMultiplier) {
+        // Don't spawn split slimes if boss is active
+        if (this.bossSpawned) return;
+        
         const slime = this.physics.add.sprite(x, y, 'slime-idle-0');
 
         // Each generation is smaller
@@ -10904,6 +11247,11 @@ class GameScene extends Phaser.Scene {
         // Check if enemy is hexed (deals no damage)
         if (enemy.isHexed) {
             return; // Hexed enemies deal no damage
+        }
+        
+        // Check if boss is charging laser (no contact damage during telegraph)
+        if (enemy.isChargingLaser) {
+            return; // Boss doesn't deal contact damage while charging laser
         }
         
         // Check if wizard is invulnerable (shield active)
@@ -11330,6 +11678,12 @@ class GameScene extends Phaser.Scene {
         if (projectile.element === 'lightning' && enemy.wet && enemy.wetEndTime && this.time.now < enemy.wetEndTime) {
             damage *= 2;
             console.log(`Lightning hit wet enemy - damage doubled!`);
+        }
+        
+        // Apply vulnerability multiplier (e.g., boss takes 200% damage during laser attack)
+        if (enemy.vulnerabilityMultiplier) {
+            damage *= enemy.vulnerabilityMultiplier;
+            console.log(`Vulnerability multiplier applied: ${enemy.vulnerabilityMultiplier}x`);
         }
         
         enemy.health -= damage;
@@ -11839,6 +12193,165 @@ class GameScene extends Phaser.Scene {
                 projectile.body.enable = false;
             }
             projectile.destroy();
+        }
+    }
+
+    laserHitRune(laser, rune) {
+        // Safety checks
+        if (!laser || !laser.active || !rune || !rune.active || !this.boss || !this.boss.active) {
+            return;
+        }
+        
+        // Ensure this is a boss laser hitting a rune
+        if (!laser.isLaser || !laser.fromBoss || !rune.isRune) {
+            return;
+        }
+        
+        // Destroy the rune with dramatic effect
+        const runeX = rune.x;
+        const runeY = rune.y;
+        
+        // Create spectacular explosion effect
+        const explosion = this.add.circle(runeX, runeY, 100, 0xff00ff, 0.8);
+        explosion.setDepth(100);
+        
+        this.tweens.add({
+            targets: explosion,
+            scale: { from: 0, to: 8 },
+            alpha: { from: 1, to: 0 },
+            duration: 1000,
+            ease: 'Power2',
+            onComplete: () => explosion.destroy()
+        });
+        
+        // Create shockwave effect
+        const shockwave = this.add.graphics();
+        shockwave.lineStyle(8, 0xff00ff, 1);
+        shockwave.strokeCircle(runeX, runeY, 20);
+        shockwave.setDepth(99);
+        
+        this.tweens.add({
+            targets: shockwave,
+            scale: { from: 1, to: 15 },
+            alpha: { from: 1, to: 0 },
+            duration: 800,
+            ease: 'Power2',
+            onComplete: () => shockwave.destroy()
+        });
+        
+        // Damage boss (30% of max health)
+        const damage = Math.floor(this.boss.maxHealth * 0.3);
+        this.boss.health -= damage;
+        
+        // Show damage number
+        const damageText = this.add.text(this.boss.x, this.boss.y - 100, `-${damage}!`, {
+            fontSize: '36px',
+            color: '#ff00ff',
+            fontStyle: 'bold',
+            stroke: '#ffffff',
+            strokeThickness: 4
+        });
+        damageText.setOrigin(0.5);
+        damageText.setDepth(200);
+        
+        this.tweens.add({
+            targets: damageText,
+            y: damageText.y - 80,
+            scale: { from: 1, to: 1.5 },
+            alpha: { from: 1, to: 0 },
+            duration: 2000,
+            ease: 'Power2',
+            onComplete: () => damageText.destroy()
+        });
+        
+        // Stun boss for 6 seconds
+        this.boss.isStunned = true;
+        this.boss.stunEndTime = this.time.now + 6000;
+        this.boss.setVelocity(0, 0);
+        
+        // Pause boss AI timer during stun
+        if (this.bossAITimer) {
+            this.bossAITimer.paused = true;
+        }
+        
+        // Visual stun effect
+        this.boss.setTint(0x6666ff);
+        
+        // Add stun indicator text
+        const stunText = this.add.text(this.boss.x, this.boss.y - 150, 'STUNNED!', {
+            fontSize: '32px',
+            color: '#6666ff',
+            fontStyle: 'bold',
+            stroke: '#ffffff',
+            strokeThickness: 4
+        });
+        stunText.setOrigin(0.5);
+        stunText.setDepth(150);
+        
+        // Pulsing animation for stun text
+        this.tweens.add({
+            targets: stunText,
+            scale: { from: 1, to: 1.2 },
+            duration: 500,
+            yoyo: true,
+            repeat: 11, // 6 seconds of pulsing
+            ease: 'Sine.easeInOut',
+            onComplete: () => stunText.destroy()
+        });
+        
+        // Remove stun after 6 seconds
+        this.time.delayedCall(6000, () => {
+            if (this.boss && this.boss.active) {
+                this.boss.isStunned = false;
+                this.boss.stunEndTime = 0;
+                this.boss.clearTint();
+                
+                // Resume boss AI timer
+                if (this.bossAITimer) {
+                    this.bossAITimer.paused = false;
+                }
+            }
+        });
+        
+        // Remove rune and its glow effect
+        if (rune.glowEffect) {
+            rune.glowEffect.destroy();
+        }
+        
+        // Remove directional indicator for this rune
+        this.removeDirectionalIndicator(rune);
+        
+        // Clean up chunk tracking
+        if (rune.chunkKey) {
+            this.runeChunks.delete(rune.chunkKey);
+        }
+        
+        rune.destroy();
+        
+        // Show text hint about the mechanic
+        const hintText = this.add.text(runeX, runeY - 100, 'WEAKSPOT HIT!\nBoss Stunned!', {
+            fontSize: '24px',
+            color: '#ff00ff',
+            fontStyle: 'bold',
+            stroke: '#ffffff',
+            strokeThickness: 4,
+            align: 'center'
+        });
+        hintText.setOrigin(0.5);
+        hintText.setDepth(200);
+        
+        this.tweens.add({
+            targets: hintText,
+            y: hintText.y - 60,
+            alpha: { from: 1, to: 0 },
+            duration: 3000,
+            ease: 'Power2',
+            onComplete: () => hintText.destroy()
+        });
+        
+        // Check if boss is defeated
+        if (this.boss.health <= 0) {
+            this.defeatBoss();
         }
     }
 
@@ -17063,6 +17576,242 @@ class GameScene extends Phaser.Scene {
             star.starUpdate = star.updateBounce;
         }
     }
+    
+    createDirectionalIndicator(targetObject, color = 0xffff00) {
+        // Create arrow sprite at screen edge pointing to offscreen target
+        const arrow = this.add.triangle(0, 0, 0, -20, -10, 10, 10, 10, color, 1);
+        arrow.setDepth(500);
+        arrow.setScrollFactor(0); // Fixed to camera
+        arrow.setVisible(false);
+        arrow.setStrokeStyle(2, 0x000000); // Black outline for visibility
+        
+        // Store reference to target
+        arrow.target = targetObject;
+        arrow.baseColor = color;
+        
+        // Add pulsing animation
+        this.tweens.add({
+            targets: arrow,
+            scale: { from: 1, to: 1.2 },
+            alpha: { from: 0.8, to: 1 },
+            duration: 500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        this.directionalIndicators.push(arrow);
+        return arrow;
+    }
+    
+    updateDirectionalIndicators() {
+        const camera = this.cameras.main;
+        const screenCenterX = camera.scrollX + camera.width / 2;
+        const screenCenterY = camera.scrollY + camera.height / 2;
+        const margin = 30; // Distance from screen edge
+        
+        // Find nearest rune if boss is active
+        const nearestRune = this.boss && this.boss.isObeliskBoss && this.boss.active ? this.findNearestRune() : null;
+        
+        this.directionalIndicators.forEach(arrow => {
+            if (!arrow.target || !arrow.target.active) {
+                arrow.setVisible(false);
+                return;
+            }
+            
+            // For runes, only show indicator for the nearest one
+            if (arrow.target.isRune && arrow.target !== nearestRune) {
+                arrow.setVisible(false);
+                return;
+            }
+            
+            // Calculate if target is offscreen
+            const targetX = arrow.target.x;
+            const targetY = arrow.target.y;
+            
+            const leftBound = camera.scrollX + margin;
+            const rightBound = camera.scrollX + camera.width - margin;
+            const topBound = camera.scrollY + margin;
+            const bottomBound = camera.scrollY + camera.height - margin;
+            
+            const isOffscreen = targetX < leftBound || targetX > rightBound || 
+                               targetY < topBound || targetY > bottomBound;
+            
+            if (isOffscreen) {
+                arrow.setVisible(true);
+                
+                // Calculate angle from screen center to target
+                const angle = Phaser.Math.Angle.Between(screenCenterX, screenCenterY, targetX, targetY);
+                
+                // Calculate position on screen edge
+                const halfWidth = camera.width / 2 - margin;
+                const halfHeight = camera.height / 2 - margin;
+                
+                // Project from center to edge
+                let edgeX, edgeY;
+                const cos = Math.cos(angle);
+                const sin = Math.sin(angle);
+                const aspectRatio = halfWidth / halfHeight;
+                
+                if (Math.abs(cos) * aspectRatio > Math.abs(sin)) {
+                    // Hit left or right edge
+                    edgeX = halfWidth * Math.sign(cos);
+                    edgeY = edgeX * sin / cos;
+                } else {
+                    // Hit top or bottom edge
+                    edgeY = halfHeight * Math.sign(sin);
+                    edgeX = edgeY * cos / sin;
+                }
+                
+                // Position arrow at edge of screen
+                arrow.x = camera.width / 2 + edgeX;
+                arrow.y = camera.height / 2 + edgeY;
+                
+                // Rotate arrow to point at target
+                arrow.rotation = angle + Math.PI / 2;
+                
+                // Add distance text for runes
+                if (arrow.target.isRune) {
+                    const distance = Math.floor(Phaser.Math.Distance.Between(
+                        this.wizard.x, this.wizard.y,
+                        targetX, targetY
+                    ));
+                    
+                    // Create or update distance text
+                    if (!arrow.distanceText) {
+                        arrow.distanceText = this.add.text(0, 0, '', {
+                            fontSize: '14px',
+                            color: '#ffffff',
+                            fontStyle: 'bold',
+                            stroke: '#000000',
+                            strokeThickness: 2
+                        });
+                        arrow.distanceText.setOrigin(0.5);
+                        arrow.distanceText.setScrollFactor(0);
+                        arrow.distanceText.setDepth(501);
+                    }
+                    
+                    arrow.distanceText.setText(`${distance}m`);
+                    arrow.distanceText.x = arrow.x;
+                    arrow.distanceText.y = arrow.y + 25;
+                    arrow.distanceText.setVisible(true);
+                }
+            } else {
+                arrow.setVisible(false);
+                if (arrow.distanceText) {
+                    arrow.distanceText.setVisible(false);
+                }
+            }
+        });
+    }
+    
+    removeDirectionalIndicator(targetObject) {
+        const index = this.directionalIndicators.findIndex(arrow => arrow.target === targetObject);
+        if (index !== -1) {
+            this.directionalIndicators[index].destroy();
+            this.directionalIndicators.splice(index, 1);
+        }
+    }
+    
+    createGlowingRune(x, y, chunkKey) {
+        // Create rune sprite using dedicated weakspot rune image
+        const rune = this.physics.add.sprite(x, y, 'weakspot-rune');
+        rune.setScale(0.8); // Larger scale for better visibility
+        rune.setDepth(10);
+        
+        // Add glow effect
+        const glow = this.add.circle(x, y, 40, 0xff00ff, 0.3);
+        glow.setDepth(9);
+        rune.glowEffect = glow;
+        
+        // Pulsing animation
+        this.tweens.add({
+            targets: [rune, glow],
+            scale: { from: rune.scale, to: rune.scale * 1.2 },
+            alpha: { from: 0.8, to: 1 },
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Add to rune group
+        this.runeGroup.add(rune);
+        
+        // Store rune properties
+        rune.isRune = true;
+        rune.body.setSize(50, 50);
+        rune.chunkKey = chunkKey; // Store which chunk this rune belongs to
+        
+        // Mark this chunk as having a rune
+        if (chunkKey) {
+            this.runeChunks.add(chunkKey);
+        }
+        
+        // Create directional indicator for this rune
+        this.createDirectionalIndicator(rune, 0xff00ff);
+        
+        // Spawn effect - bright flash
+        const spawnFlash = this.add.circle(x, y, 10, 0xff00ff, 1);
+        spawnFlash.setDepth(100);
+        
+        this.tweens.add({
+            targets: spawnFlash,
+            scale: { from: 0, to: 6 },
+            alpha: { from: 1, to: 0 },
+            duration: 800,
+            ease: 'Power2',
+            onComplete: () => spawnFlash.destroy()
+        });
+        
+        // Add a floating text hint (only for the first few runes)
+        if (!this.runeHintCount) this.runeHintCount = 0;
+        if (this.runeHintCount < 2) {
+            this.runeHintCount++;
+            const hintText = this.add.text(x, y - 60, 'WEAKSPOT!\nLure boss laser here!', {
+                fontSize: '16px',
+                color: '#ff00ff',
+                fontStyle: 'bold',
+                stroke: '#ffffff',
+                strokeThickness: 2,
+                align: 'center'
+            });
+            hintText.setOrigin(0.5);
+            hintText.setDepth(100);
+            
+            this.tweens.add({
+                targets: hintText,
+                y: y - 90,
+                alpha: { from: 1, to: 0 },
+                duration: 3000,
+                ease: 'Power2',
+                onComplete: () => hintText.destroy()
+            });
+        }
+    }
+    
+    findNearestRune() {
+        if (!this.runeGroup || this.runeGroup.children.size === 0) return null;
+        
+        let nearestRune = null;
+        let nearestDistance = Infinity;
+        
+        this.runeGroup.children.entries.forEach(rune => {
+            if (!rune.active || rune.isDestroyed) return;
+            
+            const distance = Phaser.Math.Distance.Between(
+                this.wizard.x, this.wizard.y,
+                rune.x, rune.y
+            );
+            
+            if (distance < nearestDistance) {
+                nearestDistance = distance;
+                nearestRune = rune;
+            }
+        });
+        
+        return nearestRune;
+    }
 
     createTimeSpell() {
         // Check if time spell is on cooldown
@@ -19185,6 +19934,1317 @@ class GameScene extends Phaser.Scene {
 
         this.chests.add(chest);
     }
+    
+    dropRewardChest(x, y) {
+        const chest = this.physics.add.sprite(x, y, 'chest-idle', 0);
+        chest.setDepth(25);
+        chest.body.setVelocity(0, 0);
+        chest.setScale(2.0); // Larger than regular chests
+        chest.body.setSize(30, 15);
+        
+        // Play animation
+        chest.play('chest-idle-anim');
+        
+        // Mark as reward chest (not item chest)
+        chest.isRewardChest = true;
+        
+        // Floating animation
+        this.tweens.add({
+            targets: chest,
+            y: y - 20,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Golden glow effect for reward chests
+        this.tweens.add({
+            targets: chest,
+            scale: { from: 2.0, to: 2.3 },
+            alpha: { from: 1, to: 0.8 },
+            tint: { from: 0xffffff, to: 0xffdd44 },
+            duration: 600,
+            yoyo: true,
+            repeat: -1
+        });
+        
+        // Add sparkle particles
+        const sparkles = this.add.particles(x, y, 'spark', {
+            speed: { min: 20, max: 50 },
+            scale: { start: 0.3, end: 0 },
+            blendMode: 'ADD',
+            lifespan: 1000,
+            frequency: 100,
+            emitZone: { type: 'random', source: new Phaser.Geom.Circle(0, 0, 20) }
+        });
+        sparkles.setDepth(24);
+        chest.sparkles = sparkles;
+        
+        this.chests.add(chest);
+    }
+    
+    dropStandaloneItem(x, y, itemType) {
+        let item;
+        let spriteKey;
+        let scale = 1.0;
+        
+        // Create the appropriate sprite based on item type
+        switch(itemType) {
+            case 'muffin':
+                item = this.physics.add.sprite(x, y, 'muffin');
+                scale = 0.16; // 80% smaller than 0.8 = 0.16
+                break;
+            case 'shield':
+                item = this.physics.add.sprite(x, y, 'shield');
+                scale = 0.6;
+                break;
+            case 'flamethrower':
+                item = this.physics.add.sprite(x, y, 'flamethrower');
+                scale = 0.5;
+                break;
+            default:
+                console.warn('Unknown item type:', itemType);
+                return;
+        }
+        
+        item.setScale(scale);
+        item.setDepth(25);
+        item.itemType = itemType;
+        
+        // Floating animation
+        this.tweens.add({
+            targets: item,
+            y: y - 10,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Glow effect
+        this.tweens.add({
+            targets: item,
+            scale: { from: scale, to: scale * 1.2 },
+            duration: 800,
+            yoyo: true,
+            repeat: -1
+        });
+        
+        // Add to standalone items group for collision detection
+        this.standaloneItems.add(item);
+    }
+    
+    collectStandaloneItem(wizard, item) {
+        if (!item || item.isCollecting) return;
+        
+        item.isCollecting = true;
+        
+        // Apply the item effect
+        switch(item.itemType) {
+            case 'muffin':
+                // Heal 30% of max health
+                const healAmount = Math.floor(this.maxHealth * 0.3);
+                this.playerHealth = Math.min(this.playerHealth + healAmount, this.maxHealth);
+                this.itemsCollected.muffins++;
+                this.updateHealthBar();
+                this.updateWizardHealthBar();
+                
+                // Show heal effect
+                const healText = this.add.text(wizard.x, wizard.y - 50, `+${healAmount} HP`, {
+                    fontSize: '24px',
+                    color: '#44ff44',
+                    fontStyle: 'bold'
+                });
+                healText.setOrigin(0.5);
+                this.tweens.add({
+                    targets: healText,
+                    y: wizard.y - 80,
+                    alpha: 0,
+                    duration: 1000,
+                    onComplete: () => healText.destroy()
+                });
+                
+                // Green flash on wizard
+                wizard.setTint(0x44ff44);
+                this.time.delayedCall(200, () => {
+                    wizard.clearTint();
+                });
+                break;
+                
+            case 'shield':
+                this.activateShield();
+                break;
+                
+            case 'flamethrower':
+                this.activateFlamethrower();
+                break;
+        }
+        
+        // Animate collection
+        this.tweens.add({
+            targets: item,
+            scale: 0,
+            alpha: 0,
+            duration: 200,
+            onComplete: () => {
+                item.destroy();
+            }
+        });
+    }
+    
+    openRewardChest(wizard, chest) {
+        // Stop sparkle particles if they exist
+        if (chest.sparkles) {
+            chest.sparkles.destroy();
+        }
+        
+        // Possible rewards
+        const rewards = [
+            { type: 'levelup', icon: '⬆️', name: 'LEVEL UP', color: 0x44ff44 },
+            { type: 'element_upgrade', icon: '⚡', name: 'ELEMENT UPGRADE', color: 0x4444ff },
+            { type: 'fusion', icon: '🔮', name: 'FUSION ELEMENT', color: 0xff44ff }
+        ];
+        
+        // Randomly determine the reward immediately
+        const finalReward = rewards[Math.floor(Math.random() * rewards.length)];
+        
+        // Create simple reward display UI
+        const bg = this.add.rectangle(400, 300, 400, 300, 0x000000, 0.95);
+        bg.setScrollFactor(0);
+        bg.setDepth(20000);
+        bg.setStrokeStyle(4, 0xffd700);
+        
+        // Title
+        const title = this.add.text(400, 200, 'REWARD CHEST', {
+            fontSize: '36px',
+            color: '#ffdd44',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        title.setOrigin(0.5);
+        title.setScrollFactor(0);
+        title.setDepth(20001);
+        
+        // Reward display
+        const rewardBg = this.add.rectangle(400, 280, 300, 100, finalReward.color, 0.3);
+        rewardBg.setStrokeStyle(3, finalReward.color);
+        rewardBg.setScrollFactor(0);
+        rewardBg.setDepth(20001);
+        
+        const icon = this.add.text(400, 255, finalReward.icon, {
+            fontSize: '48px'
+        });
+        icon.setOrigin(0.5);
+        icon.setScrollFactor(0);
+        icon.setDepth(20002);
+        
+        const name = this.add.text(400, 305, finalReward.name, {
+            fontSize: '24px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        });
+        name.setOrigin(0.5);
+        name.setScrollFactor(0);
+        name.setDepth(20002);
+        
+        // Flash effect on reward
+        const flash = this.add.rectangle(400, 280, 300, 100, 0xffffff, 0);
+        flash.setScrollFactor(0);
+        flash.setDepth(20003);
+        
+        this.tweens.add({
+            targets: flash,
+            alpha: { from: 0.8, to: 0 },
+            duration: 300,
+            repeat: 2,
+            yoyo: true
+        });
+        
+        // Continue button
+        const continueButton = this.add.rectangle(400, 380, 200, 50, 0x44ff44, 1);
+        continueButton.setInteractive({ useHandCursor: true });
+        continueButton.setScrollFactor(0);
+        continueButton.setDepth(20004);
+        
+        const continueText = this.add.text(400, 380, 'CLAIM', {
+            fontSize: '24px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        });
+        continueText.setOrigin(0.5);
+        continueText.setScrollFactor(0);
+        continueText.setDepth(20005);
+        
+        // Handle claim button
+        const claimReward = () => {
+            // Clean up input handler
+            if (this.rewardChestInputHandler) {
+                this.rewardChestInputHandler.destroy();
+                this.rewardChestInputHandler = null;
+            }
+            
+            // Clean up UI
+            bg.destroy();
+            title.destroy();
+            rewardBg.destroy();
+            icon.destroy();
+            name.destroy();
+            flash.destroy();
+            continueButton.destroy();
+            continueText.destroy();
+            
+            // Apply the reward
+            this.handleSlotMachineReward(finalReward, chest);
+            
+            // Destroy chest
+            chest.destroy();
+        };
+        
+        continueButton.on('pointerdown', claimReward);
+        
+        continueButton.on('pointerover', () => {
+            continueButton.setScale(1.1);
+        });
+        
+        continueButton.on('pointerout', () => {
+            continueButton.setScale(1);
+        });
+        
+        // Add keyboard/gamepad support
+        const spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        const enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+        
+        const handleInput = () => {
+            // Check keyboard
+            if (Phaser.Input.Keyboard.JustDown(spaceKey) || Phaser.Input.Keyboard.JustDown(enterKey)) {
+                claimReward();
+                return;
+            }
+            
+            // Check gamepad
+            if (this.gamepad && this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed) {
+                claimReward();
+            }
+        };
+        
+        // Store the input handler so we can remove it later
+        this.rewardChestInputHandler = this.time.addEvent({
+            delay: 16,
+            callback: handleInput,
+            loop: true
+        });
+    }
+    
+    handleSlotMachineReward(reward, chest) {
+        // Pause physics
+        this.physics.pause();
+        
+        switch(reward.type) {
+            case 'levelup':
+                // Grant immediate level up - set XP to trigger level up
+                this.playerXP = this.xpToNextLevel;
+                
+                // Handle level up logic
+                this.playerLevel++;
+                
+                // Progressive scaling - easy first 2 levels, then much harder
+                if (this.playerLevel <= 2) {
+                    this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.10); // Only 10% increase for levels 0-2 (very easy start)
+                } else if (this.playerLevel <= 5) {
+                    this.xpToNextLevel = Math.floor(this.xpToNextLevel * 2.00); // 100% increase for levels 3-5 (massive jump in difficulty)
+                } else if (this.playerLevel <= 10) {
+                    this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.60); // 60% increase for levels 6-10
+                } else if (this.playerLevel <= 20) {
+                    this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.70); // 70% increase for levels 11-20
+                } else {
+                    this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.80); // 80% increase for levels 21+ (extremely slow)
+                }
+                
+                // Reset XP to 0 after level up
+                this.playerXP = 0;
+                
+                // Unlock charge slot every 10 levels
+                if (this.playerLevel % 10 === 0 && this.maxCharges < 8) {
+                    this.maxCharges++;
+                    this.updateChargeUI();
+                    
+                    // Visual feedback for slot unlock
+                    const slotText = this.add.text(this.wizard.x, this.wizard.y - 60, 'CHARGE SLOT UNLOCKED!', {
+                        fontSize: '28px',
+                        color: '#ff00ff',
+                        fontStyle: 'bold'
+                    });
+                    slotText.setOrigin(0.5);
+                    slotText.setDepth(150);
+                    
+                    this.tweens.add({
+                        targets: slotText,
+                        y: this.wizard.y - 100,
+                        alpha: 0,
+                        duration: 2000,
+                        onComplete: () => slotText.destroy()
+                    });
+                }
+                
+                // Update XP bar
+                this.updateXPBar();
+                this.updateChargeUI();
+                
+                // Spawn a sorcerer every 2 levels (2, 4, 6, etc.)
+                if (this.playerLevel % 2 === 0) {
+                    this.spawnLevelUpGolem();
+                }
+                
+                // Show level up effect
+                const levelUpText = this.add.text(400, 300, 'LEVEL UP!', {
+                    fontSize: '48px',
+                    color: '#ffdd44',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 6
+                });
+                levelUpText.setOrigin(0.5);
+                levelUpText.setScrollFactor(0);
+                levelUpText.setDepth(20010);
+                
+                this.tweens.add({
+                    targets: levelUpText,
+                    scale: { from: 0, to: 1.5 },
+                    alpha: { from: 1, to: 0 },
+                    duration: 2000,
+                    ease: 'Cubic.easeOut',
+                    onComplete: () => {
+                        levelUpText.destroy();
+                        this.physics.resume();
+                        this.chestOpening = false;
+                        
+                        // Resume boss AI timer if it exists
+                        if (this.bossAITimer) {
+                            this.bossAITimer.paused = false;
+                        }
+                    }
+                });
+                break;
+                
+            case 'element_upgrade':
+                // Show element upgrade selection
+                this.showElementUpgradeUI();
+                break;
+                
+            case 'fusion':
+                // Give a random fusion element
+                this.giveRandomFusionElement();
+                break;
+        }
+    }
+    
+    showElementUpgradeUI() {
+        console.log('showElementUpgradeUI called - creating element upgrade UI');
+        this.physics.pause();
+        this.chestOpening = true;
+        
+        // Get current elements in charge slots (only first 8 slots, not pouch)
+        const hasElements = this.chargeSlots.some((element, index) => index < 8 && element && element !== 'none');
+        
+        if (!hasElements) {
+            // No elements to upgrade
+            const noElementsText = this.add.text(400, 300, 'No elements to upgrade!', {
+                fontSize: '24px',
+                color: '#ff4444',
+                fontStyle: 'bold'
+            });
+            noElementsText.setOrigin(0.5);
+            noElementsText.setScrollFactor(0);
+            noElementsText.setDepth(20002);
+            
+            this.time.delayedCall(2000, () => {
+                noElementsText.destroy();
+                this.physics.resume();
+                this.chestOpening = false;
+                
+                // Resume boss AI timer if it exists
+                if (this.bossAITimer) {
+                    this.bossAITimer.paused = false;
+                }
+            });
+            return;
+        }
+        
+        // Show all 12 slots under the XP bar
+        this.showAllChargeSlots();
+        
+        // Show instruction text with black frame background
+        const titleBg = this.add.rectangle(400, 250, 400, 40, 0x000000, 0.8);
+        titleBg.setScrollFactor(0);
+        titleBg.setDepth(99);
+        
+        const title = this.add.text(400, 250, 'SELECT ELEMENT TO UPGRADE', {
+            fontSize: '24px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        title.setOrigin(0.5);
+        title.setScrollFactor(0);
+        title.setDepth(100);
+        
+        const controlBg = this.add.rectangle(400, 290, 350, 30, 0x000000, 0.8);
+        controlBg.setScrollFactor(0);
+        controlBg.setDepth(99);
+        
+        const controlHint = this.add.text(400, 290, 'UP/DOWN to select • SPACE/ENTER to upgrade', {
+            fontSize: '14px',
+            color: '#aaaaaa'
+        });
+        controlHint.setOrigin(0.5);
+        controlHint.setScrollFactor(0);
+        controlHint.setDepth(100);
+        
+        const infoBg = this.add.rectangle(400, 320, 450, 30, 0x000000, 0.8);
+        infoBg.setScrollFactor(0);
+        infoBg.setDepth(99);
+        
+        const upgradeInfo = this.add.text(400, 320, 'Select an element to upgrade to the next tier', {
+            fontSize: '16px',
+            color: '#44ff44'
+        });
+        upgradeInfo.setOrigin(0.5);
+        upgradeInfo.setScrollFactor(0);
+        upgradeInfo.setDepth(100);
+        
+        // Find first upgradeable slot with an element to set initial selection
+        // Check all 12 slots (8 charge + 4 pouch)
+        let initialSelection = -1;
+        for (let i = 0; i < 8; i++) {
+            if (this.chargeSlots[i] && this.chargeSlots[i] !== 'none') {
+                initialSelection = i;
+                break;
+            }
+        }
+        // If no charge slots have elements, check pouch
+        if (initialSelection === -1 && this.elementPouch) {
+            for (let i = 0; i < this.elementPouch.length; i++) {
+                if (this.elementPouch[i]) {
+                    initialSelection = 8 + i;
+                    break;
+                }
+            }
+        }
+        
+        // Set initial selection and mode
+        this.elementUpgradeSelectedSlot = initialSelection >= 0 ? initialSelection : 0;
+        this.elementUpgradeSelectionActive = true;
+        
+        // Highlight initial selection
+        this.highlightChargeIndicator(this.elementUpgradeSelectedSlot, true);
+        
+        // Make charge indicators clickable for upgrade mode
+        this.chargeIndicators.forEach((indicator, index) => {
+            if (index < 8 && this.chargeSlots[index] && this.chargeSlots[index] !== 'none') {
+                indicator.bg.off('pointerdown'); // Remove any existing handlers
+                indicator.bg.on('pointerdown', () => {
+                    // Clear previous selection
+                    this.highlightChargeIndicator(this.elementUpgradeSelectedSlot, false);
+                    
+                    // Set new selection
+                    this.elementUpgradeSelectedSlot = index;
+                    this.highlightChargeIndicator(index, true);
+                    
+                    // Perform upgrade
+                    this.upgradeElementAtSlot(index);
+                    
+                    // Clean up UI
+                    title.destroy();
+                    titleBg.destroy();
+                    controlHint.destroy();
+                    controlBg.destroy();
+                    upgradeInfo.destroy();
+                    infoBg.destroy();
+                    
+                    // Hide extra slots
+                    this.hideExtraChargeSlots();
+                    
+                    // Show upgrade effect with tier info
+                    const newTier = this.elementTiers.get(`${this.chargeSlots[index]}_${index}`) || 1;
+                    const upgradeText = this.add.text(400, 300, `${this.chargeSlots[index].toUpperCase()} → TIER ${newTier}!`, {
+                        fontSize: '32px',
+                        color: this.elementConfig[this.chargeSlots[index]].color,
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 6
+                    });
+                    upgradeText.setOrigin(0.5);
+                    upgradeText.setScrollFactor(0);
+                    upgradeText.setDepth(922);
+                    
+                    this.tweens.add({
+                        targets: upgradeText,
+                        scale: { from: 0, to: 1.5 },
+                        alpha: { from: 1, to: 0 },
+                        duration: 2000,
+                        ease: 'Cubic.easeOut',
+                        onComplete: () => {
+                            upgradeText.destroy();
+                            this.physics.resume();
+                            this.chestOpening = false;
+                            
+                            // Resume boss AI timer if it exists
+                            if (this.bossAITimer) {
+                                this.bossAITimer.paused = false;
+                            }
+                        }
+                    });
+                    
+                    // Reset state
+                    this.elementUpgradeSelectionActive = false;
+                    this.elementUpgradeSelectedSlot = 0;
+                    
+                    // Remove click handlers
+                    this.chargeIndicators.forEach(ind => {
+                        ind.bg.off('pointerdown');
+                    });
+                });
+            }
+        });
+        
+        // Make pouch indicators clickable too
+        if (this.extraChargeIndicators) {
+            this.extraChargeIndicators.forEach((indicator, index) => {
+                if (this.elementPouch && this.elementPouch[index]) {
+                    indicator.bg.off('pointerdown');
+                    indicator.bg.on('pointerdown', () => {
+                        // Clear previous selection
+                        this.highlightChargeIndicator(this.elementUpgradeSelectedSlot, false);
+                        
+                        // Set new selection (pouch slots are 8-11)
+                        this.elementUpgradeSelectedSlot = 8 + index;
+                        this.highlightChargeIndicator(8 + index, true);
+                        
+                        // Perform upgrade
+                        this.upgradeElementAtSlot(8 + index);
+                        
+                        // Clean up UI
+                        title.destroy();
+                        titleBg.destroy();
+                        controlHint.destroy();
+                        controlBg.destroy();
+                        upgradeInfo.destroy();
+                        infoBg.destroy();
+                        
+                        // Hide extra slots
+                        this.hideExtraChargeSlots();
+                        
+                        // Show upgrade effect with tier info
+                        const slotIndex = 8 + index;
+                        const newTier = this.elementTiers.get(`${this.elementPouch[index]}_${slotIndex}`) || 1;
+                        const upgradeText = this.add.text(400, 300, `${this.elementPouch[index].toUpperCase()} → TIER ${newTier}!`, {
+                            fontSize: '32px',
+                            color: this.elementConfig[this.elementPouch[index]].color,
+                            fontStyle: 'bold',
+                            stroke: '#000000',
+                            strokeThickness: 6
+                        });
+                        upgradeText.setOrigin(0.5);
+                        upgradeText.setScrollFactor(0);
+                        upgradeText.setDepth(922);
+                        
+                        this.tweens.add({
+                            targets: upgradeText,
+                            scale: { from: 0, to: 1.5 },
+                            alpha: { from: 1, to: 0 },
+                            duration: 2000,
+                            ease: 'Cubic.easeOut',
+                            onComplete: () => {
+                                upgradeText.destroy();
+                                this.physics.resume();
+                                this.chestOpening = false;
+                            }
+                        });
+                        
+                        // Reset state
+                        this.elementUpgradeSelectionActive = false;
+                        this.elementUpgradeSelectedSlot = 0;
+                        
+                        // Remove click handlers
+                        this.chargeIndicators.forEach(ind => {
+                            ind.bg.off('pointerdown');
+                        });
+                        if (this.extraChargeIndicators) {
+                            this.extraChargeIndicators.forEach(ind => {
+                                ind.bg.off('pointerdown');
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Store UI elements for cleanup
+        this.elementUpgradeUI = {
+            title: title,
+            titleBg: titleBg,
+            controlHint: controlHint,
+            controlBg: controlBg,
+            upgradeInfo: upgradeInfo,
+            infoBg: infoBg
+        };
+    }
+    
+    hasElementAtSlot(slotIndex) {
+        if (slotIndex < 8) {
+            return this.chargeSlots[slotIndex] && this.chargeSlots[slotIndex] !== 'none';
+        } else {
+            const pouchIndex = slotIndex - 8;
+            return this.elementPouch && this.elementPouch[pouchIndex];
+        }
+    }
+    
+    getElementAtSlot(slotIndex) {
+        if (slotIndex < 8) {
+            return this.chargeSlots[slotIndex];
+        } else {
+            const pouchIndex = slotIndex - 8;
+            return this.elementPouch ? this.elementPouch[pouchIndex] : null;
+        }
+    }
+    
+    upgradeElementAtSlot(slotIndex) {
+        // Get the element at this slot
+        const element = this.getElementAtSlot(slotIndex);
+        if (!element || element === 'none') return;
+        
+        // Get current tier of the element
+        const currentTier = this.elementTiers.get(`${element}_${slotIndex}`) || 1;
+        
+        // Upgrade to next tier (max tier 5)
+        const newTier = Math.min(currentTier + 1, 5);
+        
+        // Set the new tier
+        this.elementTiers.set(`${element}_${slotIndex}`, newTier);
+        
+        console.log(`Upgraded ${element} at slot ${slotIndex} from tier ${currentTier} to tier ${newTier}`);
+        
+        // Update UI to show the new tier
+        this.updateChargeUI();
+    }
+    
+    
+    handleElementUpgradeController() {
+        if (!this.elementUpgradeSelectionActive || !this.elementUpgradeUI) return;
+        
+        // Input detection
+        const upPressed = this.cursors.up.isDown;
+        const downPressed = this.cursors.down.isDown;
+        const confirmPressed = this.spaceKey.isDown || this.enterKey.isDown;
+        
+        // Handle navigation with edge detection
+        if (upPressed && !this.prevElementUpgradeUpPressed) {
+            // Clear current selection highlight
+            this.highlightChargeIndicator(this.elementUpgradeSelectedSlot, false);
+            
+            // Move selection up - find previous upgradeable slot with an element
+            let newSelection = this.elementUpgradeSelectedSlot;
+            do {
+                newSelection--;
+                if (newSelection < 0) newSelection = 11; // Wrap around to last pouch slot
+            } while (newSelection !== this.elementUpgradeSelectedSlot && !this.hasElementAtSlot(newSelection));
+            
+            this.elementUpgradeSelectedSlot = newSelection;
+            
+            // Highlight new selection
+            this.highlightChargeIndicator(this.elementUpgradeSelectedSlot, true);
+        } else if (downPressed && !this.prevElementUpgradeDownPressed) {
+            // Clear current selection highlight
+            this.highlightChargeIndicator(this.elementUpgradeSelectedSlot, false);
+            
+            // Move selection down - find next upgradeable slot with an element
+            let newSelection = this.elementUpgradeSelectedSlot;
+            do {
+                newSelection++;
+                if (newSelection > 11) newSelection = 0; // Wrap around to first charge slot
+            } while (newSelection !== this.elementUpgradeSelectedSlot && !this.hasElementAtSlot(newSelection));
+            
+            this.elementUpgradeSelectedSlot = newSelection;
+            
+            // Highlight new selection
+            this.highlightChargeIndicator(this.elementUpgradeSelectedSlot, true);
+        }
+        
+        // Handle selection
+        if (confirmPressed && !this.prevElementUpgradeConfirmPressed) {
+            const element = this.getElementAtSlot(this.elementUpgradeSelectedSlot);
+            if (element && element !== 'none') {
+                // Upgrade this element
+                this.upgradeElementAtSlot(this.elementUpgradeSelectedSlot);
+                
+                // Clean up UI
+                this.elementUpgradeUI.title.destroy();
+                this.elementUpgradeUI.titleBg.destroy();
+                this.elementUpgradeUI.controlHint.destroy();
+                this.elementUpgradeUI.controlBg.destroy();
+                this.elementUpgradeUI.upgradeInfo.destroy();
+                this.elementUpgradeUI.infoBg.destroy();
+                
+                // Hide extra slots
+                this.hideExtraChargeSlots();
+                
+                // Show upgrade effect with tier info
+                const newTier = this.elementTiers.get(`${element}_${this.elementUpgradeSelectedSlot}`) || 1;
+                const upgradeText = this.add.text(400, 300, `${element.toUpperCase()} → TIER ${newTier}!`, {
+                    fontSize: '32px',
+                    color: this.elementConfig[element].color,
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 6
+                });
+                upgradeText.setOrigin(0.5);
+                upgradeText.setScrollFactor(0);
+                upgradeText.setDepth(922);
+                
+                this.tweens.add({
+                    targets: upgradeText,
+                    scale: { from: 0, to: 1.5 },
+                    alpha: { from: 1, to: 0 },
+                    duration: 2000,
+                    ease: 'Cubic.easeOut',
+                    onComplete: () => {
+                        upgradeText.destroy();
+                        this.physics.resume();
+                        this.chestOpening = false;
+                    }
+                });
+                
+                // Reset state
+                this.elementUpgradeSelectionActive = false;
+                this.elementUpgradeSelectedSlot = 0;
+                this.elementUpgradeUI = null;
+                
+                // Remove click handlers from all indicators
+                this.chargeIndicators.forEach(ind => {
+                    ind.bg.off('pointerdown');
+                });
+                if (this.extraChargeIndicators) {
+                    this.extraChargeIndicators.forEach(ind => {
+                        ind.bg.off('pointerdown');
+                    });
+                }
+            }
+        }
+        
+        // Store button states for next frame
+        this.prevElementUpgradeUpPressed = upPressed;
+        this.prevElementUpgradeDownPressed = downPressed;
+        this.prevElementUpgradeConfirmPressed = confirmPressed;
+    }
+    
+    
+    giveRandomFusionElement() {
+        // List of fusion elements (2nd tier elements)
+        const fusionElements = [
+            'steam', 'mud', 'ice', 'sand', 'lava', 'thunder',
+            'storm', 'gravity', 'crystal', 'rock', 'smoke',
+            'poison', 'wave', 'star'
+        ];
+        
+        // Pick a random fusion element
+        const randomElement = fusionElements[Math.floor(Math.random() * fusionElements.length)];
+        
+        // Add to discovered elements
+        this.discoveredElements.add(randomElement);
+        
+        // Check if there's any empty slot available (in charge slots or pouch)
+        let hasEmptySlot = false;
+        
+        // Check charge slots
+        for (let i = 0; i < this.chargeSlots.length; i++) {
+            if (!this.chargeSlots[i] || this.chargeSlots[i] === 'none') {
+                hasEmptySlot = true;
+                break;
+            }
+        }
+        
+        // Check pouch if no empty charge slot
+        if (!hasEmptySlot && this.elementPouch) {
+            for (let i = 0; i < this.elementPouch.length; i++) {
+                if (!this.elementPouch[i]) {
+                    hasEmptySlot = true;
+                    break;
+                }
+            }
+        }
+        
+        if (!hasEmptySlot) {
+            // All slots are full - show discard/abandon dialog
+            this.showFusionElementDiscardDialog(randomElement);
+            return;
+        }
+        
+        // Find first empty slot to add the element
+        let added = false;
+        for (let i = 0; i < this.chargeSlots.length; i++) {
+            if (!this.chargeSlots[i] || this.chargeSlots[i] === 'none') {
+                this.chargeSlots[i] = randomElement;
+                this.charges.push(randomElement);
+                added = true;
+                break;
+            }
+        }
+        
+        if (!added) {
+            // This shouldn't happen if chargesFull check is working
+            console.error('Failed to add element despite chargesFull being false');
+            this.physics.resume();
+            this.chestOpening = false;
+            return;
+        }
+        
+        // Update UI
+        this.updateChargeUI();
+        
+        // Show the element gained
+        const bg = this.add.rectangle(400, 300, 500, 400, 0x000000, 0.95);
+        bg.setScrollFactor(0);
+        bg.setDepth(20000);
+        
+        const title = this.add.text(400, 150, 'FUSION ELEMENT ACQUIRED!', {
+            fontSize: '28px',
+            color: '#ff44ff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        title.setOrigin(0.5);
+        title.setScrollFactor(0);
+        title.setDepth(20001);
+        
+        const elementIcon = this.add.text(400, 250, this.elementConfig[randomElement].symbol, {
+            fontSize: '72px'
+        });
+        elementIcon.setOrigin(0.5);
+        elementIcon.setScrollFactor(0);
+        elementIcon.setDepth(20002);
+        
+        const elementName = this.add.text(400, 320, randomElement.toUpperCase(), {
+            fontSize: '36px',
+            color: this.elementConfig[randomElement].color,
+            fontStyle: 'bold'
+        });
+        elementName.setOrigin(0.5);
+        elementName.setScrollFactor(0);
+        elementName.setDepth(20002);
+        
+        const description = this.add.text(400, 370, this.getElementDescription(randomElement), {
+            fontSize: '18px',
+            color: '#cccccc',
+            align: 'center',
+            wordWrap: { width: 400 }
+        });
+        description.setOrigin(0.5);
+        description.setScrollFactor(0);
+        description.setDepth(20002);
+        
+        // Auto close after delay
+        this.time.delayedCall(3000, () => {
+            this.tweens.add({
+                targets: [bg, title, elementIcon, elementName, description],
+                alpha: 0,
+                duration: 500,
+                onComplete: () => {
+                    bg.destroy();
+                    title.destroy();
+                    elementIcon.destroy();
+                    elementName.destroy();
+                    description.destroy();
+                    this.physics.resume();
+                    this.chestOpening = false;
+                }
+            });
+        });
+    }
+    
+    showFusionElementDiscardDialog(fusionElement) {
+        // Create dialog background
+        const dialogBg = this.add.rectangle(400, 300, 600, 400, 0x000000, 0.95);
+        dialogBg.setScrollFactor(0);
+        dialogBg.setDepth(920);
+        
+        // Title
+        const title = this.add.text(400, 150, 'INVENTORY FULL!', {
+            fontSize: '28px',
+            color: '#ff4444',
+            fontStyle: 'bold'
+        });
+        title.setOrigin(0.5);
+        title.setScrollFactor(0);
+        title.setDepth(921);
+        
+        // Show the fusion element info
+        const elementConfig = this.elementConfig[fusionElement];
+        const elementIcon = this.add.text(400, 220, elementConfig.symbol, {
+            fontSize: '48px'
+        });
+        elementIcon.setOrigin(0.5);
+        elementIcon.setScrollFactor(0);
+        elementIcon.setDepth(921);
+        
+        const elementName = this.add.text(400, 270, fusionElement.toUpperCase(), {
+            fontSize: '24px',
+            color: elementConfig.color,
+            fontStyle: 'bold'
+        });
+        elementName.setOrigin(0.5);
+        elementName.setScrollFactor(0);
+        elementName.setDepth(921);
+        
+        const question = this.add.text(400, 320, 'Would you like to discard an element to make room?', {
+            fontSize: '18px',
+            color: '#ffffff',
+            align: 'center'
+        });
+        question.setOrigin(0.5);
+        question.setScrollFactor(0);
+        question.setDepth(921);
+        
+        // Create discard/abandon buttons
+        const discardButton = this.add.container(300, 380);
+        discardButton.setScrollFactor(0);
+        discardButton.setDepth(922);
+        
+        const discardBg = this.add.rectangle(0, 0, 150, 50, 0x333333);
+        discardBg.setInteractive({ useHandCursor: true });
+        discardBg.setStrokeStyle(3, 0xffff00); // Start with discard selected
+        
+        const discardText = this.add.text(0, 0, 'DISCARD', {
+            fontSize: '20px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        });
+        discardText.setOrigin(0.5);
+        
+        discardButton.add([discardBg, discardText]);
+        
+        const abandonButton = this.add.container(500, 380);
+        abandonButton.setScrollFactor(0);
+        abandonButton.setDepth(922);
+        
+        const abandonBg = this.add.rectangle(0, 0, 150, 50, 0x333333);
+        abandonBg.setInteractive({ useHandCursor: true });
+        
+        const abandonText = this.add.text(0, 0, 'ABANDON', {
+            fontSize: '20px',
+            color: '#ff4444',
+            fontStyle: 'bold'
+        });
+        abandonText.setOrigin(0.5);
+        
+        abandonButton.add([abandonBg, abandonText]);
+        
+        // Control hint
+        const controlHint = this.add.text(400, 450, 'LEFT/RIGHT to select • SPACE/ENTER to confirm', {
+            fontSize: '14px',
+            color: '#aaaaaa'
+        });
+        controlHint.setOrigin(0.5);
+        controlHint.setScrollFactor(0);
+        controlHint.setDepth(921);
+        
+        // Store dialog elements
+        this.fusionDiscardDialog = {
+            bg: dialogBg,
+            title: title,
+            elementIcon: elementIcon,
+            elementName: elementName,
+            question: question,
+            discardButton: { container: discardButton, bg: discardBg },
+            abandonButton: { container: abandonButton, bg: abandonBg },
+            controlHint: controlHint,
+            fusionElement: fusionElement,
+            selectedOption: 0 // 0 = discard, 1 = abandon
+        };
+        
+        // Enable fusion discard dialog mode
+        this.fusionDiscardDialogActive = true;
+        
+        // Handle mouse clicks
+        discardBg.on('pointerdown', () => {
+            this.handleFusionDiscardChoice('discard', fusionElement);
+        });
+        
+        abandonBg.on('pointerdown', () => {
+            this.handleFusionDiscardChoice('abandon', fusionElement);
+        });
+        
+        // Handle hover
+        discardBg.on('pointerover', () => {
+            discardBg.setStrokeStyle(3, 0xffff00);
+            abandonBg.setStrokeStyle(0);
+            this.fusionDiscardDialog.selectedOption = 0;
+        });
+        
+        abandonBg.on('pointerover', () => {
+            abandonBg.setStrokeStyle(3, 0xffff00);
+            discardBg.setStrokeStyle(0);
+            this.fusionDiscardDialog.selectedOption = 1;
+        });
+    }
+    
+    handleFusionDiscardDialogController() {
+        if (!this.fusionDiscardDialog) return;
+        
+        // Input detection
+        const leftPressed = this.cursors.left.isDown;
+        const rightPressed = this.cursors.right.isDown;
+        const confirmPressed = this.spaceKey.isDown || this.enterKey.isDown;
+        
+        // Initialize previous states if not set
+        if (!this.prevFusionDialogLeftPressed) this.prevFusionDialogLeftPressed = false;
+        if (!this.prevFusionDialogRightPressed) this.prevFusionDialogRightPressed = false;
+        if (!this.prevFusionDialogConfirmPressed) this.prevFusionDialogConfirmPressed = false;
+        
+        // Handle navigation
+        if (leftPressed && !this.prevFusionDialogLeftPressed) {
+            if (this.fusionDiscardDialog.selectedOption === 1) {
+                this.fusionDiscardDialog.selectedOption = 0;
+                this.fusionDiscardDialog.discardButton.bg.setStrokeStyle(3, 0xffff00);
+                this.fusionDiscardDialog.abandonButton.bg.setStrokeStyle(0);
+            }
+        } else if (rightPressed && !this.prevFusionDialogRightPressed) {
+            if (this.fusionDiscardDialog.selectedOption === 0) {
+                this.fusionDiscardDialog.selectedOption = 1;
+                this.fusionDiscardDialog.abandonButton.bg.setStrokeStyle(3, 0xffff00);
+                this.fusionDiscardDialog.discardButton.bg.setStrokeStyle(0);
+            }
+        }
+        
+        // Handle confirmation
+        if (confirmPressed && !this.prevFusionDialogConfirmPressed) {
+            const choice = this.fusionDiscardDialog.selectedOption === 0 ? 'discard' : 'abandon';
+            this.handleFusionDiscardChoice(choice, this.fusionDiscardDialog.fusionElement);
+        }
+        
+        // Store previous states
+        this.prevFusionDialogLeftPressed = leftPressed;
+        this.prevFusionDialogRightPressed = rightPressed;
+        this.prevFusionDialogConfirmPressed = confirmPressed;
+    }
+    
+    handleFusionElementDiscardController() {
+        if (!this.fusionElementDiscardMode) return;
+        
+        // Input detection
+        const upPressed = this.cursors.up.isDown;
+        const downPressed = this.cursors.down.isDown;
+        const confirmPressed = this.spaceKey.isDown || this.enterKey.isDown;
+        
+        // Initialize previous states if not set
+        if (!this.prevFusionDiscardUpPressed) this.prevFusionDiscardUpPressed = false;
+        if (!this.prevFusionDiscardDownPressed) this.prevFusionDiscardDownPressed = false;
+        if (!this.prevFusionDiscardConfirmPressed) this.prevFusionDiscardConfirmPressed = false;
+        
+        // Handle navigation
+        if (upPressed && !this.prevFusionDiscardUpPressed) {
+            // Clear current highlight
+            this.highlightChargeIndicator(this.selectedChargeToReplace, false);
+            
+            // Move selection up
+            this.selectedChargeToReplace--;
+            if (this.selectedChargeToReplace < 0) {
+                this.selectedChargeToReplace = 11; // Wrap to last slot
+            }
+            
+            // Highlight new selection
+            this.highlightChargeIndicator(this.selectedChargeToReplace, true);
+        } else if (downPressed && !this.prevFusionDiscardDownPressed) {
+            // Clear current highlight
+            this.highlightChargeIndicator(this.selectedChargeToReplace, false);
+            
+            // Move selection down
+            this.selectedChargeToReplace++;
+            if (this.selectedChargeToReplace > 11) {
+                this.selectedChargeToReplace = 0; // Wrap to first slot
+            }
+            
+            // Highlight new selection
+            this.highlightChargeIndicator(this.selectedChargeToReplace, true);
+        }
+        
+        // Handle confirmation
+        if (confirmPressed && !this.prevFusionDiscardConfirmPressed) {
+            const selectedSlot = this.selectedChargeToReplace;
+            let discardedElement = null;
+            
+            if (selectedSlot < 8) {
+                // Discarding from charge slots
+                discardedElement = this.chargeSlots[selectedSlot];
+                this.chargeSlots[selectedSlot] = this.pendingFusionElement;
+            } else {
+                // Discarding from pouch
+                const pouchIndex = selectedSlot - 8;
+                discardedElement = this.elementPouch[pouchIndex];
+                this.elementPouch[pouchIndex] = this.pendingFusionElement;
+                localStorage.setItem('elementPouch', JSON.stringify(this.elementPouch));
+            }
+            
+            // Rebuild charges array
+            this.charges = [];
+            for (let i = 0; i < 4 && i < this.chargeSlots.length; i++) {
+                if (this.chargeSlots[i] !== null) {
+                    this.charges.push(this.chargeSlots[i]);
+                }
+            }
+            
+            // Update UI
+            this.updateChargeUI();
+            this.updateChargeGroups();
+            
+            // Hide extra slots
+            this.hideExtraChargeSlots();
+            
+            // Clean up UI
+            if (this.fusionDiscardUI) {
+                if (this.fusionDiscardUI.instructionText) this.fusionDiscardUI.instructionText.destroy();
+                if (this.fusionDiscardUI.controlHint) this.fusionDiscardUI.controlHint.destroy();
+                this.fusionDiscardUI = null;
+            }
+            
+            // Reset states
+            this.fusionElementDiscardMode = false;
+            this.selectedChargeToReplace = -1;
+            this.chestChargeSelectMode = false;
+            
+            // Show success message
+            const successText = this.add.text(400, 300, `${discardedElement.toUpperCase()} discarded!\n${this.pendingFusionElement.toUpperCase()} acquired!`, {
+                fontSize: '24px',
+                color: '#44ff44',
+                fontStyle: 'bold',
+                align: 'center'
+            });
+            successText.setOrigin(0.5);
+            successText.setScrollFactor(0);
+            successText.setDepth(922);
+            
+            this.tweens.add({
+                targets: successText,
+                y: 250,
+                alpha: 0,
+                duration: 2000,
+                onComplete: () => {
+                    successText.destroy();
+                    this.physics.resume();
+                    this.chestOpening = false;
+                    this.pendingFusionElement = null;
+                }
+            });
+        }
+        
+        // Store previous states
+        this.prevFusionDiscardUpPressed = upPressed;
+        this.prevFusionDiscardDownPressed = downPressed;
+        this.prevFusionDiscardConfirmPressed = confirmPressed;
+    }
+    
+    handleFusionDiscardChoice(choice, fusionElement) {
+        // Clean up dialog
+        if (this.fusionDiscardDialog) {
+            this.fusionDiscardDialog.bg.destroy();
+            this.fusionDiscardDialog.title.destroy();
+            this.fusionDiscardDialog.elementIcon.destroy();
+            this.fusionDiscardDialog.elementName.destroy();
+            this.fusionDiscardDialog.question.destroy();
+            this.fusionDiscardDialog.discardButton.container.destroy();
+            this.fusionDiscardDialog.abandonButton.container.destroy();
+            this.fusionDiscardDialog.controlHint.destroy();
+            this.fusionDiscardDialog = null;
+        }
+        
+        this.fusionDiscardDialogActive = false;
+        
+        if (choice === 'discard') {
+            // Show the element selection UI for discarding
+            this.pendingFusionElement = fusionElement;
+            this.fusionElementDiscardMode = true;
+            
+            // Show all 12 slots under the XP bar (like when selecting primary element with full slots)
+            this.showAllChargeSlots();
+            
+            // Initialize selection state
+            this.selectedChargeToReplace = 0;
+            this.chestChargeSelectMode = true;
+            
+            // Highlight first slot
+            this.highlightChargeIndicator(0, true);
+            
+            // Show instruction text
+            const instructionText = this.add.text(400, 300, 'Select element to discard', {
+                fontSize: '24px',
+                color: '#ffffff',
+                fontStyle: 'bold'
+            });
+            instructionText.setOrigin(0.5);
+            instructionText.setScrollFactor(0);
+            instructionText.setDepth(100);
+            
+            const controlHint = this.add.text(400, 340, 'UP/DOWN to navigate • SPACE/ENTER to confirm', {
+                fontSize: '16px',
+                color: '#aaaaaa'
+            });
+            controlHint.setOrigin(0.5);
+            controlHint.setScrollFactor(0);
+            controlHint.setDepth(100);
+            
+            // Store UI elements for cleanup
+            this.fusionDiscardUI = {
+                instructionText: instructionText,
+                controlHint: controlHint
+            };
+        } else {
+            // Abandon the reward
+            const abandonText = this.add.text(400, 300, 'Fusion element abandoned!', {
+                fontSize: '24px',
+                color: '#ff4444',
+                fontStyle: 'bold'
+            });
+            abandonText.setOrigin(0.5);
+            abandonText.setScrollFactor(0);
+            abandonText.setDepth(922);
+            
+            this.tweens.add({
+                targets: abandonText,
+                y: 250,
+                alpha: 0,
+                duration: 2000,
+                onComplete: () => {
+                    abandonText.destroy();
+                    this.physics.resume();
+                    this.chestOpening = false;
+                }
+            });
+        }
+    }
+    
+    getElementDescription(element) {
+        const descriptions = {
+            'steam': 'Explosive bursts that push enemies',
+            'mud': 'Slows enemies significantly',
+            'ice': 'Freezes enemies solid',
+            'sand': 'Blinds and damages over time',
+            'lava': 'Creates burning pools',
+            'thunder': 'Chain lightning between enemies',
+            'storm': 'Powerful area damage',
+            'gravity': 'Pulls enemies together',
+            'crystal': 'Piercing projectiles',
+            'rock': 'Stuns on impact',
+            'smoke': 'Obscures enemy vision',
+            'poison': 'Damage over time',
+            'wave': 'Massive water attack',
+            'star': 'Bouncing projectiles'
+        };
+        
+        return descriptions[element] || 'Mysterious power';
+    }
 
     openItemChest(wizard, chest) {
         // Store active tweens for fast-forward
@@ -19255,12 +21315,10 @@ class GameScene extends Phaser.Scene {
                 itemColor = 0xff88ff;
                 itemName = 'MAGIC MUFFIN';
                 itemDescription = 'Restores 30% health';
-                // Create and collect the muffin after delay
+                // Create the muffin after delay (but don't auto-collect)
                 this.time.delayedCall(1000, () => {
                     const muffin = this.dropMuffin(chest.x, chest.y - 30);
-                    this.time.delayedCall(500, () => {
-                        this.collectMuffin(wizard, muffin);
-                    });
+                    // Let the physics overlap handle the collection
                 });
                 break;
                 
@@ -19565,6 +21623,11 @@ class GameScene extends Phaser.Scene {
                 this.chestSkipKey.off('down');
                 this.chestSkipKey = null;
             }
+            
+            // Resume boss AI timer if it exists
+            if (this.bossAITimer) {
+                this.bossAITimer.paused = false;
+            }
         });
         this.chestAnimTimers.push(resumeTimer);
     }
@@ -19611,6 +21674,11 @@ class GameScene extends Phaser.Scene {
         
         // Pause physics immediately
         this.physics.pause();
+        
+        // Pause boss AI timer if it exists
+        if (this.bossAITimer) {
+            this.bossAITimer.paused = true;
+        }
 
         // Handle level-up rewards (when chest is null)
         if (!chest) {
@@ -19630,6 +21698,12 @@ class GameScene extends Phaser.Scene {
                 this.openItemChest(wizard, chest);
                 return;
             }
+            
+            // Check if this is a reward chest from elite enemies
+            if (chest.isRewardChest) {
+                this.openRewardChest(wizard, chest);
+                return;
+            }
 
             // For regular chests, show the reward selection UI
             this.showChestRewards(chest);
@@ -19637,6 +21711,14 @@ class GameScene extends Phaser.Scene {
     }
 
     showChestRewards(chest) {
+        // Trigger level up reward event if this is from a level up (chest is null)
+        if (!chest) {
+            // Fire level up reward event
+            if (this.events) {
+                this.events.emit('levelUpRewardStarted');
+            }
+        }
+        
         // Store chest selection state
         this.chestSelectionActive = true;
         this.chestCursorIndex = 0;
@@ -20512,6 +22594,7 @@ class GameScene extends Phaser.Scene {
             // Other fusions from diagram
             'fire+thunder': 'star',
             'gravity+thunder': 'star',
+            'gravity+lightning': 'star',  // Added gravity + lightning = star
             'ice+water': 'wave',
             'poison+smoke': 'smog'
         };
@@ -20885,20 +22968,95 @@ class GameScene extends Phaser.Scene {
                 });
 
                 chargeSprite.on('pointerdown', () => {
-                    if (!this.draggedElement && chargesFull) {
-                        this.selectedChargeToReplace = i;
-                        chargeButtons.forEach((btn, idx) => {
-                            const ring = this.chestSelectionRings[idx];
-                            if (idx === i) {
-                                btn.sprite.setScale(0.2);
-                                btn.sprite.setTint(0xff0000);
-                                if (ring) ring.setVisible(true);
+                    if (!this.draggedElement) {
+                        // Handle fusion element discard mode
+                        if (this.fusionElementDiscardMode) {
+                            const selectedSlot = i;
+                            let discardedElement = null;
+                            
+                            if (selectedSlot < 8) {
+                                // Discarding from charge slots
+                                discardedElement = this.chargeSlots[selectedSlot];
+                                this.chargeSlots[selectedSlot] = this.pendingFusionElement;
                             } else {
-                                btn.sprite.setScale(0.15);
-                                btn.sprite.clearTint();
-                                if (ring) ring.setVisible(false);
+                                // Discarding from pouch
+                                const pouchIndex = selectedSlot - 8;
+                                discardedElement = this.elementPouch[pouchIndex];
+                                this.elementPouch[pouchIndex] = this.pendingFusionElement;
+                                localStorage.setItem('elementPouch', JSON.stringify(this.elementPouch));
                             }
-                        });
+                            
+                            // Rebuild charges array
+                            this.charges = [];
+                            for (let j = 0; j < 4 && j < this.chargeSlots.length; j++) {
+                                if (this.chargeSlots[j] !== null) {
+                                    this.charges.push(this.chargeSlots[j]);
+                                }
+                            }
+                            
+                            // Update UI
+                            this.updateChargeUI();
+                            this.updateChargeGroups();
+                            
+                            // Clean up UI
+                            if (selectionBg) selectionBg.destroy();
+                            if (title) title.destroy();
+                            if (controlHint) controlHint.destroy();
+                            if (chargeDisplay) chargeDisplay.destroy();
+                            
+                            // Reset states
+                            this.chestSelectionActive = false;
+                            this.fusionElementDiscardMode = false;
+                            this.chestUI = null;
+                            
+                            // Show success message
+                            const successText = this.add.text(400, 300, `${discardedElement.toUpperCase()} discarded!\n${this.pendingFusionElement.toUpperCase()} acquired!`, {
+                                fontSize: '24px',
+                                color: '#44ff44',
+                                fontStyle: 'bold',
+                                align: 'center'
+                            });
+                            successText.setOrigin(0.5);
+                            successText.setScrollFactor(0);
+                            successText.setDepth(922);
+                            
+                            this.tweens.add({
+                                targets: successText,
+                                y: 250,
+                                alpha: 0,
+                                duration: 2000,
+                                onComplete: () => {
+                                    successText.destroy();
+                                    this.physics.resume();
+                                    this.chestOpening = false;
+                                    this.pendingFusionElement = null;
+                                    
+                                    // Resume boss AI timer if it exists
+                                    if (this.bossAITimer) {
+                                        this.bossAITimer.paused = false;
+                                    }
+                                }
+                            });
+                            
+                            return;
+                        }
+                        
+                        // Normal charge selection for replacement
+                        if (chargesFull) {
+                            this.selectedChargeToReplace = i;
+                            chargeButtons.forEach((btn, idx) => {
+                                const ring = this.chestSelectionRings[idx];
+                                if (idx === i) {
+                                    btn.sprite.setScale(0.2);
+                                    btn.sprite.setTint(0xff0000);
+                                    if (ring) ring.setVisible(true);
+                                } else {
+                                    btn.sprite.setScale(0.15);
+                                    btn.sprite.clearTint();
+                                    if (ring) ring.setVisible(false);
+                                }
+                            });
+                        }
                     }
                 });
 
@@ -20993,12 +23151,13 @@ class GameScene extends Phaser.Scene {
             }
         });
 
-        // Create element buttons
+        // Create element buttons (only if we have choices - not in discard mode)
         const buttons = [];
-        for (let i = 0; i < 3; i++) {
-            const xPos = 180 + i * 220;
-            const element = choices[i];
-            const config = this.elementConfig[element];
+        if (choices && choices.length > 0) {
+            for (let i = 0; i < 3; i++) {
+                const xPos = 180 + i * 220;
+                const element = choices[i];
+                const config = this.elementConfig[element];
 
             const button = this.add.container(xPos, 300); // Centered on viewport
             button.setScrollFactor(0);
@@ -21050,6 +23209,7 @@ class GameScene extends Phaser.Scene {
             bg.on('pointerout', () => {
                 // Keep the frame on the current selection
             });
+            }
         }
 
         // Store UI elements
@@ -21277,6 +23437,11 @@ class GameScene extends Phaser.Scene {
         this.selectedChargeToReplace = -1;
         this.physics.resume();
         this.chestOpening = false;
+        
+        // Resume boss AI timer if it exists
+        if (this.bossAITimer) {
+            this.bossAITimer.paused = false;
+        }
     }
 
     selectChestElement(element, config, selectionBg, title, controlHint, buttons) {
@@ -21493,6 +23658,11 @@ class GameScene extends Phaser.Scene {
             this.physics.resume();
             // Hide extra slots when resuming physics
             this.hideExtraChargeSlots();
+            
+            // Resume boss AI timer if it exists
+            if (this.bossAITimer) {
+                this.bossAITimer.paused = false;
+            }
         }
         this.chestOpening = false;
         
@@ -21684,6 +23854,77 @@ class GameScene extends Phaser.Scene {
 
         // Confirm selection for element sub-menu
         if (this.chestUI && !this.chestUI.mainMenu && confirmPressed && !this.prevChestConfirmPressed) {
+            // Handle fusion element discard mode
+            if (this.fusionElementDiscardMode && this.chestChargeSelectMode && this.selectedChargeToReplace >= 0) {
+                const selectedSlot = this.selectedChargeToReplace;
+                let discardedElement = null;
+                
+                if (selectedSlot < 8) {
+                    // Discarding from charge slots
+                    discardedElement = this.chargeSlots[selectedSlot];
+                    this.chargeSlots[selectedSlot] = this.pendingFusionElement;
+                } else {
+                    // Discarding from pouch
+                    const pouchIndex = selectedSlot - 8;
+                    discardedElement = this.elementPouch[pouchIndex];
+                    this.elementPouch[pouchIndex] = this.pendingFusionElement;
+                    localStorage.setItem('elementPouch', JSON.stringify(this.elementPouch));
+                }
+                
+                // Rebuild charges array
+                this.charges = [];
+                for (let i = 0; i < 4 && i < this.chargeSlots.length; i++) {
+                    if (this.chargeSlots[i] !== null) {
+                        this.charges.push(this.chargeSlots[i]);
+                    }
+                }
+                
+                // Update UI
+                this.updateChargeUI();
+                this.updateChargeGroups();
+                
+                // Clean up UI
+                if (this.chestUI) {
+                    if (this.chestUI.bg) this.chestUI.bg.destroy();
+                    if (this.chestUI.title) this.chestUI.title.destroy();
+                    if (this.chestUI.controlHint) this.chestUI.controlHint.destroy();
+                    if (this.chestUI.chargeDisplay) this.chestUI.chargeDisplay.destroy();
+                    this.chestUI = null;
+                }
+                
+                // Reset states
+                this.chestSelectionActive = false;
+                this.fusionElementDiscardMode = false;
+                this.pendingFusionElement = null;
+                this.selectedChargeToReplace = -1;
+                this.chestChargeSelectMode = false;
+                
+                // Show success message
+                const successText = this.add.text(400, 300, `${discardedElement.toUpperCase()} discarded!\n${this.pendingFusionElement.toUpperCase()} acquired!`, {
+                    fontSize: '24px',
+                    color: '#44ff44',
+                    fontStyle: 'bold',
+                    align: 'center'
+                });
+                successText.setOrigin(0.5);
+                successText.setScrollFactor(0);
+                successText.setDepth(922);
+                
+                this.tweens.add({
+                    targets: successText,
+                    y: 250,
+                    alpha: 0,
+                    duration: 2000,
+                    onComplete: () => {
+                        successText.destroy();
+                        this.physics.resume();
+                        this.chestOpening = false;
+                    }
+                });
+                
+                return;
+            }
+            
             if (this.chestUI.choices) {
                 const selectedElement = this.chestUI.choices[this.chestCursorIndex];
                 if (this.initialElementSelection) {
@@ -22097,11 +24338,24 @@ class GameScene extends Phaser.Scene {
         // Create boss sprite
         const boss = this.physics.add.sprite(bossX, bossY, 'obelisk-boss', 0);
         boss.setScale(2); // Make boss large
-        boss.health = 4500; // High health (increased by 300%)
-        boss.maxHealth = 4500;
+        
+        // Adjust boss health based on enemy density setting
+        const baseHealth = 2700;
+        const densityMultipliers = {
+            'sparse': 0.25,  // 675 health
+            'normal': 0.5,   // 1350 health
+            'dense': 0.75,   // 2025 health
+            'swarm': 1.0     // 2700 health
+        };
+        const enemyDensity = localStorage.getItem('enemyDensity') || 'normal';
+        const healthMultiplier = densityMultipliers[enemyDensity] || 0.5;
+        
+        boss.health = Math.floor(baseHealth * healthMultiplier);
+        boss.maxHealth = boss.health;
         boss.enemyType = 'boss';
         boss.isBoss = true;
-        boss.moveSpeed = 45; // Slow but steady
+        boss.moveSpeed = 20; // Reduced from 45 - much slower movement
+        boss.isObeliskBoss = true; // Mark as obelisk boss for rune interaction
         
         // Boss properties
         boss.attackCooldown = 0;
@@ -22122,14 +24376,18 @@ class GameScene extends Phaser.Scene {
         // Store boss reference
         this.boss = boss;
         
+        // Initialize health threshold tracking for enemy waves
+        this.bossHealthThresholds = new Set([75, 50, 25]); // Spawn waves at 75%, 50%, 25% health
+        
         // Create boss health bar
         this.createBossHealthBar();
         
-        // Start boss AI with scaled delay
-        this.time.addEvent({
+        // Start boss AI with scaled delay - store reference for pausing
+        this.bossAITimer = this.time.addEvent({
             delay: 2000 / this.speedMultiplier,
             callback: () => this.updateBossAI(),
-            loop: true
+            loop: true,
+            paused: false
         });
     }
     
@@ -22167,9 +24425,25 @@ class GameScene extends Phaser.Scene {
         // Don't update boss during pause or chest opening
         if (this.isPaused || this.chestOpening || this.chestSelectionActive) return;
         
+        // Don't update boss AI while stunned
+        if (this.boss.isStunned) return;
+        
         // Update boss health bar
         const healthPercent = this.boss.health / this.boss.maxHealth;
         this.bossHealthBar.width = (600 - 6) * healthPercent;
+        
+        // Check for health threshold enemy wave spawns
+        const currentHealthPercentage = Math.floor(healthPercent * 100);
+        if (this.bossHealthThresholds) {
+            // Check if we've crossed any threshold
+            for (let threshold of this.bossHealthThresholds) {
+                if (currentHealthPercentage <= threshold) {
+                    this.spawnBossHealthThresholdWave(threshold);
+                    this.bossHealthThresholds.delete(threshold); // Remove threshold so it only triggers once
+                    break; // Only trigger one threshold per update
+                }
+            }
+        }
         
         // Check phase transitions
         if (healthPercent <= 0.66 && this.boss.currentPhase === 1) {
@@ -22334,9 +24608,14 @@ class GameScene extends Phaser.Scene {
         this.boss.play('obelisk-laser-cast');
         this.boss.attackCooldown = 2500; // Even faster laser attacks
         
-        // Telegraph laser
+        // Make boss stationary during laser attack
+        this.boss.isChargingLaser = true;
+        this.boss.setVelocity(0, 0);
+        
+        // Telegraph laser (visual only, no physics)
         const laserWarning = this.add.rectangle(this.boss.x, this.boss.y, 15, 1200, 0xff0000, 0.4);
         laserWarning.setOrigin(0.5, 1);
+        laserWarning.setDepth(9); // Below other objects
         
         // Aim at player with slight prediction
         const playerVelX = this.wizard.body ? this.wizard.body.velocity.x : 0;
@@ -22348,13 +24627,13 @@ class GameScene extends Phaser.Scene {
         const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, predictedX, predictedY);
         laserWarning.rotation = angle + Math.PI / 2;
         
-        // Faster warning flash
+        // Warning flash with delay before damage
         const warningTween = this.tweens.add({
             targets: laserWarning,
             alpha: { from: 0.4, to: 1 },
-            duration: 150, // Even faster
+            duration: 200,
             yoyo: true,
-            repeat: 1, // Fewer but faster flashes
+            repeat: 2, // More flashes for warning
             ease: 'Power2',
             onComplete: () => {
                 laserWarning.destroy();
@@ -22364,8 +24643,38 @@ class GameScene extends Phaser.Scene {
                     return;
                 }
                 
+                // Boss is now firing laser - vulnerable state
+                this.boss.isChargingLaser = false;
+                this.boss.isFiringLaser = true;
+                this.boss.vulnerabilityMultiplier = 2.0; // 200% damage during laser
+                
+                // Add visual indicator for vulnerability
+                if (!this.boss.vulnerableIndicator) {
+                    this.boss.vulnerableIndicator = this.add.text(this.boss.x, this.boss.y - 100, 'VULNERABLE!', {
+                        fontSize: '24px',
+                        color: '#ffff00',
+                        fontStyle: 'bold',
+                        stroke: '#ff0000',
+                        strokeThickness: 4
+                    });
+                    this.boss.vulnerableIndicator.setOrigin(0.5);
+                    this.boss.vulnerableIndicator.setDepth(151);
+                    
+                    // Pulsing effect
+                    this.tweens.add({
+                        targets: this.boss.vulnerableIndicator,
+                        scale: { from: 1, to: 1.3 },
+                        alpha: { from: 0.8, to: 1 },
+                        duration: 300,
+                        yoyo: true,
+                        repeat: -1
+                    });
+                }
+                
                 // Fire actual laser
                 const laser = this.physics.add.sprite(this.boss.x, this.boss.y, 'boss-laser', 0);
+                // Add laser to projectiles group for collision detection
+                this.projectiles.add(laser);
                 // Calculate distance for laser length
                 const distance = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, predictedX, predictedY);
                 // Scale laser to reach far beyond predicted position
@@ -22393,27 +24702,44 @@ class GameScene extends Phaser.Scene {
                         laser.destroy();
                         this.activeBossLaser = null;
                     }
+                    
+                    // End vulnerability state
+                    if (this.boss) {
+                        this.boss.isFiringLaser = false;
+                        this.boss.vulnerabilityMultiplier = 1.0;
+                        
+                        // Remove vulnerability indicator
+                        if (this.boss.vulnerableIndicator) {
+                            this.boss.vulnerableIndicator.destroy();
+                            this.boss.vulnerableIndicator = null;
+                        }
+                    }
                 });
                 
                 // Store timer reference
                 laser.destroyTimer = laserTimer;
                 
-                // Check laser collision with player
-                const laserLine = new Phaser.Geom.Line(
-                    this.boss.x, 
-                    this.boss.y,
-                    this.boss.x + Math.cos(angle) * 500,
-                    this.boss.y + Math.sin(angle) * 500
-                );
-                
-                // Simple distance check for laser hit
-                const playerPoint = new Phaser.Geom.Point(this.wizard.x, this.wizard.y);
-                const laserDistance = Phaser.Geom.Line.GetShortestDistance(laserLine, playerPoint);
-                
-                // Only damage if not paused or in chest selection
-                if (laserDistance < 30 && !this.isPaused && !this.chestOpening && !this.chestSelectionActive) {
-                    this.damagePlayer(50, this.boss);
-                }
+                // Delay damage check to give player time to dodge
+                this.time.delayedCall(200, () => {
+                    if (!laser || !laser.active) return;
+                    
+                    // Check laser collision with player
+                    const laserLine = new Phaser.Geom.Line(
+                        this.boss.x, 
+                        this.boss.y,
+                        this.boss.x + Math.cos(angle) * 500,
+                        this.boss.y + Math.sin(angle) * 500
+                    );
+                    
+                    // Simple distance check for laser hit
+                    const playerPoint = new Phaser.Geom.Point(this.wizard.x, this.wizard.y);
+                    const laserDistance = Phaser.Geom.Line.GetShortestDistance(laserLine, playerPoint);
+                    
+                    // Only damage if not paused or in chest selection
+                    if (laserDistance < 30 && !this.isPaused && !this.chestOpening && !this.chestSelectionActive) {
+                        this.damagePlayer(50, this.boss);
+                    }
+                });
             }
         });
     }
@@ -22532,6 +24858,116 @@ class GameScene extends Phaser.Scene {
         // Increase boss speed and add permanent glow
         this.boss.moveSpeed = 105;
         this.boss.setTint(0xff6666);
+    }
+    
+    spawnBossHealthThresholdWave(threshold) {
+        // Create dramatic warning effect
+        const warningText = this.add.text(400, 150, `BOSS AT ${threshold}% HEALTH!\nENEMY REINFORCEMENTS INCOMING!`, {
+            fontSize: '28px',
+            color: '#ff0000',
+            fontStyle: 'bold',
+            stroke: '#ffffff',
+            strokeThickness: 4,
+            align: 'center'
+        });
+        warningText.setOrigin(0.5);
+        warningText.setScrollFactor(0);
+        warningText.setDepth(200);
+        
+        // Pulsing warning animation
+        this.tweens.add({
+            targets: warningText,
+            scale: { from: 1, to: 1.2 },
+            duration: 300,
+            yoyo: true,
+            repeat: 3,
+            ease: 'Sine.easeInOut',
+            onComplete: () => {
+                this.tweens.add({
+                    targets: warningText,
+                    alpha: 0,
+                    duration: 1000,
+                    onComplete: () => warningText.destroy()
+                });
+            }
+        });
+        
+        // Screen flash effect
+        const flash = this.add.rectangle(400, 300, 800, 600, 0xff0000, 0.3);
+        flash.setScrollFactor(0);
+        flash.setDepth(199);
+        
+        this.tweens.add({
+            targets: flash,
+            alpha: 0,
+            duration: 500,
+            onComplete: () => flash.destroy()
+        });
+        
+        // Determine wave size based on threshold
+        let enemyCount;
+        switch(threshold) {
+            case 75: enemyCount = 3; break;
+            case 50: enemyCount = 5; break;
+            case 25: enemyCount = 8; break;
+            default: enemyCount = 3; break;
+        }
+        
+        // Spawn enemies in a circle around the boss
+        for (let i = 0; i < enemyCount; i++) {
+            const angle = (Math.PI * 2 / enemyCount) * i;
+            const distance = 150 + Math.random() * 100; // 150-250 pixels from boss
+            const enemyX = this.boss.x + Math.cos(angle) * distance;
+            const enemyY = this.boss.y + Math.sin(angle) * distance;
+            
+            // Spawn a basic enemy with dramatic entrance
+            this.time.delayedCall(i * 200, () => {
+                this.spawnThresholdEnemy(enemyX, enemyY);
+            });
+        }
+    }
+    
+    spawnThresholdEnemy(x, y) {
+        // Create spawn warning effect first
+        const spawnWarning = this.add.circle(x, y, 30, 0xff0000, 0.5);
+        spawnWarning.setDepth(10);
+        
+        this.tweens.add({
+            targets: spawnWarning,
+            scale: { from: 0, to: 2 },
+            alpha: { from: 0.8, to: 0 },
+            duration: 800,
+            ease: 'Power2',
+            onComplete: () => {
+                spawnWarning.destroy();
+                
+                // Now spawn the actual enemy
+                const enemy = this.physics.add.sprite(x, y, 'enemy-walk', 0);
+                enemy.health = 3;
+                enemy.maxHealth = 3;
+                enemy.enemyType = 'normal';
+                enemy.moveSpeed = 60;
+                enemy.play('enemy-walk-anim');
+                enemy.body.setSize(30, 40);
+                enemy.body.setOffset(9, 10);
+                
+                // Add dramatic spawn effect
+                const spawnFlash = this.add.circle(x, y, 10, 0xffffff, 1);
+                spawnFlash.setDepth(100);
+                
+                this.tweens.add({
+                    targets: spawnFlash,
+                    scale: { from: 0, to: 8 },
+                    alpha: { from: 1, to: 0 },
+                    duration: 600,
+                    ease: 'Power2',
+                    onComplete: () => spawnFlash.destroy()
+                });
+                
+                // Add to enemies group
+                this.enemies.add(enemy);
+            }
+        });
     }
     
     handleBossDeath(boss) {
