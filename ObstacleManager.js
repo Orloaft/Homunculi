@@ -4,126 +4,126 @@ class ObstacleManager {
         this.obstacles = this.scene.physics.add.staticGroup();
         this.activeObstacles = new Map(); // Track obstacles by grid position
         this.obstaclePool = [];
-        this.gridSize = 300; // Reduced from 400 for better coverage
+        this.gridSize = 600; // Increased from 300 to make obstacles more sparse
         this.viewDistance = 1500; // Increased view distance to load more cells
         this.lastPlayerGridX = null;
         this.lastPlayerGridY = null;
         
-        // Define patterns for each stage - VERY SPARSE (90% reduction)
+        // Define patterns for each stage - ULTRA SPARSE (97.5% reduction total)
         this.patterns = {
             forest: [
-                // Single tree
+                // Single tree (rare)
                 [
                     [0, 0, 0, 0],
                     [0, 0, 0, 0],
                     [0, 0, 1, 0],
                     [0, 0, 0, 0]
                 ],
-                // Single tree corner
+                // Empty pattern 1
                 [
                     [0, 0, 0, 0],
                     [0, 0, 0, 0],
                     [0, 0, 0, 0],
-                    [0, 1, 0, 0]
+                    [0, 0, 0, 0]
                 ],
-                // Two trees sparse
+                // Empty pattern 2
                 [
                     [0, 0, 0, 0],
-                    [0, 1, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0]
+                ],
+                // Empty pattern 3
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0]
+                ],
+                // Empty pattern 4
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0]
+                ],
+                // Single tree corner (very rare)
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
                     [0, 0, 0, 0],
                     [0, 0, 0, 1]
-                ],
-                // Single tree top
-                [
-                    [0, 1, 0, 0],
-                    [0, 0, 0, 0],
-                    [0, 0, 0, 0],
-                    [0, 0, 0, 0]
-                ],
-                // Empty pattern for more spacing
-                [
-                    [0, 0, 0, 0],
-                    [0, 0, 0, 0],
-                    [0, 0, 0, 0],
-                    [0, 0, 0, 0]
-                ],
-                // Single tree center
-                [
-                    [0, 0, 0, 0],
-                    [0, 0, 1, 0],
-                    [0, 0, 0, 0],
-                    [0, 0, 0, 0]
                 ]
             ],
             cave: [
-                // Single rock
+                // Single rock (rare)
                 [
                     [0, 0, 0, 0],
                     [0, 0, 0, 0],
                     [0, 1, 0, 0],
                     [0, 0, 0, 0]
                 ],
-                // Rock pair diagonal
-                [
-                    [0, 0, 0, 0],
-                    [0, 0, 0, 1],
-                    [0, 0, 0, 0],
-                    [1, 0, 0, 0]
-                ],
-                // Single rock corner
-                [
-                    [1, 0, 0, 0],
-                    [0, 0, 0, 0],
-                    [0, 0, 0, 0],
-                    [0, 0, 0, 0]
-                ],
-                // Empty pattern for spacing
+                // Empty pattern 1
                 [
                     [0, 0, 0, 0],
                     [0, 0, 0, 0],
                     [0, 0, 0, 0],
                     [0, 0, 0, 0]
                 ],
-                // Single rock center
+                // Empty pattern 2
                 [
                     [0, 0, 0, 0],
-                    [0, 0, 1, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0]
+                ],
+                // Empty pattern 3
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0]
+                ],
+                // Empty pattern 4
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
                     [0, 0, 0, 0],
                     [0, 0, 0, 0]
                 ]
             ],
             lava: [
-                // Single lava rock
+                // Single lava rock (rare)
                 [
                     [0, 0, 0, 0],
                     [0, 0, 0, 0],
                     [0, 0, 1, 0],
                     [0, 0, 0, 0]
                 ],
-                // Lava rock bottom
-                [
-                    [0, 0, 0, 0],
-                    [0, 0, 0, 0],
-                    [0, 0, 0, 0],
-                    [0, 0, 1, 0]
-                ],
-                // Two rocks sparse
-                [
-                    [0, 1, 0, 0],
-                    [0, 0, 0, 0],
-                    [0, 0, 0, 0],
-                    [0, 0, 0, 1]
-                ],
-                // Empty pattern for spacing
+                // Empty pattern 1
                 [
                     [0, 0, 0, 0],
                     [0, 0, 0, 0],
                     [0, 0, 0, 0],
                     [0, 0, 0, 0]
                 ],
-                // Single rock top right
+                // Empty pattern 2
                 [
-                    [0, 0, 0, 1],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0]
+                ],
+                // Empty pattern 3
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0]
+                ],
+                // Empty pattern 4
+                [
+                    [0, 0, 0, 0],
                     [0, 0, 0, 0],
                     [0, 0, 0, 0],
                     [0, 0, 0, 0]

@@ -2362,8 +2362,8 @@ class GameScene extends Phaser.Scene {
         this.discoveredSpells = [];
         this.spellbookOpen = false;
         this.spellbookUI = null;
-        this.playerHealth = 300;
-        this.maxHealth = 300;
+        this.playerHealth = 100;
+        this.maxHealth = 100;
         this.healthBar = null;
         this.healthBarBg = null;
         this.invulnerable = false;
@@ -2908,6 +2908,14 @@ class GameScene extends Phaser.Scene {
             removeCallback: (projectile) => {
                 if (projectile.body) {
                     projectile.body.enable = false;
+                }
+            }
+        });
+        this.poisonFields = this.physics.add.group({
+            runChildUpdate: false,
+            removeCallback: (field) => {
+                if (field.body) {
+                    field.body.enable = false;
                 }
             }
         });
@@ -4815,14 +4823,13 @@ class GameScene extends Phaser.Scene {
         if (this.stage === 'lava') {
             // Lava stage waves: fire slimes, eye bats, fire worms, summoners, orange golems
             baseWaves = [
-                // Wave 0 (0:00-1:00) - Introduction
+                // Wave 0 (0:00-1:00) - Introduction - Very easy with only bats
                 {
                     enemies: [
-                        { type: 'bat', weight: 40, count: 3 },
-                        { type: 'fireslime', weight: 60, count: 2 }
+                        { type: 'bat', weight: 100, count: 2 }  // Only bats, fewer at a time
                     ],
-                    spawnInterval: 2000,
-                    maxEnemies: 25
+                    spawnInterval: 3000,  // Slower spawn rate
+                    maxEnemies: 15  // Fewer total enemies
                 },
                 // Wave 1 (1:00-2:00) - Add fire worms
                 {
@@ -4885,14 +4892,13 @@ class GameScene extends Phaser.Scene {
         } else if (this.stage === 'cave') {
             // Cave stage waves: slimes, lost souls, bats, golems, dark eyes
             baseWaves = [
-                // Wave 0 (0:00-1:00) - Introduction
+                // Wave 0 (0:00-1:00) - Introduction - Very easy with only bats
                 {
                     enemies: [
-                        { type: 'bat', weight: 40, count: 3 },
-                        { type: 'slime', weight: 60, count: 2 }
+                        { type: 'bat', weight: 100, count: 2 }  // Only bats, fewer at a time
                     ],
-                    spawnInterval: 2000,
-                    maxEnemies: 25
+                    spawnInterval: 3000,  // Slower spawn rate
+                    maxEnemies: 15  // Fewer total enemies
                 },
                 // Wave 1 (1:00-2:00) - Add souls
                 {
@@ -4953,14 +4959,13 @@ class GameScene extends Phaser.Scene {
         } else {
             // Forest stage waves: trees, mushrooms, bats, bloboids, summoners
             baseWaves = [
-                // Wave 0 (0:00-1:00) - Introduction
+                // Wave 0 (0:00-1:00) - Introduction - Very easy with only bats
                 {
                     enemies: [
-                        { type: 'bat', weight: 40, count: 3 },
-                        { type: 'tree', weight: 60, count: 2 }
+                        { type: 'bat', weight: 100, count: 2 }  // Only bats, fewer at a time
                     ],
-                    spawnInterval: 2000,
-                    maxEnemies: 25
+                    spawnInterval: 3000,  // Slower spawn rate
+                    maxEnemies: 15  // Fewer total enemies
                 },
                 // Wave 1 (1:00-2:00) - Add mushrooms
                 {
@@ -5503,7 +5508,7 @@ class GameScene extends Phaser.Scene {
             return;
         }
 
-        const speed = 160 * this.speedMultiplier;
+        const speed = 192 * this.speedMultiplier; // Increased by 20% from 160
         let moving = false;
         let velocityX = 0;
         let velocityY = 0;
@@ -6603,6 +6608,85 @@ class GameScene extends Phaser.Scene {
                 }
             }
         });
+        
+        // Cleanup excess collectibles to prevent framerate drops
+        const maxCollectibles = 100; // Maximum allowed on screen
+        const cleanupDistance = 800; // Distance beyond which to remove items
+        
+        // Cleanup excess jewels
+        if (this.jewels && this.jewels.children && this.jewels.children.entries.length > maxCollectibles) {
+            const jewelsToRemove = [];
+            this.jewels.children.entries.forEach((jewel, index) => {
+                if (jewel.active) {
+                    const dist = Phaser.Math.Distance.Between(jewel.x, jewel.y, this.wizard.x, this.wizard.y);
+                    if (dist > cleanupDistance) {
+                        jewelsToRemove.push(jewel);
+                    }
+                }
+            });
+            
+            // Remove farthest jewels first if we're still over the limit
+            if (this.jewels.children.entries.length - jewelsToRemove.length > maxCollectibles) {
+                const sortedJewels = this.jewels.children.entries
+                    .filter(j => j.active)
+                    .sort((a, b) => {
+                        const distA = Phaser.Math.Distance.Between(a.x, a.y, this.wizard.x, this.wizard.y);
+                        const distB = Phaser.Math.Distance.Between(b.x, b.y, this.wizard.x, this.wizard.y);
+                        return distB - distA; // Sort by distance descending
+                    });
+                
+                const toRemove = sortedJewels.slice(maxCollectibles);
+                toRemove.forEach(jewel => this.safeDestroyCollectible(jewel));
+            } else {
+                // Just remove the far ones
+                jewelsToRemove.forEach(jewel => this.safeDestroyCollectible(jewel));
+            }
+        }
+        
+        // Cleanup excess muffins
+        if (this.muffins && this.muffins.children && this.muffins.children.entries.length > 20) {
+            const muffinsToRemove = [];
+            this.muffins.children.entries.forEach(muffin => {
+                if (muffin.active) {
+                    const dist = Phaser.Math.Distance.Between(muffin.x, muffin.y, this.wizard.x, this.wizard.y);
+                    if (dist > cleanupDistance) {
+                        muffinsToRemove.push(muffin);
+                    }
+                }
+            });
+            muffinsToRemove.forEach(muffin => this.safeDestroyCollectible(muffin));
+        }
+        
+        // Cleanup excess element orbs
+        if (this.elementOrbs && this.elementOrbs.children && this.elementOrbs.children.entries.length > 30) {
+            const orbsToRemove = [];
+            this.elementOrbs.children.entries.forEach(orb => {
+                if (orb.active) {
+                    const dist = Phaser.Math.Distance.Between(orb.x, orb.y, this.wizard.x, this.wizard.y);
+                    if (dist > cleanupDistance) {
+                        orbsToRemove.push(orb);
+                    }
+                }
+            });
+            orbsToRemove.forEach(orb => this.safeDestroyCollectible(orb));
+        }
+        
+        // Cleanup excess chests
+        if (this.chests && this.chests.children && this.chests.children.entries.length > 10) {
+            const chestsToRemove = [];
+            this.chests.children.entries.forEach(chest => {
+                if (chest.active) {
+                    const dist = Phaser.Math.Distance.Between(chest.x, chest.y, this.wizard.x, this.wizard.y);
+                    if (dist > cleanupDistance * 1.5) { // Chests can be a bit farther
+                        chestsToRemove.push(chest);
+                    }
+                }
+            });
+            chestsToRemove.forEach(chest => {
+                if (chest.body) chest.body.enable = false;
+                chest.destroy();
+            });
+        }
     }
 
     castSpell() {
@@ -7709,9 +7793,9 @@ class GameScene extends Phaser.Scene {
             case 'earth':
                 // Earth passive: +30% health, damage reflection
                 this.passiveBonuses.thorns += 0.25; // Reflect 25% damage
-                if (this.maxHealth === 300) { // Only apply once
-                    this.maxHealth = 390; // 300 + 30% = 390
-                    this.playerHealth = Math.min(this.playerHealth + 90, this.maxHealth);
+                if (this.maxHealth === 100) { // Only apply once
+                    this.maxHealth = 130; // 100 + 30% = 130
+                    this.playerHealth = Math.min(this.playerHealth + 30, this.maxHealth); // Heal 30 HP
                 }
                 break;
                 
@@ -8869,8 +8953,11 @@ class GameScene extends Phaser.Scene {
                         onComplete: () => splitEffect.destroy()
                     });
                 } else {
-                    // Final generation drops loot
-                    this.dropJewel(enemyX, enemyY, 2, 0.075);
+                    // Final generation drops loot - XP scales with wave
+                    const baseXP = 2;
+                    const waveBonus = Math.floor(this.currentWave / 2); // +1 XP every 2 waves
+                    const xpValue = baseXP + waveBonus;
+                    this.dropJewel(enemyX, enemyY, xpValue, 0.075);
 
                     // Item drop chances
                     const dropRoll = Math.random();
@@ -8908,11 +8995,14 @@ class GameScene extends Phaser.Scene {
                 duration: 500,
                 onComplete: () => {
                     // Drop regular items as chests instead
-                    // Drop 3-5 jewels
+                    // Drop 3-5 jewels - XP scales with wave
+                    const baseXP = 2;
+                    const waveBonus = Math.floor(this.currentWave / 2); // +1 XP every 2 waves
+                    const xpValue = baseXP + waveBonus;
                     for (let i = 0; i < 3 + Math.floor(Math.random() * 3); i++) {
                         const offsetX = (Math.random() - 0.5) * 40;
                         const offsetY = (Math.random() - 0.5) * 40;
-                        this.dropJewel(enemyX + offsetX, enemyY + offsetY, 2, 0.075);
+                        this.dropJewel(enemyX + offsetX, enemyY + offsetY, xpValue, 0.075);
                     }
 
                     // Elements no longer drop from enemies
@@ -8964,15 +9054,21 @@ class GameScene extends Phaser.Scene {
                 if (!enemy || !enemy.active) return; // Safety check
                 if (isEliteGolem) {
                     // Elite golems drop extra valuable jewels instead of charge expansion
+                    const baseXP = 5;
+                    const waveBonus = Math.floor(this.currentWave / 2); // +1 XP every 2 waves
+                    const xpValue = baseXP + waveBonus;
                     for (let i = 0; i < 12; i++) { // Increased from 8 to 12 jewels
                         const offsetX = (Math.random() - 0.5) * 40;
                         const offsetY = (Math.random() - 0.5) * 40;
-                        this.dropJewel(enemyX + offsetX, enemyY + offsetY, 5, 0.10); // 5 XP, larger size
+                        this.dropJewel(enemyX + offsetX, enemyY + offsetY, xpValue, 0.10); // Scaled XP, larger size
                     }
                 } else {
-                    // Regular golem drops valuable gems
-                    this.dropJewel(enemyX, enemyY, 4, 0.09);
-                    this.dropJewel(enemyX + 20, enemyY, 4, 0.09);
+                    // Regular golem drops valuable gems - XP scales with wave
+                    const baseXP = 4;
+                    const waveBonus = Math.floor(this.currentWave / 2); // +1 XP every 2 waves
+                    const xpValue = baseXP + waveBonus;
+                    this.dropJewel(enemyX, enemyY, xpValue, 0.09);
+                    this.dropJewel(enemyX + 20, enemyY, xpValue, 0.09);
 
                     // Elements no longer drop from enemies
                     // const element = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
@@ -9013,8 +9109,11 @@ class GameScene extends Phaser.Scene {
                 alpha: 0,
                 duration: 300,
                 onComplete: () => {
-                    // Drop jewel
-                    this.dropJewel(enemyX, enemyY, 2, 0.075);
+                    // Drop jewel - XP scales with wave
+                    const baseXP = 2;
+                    const waveBonus = Math.floor(this.currentWave / 2); // +1 XP every 2 waves
+                    const xpValue = baseXP + waveBonus;
+                    this.dropJewel(enemyX, enemyY, xpValue, 0.075);
 
                     // Item drop chances
                     const dropRoll = Math.random();
@@ -9867,7 +9966,8 @@ class GameScene extends Phaser.Scene {
             enemy.health = 2; // Reduced by 50% from 4
             enemy.maxHealth = enemy.health;
             enemy.enemyType = 'tree';
-            enemy.moveSpeed = 90; // Reduced by 25% from 120 for better balance
+            enemy.moveSpeed = 50; // Reduced by 58% total (was 72)
+            enemy.damage = 15; // Base enemy damage
             enemy.play('enemy-walking');
             enemy.body.setSize(26, 39); // Widened by 30%
             enemy.body.setOffset(3, 12); // Adjusted offset for wider hitbox
@@ -9899,8 +9999,9 @@ class GameScene extends Phaser.Scene {
             }
                 bat.body.setSize(60, 40);
                 bat.body.setOffset(45, 55);
-                bat.moveSpeed = 165; // Fast flying enemies
+                bat.moveSpeed = 92; // Reduced by 44% total (was 132)
                 bat.isFlying = true; // Bats can fly over obstacles
+                bat.damage = 10; // Weak but fast enemy
                 this.setEnemyDepth(bat); // Set initial depth
                 this.enemies.add(bat);
             }
@@ -9912,7 +10013,8 @@ class GameScene extends Phaser.Scene {
             mushroom.health = 5; // Increased by 50% // Medium health
             mushroom.maxHealth = mushroom.health;
             mushroom.enemyType = 'mushroom';
-            mushroom.moveSpeed = 105; // Increased medium speed
+            mushroom.moveSpeed = 59; // Reduced by 44% total (was 84)
+            mushroom.damage = 20; // Medium enemy damage
             // Play animation with safety check
             try {
                 if (this.anims.exists('mushroom-running')) {
@@ -9932,7 +10034,10 @@ class GameScene extends Phaser.Scene {
             fireworm.health = 3; // Increased by 50% // Low-medium health
             fireworm.maxHealth = fireworm.health;
             fireworm.enemyType = 'fireworm';
-            fireworm.moveSpeed = 135; // Very fast
+            fireworm.moveSpeed = 76; // Reduced by 44% total (was 108)
+            fireworm.damage = 15; // Fast but lower damage
+            fireworm.burnDamage = 1; // Additional burn damage
+            fireworm.burnDuration = 3000; // 3 second burn
             // Play animation with safety check
             try {
                 if (this.anims.exists('fireworm-walking')) {
@@ -9953,7 +10058,8 @@ class GameScene extends Phaser.Scene {
             summoner.health = 12; // Increased by 50% // High health
             summoner.maxHealth = summoner.health;
             summoner.enemyType = 'summoner';
-            summoner.moveSpeed = 45; // Slow but mobile
+            summoner.moveSpeed = 25; // Reduced by 44% total (was 36)
+            summoner.damage = 25; // Higher damage for tougher enemy
             summoner.play('summoner-idling');
             summoner.body.setSize(40, 60);
             summoner.body.setOffset(20, 10);
@@ -9967,7 +10073,8 @@ class GameScene extends Phaser.Scene {
             soul.health = 6; // Increased by 50% // Medium health
             soul.maxHealth = soul.health;
             soul.enemyType = 'soul';
-            soul.moveSpeed = 90; // Medium floating speed
+            soul.moveSpeed = 50; // Reduced by 44% total (was 72)
+            soul.damage = 20; // Ranged enemy, medium damage
             soul.play('soul-moving');
             soul.body.setSize(60, 60);
             soul.body.setOffset(18, 18);
@@ -9985,7 +10092,8 @@ class GameScene extends Phaser.Scene {
             bloboid.health = 8; // Increased by 50% // Medium-high health
             bloboid.maxHealth = bloboid.health;
             bloboid.enemyType = 'bloboid';
-            bloboid.moveSpeed = 75; // Moderate blob movement
+            bloboid.moveSpeed = 42; // Reduced by 44% total (was 60)
+            bloboid.damage = 25; // Tanky enemy, higher damage
             bloboid.play('bloboid-walking');
             bloboid.body.setSize(50, 30);
             bloboid.body.setOffset(15, 2);
@@ -9998,7 +10106,8 @@ class GameScene extends Phaser.Scene {
             slime.health = 4; // Increased by 50%
             slime.maxHealth = slime.health;
             slime.enemyType = 'slime';
-            slime.moveSpeed = 67.5; // Moderate speed
+            slime.moveSpeed = 38; // Reduced by 44% total (was 54)
+            slime.damage = 18; // Slimes split so moderate damage
             slime.play('slime-idle');
             slime.body.setSize(40, 40);
             slime.body.setOffset(10, 10);
@@ -10013,7 +10122,8 @@ class GameScene extends Phaser.Scene {
             golem.maxHealth = golem.health;
             golem.enemyType = 'golem';
             golem.golemColor = golemColor;
-            golem.moveSpeed = 60; // Slow but persistent
+            golem.moveSpeed = 34; // Reduced by 44% total (was 48)
+            golem.damage = 30; // Heavy damage tank enemy
             golem.play(`golem-${golemColor}-walk`);
             golem.body.setSize(60, 50);
             golem.body.setOffset(15, 10);
@@ -10026,7 +10136,8 @@ class GameScene extends Phaser.Scene {
             sorcerer.health = 30; // Very high health - boss enemy
             sorcerer.maxHealth = sorcerer.health;
             sorcerer.enemyType = 'sorcerer';
-            sorcerer.moveSpeed = 67.5; // Moderate boss speed
+            sorcerer.moveSpeed = 38; // Reduced by 44% total (was 54)
+            sorcerer.damage = 35; // Boss enemy high damage
             sorcerer.play('sorcerer-attack');
             sorcerer.body.setSize(60, 80);
             sorcerer.body.setOffset(10, 0);
@@ -10111,7 +10222,8 @@ class GameScene extends Phaser.Scene {
             enemy.health = 5; // Reduced by 50% from 9
             enemy.maxHealth = enemy.health;
             enemy.enemyType = 'tree';
-            enemy.moveSpeed = 90; // Reduced by 25% from 120 for better balance
+            enemy.moveSpeed = 50; // Reduced by 58% total (was 72)
+            enemy.damage = 15; // Base enemy damage
             enemy.damage = 1; // Default damage
             enemy.play('enemy-walking');
             enemy.body.setSize(26, 39);
@@ -10125,7 +10237,7 @@ class GameScene extends Phaser.Scene {
             bat.enemyType = 'bat';
             bat.body.setSize(60, 40);
             bat.body.setOffset(45, 55);
-            bat.moveSpeed = 120;
+            bat.moveSpeed = 92; // Reduced to match spawnEnemy
             bat.isFlying = true;
             this.enemies.add(bat);
             
@@ -10148,7 +10260,7 @@ class GameScene extends Phaser.Scene {
             mushroom.health = 5; // Increased by 50%
             mushroom.maxHealth = mushroom.health;
             mushroom.enemyType = 'mushroom';
-            mushroom.moveSpeed = 75;
+            mushroom.moveSpeed = 59; // Reduced to match spawnEnemy
             mushroom.body.setSize(80, 30);  // Adjusted height for smaller sprite
             mushroom.body.setOffset(35, 8);  // Adjusted offset for smaller sprite
             this.enemies.add(mushroom);
@@ -10171,7 +10283,7 @@ class GameScene extends Phaser.Scene {
             fireworm.health = 3; // Increased by 50%
             fireworm.maxHealth = fireworm.health;
             fireworm.enemyType = 'fireworm';
-            fireworm.moveSpeed = 97.5;
+            fireworm.moveSpeed = 76; // Reduced to match spawnEnemy
             fireworm.body.setSize(70, 50);
             fireworm.body.setOffset(10, 20);
             fireworm.element = 'fire';
@@ -10195,7 +10307,7 @@ class GameScene extends Phaser.Scene {
             summoner.health = 12; // Increased by 50%
             summoner.maxHealth = summoner.health;
             summoner.enemyType = 'summoner';
-            summoner.moveSpeed = 30;
+            summoner.moveSpeed = 25; // Reduced to match spawnEnemy
             summoner.play('summoner-walking');
             summoner.body.setSize(80, 100);
             summoner.body.setOffset(40, 20);
@@ -10209,7 +10321,7 @@ class GameScene extends Phaser.Scene {
             soul.health = 6; // Increased by 50%
             soul.maxHealth = soul.health;
             soul.enemyType = 'soul';
-            soul.moveSpeed = 60;
+            soul.moveSpeed = 50; // Reduced to match spawnEnemy
             soul.play('soul-moving');
             soul.body.setSize(60, 60);
             soul.body.setOffset(18, 18);
@@ -10227,7 +10339,7 @@ class GameScene extends Phaser.Scene {
             bloboid.health = 8; // Increased by 50%
             bloboid.maxHealth = bloboid.health;
             bloboid.enemyType = 'bloboid';
-            bloboid.moveSpeed = 52.5;
+            bloboid.moveSpeed = 42; // Reduced to match spawnEnemy
             bloboid.play('bloboid-walking');
             bloboid.body.setSize(50, 30);
             bloboid.body.setOffset(15, 2);
@@ -10239,7 +10351,7 @@ class GameScene extends Phaser.Scene {
             slime.health = 4; // Increased by 50%
             slime.maxHealth = slime.health;
             slime.enemyType = 'slime';
-            slime.moveSpeed = 45;
+            slime.moveSpeed = 38; // Reduced to match spawnEnemy
             slime.play('slime-idle');
             slime.body.setSize(40, 40);
             slime.body.setOffset(10, 10);
@@ -10252,7 +10364,7 @@ class GameScene extends Phaser.Scene {
             slime.health = 5; // Slightly more health than regular slime
             slime.maxHealth = slime.health;
             slime.enemyType = 'fireslime';
-            slime.moveSpeed = 52.5; // Slightly faster
+            slime.moveSpeed = 38; // Reduced to match normal slime
             slime.play('slime-idle');
             slime.body.setSize(40, 40);
             slime.body.setOffset(10, 10);
@@ -10268,7 +10380,7 @@ class GameScene extends Phaser.Scene {
             golem.maxHealth = golem.health;
             golem.enemyType = 'golem';
             golem.golemColor = golemColor;
-            golem.moveSpeed = 37.5;
+            golem.moveSpeed = 34; // Reduced to match spawnEnemy
             golem.play(`golem-${golemColor}-walk`);
             golem.body.setSize(60, 50);
             golem.body.setOffset(15, 10);
@@ -10282,7 +10394,7 @@ class GameScene extends Phaser.Scene {
             golem.maxHealth = golem.health;
             golem.enemyType = 'golem';
             golem.golemColor = 'orange';
-            golem.moveSpeed = 37.5;
+            golem.moveSpeed = 34; // Reduced to match spawnEnemy
             golem.play('golem-orange-walk');
             golem.body.setSize(60, 50);
             golem.body.setOffset(15, 10);
@@ -10297,7 +10409,8 @@ class GameScene extends Phaser.Scene {
             sorcerer.health = 30; // Very high health - boss enemy
             sorcerer.maxHealth = sorcerer.health;
             sorcerer.enemyType = 'sorcerer';
-            sorcerer.moveSpeed = 67.5; // Moderate boss speed
+            sorcerer.moveSpeed = 38; // Reduced by 44% total (was 54)
+            sorcerer.damage = 35; // Boss enemy high damage
             sorcerer.play('sorcerer-attack');
             sorcerer.body.setSize(60, 80);
             sorcerer.body.setOffset(10, 0);
@@ -10785,8 +10898,8 @@ class GameScene extends Phaser.Scene {
     }
 
     hitEnemy(wizard, enemy) {
-        // Check if player is invulnerable or game is paused/in chest selection
-        if (this.invulnerable || this.isPaused || this.chestSelectionActive) return;
+        // Check if player is invulnerable, dead, or game is paused/in chest selection
+        if (this.invulnerable || this.isPaused || this.chestSelectionActive || this.playerHealth <= 0) return;
         
         // Check if enemy is hexed (deals no damage)
         if (enemy.isHexed) {
@@ -10854,17 +10967,34 @@ class GameScene extends Phaser.Scene {
             this.applyPlayerBurn(enemy.burnDamage, enemy.burnDuration);
         }
 
-        // Visual feedback only - no knockback
+        // Visual feedback and knockback
         wizard.setTint(0xff0000);
         this.time.delayedCall(100, () => {
             if (!this.playerBurning) {
                 wizard.clearTint();
             }
         });
+        
+        // Apply slight knockback to player (only if alive)
+        if (this.playerHealth > 0) {
+            const knockbackForce = 200;
+            const angle = Math.atan2(wizard.y - enemy.y, wizard.x - enemy.x);
+            wizard.body.setVelocity(
+                Math.cos(angle) * knockbackForce,
+                Math.sin(angle) * knockbackForce
+            );
+            
+            // Reset velocity after short time
+            this.time.delayedCall(150, () => {
+                if (wizard.body && this.playerHealth > 0) {
+                    wizard.body.setVelocity(0, 0);
+                }
+            });
+        }
 
-        // Set invulnerability period
+        // Set invulnerability period - much shorter for more danger
         this.invulnerable = true;
-        this.time.delayedCall(1000, () => {
+        this.time.delayedCall(300, () => {
             this.invulnerable = false;
         });
 
@@ -10877,6 +11007,11 @@ class GameScene extends Phaser.Scene {
             // Play death animation
             this.wizard.play('wizard-death');
             this.wizard.setVelocity(0, 0); // Stop movement
+            
+            // Disable wizard physics to prevent further collisions
+            if (this.wizard.body) {
+                this.wizard.body.enable = false;
+            }
 
             // Wait for death animation to complete
             this.wizard.once('animationcomplete', () => {
@@ -13319,14 +13454,16 @@ class GameScene extends Phaser.Scene {
             let tooClose = false;
             
             // Check distance to all existing poison fields
-            this.poisonFields.children.entries.forEach(existingField => {
-                if (existingField.active) {
-                    const dist = Phaser.Math.Distance.Between(spawnX, spawnY, existingField.x, existingField.y);
-                    if (dist < mineSpacing) {
-                        tooClose = true;
+            if (this.poisonFields && this.poisonFields.children && this.poisonFields.children.entries) {
+                this.poisonFields.children.entries.forEach(existingField => {
+                    if (existingField.active) {
+                        const dist = Phaser.Math.Distance.Between(spawnX, spawnY, existingField.x, existingField.y);
+                        if (dist < mineSpacing) {
+                            tooClose = true;
+                        }
                     }
-                }
-            });
+                });
+            }
             
             if (!tooClose) {
                 break; // Found a good spot
@@ -21793,6 +21930,11 @@ class GameScene extends Phaser.Scene {
             // Play death animation
             this.wizard.play('wizard-death');
             this.wizard.setVelocity(0, 0); // Stop movement
+            
+            // Disable wizard physics to prevent further collisions
+            if (this.wizard.body) {
+                this.wizard.body.enable = false;
+            }
 
             // Wait for death animation to complete
             this.wizard.once('animationcomplete', () => {
