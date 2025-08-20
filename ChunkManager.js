@@ -30,6 +30,11 @@ class ChunkManager {
                 base: 'lava-tile',
                 decorations: [], // No decorations for now
                 decorationDensity: 0.08
+            },
+            sand: {
+                base: 'desert-tile',
+                decorations: [], // Could add cacti or rocks later
+                decorationDensity: 0.05
             }
         };
     }

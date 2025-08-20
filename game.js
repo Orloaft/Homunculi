@@ -49,6 +49,7 @@ class LoadingScene extends Phaser.Scene {
         this.load.image('grass-tile', 'grass.PNG');
         this.load.image('stone-tile', 'stone.png');
         this.load.image('lava-tile', 'lava.png');
+        this.load.image('desert-tile', 'desert.png');
         this.load.image('tree', 'foliage.png');
         
         // Load charge slot upgrade sprite
@@ -74,6 +75,18 @@ class LoadingScene extends Phaser.Scene {
         // Load life element symbol
         this.load.image('life-symbol', 'life.png');
         
+        // Load time element symbol
+        this.load.image('time-symbol', 'time.png');
+        
+        // Load moon element symbol
+        this.load.image('moon-symbol', 'moon.png');
+        
+        // Load sun element symbol
+        this.load.image('sun-symbol', 'sun.png');
+        
+        // Load metal element symbol
+        this.load.image('metal-symbol', 'metal.png');
+        
         // Load background music
         this.load.audio('bgm', 'homonculibgm.mp3');
         this.load.audio('bgm2', 'bgm2.mp3');
@@ -96,6 +109,58 @@ class LoadingScene extends Phaser.Scene {
         for (let i = 0; i < 4; i++) {
             this.load.image(`slime-idle-${i}`, `Slime/Individual Sprites/slime-idle-${i}.png`);
             this.load.image(`slime-die-${i}`, `Slime/Individual Sprites/slime-die-${i}.png`);
+        }
+        
+        // Load Club Imp sprites
+        for (let i = 1; i <= 6; i++) {
+            this.load.image(`club-imp-walk-${i}`, `impclub/walk_${i}.png`);
+        }
+        for (let i = 1; i <= 5; i++) {
+            this.load.image(`club-imp-fall-${i}`, `impclub/fall_back_${i}.png`);
+            this.load.image(`club-imp-standup-${i}`, `impclub/stand_up_${i}.png`);
+        }
+        
+        // Load Axe Imp sprites
+        for (let i = 1; i <= 6; i++) {
+            this.load.image(`axe-imp-walk-${i}`, `impaxe/walk_${i}.png`);
+        }
+        for (let i = 1; i <= 4; i++) {
+            this.load.image(`axe-imp-fall-${i}`, `impaxe/fall_back_${i}.png`);
+        }
+        for (let i = 1; i <= 5; i++) {
+            this.load.image(`axe-imp-standup-${i}`, `impaxe/stand_up_${i}.png`);
+        }
+        
+        // Load Kobold sprites
+        this.load.spritesheet('kobold-walk', 'kobold/kobold8frames.png', {
+            frameWidth: 148,
+            frameHeight: 96
+        });
+        
+        // Load Flying Demon sprites
+        this.load.spritesheet('flying-demon', 'flyingdemon/flamedemon4frames.png', {
+            frameWidth: 81,
+            frameHeight: 71
+        });
+        
+        // Load Dark Bat sprites
+        this.load.spritesheet('dark-bat-fly', 'Bat-IdleFly9frames.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
+        
+        // Load Demon Slime boss sprites
+        for (let i = 1; i <= 6; i++) {
+            this.load.image(`demon-slime-idle-${i}`, `demonslime/boss_demon_slime_FREE_v1.0/boss_demon_slime_FREE_v1.0/individual sprites/01_demon_idle/demon_idle_${i}.png`);
+        }
+        for (let i = 1; i <= 12; i++) {
+            this.load.image(`demon-slime-walk-${i}`, `demonslime/boss_demon_slime_FREE_v1.0/boss_demon_slime_FREE_v1.0/individual sprites/02_demon_walk/demon_walk_${i}.png`);
+        }
+        for (let i = 1; i <= 15; i++) {
+            this.load.image(`demon-slime-cleave-${i}`, `demonslime/boss_demon_slime_FREE_v1.0/boss_demon_slime_FREE_v1.0/individual sprites/03_demon_cleave/demon_cleave_${i}.png`);
+        }
+        for (let i = 1; i <= 22; i++) {
+            this.load.image(`demon-slime-death-${i}`, `demonslime/boss_demon_slime_FREE_v1.0/boss_demon_slime_FREE_v1.0/individual sprites/05_demon_death/demon_death_${i}.png`);
         }
 
         // Load golem sprites - Orange
@@ -328,6 +393,29 @@ class LoadingScene extends Phaser.Scene {
         
         // Load weakspot rune sprite
         this.load.image('weakspot-rune', 'weakspotrune.png');
+        
+        // Load Arcane Archer boss sprites
+        this.load.spritesheet('archer-boss-shoot', 'archerboss/boss2archershoot7frames.png', {
+            frameWidth: 453 / 7, // 64.7 rounded to 65
+            frameHeight: 54
+        });
+        
+        this.load.spritesheet('archer-boss-roll', 'archerboss/boss2archerroll7frames.png', {
+            frameWidth: 456 / 7, // 65.1 rounded to 65
+            frameHeight: 54
+        });
+        
+        this.load.spritesheet('archer-boss-walk', 'archerboss/boss2archerwalk8frames.png', {
+            frameWidth: 510 / 8, // 63.75 rounded to 64
+            frameHeight: 54
+        });
+        
+        this.load.spritesheet('archer-boss-death', 'archerboss/boss2archerdeath8frames.png', {
+            frameWidth: 510 / 8, // Same width as walk animation
+            frameHeight: 54
+        });
+        
+        this.load.image('archer-projectile', 'archerboss/projectile.png');
         }
     }
 
@@ -1676,7 +1764,7 @@ class StageSelectScene extends Phaser.Scene {
                     this.scene.start('TalentTreeScene');
                 }
             });
-        } else if (index === 0 || index === 1 || index === 3) {
+        } else if (index === 0 || index === 1 || index === 2 || index === 3) {
             // Fade to black before starting game
             const fadeOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000);
             fadeOverlay.setAlpha(0);
@@ -2855,22 +2943,22 @@ class GameScene extends Phaser.Scene {
 
             // Third sprite sheet (elements3.PNG)
             death: { frame: 0, color: 0x333333, name: 'Death', sheet: 'element-symbols3', fireRate: 6000 },
-            time: { frame: 1, color: 0xffd700, name: 'Time', sheet: 'element-symbols3' },
+            time: { frame: 0, color: 0xffd700, name: 'Time', sheet: 'time-symbol', isImage: true },
             sand: { frame: 0, color: 0xf4a460, name: 'Sand', sheet: 'sand-symbol', isImage: true },
             gravity: { frame: 0, color: 0x4b0082, name: 'Gravity', sheet: 'gravity-symbol', isImage: true },
-            sun: { frame: 4, color: 0xffeb3b, name: 'Sun', sheet: 'element-symbols3', fireRate: 999999 },
+            sun: { frame: 0, color: 0xffeb3b, name: 'Sun', sheet: 'sun-symbol', isImage: true, fireRate: 999999 },
             smoke: { frame: 5, color: 0x696969, name: 'Smoke', sheet: 'element-symbols3', fireRate: 999999 },
             wave: { frame: 0, color: 0x00bcd4, name: 'Wave', sheet: 'wave-symbol', isImage: true },
             star: { frame: 0, color: 0xffffff, name: 'Star', sheet: 'star-symbol', isImage: true },
             zodiac: { frame: 0, color: 0xffd700, name: 'Zodiac', sheet: 'star-symbol', isImage: true },
             hex: { frame: 1, color: 0x9932cc, name: 'Hex', sheet: 'element-symbols2' },
             venom: { frame: 2, color: 0x8b00ff, name: 'Venom', sheet: 'element-symbols2', fireRate: 2000 },
-            moon: { frame: 8, color: 0xe0e0e0, name: 'Moon', sheet: 'element-symbols3', fireRate: 12000 },
+            moon: { frame: 0, color: 0xe0e0e0, name: 'Moon', sheet: 'moon-symbol', isImage: true, fireRate: 12000 },
             nature: { frame: 2, color: 0x00ff00, name: 'Nature', sheet: 'element-symbols' },
             life: { frame: 0, color: 0xff6666, name: 'Life', sheet: 'life-symbol', isImage: true },
             philosopherstone: { frame: 3, color: 0xffd700, name: 'Philosopher Stone', sheet: 'element-symbols3', fireRate: 999999 },
             halo: { frame: 2, color: 0x87ceeb, name: 'Halo', sheet: 'element-symbols3', fireRate: 999999 },
-            metal: { frame: 6, color: 0xc0c0c0, name: 'Metal', sheet: 'element-symbols3', fireRate: 999999 }
+            metal: { frame: 0, color: 0xc0c0c0, name: 'Metal', sheet: 'metal-symbol', isImage: true, fireRate: 999999 }
         };
 
         // Define primary elements (can drop from enemies)
@@ -3064,11 +3152,14 @@ class GameScene extends Phaser.Scene {
                 }
             }
         });
+        
+        // Set up collision between wizard and enemy projectiles
+        this.physics.add.overlap(this.wizard, this.enemyProjectiles, this.handleEnemyProjectileHit, null, this);
 
         this.physics.add.overlap(this.wizard, this.enemies, this.hitEnemy, 
             // Process callback to filter out invalid enemies
             (wizard, enemy) => {
-                return enemy && enemy.active && enemy.body && enemy.body.enable && !enemy.isDying && enemy.health > 0;
+                return enemy && enemy.active && enemy.body && enemy.body.enable && !enemy.isDying && enemy.health > 0 && !enemy.isInvulnerable;
             }, this);
         // Store the collider reference so we can manage it
         this.projectileEnemyCollider = this.physics.add.overlap(this.projectiles, this.enemies, this.projectileHitEnemy, 
@@ -3090,7 +3181,7 @@ class GameScene extends Phaser.Scene {
                 }
                 
                 // Check enemy validity
-                if (!enemy.active || !enemy.body || !enemy.body.enable || enemy.isDying || enemy.health <= 0) {
+                if (!enemy.active || !enemy.body || !enemy.body.enable || enemy.isDying || enemy.health <= 0 || enemy.isInvulnerable) {
                     return false;
                 }
                 
@@ -3171,8 +3262,8 @@ class GameScene extends Phaser.Scene {
         // Trees are now handled in createStageBackground as decorative elements only
         // No physics trees are spawned
         
-        // Cave obstacles are now handled by ObstacleManager for consistency
-        // Removed spawnCaveObstacles() to prevent duplicate obstacle creation
+        // Cave obstacles are now handled by chunk generation system
+        // No need to spawn them separately
 
         console.log('Creating UI elements');
         this.createChargeUI();
@@ -3441,6 +3532,39 @@ class GameScene extends Phaser.Scene {
             repeat: -1
         });
 
+        // Create Arcane Archer Boss animations
+        // Walk animation (8 frames)
+        createAnimIfNotExists({
+            key: 'archer-boss-walk',
+            frames: this.anims.generateFrameNumbers('archer-boss-walk', { start: 0, end: 7 }),
+            frameRate: 8,
+            repeat: -1
+        });
+        
+        // Shoot animation (7 frames)
+        createAnimIfNotExists({
+            key: 'archer-boss-shoot',
+            frames: this.anims.generateFrameNumbers('archer-boss-shoot', { start: 0, end: 6 }),
+            frameRate: 10,
+            repeat: 0
+        });
+        
+        // Roll animation (7 frames)
+        createAnimIfNotExists({
+            key: 'archer-boss-roll',
+            frames: this.anims.generateFrameNumbers('archer-boss-roll', { start: 0, end: 6 }),
+            frameRate: 12,
+            repeat: 0
+        });
+        
+        // Death animation (8 frames)
+        createAnimIfNotExists({
+            key: 'archer-boss-death',
+            frames: this.anims.generateFrameNumbers('archer-boss-death', { start: 0, end: 7 }),
+            frameRate: 10,
+            repeat: 0
+        });
+
         // Create air spell animation from individual frames - plays backwards then forwards
         const airFrames = [];
         // Backwards (7 to 1)
@@ -3503,6 +3627,87 @@ class GameScene extends Phaser.Scene {
                 { key: 'slime-die-1' },
                 { key: 'slime-die-2' },
                 { key: 'slime-die-3' }
+            ],
+            frameRate: 10,
+            repeat: 0
+        });
+        
+        // Create Club Imp animations
+        createAnimIfNotExists({
+            key: 'club-imp-walk',
+            frames: [
+                { key: 'club-imp-walk-1' },
+                { key: 'club-imp-walk-2' },
+                { key: 'club-imp-walk-3' },
+                { key: 'club-imp-walk-4' },
+                { key: 'club-imp-walk-5' },
+                { key: 'club-imp-walk-6' }
+            ],
+            frameRate: 10,
+            repeat: -1
+        });
+        
+        createAnimIfNotExists({
+            key: 'club-imp-fall',
+            frames: [
+                { key: 'club-imp-fall-1' },
+                { key: 'club-imp-fall-2' },
+                { key: 'club-imp-fall-3' },
+                { key: 'club-imp-fall-4' },
+                { key: 'club-imp-fall-5' }
+            ],
+            frameRate: 10,
+            repeat: 0
+        });
+        
+        createAnimIfNotExists({
+            key: 'club-imp-standup',
+            frames: [
+                { key: 'club-imp-standup-1' },
+                { key: 'club-imp-standup-2' },
+                { key: 'club-imp-standup-3' },
+                { key: 'club-imp-standup-4' },
+                { key: 'club-imp-standup-5' }
+            ],
+            frameRate: 10,
+            repeat: 0
+        });
+        
+        // Create Axe Imp animations
+        createAnimIfNotExists({
+            key: 'axe-imp-walk',
+            frames: [
+                { key: 'axe-imp-walk-1' },
+                { key: 'axe-imp-walk-2' },
+                { key: 'axe-imp-walk-3' },
+                { key: 'axe-imp-walk-4' },
+                { key: 'axe-imp-walk-5' },
+                { key: 'axe-imp-walk-6' }
+            ],
+            frameRate: 10,
+            repeat: -1
+        });
+        
+        createAnimIfNotExists({
+            key: 'axe-imp-fall',
+            frames: [
+                { key: 'axe-imp-fall-1' },
+                { key: 'axe-imp-fall-2' },
+                { key: 'axe-imp-fall-3' },
+                { key: 'axe-imp-fall-4' }
+            ],
+            frameRate: 10,
+            repeat: 0
+        });
+        
+        createAnimIfNotExists({
+            key: 'axe-imp-standup',
+            frames: [
+                { key: 'axe-imp-standup-1' },
+                { key: 'axe-imp-standup-2' },
+                { key: 'axe-imp-standup-3' },
+                { key: 'axe-imp-standup-4' },
+                { key: 'axe-imp-standup-5' }
             ],
             frameRate: 10,
             repeat: 0
@@ -3642,6 +3847,118 @@ class GameScene extends Phaser.Scene {
             frames: this.anims.generateFrameNumbers('bloboid-walk', { start: 0, end: 7 }),
             frameRate: 10,
             repeat: -1
+        });
+        
+        // Create Kobold animation
+        createAnimIfNotExists({
+            key: 'kobold-walk',
+            frames: this.anims.generateFrameNumbers('kobold-walk', { start: 0, end: 7 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        
+        // Create Flying Demon animation
+        createAnimIfNotExists({
+            key: 'flying-demon-fly',
+            frames: this.anims.generateFrameNumbers('flying-demon', { start: 0, end: 3 }),
+            frameRate: 8,
+            repeat: -1
+        });
+        
+        // Create Dark Bat animation
+        createAnimIfNotExists({
+            key: 'dark-bat-fly',
+            frames: this.anims.generateFrameNumbers('dark-bat-fly', { start: 0, end: 8 }),
+            frameRate: 12,
+            repeat: -1
+        });
+        
+        // Create Demon Slime animations
+        createAnimIfNotExists({
+            key: 'demon-slime-idle',
+            frames: [
+                { key: 'demon-slime-idle-1' },
+                { key: 'demon-slime-idle-2' },
+                { key: 'demon-slime-idle-3' },
+                { key: 'demon-slime-idle-4' },
+                { key: 'demon-slime-idle-5' },
+                { key: 'demon-slime-idle-6' }
+            ],
+            frameRate: 8,
+            repeat: -1
+        });
+        
+        createAnimIfNotExists({
+            key: 'demon-slime-walk',
+            frames: [
+                { key: 'demon-slime-walk-1' },
+                { key: 'demon-slime-walk-2' },
+                { key: 'demon-slime-walk-3' },
+                { key: 'demon-slime-walk-4' },
+                { key: 'demon-slime-walk-5' },
+                { key: 'demon-slime-walk-6' },
+                { key: 'demon-slime-walk-7' },
+                { key: 'demon-slime-walk-8' },
+                { key: 'demon-slime-walk-9' },
+                { key: 'demon-slime-walk-10' },
+                { key: 'demon-slime-walk-11' },
+                { key: 'demon-slime-walk-12' }
+            ],
+            frameRate: 10,
+            repeat: -1
+        });
+        
+        createAnimIfNotExists({
+            key: 'demon-slime-cleave',
+            frames: [
+                { key: 'demon-slime-cleave-1' },
+                { key: 'demon-slime-cleave-2' },
+                { key: 'demon-slime-cleave-3' },
+                { key: 'demon-slime-cleave-4' },
+                { key: 'demon-slime-cleave-5' },
+                { key: 'demon-slime-cleave-6' },
+                { key: 'demon-slime-cleave-7' },
+                { key: 'demon-slime-cleave-8' },
+                { key: 'demon-slime-cleave-9' },
+                { key: 'demon-slime-cleave-10' },
+                { key: 'demon-slime-cleave-11' },
+                { key: 'demon-slime-cleave-12' },
+                { key: 'demon-slime-cleave-13' },
+                { key: 'demon-slime-cleave-14' },
+                { key: 'demon-slime-cleave-15' }
+            ],
+            frameRate: 12,
+            repeat: 0
+        });
+        
+        createAnimIfNotExists({
+            key: 'demon-slime-death',
+            frames: [
+                { key: 'demon-slime-death-1' },
+                { key: 'demon-slime-death-2' },
+                { key: 'demon-slime-death-3' },
+                { key: 'demon-slime-death-4' },
+                { key: 'demon-slime-death-5' },
+                { key: 'demon-slime-death-6' },
+                { key: 'demon-slime-death-7' },
+                { key: 'demon-slime-death-8' },
+                { key: 'demon-slime-death-9' },
+                { key: 'demon-slime-death-10' },
+                { key: 'demon-slime-death-11' },
+                { key: 'demon-slime-death-12' },
+                { key: 'demon-slime-death-13' },
+                { key: 'demon-slime-death-14' },
+                { key: 'demon-slime-death-15' },
+                { key: 'demon-slime-death-16' },
+                { key: 'demon-slime-death-17' },
+                { key: 'demon-slime-death-18' },
+                { key: 'demon-slime-death-19' },
+                { key: 'demon-slime-death-20' },
+                { key: 'demon-slime-death-21' },
+                { key: 'demon-slime-death-22' }
+            ],
+            frameRate: 10,
+            repeat: 0
         });
 
 
@@ -3784,12 +4101,14 @@ class GameScene extends Phaser.Scene {
     }
     
     spawnCaveObstacles() {
+        console.log('Spawning cave obstacles...');
         const worldWidth = 4000;
         const worldHeight = 2160;
         
         // Create obstacles group if it doesn't exist
         if (!this.obstacles) {
             this.obstacles = this.physics.add.staticGroup();
+            console.log('Created obstacles physics group');
         }
         
         // Array of obstacle types
@@ -3862,6 +4181,8 @@ class GameScene extends Phaser.Scene {
         // Add collisions (only for player)
         this.physics.add.collider(this.wizard, this.obstacles);
         // Enemies can now pass through obstacles
+        
+        console.log(`Cave obstacles spawned. Total obstacles: ${this.obstacles.children.size}`);
     }
 
     startGameSequence() {
@@ -4143,6 +4464,15 @@ class GameScene extends Phaser.Scene {
         if (!this.elementSelectionActive || !this.elementSelectionButtons) return;
 
         const selectedButton = this.elementSelectionButtons[this.elementSelectionIndex];
+        
+        // Check if this is a level-up/chest element selection (has onClick) or initial selection
+        if (selectedButton.onClick) {
+            // This is a level-up/chest element selection - call the button's onClick handler
+            selectedButton.onClick();
+            return;
+        }
+        
+        // This is the initial element selection
         const element = selectedButton.element;
 
         console.log(`Element selected via controller: ${element}`);
@@ -4155,14 +4485,18 @@ class GameScene extends Phaser.Scene {
         this.charges = [element];
         this.updateChargeUI();
 
-        // Clean up selection UI
-        this.elementSelectionUI.bg.destroy();
-        this.elementSelectionUI.title.destroy();
-        this.elementSelectionUI.controlHint.destroy();
-        this.elementSelectionUI.buttons.forEach(btn => {
-            btn.container.destroy();
-            if (btn.hitZone) btn.hitZone.destroy();
-        });
+        // Clean up selection UI - check if it exists first
+        if (this.elementSelectionUI) {
+            if (this.elementSelectionUI.bg) this.elementSelectionUI.bg.destroy();
+            if (this.elementSelectionUI.title) this.elementSelectionUI.title.destroy();
+            if (this.elementSelectionUI.controlHint) this.elementSelectionUI.controlHint.destroy();
+            if (this.elementSelectionUI.buttons) {
+                this.elementSelectionUI.buttons.forEach(btn => {
+                    if (btn.container) btn.container.destroy();
+                    if (btn.hitZone) btn.hitZone.destroy();
+                });
+            }
+        }
 
         // Clear references
         this.elementSelectionActive = false;
@@ -4247,6 +4581,8 @@ class GameScene extends Phaser.Scene {
             tileName = 'stone-tile';
         } else if (this.stage === 'lava') {
             tileName = 'lava-tile';
+        } else if (this.stage === 'sand') {
+            tileName = 'desert-tile';
         }
         
         // Create a tilesprite that covers the entire screen
@@ -4269,6 +4605,9 @@ class GameScene extends Phaser.Scene {
         if (this.stage === 'forest') {
             // Create trees for forest
             this.createTrees();
+        } else if (this.stage === 'sand') {
+            // Create sand dunes and heat effects
+            this.createSandEffects();
         }
         // Cave and lava stages have no decorations for now
         
@@ -4335,6 +4674,58 @@ class GameScene extends Phaser.Scene {
         });
     }
 
+    createSandEffects() {
+        // Create a warm ambient color overlay
+        this.cameras.main.setBackgroundColor('#D4A574');
+        
+        // Create heat shimmer effect
+        this.heatShimmer = this.add.graphics();
+        this.heatShimmer.setDepth(-5);
+        this.heatShimmer.setAlpha(0.1);
+        
+        // Add sand particles effect
+        this.sandParticles = [];
+        this.createSandParticles();
+        
+        // Create occasional sand dunes using circles
+        for (let i = 0; i < 20; i++) {
+            const x = Phaser.Math.Between(100, 3900);
+            const y = Phaser.Math.Between(100, 2060);
+            const radius = Phaser.Math.Between(50, 150);
+            
+            const dune = this.add.ellipse(x, y, radius * 2, radius, 0xD4A574, 0.3);
+            dune.setDepth(-8);
+            
+            // Add slightly darker shadow
+            const shadow = this.add.ellipse(x + 10, y + 5, radius * 2, radius, 0xB8956A, 0.2);
+            shadow.setDepth(-9);
+        }
+    }
+    
+    createSandParticles() {
+        // Create floating sand particles for atmosphere
+        for (let i = 0; i < 30; i++) {
+            const particle = this.add.circle(
+                Phaser.Math.Between(0, 800),
+                Phaser.Math.Between(0, 600),
+                Phaser.Math.Between(1, 3),
+                0xF4E4C1,
+                0.3
+            );
+            particle.setScrollFactor(0); // Fixed to camera
+            particle.setDepth(150);
+            
+            // Store particle with movement data
+            this.sandParticles.push({
+                sprite: particle,
+                speed: Phaser.Math.FloatBetween(0.5, 1.5),
+                waveAmp: Phaser.Math.FloatBetween(10, 30),
+                waveFreq: Phaser.Math.FloatBetween(0.001, 0.003),
+                startX: particle.x
+            });
+        }
+    }
+    
     createInvisibleBarriers() {
         // Create invisible physics bodies for the world boundaries
         const thickness = 50;
@@ -5111,20 +5502,22 @@ class GameScene extends Phaser.Scene {
         if (this.stage === 'lava') {
             // Lava stage waves: fire slimes, eye bats, fire worms, summoners, orange golems
             baseWaves = [
-                // Wave 0 (0:00-1:00) - Introduction - Very easy with only bats
+                // Wave 0 (0:00-1:00) - Introduction - Easy start with fire slimes and imps
                 {
                     enemies: [
-                        { type: 'bat', weight: 100, count: 2 }  // Only bats, fewer at a time
+                        { type: 'fireslime', weight: 60, count: 2 },
+                        { type: 'clubimp', weight: 20, count: 1 },
+                        { type: 'axeimp', weight: 20, count: 1 }
                     ],
                     spawnInterval: 3000,  // Slower spawn rate
                     maxEnemies: 15  // Fewer total enemies
                 },
-                // Wave 1 (1:00-2:00) - Add fire worms
+                // Wave 1 (1:00-2:00) - Add fire worms and flying demons
                 {
                     enemies: [
-                        { type: 'bat', weight: 30, count: 4 },
+                        { type: 'flyingdemon', weight: 25, count: 2 },
                         { type: 'fireslime', weight: 35, count: 2 },
-                        { type: 'fireworm', weight: 35, count: 2 }
+                        { type: 'fireworm', weight: 40, count: 2 }
                     ],
                     spawnInterval: 1500,
                     maxEnemies: 35
@@ -5132,7 +5525,7 @@ class GameScene extends Phaser.Scene {
                 // Wave 2 (2:00-3:00) - Add orange golems
                 {
                     enemies: [
-                        { type: 'bat', weight: 20, count: 4 },
+                        { type: 'flyingdemon', weight: 20, count: 3 },
                         { type: 'fireslime', weight: 25, count: 3 },
                         { type: 'fireworm', weight: 30, count: 2 },
                         { type: 'orangegolem', weight: 25, count: 1 }
@@ -5180,10 +5573,11 @@ class GameScene extends Phaser.Scene {
         } else if (this.stage === 'cave') {
             // Cave stage waves: slimes, lost souls, bats, golems, dark eyes
             baseWaves = [
-                // Wave 0 (0:00-1:00) - Introduction - Very easy with only bats
+                // Wave 0 (0:00-1:00) - Introduction - Very easy with only dark bats and kobolds
                 {
                     enemies: [
-                        { type: 'bat', weight: 100, count: 2 }  // Only bats, fewer at a time
+                        { type: 'darkbat', weight: 70, count: 2 },
+                        { type: 'kobold', weight: 30, count: 1 }
                     ],
                     spawnInterval: 3000,  // Slower spawn rate
                     maxEnemies: 15  // Fewer total enemies
@@ -5191,7 +5585,7 @@ class GameScene extends Phaser.Scene {
                 // Wave 1 (1:00-2:00) - Add souls
                 {
                     enemies: [
-                        { type: 'bat', weight: 30, count: 4 },
+                        { type: 'darkbat', weight: 30, count: 4 },
                         { type: 'slime', weight: 40, count: 2 },
                         { type: 'soul', weight: 30, count: 2 }
                     ],
@@ -5201,22 +5595,22 @@ class GameScene extends Phaser.Scene {
                 // Wave 2 (2:00-3:00) - Add golems
                 {
                     enemies: [
-                        { type: 'bat', weight: 25, count: 4 },
+                        { type: 'darkbat', weight: 25, count: 4 },
                         { type: 'slime', weight: 30, count: 2 },
                         { type: 'soul', weight: 25, count: 2 },
                         { type: 'golem', weight: 20, count: 1 }
                     ],
                     spawnInterval: 1200,
                     maxEnemies: 45,
-                    specialEvent: { time: 30, type: 'swarm', enemy: 'bat', count: 12 }
+                    specialEvent: { time: 30, type: 'swarm', enemy: 'darkbat', count: 12 }
                 },
-                // Wave 3 (3:00-4:00) - More golems
+                // Wave 3 (3:00-4:00) - More golems and kobolds
                 {
                     enemies: [
                         { type: 'slime', weight: 25, count: 3 },
                         { type: 'soul', weight: 25, count: 2 },
                         { type: 'golem', weight: 25, count: 2 },
-                        { type: 'bat', weight: 25, count: 3 }
+                        { type: 'kobold', weight: 25, count: 2 }
                     ],
                     spawnInterval: 1000,
                     maxEnemies: 55
@@ -5237,8 +5631,9 @@ class GameScene extends Phaser.Scene {
                     enemies: [
                         { type: 'golem', weight: 25, count: 2 },
                         { type: 'soul', weight: 20, count: 3 },
-                        { type: 'slime', weight: 40, count: 4 },
-                        { type: 'bat', weight: 15, count: 4 }
+                        { type: 'slime', weight: 30, count: 4 },
+                        { type: 'darkbat', weight: 15, count: 4 },
+                        { type: 'kobold', weight: 10, count: 2 }
                     ],
                     spawnInterval: 1500,
                     maxEnemies: 80
@@ -5521,6 +5916,32 @@ class GameScene extends Phaser.Scene {
         // Update directional indicators
         this.updateDirectionalIndicators();
         
+        // Update tracking arrows
+        if (this.trackingArrows) {
+            this.trackingArrows = this.trackingArrows.filter(arrow => {
+                if (!arrow || !arrow.active || !arrow.body) return false;
+                
+                // Calculate new angle to player
+                const angle = Phaser.Math.Angle.Between(
+                    arrow.x, arrow.y,
+                    this.wizard.x, this.wizard.y
+                );
+                
+                // Update arrow rotation
+                arrow.rotation = angle;
+                arrow.angle = angle; // Update stored angle for teleport
+                
+                // Update velocity to track player
+                const speed = arrow.trackingSpeed || this.getScaledVelocity(120);
+                arrow.body.setVelocity(
+                    Math.cos(angle) * speed,
+                    Math.sin(angle) * speed
+                );
+                
+                return true;
+            });
+        }
+        
         // Update rune glow effects to follow runes
         if (this.runeGroup) {
             this.runeGroup.children.entries.forEach(rune => {
@@ -5643,11 +6064,20 @@ class GameScene extends Phaser.Scene {
         }
 
         // Only open pause menu if no other menus are active
-        if ((Phaser.Input.Keyboard.JustDown(this.pKey) ||
-            (startPressed && !this.gamepadButtonStates[9])) &&
-            !this.spellbookOpen && !this.chestSelectionActive && !this.fusionUI &&
-            !this.elementSelectionActive && !this.discardConfirmation && !this.discardConfirmUI) {
-            this.togglePause();
+        if (Phaser.Input.Keyboard.JustDown(this.pKey) || (startPressed && !this.gamepadButtonStates[9])) {
+            if (this.spellbookOpen || this.chestSelectionActive || this.fusionUI ||
+                this.elementSelectionActive || this.discardConfirmation || this.discardConfirmUI) {
+                console.log('Pause menu blocked. Active states:', {
+                    spellbookOpen: this.spellbookOpen,
+                    chestSelectionActive: this.chestSelectionActive,
+                    fusionUI: this.fusionUI,
+                    elementSelectionActive: this.elementSelectionActive,
+                    discardConfirmation: this.discardConfirmation,
+                    discardConfirmUI: this.discardConfirmUI
+                });
+            } else {
+                this.togglePause();
+            }
         }
 
         // TAB or ESC key to open spellbook (consolidated menu)
@@ -6080,6 +6510,20 @@ class GameScene extends Phaser.Scene {
                 this.lastTreeUpdateY = this.wizard.y;
             }
         }
+        
+        // Update sand particles for sand stage
+        if (this.stage === 'sand' && this.sandParticles) {
+            this.sandParticles.forEach(particle => {
+                // Move particles horizontally with sine wave
+                particle.sprite.x += particle.speed;
+                particle.sprite.y = particle.sprite.y + Math.sin(time * particle.waveFreq) * particle.waveAmp * 0.01;
+                
+                // Wrap around screen
+                if (particle.sprite.x > 820) {
+                    particle.sprite.x = -20;
+                }
+            });
+        }
 
         // Element orbs are now collected by walking over them
         // No manual charging system
@@ -6257,6 +6701,11 @@ class GameScene extends Phaser.Scene {
                         enemy.y = camera.scrollY + Phaser.Math.Between(0, viewportHeight);
                         break;
                 }
+            }
+            
+            // Skip bosses - they have their own AI
+            if (enemy.isBoss) {
+                continue;
             }
             
             // Skip enemies that are far off-screen (culling)
@@ -6471,11 +6920,25 @@ class GameScene extends Phaser.Scene {
                     }
 
                     // Flip enemies to face wizard
-                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'soul' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'mushroom' || enemy.enemyType === 'sorcerer') {
+                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'soul' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'mushroom' || enemy.enemyType === 'sorcerer' || enemy.enemyType === 'clubimp' || enemy.enemyType === 'axeimp' || enemy.enemyType === 'kobold') {
                         if (this.wizard.x < enemy.x) {
                             enemy.setFlipX(true); // Face left
                         } else {
                             enemy.setFlipX(false); // Face right
+                        }
+                    } else if (enemy.enemyType === 'darkbat') {
+                        // Dark bats have reversed flipping
+                        if (this.wizard.x < enemy.x) {
+                            enemy.setFlipX(false); // Face left (reversed)
+                        } else {
+                            enemy.setFlipX(true); // Face right (reversed)
+                        }
+                    } else if (enemy.enemyType === 'flyingdemon') {
+                        // Flying demons have reversed flipping
+                        if (this.wizard.x < enemy.x) {
+                            enemy.setFlipX(false); // Face left (reversed)
+                        } else {
+                            enemy.setFlipX(true); // Face right (reversed)
                         }
                     }
                 } else {
@@ -6488,11 +6951,25 @@ class GameScene extends Phaser.Scene {
                     }
 
                     // Flip enemies to face wizard even when stopped
-                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'mushroom') {
+                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'mushroom' || enemy.enemyType === 'clubimp' || enemy.enemyType === 'axeimp' || enemy.enemyType === 'kobold') {
                         if (this.wizard.x < enemy.x) {
                             enemy.setFlipX(true); // Face left
                         } else {
                             enemy.setFlipX(false); // Face right
+                        }
+                    } else if (enemy.enemyType === 'darkbat') {
+                        // Dark bats have reversed flipping
+                        if (this.wizard.x < enemy.x) {
+                            enemy.setFlipX(false); // Face left (reversed)
+                        } else {
+                            enemy.setFlipX(true); // Face right (reversed)
+                        }
+                    } else if (enemy.enemyType === 'flyingdemon') {
+                        // Flying demons have reversed flipping
+                        if (this.wizard.x < enemy.x) {
+                            enemy.setFlipX(false); // Face left (reversed)
+                        } else {
+                            enemy.setFlipX(true); // Face right (reversed)
                         }
                     }
                 }
@@ -9267,6 +9744,65 @@ class GameScene extends Phaser.Scene {
             this.handleBossDeath(enemy);
             return;
         }
+        
+        // Handle imp revival mechanic
+        if ((enemy.enemyType === 'clubimp' || enemy.enemyType === 'axeimp') && !enemy.hasRevived && !enemy.isReviving) {
+            enemy.isReviving = true;
+            enemy.isDying = false; // Not actually dying yet
+            enemy.setVelocity(0, 0); // Stop movement
+            
+            // Make immune to damage during revival
+            enemy.isInvulnerable = true;
+            
+            // Play fall back animation
+            enemy.play(enemy.enemyType === 'clubimp' ? 'club-imp-fall' : 'axe-imp-fall');
+            
+            // When fall animation completes, play stand up animation
+            enemy.once('animationcomplete', () => {
+                // Check if enemy still exists and is in revival state
+                if (!enemy || !enemy.active || !enemy.isReviving) return;
+                
+                // Play stand up animation
+                enemy.play(enemy.enemyType === 'clubimp' ? 'club-imp-standup' : 'axe-imp-standup');
+                
+                // When stand up animation completes, resume normal behavior
+                enemy.once('animationcomplete', () => {
+                    if (!enemy || !enemy.active) return;
+                    
+                    // Mark as revived
+                    enemy.hasRevived = true;
+                    enemy.isReviving = false;
+                    enemy.isInvulnerable = false;
+                    
+                    // Re-enable physics
+                    if (enemy.body) {
+                        enemy.body.enable = true;
+                    }
+                    
+                    // Restore health to full
+                    enemy.health = enemy.maxHealth;
+                    
+                    // Resume walking animation
+                    enemy.play(enemy.enemyType === 'clubimp' ? 'club-imp-walk' : 'axe-imp-walk');
+                    
+                    // Add a brief invulnerability flash effect
+                    const flashTween = this.tweens.add({
+                        targets: enemy,
+                        alpha: { from: 0.5, to: 1 },
+                        duration: 100,
+                        repeat: 5,
+                        yoyo: true,
+                        onComplete: () => {
+                            if (enemy && enemy.active) {
+                                enemy.alpha = 1;
+                            }
+                        }
+                    });
+                });
+            });
+            
+            return; // Don't continue with normal death
+        }
 
         if (enemy.enemyType === 'slime') {
             // Play slime death animation
@@ -9964,6 +10500,38 @@ class GameScene extends Phaser.Scene {
                         return;
                     }
                     
+                    // Check if this is an archer arrow with teleport ability
+                    if (projectile.teleportPlayer && projectile.angle !== undefined) {
+                        // Teleport player 200 pixels in the direction the arrow was pointing
+                        const teleportDistance = 200;
+                        const newX = this.wizard.x + Math.cos(projectile.angle) * teleportDistance;
+                        const newY = this.wizard.y + Math.sin(projectile.angle) * teleportDistance;
+                        
+                        // Keep player within reasonable bounds
+                        const boundedX = Phaser.Math.Clamp(newX, this.wizard.x - 400, this.wizard.x + 400);
+                        const boundedY = Phaser.Math.Clamp(newY, this.wizard.y - 400, this.wizard.y + 400);
+                        
+                        this.wizard.setPosition(boundedX, boundedY);
+                        
+                        // Teleport effect
+                        const teleportText = this.add.text(this.wizard.x, this.wizard.y - 50, 'TELEPORTED!', {
+                            fontSize: '20px',
+                            color: '#ff00ff',
+                            fontStyle: 'bold'
+                        });
+                        teleportText.setOrigin(0.5);
+                        teleportText.setDepth(150);
+                        
+                        this.tweens.add({
+                            targets: teleportText,
+                            y: teleportText.y - 30,
+                            alpha: 0,
+                            duration: 800,
+                            ease: 'Power2',
+                            onComplete: () => teleportText.destroy()
+                        });
+                    }
+                    
                     this.playerHealth -= projectile.damage;
                     this.updateHealthBar();
                     this.updateWizardHealthBar();
@@ -10266,17 +10834,34 @@ class GameScene extends Phaser.Scene {
         let enemyType;
         
         if (this.stage === 'cave') {
-            // Cave enemies: slimes, lost souls, bats, golems, dark eyes, sorcerer (rare)
+            // Cave enemies: slimes, souls, golems, kobolds, dark bats, sorcerer (rare)
             if (rand < 0.25) {
                 enemyType = 'slime'; // 25%
             } else if (rand < 0.45) {
                 enemyType = 'soul'; // 20%
-            } else if (rand < 0.65) {
-                enemyType = 'bat'; // 20%
+            } else if (rand < 0.60) {
+                enemyType = 'golem'; // 15%
+            } else if (rand < 0.75) {
+                enemyType = 'kobold'; // 15%
             } else if (rand < 0.95) {
-                enemyType = 'golem'; // 30%
+                enemyType = 'darkbat'; // 20%
             } else {
                 enemyType = 'sorcerer'; // 5% - rare boss enemy
+            }
+        } else if (this.stage === 'lava') {
+            // Lava enemies: fire slimes, fire worms, imps, flying demons, orange golems
+            if (rand < 0.20) {
+                enemyType = 'fireslime'; // 20%
+            } else if (rand < 0.40) {
+                enemyType = 'fireworm'; // 20%
+            } else if (rand < 0.55) {
+                enemyType = Math.random() < 0.5 ? 'clubimp' : 'axeimp'; // 15% imps
+            } else if (rand < 0.70) {
+                enemyType = 'flyingdemon'; // 15%
+            } else if (rand < 0.85) {
+                enemyType = 'orangegolem'; // 15%
+            } else {
+                enemyType = 'sorcerer'; // 15% - more common in lava land
             }
         } else {
             // Forest enemies: trees, mushrooms, bats, bloboids, summoners, sorcerer (rare)
@@ -10484,6 +11069,38 @@ class GameScene extends Phaser.Scene {
             sorcerer.isBoss = true; // Mark as boss enemy
             this.setEnemyDepth(sorcerer); // Set initial depth
             this.enemies.add(sorcerer);
+        } else if (enemyType === 'clubimp') {
+            // Create Club Imp enemy
+            const imp = this.physics.add.sprite(x, y, 'club-imp-walk-1');
+            imp.setScale(1.0);
+            imp.health = 5;
+            imp.maxHealth = imp.health;
+            imp.enemyType = 'clubimp';
+            imp.moveSpeed = 65; // Fast but not too fast
+            imp.damage = 20;
+            imp.hasRevived = false; // Track if already revived once
+            imp.isReviving = false; // Prevent multiple revivals
+            imp.play('club-imp-walk');
+            imp.body.setSize(50, 60);
+            imp.body.setOffset(15, 10);
+            imp.element = 'earth'; // Club imps are earth element
+            this.enemies.add(imp);
+        } else if (enemyType === 'axeimp') {
+            // Create Axe Imp enemy
+            const imp = this.physics.add.sprite(x, y, 'axe-imp-walk-1');
+            imp.setScale(1.0);
+            imp.health = 4; // Slightly less health than club imp
+            imp.maxHealth = imp.health;
+            imp.enemyType = 'axeimp';
+            imp.moveSpeed = 75; // Faster than club imp
+            imp.damage = 25; // More damage than club imp
+            imp.hasRevived = false; // Track if already revived once
+            imp.isReviving = false; // Prevent multiple revivals
+            imp.play('axe-imp-walk');
+            imp.body.setSize(50, 60);
+            imp.body.setOffset(15, 10);
+            imp.element = 'metal'; // Axe imps are metal element
+            this.enemies.add(imp);
         }
     }
 
@@ -10756,6 +11373,86 @@ class GameScene extends Phaser.Scene {
             sorcerer.lastAttackTime = 0;
             sorcerer.isBoss = true; // Mark as boss enemy
             this.enemies.add(sorcerer);
+        } else if (enemyType === 'clubimp') {
+            // Create elite Club Imp
+            const imp = this.physics.add.sprite(x, y, 'club-imp-walk-1');
+            imp.setScale(1.2); // Elite size
+            imp.health = 10; // Double health for elite
+            imp.maxHealth = imp.health;
+            imp.enemyType = 'clubimp';
+            imp.moveSpeed = 65;
+            imp.damage = 20;
+            imp.hasRevived = false;
+            imp.isReviving = false;
+            imp.isElite = true;
+            imp.play('club-imp-walk');
+            imp.body.setSize(30, 40);
+            imp.body.setOffset(15, 10);
+            imp.element = 'earth';
+            this.enemies.add(imp);
+        } else if (enemyType === 'axeimp') {
+            // Create elite Axe Imp
+            const imp = this.physics.add.sprite(x, y, 'axe-imp-walk-1');
+            imp.setScale(1.2); // Elite size
+            imp.health = 8; // Double health for elite
+            imp.maxHealth = imp.health;
+            imp.enemyType = 'axeimp';
+            imp.moveSpeed = 75;
+            imp.damage = 25;
+            imp.hasRevived = false;
+            imp.isReviving = false;
+            imp.isElite = true;
+            imp.play('axe-imp-walk');
+            imp.body.setSize(30, 40);
+            imp.body.setOffset(15, 10);
+            imp.element = 'metal';
+            this.enemies.add(imp);
+        } else if (enemyType === 'kobold') {
+            const kobold = this.physics.add.sprite(x, y, 'kobold-walk', 0);
+            kobold.setScale(1.0);
+            kobold.health = 6;
+            kobold.maxHealth = kobold.health;
+            kobold.enemyType = 'kobold';
+            kobold.moveSpeed = 60;
+            kobold.damage = 15;
+            kobold.play('kobold-walk');
+            kobold.body.setSize(80, 70);
+            kobold.body.setOffset(34, 13);
+            kobold.element = 'earth';
+            this.enemies.add(kobold);
+        } else if (enemyType === 'darkbat') {
+            const darkbat = this.physics.add.sprite(x, y, 'dark-bat-fly', 0);
+            darkbat.setScale(1.2);
+            darkbat.health = 3;
+            darkbat.maxHealth = darkbat.health;
+            darkbat.enemyType = 'darkbat';
+            darkbat.moveSpeed = 100;
+            darkbat.damage = 12;
+            darkbat.play('dark-bat-fly');
+            darkbat.body.setSize(50, 40);
+            darkbat.body.setOffset(7, 12);
+            darkbat.isFlying = true;
+            darkbat.element = 'arcane';
+            this.setEnemyDepth(darkbat);
+            this.enemies.add(darkbat);
+        } else if (enemyType === 'flyingdemon') {
+            const demon = this.physics.add.sprite(x, y, 'flying-demon', 0);
+            demon.setScale(0.91); // Reduced by 30% from 1.3
+            demon.setFlipX(false); // Remove horizontal flip - sprite faces correct direction
+            demon.health = 8;
+            demon.maxHealth = demon.health;
+            demon.enemyType = 'flyingdemon';
+            demon.moveSpeed = 70;
+            demon.damage = 20;
+            demon.play('flying-demon-fly');
+            demon.body.setSize(50, 40);
+            demon.body.setOffset(7, 12);
+            demon.isFlying = true;
+            demon.element = 'fire';
+            demon.burnDamage = 2;
+            demon.burnDuration = 2000;
+            this.setEnemyDepth(demon);
+            this.enemies.add(demon);
         }
     }
 
@@ -11249,6 +11946,11 @@ class GameScene extends Phaser.Scene {
             return; // Hexed enemies deal no damage
         }
         
+        // Check if enemy is reviving (imps don't deal damage while reviving)
+        if (enemy.isReviving) {
+            return; // Reviving enemies deal no damage
+        }
+        
         // Check if boss is charging laser (no contact damage during telegraph)
         if (enemy.isChargingLaser) {
             return; // Boss doesn't deal contact damage while charging laser
@@ -11374,6 +12076,107 @@ class GameScene extends Phaser.Scene {
                 });
             });
         }
+    }
+    
+    handleEnemyProjectileHit(wizard, projectile) {
+        // Skip damage if game is paused, chest selection is active, wizard is invulnerable, or arrow has ricocheted
+        if (this.isPaused || this.chestSelectionActive || this.invulnerable || this.wizard.isInvulnerable || projectile.hasRicocheted) {
+            if (this.wizard.isInvulnerable) {
+                // Show immunity effect for shield
+                const immuneText = this.add.text(this.wizard.x, this.wizard.y - 50, 'IMMUNE', {
+                    fontSize: '16px',
+                    color: '#44ffff',
+                    fontStyle: 'bold'
+                });
+                immuneText.setOrigin(0.5);
+                immuneText.setDepth(150);
+                
+                this.tweens.add({
+                    targets: immuneText,
+                    y: immuneText.y - 30,
+                    alpha: 0,
+                    duration: 800,
+                    ease: 'Power2',
+                    onComplete: () => immuneText.destroy()
+                });
+            }
+            projectile.destroy();
+            return;
+        }
+        
+        // Check if this is an archer arrow with teleport ability
+        if (projectile.teleportPlayer && projectile.angle !== undefined) {
+            // Teleport player 200 pixels in the direction the arrow was pointing
+            const teleportDistance = 200;
+            const newX = this.wizard.x + Math.cos(projectile.angle) * teleportDistance;
+            const newY = this.wizard.y + Math.sin(projectile.angle) * teleportDistance;
+            
+            // Keep player within reasonable bounds
+            const boundedX = Phaser.Math.Clamp(newX, this.wizard.x - 400, this.wizard.x + 400);
+            const boundedY = Phaser.Math.Clamp(newY, this.wizard.y - 400, this.wizard.y + 400);
+            
+            this.wizard.setPosition(boundedX, boundedY);
+            
+            // Teleport effect
+            const teleportText = this.add.text(this.wizard.x, this.wizard.y - 50, 'TELEPORTED!', {
+                fontSize: '20px',
+                color: '#ff00ff',
+                fontStyle: 'bold'
+            });
+            teleportText.setOrigin(0.5);
+            teleportText.setDepth(150);
+            
+            this.tweens.add({
+                targets: teleportText,
+                y: teleportText.y - 30,
+                alpha: 0,
+                duration: 800,
+                ease: 'Power2',
+                onComplete: () => teleportText.destroy()
+            });
+        }
+        
+        this.playerHealth -= projectile.damage || 10;
+        this.updateHealthBar();
+        this.updateWizardHealthBar();
+
+        // Flash red when hit
+        this.wizard.setTint(0xff0000);
+        this.time.delayedCall(100, () => {
+            this.wizard.clearTint();
+        });
+
+        // Brief invulnerability
+        this.invulnerable = true;
+        this.time.delayedCall(500, () => {
+            this.invulnerable = false;
+        });
+
+        if (this.playerHealth <= 0) {
+            // Stop background music
+            if (this.bgMusic) {
+                this.bgMusic.stop();
+            }
+            
+            // Play death animation
+            this.wizard.play('wizard-death');
+            this.wizard.setVelocity(0, 0); // Stop movement
+
+            // Wait for death animation to complete
+            this.wizard.once('animationcomplete', () => {
+                // Clear any pending timers before changing scene
+                this.time.removeAllEvents();
+                this.tweens.killAll();
+                this.scene.start('GameOverScene', {
+                    survivalTime: this.survivalTime,
+                    enemiesKilled: this.enemiesKilled,
+                    itemsCollected: this.itemsCollected,
+                    won: false
+                });
+            });
+        }
+
+        projectile.destroy();
     }
     
     applyPlayerBurn(damage, duration) {
@@ -11614,12 +12417,12 @@ class GameScene extends Phaser.Scene {
         }
         enemy.lastHitFrame = currentFrame;
         
-        // Check boss immunity
-        if (enemy.isBoss && enemy.immuneTime > 0) {
+        // Check invulnerability (for bosses and reviving imps)
+        if ((enemy.isBoss && enemy.immuneTime > 0) || enemy.isInvulnerable) {
             // Create immunity effect
             const immuneText = this.add.text(enemy.x, enemy.y - 50, 'IMMUNE', {
                 fontSize: '20px',
-                color: '#00ffff',
+                color: enemy.isReviving ? '#ffff00' : '#00ffff',
                 fontStyle: 'bold'
             });
             immuneText.setOrigin(0.5);
@@ -11686,6 +12489,22 @@ class GameScene extends Phaser.Scene {
             console.log(`Vulnerability multiplier applied: ${enemy.vulnerabilityMultiplier}x`);
         }
         
+        // Check if this would kill an imp that hasn't revived yet
+        if ((enemy.enemyType === 'clubimp' || enemy.enemyType === 'axeimp') && 
+            !enemy.hasRevived && !enemy.isReviving && 
+            enemy.health - damage <= 0) {
+            // Set health to 0 but don't actually apply damage
+            enemy.health = 0;
+            console.log(`${enemy.enemyType} triggering revival instead of death`);
+            
+            // Show damage number
+            this.showDamageNumber(enemy.x, enemy.y - 20, damage);
+            
+            // Trigger revival through killEnemy (which will handle the revival)
+            this.killEnemy(enemy);
+            return; // Exit early to prevent further damage processing
+        }
+        
         enemy.health -= damage;
         console.log(`Enemy hit! Type: ${enemy.enemyType}, Health: ${enemy.health}/${enemy.maxHealth}, Damage: ${damage}`);
 
@@ -11694,6 +12513,21 @@ class GameScene extends Phaser.Scene {
             this.showDamageNumber(enemy.x, enemy.y - 20, damage + '!', '#ff6666');
         } else {
             this.showDamageNumber(enemy.x, enemy.y - 20, damage);
+        }
+        
+        // Update boss health bar immediately if this is a boss
+        if (enemy.isBoss && this.bossHealthBar) {
+            const healthPercent = enemy.health / enemy.maxHealth;
+            this.bossHealthBar.width = (600 - 6) * healthPercent;
+        }
+        
+        // Check if enemy is defeated
+        if (enemy.health <= 0) {
+            // Immediately disable physics body
+            if (enemy.body) {
+                enemy.body.enable = false;
+            }
+            this.killEnemy(enemy);
         }
 
         // Apply burn effect for fire projectiles (magnitude system)
@@ -12351,7 +13185,11 @@ class GameScene extends Phaser.Scene {
         
         // Check if boss is defeated
         if (this.boss.health <= 0) {
-            this.defeatBoss();
+            this.boss.isDying = true;
+            if (this.boss.body) {
+                this.boss.body.enable = false;
+            }
+            this.handleBossDeath(this.boss);
         }
     }
 
@@ -19805,7 +20643,7 @@ class GameScene extends Phaser.Scene {
         if (this.stage === 'lava') {
             types = ['fireslime', 'bat', 'fireworm', 'orangegolem'];
         } else if (this.stage === 'cave') {
-            types = ['slime', 'soul', 'bat', 'golem'];
+            types = ['slime', 'soul', 'darkbat', 'golem'];
         } else { // forest stage
             types = ['tree', 'mushroom', 'bat', 'bloboid'];
         }
@@ -20744,7 +21582,7 @@ class GameScene extends Phaser.Scene {
     giveRandomFusionElement() {
         // List of fusion elements (2nd tier elements)
         const fusionElements = [
-            'steam', 'mud', 'ice', 'sand', 'lava', 'thunder',
+            'steam', 'mud', 'ice', 'sand', 'lava',
             'storm', 'gravity', 'crystal', 'rock', 'smoke',
             'poison', 'wave', 'star'
         ];
@@ -20820,16 +21658,27 @@ class GameScene extends Phaser.Scene {
         title.setScrollFactor(0);
         title.setDepth(20001);
         
-        const elementIcon = this.add.text(400, 250, this.elementConfig[randomElement].symbol, {
-            fontSize: '72px'
-        });
+        // Get element config with safety check
+        const elementData = this.elementConfig[randomElement];
+        if (!elementData) {
+            console.error(`Element config not found for: ${randomElement}`);
+            this.physics.resume();
+            this.chestOpening = false;
+            return;
+        }
+        
+        // Create element icon sprite
+        const elementIcon = elementData.isImage 
+            ? this.add.image(400, 250, elementData.sheet)
+            : this.add.image(400, 250, elementData.sheet, elementData.frame);
+        elementIcon.setScale(0.3); // Scale for visibility
         elementIcon.setOrigin(0.5);
         elementIcon.setScrollFactor(0);
         elementIcon.setDepth(20002);
         
         const elementName = this.add.text(400, 320, randomElement.toUpperCase(), {
             fontSize: '36px',
-            color: this.elementConfig[randomElement].color,
+            color: elementData.color || '#ffffff',
             fontStyle: 'bold'
         });
         elementName.setOrigin(0.5);
@@ -22555,8 +23404,8 @@ class GameScene extends Phaser.Scene {
             'earth+water': 'mud',
             'air+earth': 'sand',
             'air+water': 'ice',
-            'air+fire': 'thunder',
-            'air+lightning': 'thunder',
+            'air+fire': 'storm',
+            'air+lightning': 'storm',
             'lightning+water': 'storm',
             'earth+lightning': 'gravity',
             'arcane+earth': 'gravity',
@@ -22592,11 +23441,11 @@ class GameScene extends Phaser.Scene {
             'any+time': 'death',
             
             // Other fusions from diagram
-            'fire+thunder': 'star',
-            'gravity+thunder': 'star',
+            'fire+storm': 'star',
+            'gravity+storm': 'star',
             'gravity+lightning': 'star',  // Added gravity + lightning = star
             'ice+water': 'wave',
-            'poison+smoke': 'smog'
+            'poison+smoke': 'smoke'
         };
         
             // Check if we have a recipe for this combination
@@ -23189,11 +24038,14 @@ class GameScene extends Phaser.Scene {
             description.setOrigin(0.5);
 
             button.add([bg, name, sprite, description]);
-            buttons.push({ container: button, element: element, bg: bg, type: 'element' });
-
-            bg.on('pointerdown', () => {
+            // Create onClick handler
+            const onClickHandler = () => {
                 this.selectChestElement(element, config, null, null, null, buttons);
-            });
+            };
+            
+            buttons.push({ container: button, element: element, bg: bg, type: 'element', onClick: onClickHandler });
+
+            bg.on('pointerdown', onClickHandler);
 
             bg.on('pointerover', () => {
                 // Remove frame from all buttons
@@ -23227,6 +24079,11 @@ class GameScene extends Phaser.Scene {
         this.selectedChargeToReplace = -1;
         this.chestChargeSelectMode = false;
         this.chestCursorIndex = 0;
+        
+        // Set element selection active state
+        this.elementSelectionActive = true;
+        this.elementSelectionIndex = 0;
+        this.elementSelectionButtons = buttons;
         
         // Set initial selection frame on first button only
         if (buttons.length > 0) {
@@ -23438,6 +24295,16 @@ class GameScene extends Phaser.Scene {
         this.physics.resume();
         this.chestOpening = false;
         
+        // Reset all reward-related states
+        this.chestRewardType = null;
+        this.meditateSelectionActive = false;
+        this.meditateCursorIndex = 0;
+        this.meditateUI = null;
+        this.elementSelectionActive = false;
+        this.elementSelectionIndex = 0;
+        this.fusionUI = null;
+        this.chestCursorIndex = 0;
+        
         // Resume boss AI timer if it exists
         if (this.bossAITimer) {
             this.bossAITimer.paused = false;
@@ -23648,6 +24515,8 @@ class GameScene extends Phaser.Scene {
 
         // Reset state and resume
         this.chestSelectionActive = false;
+        this.elementSelectionActive = false;
+        this.elementSelectionButtons = null;
         this.chestUI = null;
 
         // If this was initial element selection, start the game
@@ -24092,6 +24961,83 @@ class GameScene extends Phaser.Scene {
         // Check if player is invulnerable or game is paused/in chest selection
         if (this.invulnerable || this.isPaused || this.chestSelectionActive) return;
         
+        // Check if this is an archer arrow that teleports
+        if (projectile.teleportPlayer && projectile.angle !== undefined) {
+            // Calculate teleport distance and position
+            const teleportDistance = 200; // Teleport 200 pixels in arrow direction
+            const teleportX = wizard.x + Math.cos(projectile.angle) * teleportDistance;
+            const teleportY = wizard.y + Math.sin(projectile.angle) * teleportDistance;
+            
+            // Get camera bounds to keep player in viewport
+            const camera = this.cameras.main;
+            const leftBound = camera.scrollX + 50;
+            const rightBound = camera.scrollX + camera.width - 50;
+            const topBound = camera.scrollY + 50;
+            const bottomBound = camera.scrollY + camera.height - 50;
+            
+            // Clamp teleport position to viewport bounds
+            const finalX = Phaser.Math.Clamp(teleportX, leftBound, rightBound);
+            const finalY = Phaser.Math.Clamp(teleportY, topBound, bottomBound);
+            
+            // Create teleport effect at starting position
+            const startEffect = this.add.circle(wizard.x, wizard.y, 30, 0xff88ff, 0.8);
+            startEffect.setDepth(100);
+            
+            this.tweens.add({
+                targets: startEffect,
+                scale: { from: 1, to: 3 },
+                alpha: { from: 0.8, to: 0 },
+                duration: 500,
+                ease: 'Power2',
+                onComplete: () => startEffect.destroy()
+            });
+            
+            // Teleport the wizard
+            wizard.setPosition(finalX, finalY);
+            
+            // Create teleport effect at destination
+            const endEffect = this.add.circle(finalX, finalY, 30, 0xff88ff, 1);
+            endEffect.setDepth(100);
+            
+            this.tweens.add({
+                targets: endEffect,
+                scale: { from: 0, to: 2 },
+                alpha: { from: 1, to: 0 },
+                duration: 500,
+                ease: 'Power2',
+                onComplete: () => endEffect.destroy()
+            });
+            
+            // Brief invulnerability after teleport
+            this.invulnerable = true;
+            wizard.setTint(0xffccff);
+            
+            this.time.delayedCall(500, () => {
+                this.invulnerable = false;
+                wizard.clearTint();
+            });
+            
+            // Show teleport text
+            const teleportText = this.add.text(finalX, finalY - 50, 'TELEPORTED!', {
+                fontSize: '18px',
+                color: '#ff88ff',
+                fontStyle: 'bold',
+                stroke: '#ffffff',
+                strokeThickness: 3
+            });
+            teleportText.setOrigin(0.5);
+            teleportText.setDepth(150);
+            
+            this.tweens.add({
+                targets: teleportText,
+                y: teleportText.y - 30,
+                alpha: 0,
+                duration: 1000,
+                ease: 'Power2',
+                onComplete: () => teleportText.destroy()
+            });
+        }
+        
         // Deal damage
         this.damagePlayer(projectile.damage || 20);
         
@@ -24272,10 +25218,39 @@ class GameScene extends Phaser.Scene {
             ease: 'Power2'
         });
         
+        // Determine boss info based on stage
+        let bossInfo;
+        if (this.stage === 'cave') {
+            bossInfo = {
+                title: 'ARCANE ARCHER',
+                subtitle: 'Master of the Mystical Bow',
+                color: '#ff00ff'
+            };
+        } else if (this.stage === 'lava') {
+            bossInfo = {
+                title: 'DEMON SLIME',
+                subtitle: 'Infernal Lord of Molten Fury',
+                color: '#ff4400'
+            };
+        } else if (this.stage === 'sand') {
+            bossInfo = {
+                title: 'SAND GUARDIAN',
+                subtitle: 'Eternal Watcher of the Desert',
+                color: '#ffaa00'
+            };
+        } else {
+            // Default to Obelisk boss for forest stage
+            bossInfo = {
+                title: 'AWAKENED OBELISK',
+                subtitle: 'Ancient Guardian of the Realm',
+                color: '#ff0000'
+            };
+        }
+        
         // Boss title text
-        const bossTitle = this.add.text(400, 200, 'AWAKENED OBELISK', {
+        const bossTitle = this.add.text(400, 200, bossInfo.title, {
             fontSize: '48px',
-            color: '#ff0000',
+            color: bossInfo.color,
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 6
@@ -24286,7 +25261,7 @@ class GameScene extends Phaser.Scene {
         bossTitle.setAlpha(0);
         
         // Subtitle
-        const subtitle = this.add.text(400, 250, 'Ancient Guardian of the Realm', {
+        const subtitle = this.add.text(400, 250, bossInfo.subtitle, {
             fontSize: '24px',
             color: '#ffffff',
             fontStyle: 'italic',
@@ -24320,8 +25295,16 @@ class GameScene extends Phaser.Scene {
                     subtitle.destroy();
                     darkOverlay.destroy();
                     
-                    // Spawn the boss
-                    this.createBoss();
+                    // Spawn the boss based on stage
+                    if (this.stage === 'cave') {
+                        this.createArcherBoss();
+                    } else if (this.stage === 'sand') {
+                        this.createSandBoss(); // Sand boss (placeholder for now)
+                    } else if (this.stage === 'lava') {
+                        this.createDemonSlimeBoss();
+                    } else {
+                        this.createBoss(); // Default Obelisk boss for forest
+                    }
                     
                     // Resume physics
                     this.physics.resume();
@@ -24391,6 +25374,68 @@ class GameScene extends Phaser.Scene {
         });
     }
     
+    createArcherBoss() {
+        // Calculate boss spawn position (center of screen, slightly above player)
+        const bossX = this.wizard.x;
+        const bossY = this.wizard.y - 200;
+        
+        // Create boss sprite
+        const boss = this.physics.add.sprite(bossX, bossY, 'archer-boss-walk', 0);
+        boss.setScale(1.5); // Make boss slightly larger
+        
+        // Adjust boss health based on enemy density setting
+        const baseHealth = 13200; // Double the tripled health (6600 * 2)
+        const densityMultipliers = {
+            'sparse': 0.25,  // 1650 health
+            'normal': 0.5,   // 3300 health
+            'dense': 0.75,   // 4950 health
+            'swarm': 1.0     // 6600 health
+        };
+        const enemyDensity = localStorage.getItem('enemyDensity') || 'normal';
+        const healthMultiplier = densityMultipliers[enemyDensity] || 0.5;
+        
+        boss.health = Math.floor(baseHealth * healthMultiplier);
+        boss.maxHealth = boss.health;
+        boss.enemyType = 'boss';
+        boss.isBoss = true;
+        boss.moveSpeed = 35; // Faster than Obelisk
+        boss.isArcherBoss = true; // Mark as archer boss
+        
+        // Boss properties
+        boss.attackCooldown = 0;
+        boss.rollCooldown = 0;
+        boss.currentPhase = 1; // Boss has multiple phases
+        boss.isRolling = false;
+        boss.immuneTime = 0;
+        
+        // Set up physics
+        boss.body.setSize(50, 45);
+        boss.body.setOffset(7, 5);
+        
+        // Play walk animation
+        boss.play('archer-boss-walk');
+        
+        // Add to enemies group
+        this.enemies.add(boss);
+        
+        // Store boss reference
+        this.boss = boss;
+        
+        // Initialize health threshold tracking for enemy waves
+        this.bossHealthThresholds = new Set([75, 50, 25]); // Spawn waves at 75%, 50%, 25% health
+        
+        // Create boss health bar (archer version)
+        this.createArcherBossHealthBar();
+        
+        // Start boss AI with scaled delay - store reference for pausing
+        this.bossAITimer = this.time.addEvent({
+            delay: 1800 / this.speedMultiplier, // Slightly faster AI updates
+            callback: () => this.updateArcherBossAI(),
+            loop: true,
+            paused: false
+        });
+    }
+    
     createBossHealthBar() {
         // Boss health bar background
         const barWidth = 600;
@@ -24417,6 +25462,340 @@ class GameScene extends Phaser.Scene {
         this.bossNameText.setOrigin(0.5);
         this.bossNameText.setScrollFactor(0);
         this.bossNameText.setDepth(102);
+    }
+    
+    createSandBoss() {
+        // For now, create a stronger version of the Obelisk boss as placeholder
+        // This can be replaced with a unique sand boss later
+        const bossX = this.wizard.x;
+        const bossY = this.wizard.y - 200;
+        
+        // Create boss sprite (using obelisk for now)
+        const boss = this.physics.add.sprite(bossX, bossY, 'obelisk-boss', 0);
+        boss.setScale(2);
+        boss.setTint(0xFFD700); // Golden/sandy color
+        
+        // Adjust boss health for sand stage (higher than forest, lower than cave)
+        const baseHealth = 3600; // Between forest (2700) and cave (13200)
+        const densityMultipliers = {
+            'sparse': 0.25,
+            'normal': 0.5,
+            'dense': 0.75,
+            'swarm': 1.0
+        };
+        const enemyDensity = localStorage.getItem('enemyDensity') || 'normal';
+        const healthMultiplier = densityMultipliers[enemyDensity] || 0.5;
+        
+        boss.health = Math.floor(baseHealth * healthMultiplier);
+        boss.maxHealth = boss.health;
+        boss.enemyType = 'boss';
+        boss.isBoss = true;
+        boss.moveSpeed = 30; // Between forest (20) and cave (35)
+        boss.isObeliskBoss = true; // Use obelisk AI for now
+        boss.isSandBoss = true; // Mark as sand boss
+        
+        // Boss properties
+        boss.attackCooldown = 0;
+        boss.currentPhase = 1;
+        boss.shieldActive = false;
+        boss.immuneTime = 0;
+        
+        // Set up physics
+        boss.body.setSize(80, 90);
+        boss.body.setOffset(10, 5);
+        
+        // Play idle animation
+        boss.play('obelisk-idle');
+        
+        // Add to enemies group
+        this.enemies.add(boss);
+        
+        // Store boss reference
+        this.boss = boss;
+        
+        // Initialize health threshold tracking
+        this.bossHealthThresholds = new Set([75, 50, 25]);
+        
+        // Create boss health bar
+        this.createSandBossHealthBar();
+        
+        // Start boss AI
+        this.bossAITimer = this.time.addEvent({
+            delay: 1900 / this.speedMultiplier, // Between forest and cave speed
+            callback: () => this.updateBossAI(),
+            loop: true,
+            paused: false
+        });
+    }
+    
+    createSandBossHealthBar() {
+        // Boss health bar background
+        const barWidth = 600;
+        const barHeight = 30;
+        
+        this.bossHealthBarBg = this.add.rectangle(400, 50, barWidth, barHeight, 0x000000);
+        this.bossHealthBarBg.setStrokeStyle(3, 0xFFD700); // Golden border
+        this.bossHealthBarBg.setScrollFactor(0);
+        this.bossHealthBarBg.setDepth(100);
+        
+        // Boss health bar fill
+        this.bossHealthBar = this.add.rectangle(400, 50, barWidth - 6, barHeight - 6, 0xFFD700); // Golden fill
+        this.bossHealthBar.setScrollFactor(0);
+        this.bossHealthBar.setDepth(101);
+        
+        // Boss name
+        this.bossNameText = this.add.text(400, 25, 'SAND GUARDIAN', {
+            fontSize: '20px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        this.bossNameText.setOrigin(0.5);
+        this.bossNameText.setScrollFactor(0);
+        this.bossNameText.setDepth(102);
+    }
+    
+    createArcherBossHealthBar() {
+        // Boss health bar background
+        const barWidth = 600;
+        const barHeight = 30;
+        
+        this.bossHealthBarBg = this.add.rectangle(400, 50, barWidth, barHeight, 0x000000);
+        this.bossHealthBarBg.setStrokeStyle(3, 0xff00ff); // Purple border for archer
+        this.bossHealthBarBg.setScrollFactor(0);
+        this.bossHealthBarBg.setDepth(100);
+        
+        // Boss health bar fill
+        this.bossHealthBar = this.add.rectangle(400, 50, barWidth - 6, barHeight - 6, 0xff00ff); // Purple fill
+        this.bossHealthBar.setScrollFactor(0);
+        this.bossHealthBar.setDepth(101);
+        
+        // Boss name
+        this.bossNameText = this.add.text(400, 25, 'ARCANE ARCHER', {
+            fontSize: '20px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        this.bossNameText.setOrigin(0.5);
+        this.bossNameText.setScrollFactor(0);
+        this.bossNameText.setDepth(102);
+    }
+    
+    createDemonSlimeBoss() {
+        // Calculate boss spawn position
+        const bossX = this.wizard.x;
+        const bossY = this.wizard.y - 200;
+        
+        // Create boss sprite
+        const boss = this.physics.add.sprite(bossX, bossY, 'demon-slime-idle-1');
+        boss.setScale(1.75); // Reduced by 30% from 2.5
+        boss.setFlipX(true); // Flip horizontally to face correct direction
+        
+        // Adjust boss health based on enemy density setting
+        const baseHealth = 10000;
+        const densityMultipliers = {
+            'sparse': 0.25,
+            'normal': 0.5,
+            'dense': 0.75,
+            'swarm': 1.0
+        };
+        const enemyDensity = localStorage.getItem('enemyDensity') || 'normal';
+        const healthMultiplier = densityMultipliers[enemyDensity] || 0.5;
+        
+        boss.health = Math.floor(baseHealth * healthMultiplier);
+        boss.maxHealth = boss.health;
+        boss.enemyType = 'boss';
+        boss.isBoss = true;
+        boss.isDemonSlime = true;
+        boss.moveSpeed = 25; // Slow but deadly
+        
+        // Boss properties
+        boss.attackCooldown = 0;
+        boss.cleaveCooldown = 0;
+        boss.currentPhase = 1;
+        boss.isCleaving = false;
+        
+        // Set up physics
+        boss.body.setSize(80, 60);
+        boss.body.setOffset(40, 30);
+        
+        // Play idle animation
+        boss.play('demon-slime-idle');
+        
+        // Add to enemies group
+        this.enemies.add(boss);
+        
+        // Store boss reference
+        this.boss = boss;
+        
+        // Initialize health threshold tracking
+        this.bossHealthThresholds = new Set([75, 50, 25]);
+        
+        // Create boss health bar
+        this.createDemonSlimeBossHealthBar();
+        
+        // Start boss AI
+        this.bossAITimer = this.time.addEvent({
+            delay: 2000 / this.speedMultiplier,
+            callback: () => this.updateDemonSlimeBossAI(),
+            loop: true,
+            paused: false
+        });
+    }
+    
+    createDemonSlimeBossHealthBar() {
+        // Boss health bar background
+        const barWidth = 600;
+        const barHeight = 30;
+        
+        this.bossHealthBarBg = this.add.rectangle(400, 50, barWidth, barHeight, 0x000000);
+        this.bossHealthBarBg.setStrokeStyle(3, 0xff4400); // Orange-red border
+        this.bossHealthBarBg.setScrollFactor(0);
+        this.bossHealthBarBg.setDepth(100);
+        
+        // Boss health bar fill
+        this.bossHealthBar = this.add.rectangle(400, 50, barWidth - 6, barHeight - 6, 0xff4400);
+        this.bossHealthBar.setScrollFactor(0);
+        this.bossHealthBar.setDepth(101);
+        
+        // Boss name
+        this.bossNameText = this.add.text(400, 25, 'DEMON SLIME', {
+            fontSize: '20px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        this.bossNameText.setOrigin(0.5);
+        this.bossNameText.setScrollFactor(0);
+        this.bossNameText.setDepth(102);
+    }
+    
+    updateDemonSlimeBossAI() {
+        if (!this.boss || !this.boss.active || this.boss.health <= 0) return;
+        
+        // Don't update boss during pause or chest opening
+        if (this.isPaused || this.chestOpening || this.chestSelectionActive) return;
+        
+        // Don't update if cleaving
+        if (this.boss.isCleaving) return;
+        
+        // Update boss health bar
+        const healthPercent = this.boss.health / this.boss.maxHealth;
+        this.bossHealthBar.width = (600 - 6) * healthPercent;
+        
+        // Check health thresholds
+        const healthPercentage = Math.floor(healthPercent * 100);
+        for (const threshold of this.bossHealthThresholds) {
+            if (healthPercentage <= threshold) {
+                this.bossHealthThresholds.delete(threshold);
+                this.spawnLavaWave();
+                break;
+            }
+        }
+        
+        // Main attack pattern - cleave attack
+        if (this.boss.cleaveCooldown <= 0) {
+            this.performDemonSlimeCleave();
+            this.boss.cleaveCooldown = 3000 / this.speedMultiplier; // 3 second cooldown
+        } else {
+            this.boss.cleaveCooldown -= 2000 / this.speedMultiplier;
+        }
+        
+        // Move towards player when not attacking
+        if (!this.boss.isCleaving && this.wizard && this.wizard.active) {
+            const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, this.wizard.x, this.wizard.y);
+            const velocityX = Math.cos(angle) * this.boss.moveSpeed * this.speedMultiplier;
+            const velocityY = Math.sin(angle) * this.boss.moveSpeed * this.speedMultiplier;
+            this.boss.setVelocity(velocityX, velocityY);
+            
+            // Face the player (reversed because sprite is flipped)
+            this.boss.setFlipX(this.wizard.x > this.boss.x);
+            
+            // Play walk animation if not already playing
+            if (this.boss.anims.currentAnim?.key !== 'demon-slime-walk') {
+                this.boss.play('demon-slime-walk');
+            }
+        }
+    }
+    
+    performDemonSlimeCleave() {
+        if (!this.boss || !this.wizard) return;
+        
+        this.boss.isCleaving = true;
+        this.boss.setVelocity(0, 0);
+        
+        // Face the player (reversed because sprite is flipped)
+        const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, this.wizard.x, this.wizard.y);
+        this.boss.setFlipX(this.wizard.x > this.boss.x);
+        
+        // Play cleave animation
+        this.boss.play('demon-slime-cleave');
+        
+        // Create shockwave projectiles when cleave hits (at frame 8)
+        this.time.delayedCall(800 / this.speedMultiplier, () => {
+            if (!this.boss || !this.boss.active) return;
+            
+            // Create 8 shockwave projectiles in all directions
+            const numShockwaves = 8;
+            const angleStep = (Math.PI * 2) / numShockwaves;
+            
+            for (let i = 0; i < numShockwaves; i++) {
+                const projectileAngle = i * angleStep;
+                const shockwave = this.physics.add.sprite(this.boss.x, this.boss.y, 'fire-spell', 0);
+                shockwave.setScale(2);
+                shockwave.setTint(0xff4400);
+                shockwave.play('fire-spell-anim');
+                
+                const speed = 200 * this.speedMultiplier;
+                shockwave.setVelocity(
+                    Math.cos(projectileAngle) * speed,
+                    Math.sin(projectileAngle) * speed
+                );
+                
+                shockwave.damage = 30;
+                shockwave.fromBoss = true;
+                shockwave.isShockwave = true;
+                
+                this.enemyProjectiles.add(shockwave);
+                
+                // Destroy after 2 seconds
+                this.time.delayedCall(2000 / this.speedMultiplier, () => {
+                    if (shockwave && shockwave.active) {
+                        shockwave.destroy();
+                    }
+                });
+            }
+        });
+        
+        // Return to idle after cleave
+        this.boss.once('animationcomplete', () => {
+            if (this.boss && this.boss.active) {
+                this.boss.isCleaving = false;
+                this.boss.play('demon-slime-idle');
+            }
+        });
+    }
+    
+    spawnLavaWave() {
+        // Spawn a wave of lava enemies
+        const enemies = ['fireslime', 'fireworm', 'flyingdemon'];
+        const count = 4;
+        
+        for (let i = 0; i < count; i++) {
+            this.time.delayedCall(i * 200 / this.speedMultiplier, () => {
+                const angle = (Math.PI * 2 / count) * i;
+                const distance = 250;
+                const x = this.boss.x + Math.cos(angle) * distance;
+                const y = this.boss.y + Math.sin(angle) * distance;
+                
+                const enemyType = enemies[Math.floor(Math.random() * enemies.length)];
+                this.createEnemy(enemyType, x, y);
+            });
+        }
     }
     
     updateBossAI() {
@@ -24860,6 +26239,175 @@ class GameScene extends Phaser.Scene {
         this.boss.setTint(0xff6666);
     }
     
+    updateArcherBossAI() {
+        if (!this.boss || !this.boss.active || this.boss.health <= 0) return;
+        
+        // Don't update boss during pause or chest opening
+        if (this.isPaused || this.chestOpening || this.chestSelectionActive) return;
+        
+        // Always update boss health bar regardless of state
+        const healthPercent = this.boss.health / this.boss.maxHealth;
+        if (this.bossHealthBar) {
+            this.bossHealthBar.width = (600 - 6) * healthPercent;
+        }
+        
+        // Don't update boss AI while stunned or rolling
+        if (this.boss.isStunned || this.boss.isRolling) return;
+        
+        // Check for health threshold enemy wave spawns
+        const currentHealthPercentage = Math.floor(healthPercent * 100);
+        if (this.bossHealthThresholds) {
+            // Check if we've crossed any threshold
+            for (let threshold of this.bossHealthThresholds) {
+                if (currentHealthPercentage <= threshold) {
+                    this.spawnBossHealthThresholdWave(threshold);
+                    this.bossHealthThresholds.delete(threshold); // Remove threshold so it only triggers once
+                    break; // Only trigger one threshold per update
+                }
+            }
+        }
+        
+        // Check phase transitions
+        if (healthPercent <= 0.66 && this.boss.currentPhase === 1) {
+            this.boss.currentPhase = 2;
+            this.archerPhaseTwoTransition();
+        } else if (healthPercent <= 0.33 && this.boss.currentPhase === 2) {
+            this.boss.currentPhase = 3;
+            this.archerPhaseThreeTransition();
+        }
+        
+        // Reduce cooldowns
+        if (this.boss.attackCooldown > 0) {
+            this.boss.attackCooldown -= 1800; // 1.8 second tick
+            // Safety check: if cooldown is done but still shooting, clear it
+            if (this.boss.attackCooldown <= 0 && this.boss.isShooting) {
+                this.boss.isShooting = false;
+            }
+        }
+        
+        if (this.boss.rollCooldown > 0) {
+            this.boss.rollCooldown -= 1800; // 1.8 second tick
+        }
+        
+        if (this.boss.immuneTime > 0) {
+            this.boss.immuneTime -= 1800;
+            if (this.boss.immuneTime <= 0) {
+                this.boss.immuneTime = 0;
+                this.boss.isRolling = false;
+                this.boss.clearTint();
+                if (!this.boss.anims.isPlaying || this.boss.anims.currentAnim.key !== 'archer-boss-walk') {
+                    this.boss.play('archer-boss-walk');
+                }
+            }
+        }
+        
+        // Advanced movement AI - maintain mid-range distance
+        if (!this.boss.isRolling && !this.boss.isShooting) {
+            const distance = Phaser.Math.Distance.Between(
+                this.boss.x, this.boss.y,
+                this.wizard.x, this.wizard.y
+            );
+            
+            const angle = Phaser.Math.Angle.Between(
+                this.boss.x, this.boss.y,
+                this.wizard.x, this.wizard.y
+            );
+            
+            // Ideal combat distance is 250-350 pixels
+            const idealMinDistance = 250;
+            const idealMaxDistance = 350;
+            
+            let moveAngle = angle;
+            let shouldMove = false;
+            
+            if (distance < idealMinDistance) {
+                // Too close - move away from player
+                moveAngle = angle + Math.PI; // Reverse direction
+                shouldMove = true;
+            } else if (distance > idealMaxDistance) {
+                // Too far - move toward player
+                shouldMove = true;
+            } else {
+                // At ideal distance - strafe around player
+                const strafeDirection = Math.random() < 0.5 ? -1 : 1;
+                moveAngle = angle + (Math.PI / 2) * strafeDirection;
+                shouldMove = Math.random() < 0.3; // 30% chance to strafe
+            }
+            
+            if (shouldMove) {
+                const speed = this.boss.moveSpeed;
+                this.boss.setVelocity(
+                    Math.cos(moveAngle) * speed,
+                    Math.sin(moveAngle) * speed
+                );
+                
+                // Always face the player
+                if (Math.cos(angle) < 0) {
+                    this.boss.setFlipX(true);
+                } else {
+                    this.boss.setFlipX(false);
+                }
+                
+                // Play walk animation
+                if (!this.boss.anims.isPlaying || this.boss.anims.currentAnim.key !== 'archer-boss-walk') {
+                    this.boss.play('archer-boss-walk');
+                }
+            } else {
+                // Stop and prepare to attack
+                this.boss.setVelocity(0, 0);
+            }
+        }
+        
+        // Skip attacks if on cooldown, immune, or already shooting
+        if (this.boss.attackCooldown > 0 || this.boss.immuneTime > 0 || this.boss.isShooting) {
+            return;
+        }
+        
+        // Attack pattern: Shoot barrage -> Roll to reposition -> Repeat
+        if (!this.boss.attackSequence) {
+            this.boss.attackSequence = 0;
+        }
+        
+        // Execute attack sequence
+        if (this.boss.attackSequence === 0) {
+            // Start attack sequence with arrow barrage
+            const attackType = Math.random();
+            
+            if (this.boss.currentPhase === 1) {
+                // Phase 1: Simple attacks
+                if (attackType < 0.6) {
+                    this.archerBossShootAttack(); // Single shots
+                } else {
+                    this.archerBossMultiShoot(); // Multi-shot
+                }
+            } else if (this.boss.currentPhase === 2) {
+                // Phase 2: More complex patterns
+                if (attackType < 0.4) {
+                    this.archerBossMultiShoot();
+                } else if (attackType < 0.7) {
+                    this.archerBossRapidFire();
+                } else {
+                    this.archerBossShootAttack();
+                }
+            } else {
+                // Phase 3: All attacks with tracking
+                if (attackType < 0.3) {
+                    this.archerBossRapidFire();
+                } else if (attackType < 0.6) {
+                    this.archerBossMultiShoot();
+                } else {
+                    this.archerBossTrackingBarrage(); // New tracking attack
+                }
+            }
+            
+            this.boss.attackSequence = 1;
+        } else if (this.boss.attackSequence === 1 && this.boss.rollCooldown <= 0) {
+            // After attack, roll to reposition
+            this.archerBossRollAttack();
+            this.boss.attackSequence = 0; // Reset sequence
+        }
+    }
+    
     spawnBossHealthThresholdWave(threshold) {
         // Create dramatic warning effect
         const warningText = this.add.text(400, 150, `BOSS AT ${threshold}% HEALTH!\nENEMY REINFORCEMENTS INCOMING!`, {
@@ -24970,9 +26518,460 @@ class GameScene extends Phaser.Scene {
         });
     }
     
+    archerBossShootAttack() {
+        this.boss.play('archer-boss-shoot');
+        this.boss.attackCooldown = 2000; // 2 second cooldown
+        this.boss.setVelocity(0, 0); // Stop moving while shooting
+        this.boss.isShooting = true; // Mark as shooting
+        
+        // Calculate angle to player with slight prediction
+        const playerVelX = this.wizard.body ? this.wizard.body.velocity.x : 0;
+        const playerVelY = this.wizard.body ? this.wizard.body.velocity.y : 0;
+        const predictTime = 0.2; // Predict player position 0.2 seconds ahead
+        const predictedX = this.wizard.x + (playerVelX * predictTime);
+        const predictedY = this.wizard.y + (playerVelY * predictTime);
+        
+        const angle = Phaser.Math.Angle.Between(
+            this.boss.x, this.boss.y,
+            predictedX, predictedY
+        );
+        
+        // Flip boss to face player
+        if (Math.cos(angle) < 0) {
+            this.boss.setFlipX(true);
+        } else {
+            this.boss.setFlipX(false);
+        }
+        
+        // Fire arrow after animation delay
+        this.time.delayedCall(400, () => {
+            if (this.boss && this.boss.active) {
+                this.fireArcherArrow(this.boss.x, this.boss.y, angle, false); // Straight arrow
+                
+                // Return to walk animation after shooting
+                this.time.delayedCall(300, () => {
+                    if (this.boss && this.boss.active && !this.boss.isRolling) {
+                        this.boss.play('archer-boss-walk');
+                        this.boss.isShooting = false;
+                    }
+                });
+            }
+        });
+    }
+    
+    archerBossMultiShoot() {
+        this.boss.play('archer-boss-shoot');
+        this.boss.attackCooldown = 3000; // 3 second cooldown
+        this.boss.setVelocity(0, 0); // Stop moving while shooting
+        this.boss.isShooting = true; // Mark as shooting
+        
+        // Calculate base angle to player
+        const baseAngle = Phaser.Math.Angle.Between(
+            this.boss.x, this.boss.y,
+            this.wizard.x, this.wizard.y
+        );
+        
+        // Flip boss to face player
+        if (Math.cos(baseAngle) < 0) {
+            this.boss.setFlipX(true);
+        } else {
+            this.boss.setFlipX(false);
+        }
+        
+        // Fire multiple arrows in a spread
+        const arrowCount = 3;
+        const spreadAngle = Math.PI / 6; // 30 degrees spread
+        
+        this.time.delayedCall(400, () => {
+            if (this.boss && this.boss.active) {
+                for (let i = 0; i < arrowCount; i++) {
+                    const offset = (i - (arrowCount - 1) / 2) * (spreadAngle / (arrowCount - 1));
+                    const finalAngle = baseAngle + offset;
+                    
+                    this.time.delayedCall(i * 100, () => {
+                        // Middle arrow is tracking, others are straight
+                        const isTracking = (i === Math.floor(arrowCount / 2));
+                        this.fireArcherArrow(this.boss.x, this.boss.y, finalAngle, isTracking);
+                    });
+                }
+                
+                // Return to walk animation after all arrows are fired
+                this.time.delayedCall(arrowCount * 100 + 300, () => {
+                    if (this.boss && this.boss.active && !this.boss.isRolling) {
+                        this.boss.play('archer-boss-walk');
+                        this.boss.isShooting = false;
+                    }
+                });
+            }
+        });
+    }
+    
+    archerBossRapidFire() {
+        this.boss.play('archer-boss-shoot');
+        this.boss.attackCooldown = 4000; // 4 second cooldown
+        this.boss.setVelocity(0, 0); // Stop moving while shooting
+        this.boss.isShooting = true; // Mark as shooting
+        
+        // Calculate angle to player
+        const angle = Phaser.Math.Angle.Between(
+            this.boss.x, this.boss.y,
+            this.wizard.x, this.wizard.y
+        );
+        
+        // Flip boss to face player
+        if (Math.cos(angle) < 0) {
+            this.boss.setFlipX(true);
+        } else {
+            this.boss.setFlipX(false);
+        }
+        
+        // Fire 5 arrows rapidly
+        for (let i = 0; i < 5; i++) {
+            this.time.delayedCall(300 + i * 150, () => {
+                if (this.boss && this.boss.active) {
+                    // Recalculate angle for each arrow for better tracking
+                    const currentAngle = Phaser.Math.Angle.Between(
+                        this.boss.x, this.boss.y,
+                        this.wizard.x, this.wizard.y
+                    );
+                    // Alternate between tracking and straight arrows
+                    const isTracking = i % 2 === 0;
+                    this.fireArcherArrow(this.boss.x, this.boss.y, currentAngle, isTracking);
+                }
+            });
+        }
+        
+        // Return to walk animation after rapid fire completes
+        this.time.delayedCall(300 + 5 * 150 + 300, () => {
+            if (this.boss && this.boss.active && !this.boss.isRolling) {
+                this.boss.play('archer-boss-walk');
+                this.boss.isShooting = false;
+            }
+        });
+    }
+    
+    archerBossRollAttack() {
+        this.boss.play('archer-boss-roll');
+        this.boss.rollCooldown = 5000; // 5 second cooldown
+        this.boss.isRolling = true;
+        
+        // Make boss immune to damage during roll
+        this.boss.immuneTime = 1000; // 1 second immunity
+        this.boss.setTint(0x888888); // Gray tint to show immunity
+        
+        // Calculate distance to player
+        const distance = Phaser.Math.Distance.Between(
+            this.boss.x, this.boss.y,
+            this.wizard.x, this.wizard.y
+        );
+        
+        let rollAngle;
+        if (distance < 200) {
+            // Too close - roll away from player
+            rollAngle = Phaser.Math.Angle.Between(
+                this.wizard.x, this.wizard.y,
+                this.boss.x, this.boss.y
+            );
+        } else if (distance > 400) {
+            // Too far - roll toward player
+            rollAngle = Phaser.Math.Angle.Between(
+                this.boss.x, this.boss.y,
+                this.wizard.x, this.wizard.y
+            );
+        } else {
+            // Good distance - roll to the side
+            const sideAngle = Phaser.Math.Angle.Between(
+                this.boss.x, this.boss.y,
+                this.wizard.x, this.wizard.y
+            );
+            const sideDirection = Math.random() < 0.5 ? 1 : -1;
+            rollAngle = sideAngle + (Math.PI / 2) * sideDirection;
+        }
+        
+        // Flip boss based on roll direction
+        if (Math.cos(rollAngle) < 0) {
+            this.boss.setFlipX(true);
+        } else {
+            this.boss.setFlipX(false);
+        }
+        
+        // Fast movement during roll
+        const rollSpeed = 120;
+        this.boss.setVelocity(
+            Math.cos(rollAngle) * rollSpeed,
+            Math.sin(rollAngle) * rollSpeed
+        );
+        
+        // End roll after animation
+        this.time.delayedCall(600, () => {
+            if (this.boss && this.boss.active) {
+                this.boss.isRolling = false;
+                this.boss.setVelocity(0, 0);
+                this.boss.play('archer-boss-walk');
+            }
+        });
+    }
+    
+    fireArcherArrow(x, y, angle, isTracking = false) {
+        // Create arrow projectile
+        const arrow = this.physics.add.sprite(x, y, 'archer-projectile');
+        arrow.setScale(1.2);
+        arrow.setDepth(20);
+        arrow.damage = 25; // High damage arrows
+        arrow.fromBoss = true;
+        arrow.isArrow = true;
+        arrow.teleportPlayer = true; // Flag for teleport mechanic
+        arrow.isTracking = isTracking; // Whether this is a tracking arrow
+        
+        // Set arrow rotation to match direction
+        arrow.rotation = angle;
+        
+        // Store angle for teleport calculation
+        arrow.angle = angle;
+        
+        // Ensure physics body is properly set up
+        arrow.body.enable = true;
+        arrow.body.setSize(20, 10);
+        
+        // Calculate velocity - scale with game speed
+        const speed = this.getScaledVelocity(isTracking ? 120 : 250); // Tracking arrows much slower
+        const velocityX = Math.cos(angle) * speed;
+        const velocityY = Math.sin(angle) * speed;
+        
+        // Add to enemy projectiles group (collision handler is already set up in create)
+        this.enemyProjectiles.add(arrow);
+        
+        // Set velocity after adding to group
+        arrow.body.setVelocity(velocityX, velocityY);
+        
+        // Different tint for tracking vs straight arrows
+        arrow.setTint(isTracking ? 0xff44ff : 0xff88ff);
+        
+        // If tracking, store in tracking list for updates
+        if (isTracking) {
+            if (!this.trackingArrows) {
+                this.trackingArrows = [];
+            }
+            arrow.trackingSpeed = speed;
+            this.trackingArrows.push(arrow);
+        }
+        
+        // Add collision with obstacles for ricochet mechanic
+        // Get obstacles from the obstacle manager (same ones that collide with player)
+        if (this.obstacleManager) {
+            const obstacles = this.obstacleManager.getObstaclesGroup();
+            if (obstacles) {
+                this.physics.add.collider(arrow, obstacles, (arrow, obstacle) => {
+                console.log('Arrow hit obstacle! Ricocheting...');
+                // Only ricochet once
+                if (arrow.hasRicocheted) return;
+                
+                arrow.hasRicocheted = true;
+                
+                // Remove from tracking list if tracking
+                if (arrow.isTracking && this.trackingArrows) {
+                    const index = this.trackingArrows.indexOf(arrow);
+                    if (index > -1) {
+                        this.trackingArrows.splice(index, 1);
+                    }
+                }
+                
+                // Calculate angle back to boss
+                if (this.boss && this.boss.active && this.boss.isArcherBoss) {
+                    const angleToBoss = Phaser.Math.Angle.Between(
+                        arrow.x, arrow.y,
+                        this.boss.x, this.boss.y
+                    );
+                    
+                    // Set new velocity toward boss
+                    const ricochetSpeed = this.getScaledVelocity(300); // Faster ricochet
+                    arrow.body.setVelocity(
+                        Math.cos(angleToBoss) * ricochetSpeed,
+                        Math.sin(angleToBoss) * ricochetSpeed
+                    );
+                    
+                    // Update rotation
+                    arrow.rotation = angleToBoss;
+                    
+                    // Change tint to show it's ricocheted
+                    arrow.setTint(0x00ff00); // Green tint
+                    
+                    // Mark as no longer damaging to player but damaging to boss
+                    arrow.damagesBoss = true;
+                    arrow.damage = Math.floor(this.boss.maxHealth * 0.15); // 15% of boss max health
+                    arrow.teleportPlayer = false; // No longer teleports
+                    
+                    // Add collision with boss
+                    const bossCollider = this.physics.add.overlap(arrow, this.boss, (arrow, boss) => {
+                        if (arrow.damagesBoss && boss.active) {
+                            // Damage boss
+                            boss.health -= arrow.damage;
+                            
+                            // Update boss health bar immediately
+                            if (this.bossHealthBar) {
+                                const healthPercent = boss.health / boss.maxHealth;
+                                this.bossHealthBar.width = (600 - 6) * healthPercent;
+                            }
+                            
+                            // Show damage number
+                            this.showDamageNumber(boss.x, boss.y - 50, arrow.damage, '#00ff00');
+                            
+                            // Flash effect
+                            boss.setTint(0x00ff00);
+                            this.time.delayedCall(200, () => {
+                                if (boss.active) boss.clearTint();
+                            });
+                            
+                            // Check if boss defeated
+                            if (boss.health <= 0) {
+                                boss.isDying = true;
+                                if (boss.body) {
+                                    boss.body.enable = false;
+                                }
+                                this.handleBossDeath(boss);
+                            }
+                            
+                            // Destroy arrow
+                            arrow.destroy();
+                            
+                            // Remove collider
+                            if (bossCollider) {
+                                bossCollider.destroy();
+                            }
+                        }
+                    });
+                    
+                    // Destroy arrow after 2 seconds if it doesn't hit boss
+                    this.time.delayedCall(2000, () => {
+                        if (arrow && arrow.active) {
+                            arrow.destroy();
+                            if (bossCollider) {
+                                bossCollider.destroy();
+                            }
+                        }
+                    });
+                } else {
+                    // No boss, just destroy arrow
+                    arrow.destroy();
+                }
+            });
+            }
+        }
+        
+        // Destroy arrow after some time
+        this.time.delayedCall(3000, () => {
+            if (arrow && arrow.active) {
+                if (isTracking && this.trackingArrows) {
+                    const index = this.trackingArrows.indexOf(arrow);
+                    if (index > -1) {
+                        this.trackingArrows.splice(index, 1);
+                    }
+                }
+                arrow.destroy();
+            }
+        });
+    }
+    
+    archerBossTrackingBarrage() {
+        this.boss.play('archer-boss-shoot');
+        this.boss.attackCooldown = 5000; // 5 second cooldown
+        this.boss.setVelocity(0, 0); // Stop moving while shooting
+        this.boss.isShooting = true;
+        
+        // Face player
+        const angle = Phaser.Math.Angle.Between(
+            this.boss.x, this.boss.y,
+            this.wizard.x, this.wizard.y
+        );
+        
+        if (Math.cos(angle) < 0) {
+            this.boss.setFlipX(true);
+        } else {
+            this.boss.setFlipX(false);
+        }
+        
+        // Fire a circular pattern of arrows, half tracking, half straight
+        const arrowCount = 8;
+        this.time.delayedCall(400, () => {
+            if (this.boss && this.boss.active) {
+                for (let i = 0; i < arrowCount; i++) {
+                    const circleAngle = (i / arrowCount) * Math.PI * 2;
+                    const isTracking = i % 2 === 0; // Every other arrow tracks
+                    
+                    this.time.delayedCall(i * 50, () => {
+                        if (this.boss && this.boss.active) {
+                            this.fireArcherArrow(this.boss.x, this.boss.y, circleAngle, isTracking);
+                        }
+                    });
+                }
+                
+                // Return to walk animation
+                this.time.delayedCall(arrowCount * 50 + 500, () => {
+                    if (this.boss && this.boss.active && !this.boss.isRolling) {
+                        this.boss.play('archer-boss-walk');
+                        this.boss.isShooting = false;
+                    }
+                });
+            }
+        });
+    }
+    
+    archerPhaseTwoTransition() {
+        // Visual effect for phase 2
+        const phaseText = this.add.text(this.boss.x, this.boss.y - 100, 'PHASE 2: MULTI-SHOT', {
+            fontSize: '24px',
+            color: '#ff00ff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        phaseText.setOrigin(0.5);
+        
+        this.tweens.add({
+            targets: phaseText,
+            y: phaseText.y - 50,
+            alpha: 0,
+            duration: 2000,
+            ease: 'Power2',
+            onComplete: () => phaseText.destroy()
+        });
+        
+        // Increase boss speed
+        this.boss.moveSpeed = 45;
+    }
+    
+    archerPhaseThreeTransition() {
+        // Visual effect for final phase
+        const phaseText = this.add.text(this.boss.x, this.boss.y - 100, 'FINAL PHASE: RAPID FIRE', {
+            fontSize: '24px',
+            color: '#ff0000',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        phaseText.setOrigin(0.5);
+        
+        this.tweens.add({
+            targets: phaseText,
+            y: phaseText.y - 50,
+            alpha: 0,
+            duration: 2000,
+            ease: 'Power2',
+            onComplete: () => phaseText.destroy()
+        });
+        
+        // Increase boss speed and add permanent purple glow
+        this.boss.moveSpeed = 55;
+        this.boss.setTint(0xff88ff);
+    }
+    
     handleBossDeath(boss) {
-        // Play death animation
-        boss.play('obelisk-death');
+        // Play appropriate death animation based on boss type
+        if (boss.isArcherBoss) {
+            boss.play('archer-boss-death');
+        } else {
+            boss.play('obelisk-death');
+        }
         boss.setVelocity(0, 0);
         
         // Remove boss health bar
@@ -25038,6 +27037,12 @@ class GameScene extends Phaser.Scene {
         
         // Stop the game
         this.physics.pause();
+        
+        // Stop boss AI timer
+        if (this.bossAITimer) {
+            this.bossAITimer.remove();
+            this.bossAITimer = null;
+        }
         
         // Disable automatic spell casting
         if (this.autoFireTimer) {
