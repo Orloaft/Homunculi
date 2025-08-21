@@ -1,0 +1,98 @@
+{
+  "tree": {
+    "width": 26,
+    "height": 39,
+    "offsetX": 3,
+    "offsetY": 12
+  },
+  "bat": {
+    "width": 60,
+    "height": 40,
+    "offsetX": 45,
+    "offsetY": 55
+  },
+  "mushroom": {
+    "width": 30,
+    "height": 35,
+    "offsetX": 9,
+    "offsetY": 8
+  },
+  "slime": {
+    "width": 30,
+    "height": 20,
+    "offsetX": 9,
+    "offsetY": 19
+  },
+  "soul": {
+    "width": 30,
+    "height": 40,
+    "offsetX": 8,
+    "offsetY": 5
+  },
+  "summoner": {
+    "width": 30,
+    "height": 60,
+    "offsetX": 8,
+    "offsetY": 2
+  },
+  "bloboid": {
+    "width": 50,
+    "height": 40,
+    "offsetX": 23,
+    "offsetY": 30
+  },
+  "golem": {
+    "width": 50,
+    "height": 70,
+    "offsetX": 15,
+    "offsetY": 5
+  },
+  "sorcerer": {
+    "width": 60,
+    "height": 80,
+    "offsetX": 10,
+    "offsetY": 0
+  },
+  "fireslime": {
+    "width": 30,
+    "height": 20,
+    "offsetX": 9,
+    "offsetY": 19
+  },
+  "fireworm": {
+    "width": 40,
+    "height": 30,
+    "offsetX": 12,
+    "offsetY": 15
+  },
+  "clubimp": {
+    "width": 50,
+    "height": 60,
+    "offsetX": 15,
+    "offsetY": 10
+  },
+  "axeimp": {
+    "width": 50,
+    "height": 60,
+    "offsetX": 15,
+    "offsetY": 10
+  },
+  "kobold": {
+    "width": 80,
+    "height": 70,
+    "offsetX": 34,
+    "offsetY": 13
+  },
+  "darkbat": {
+    "width": 50,
+    "height": 40,
+    "offsetX": 7,
+    "offsetY": 12
+  },
+  "flyingdemon": {
+    "width": 50,
+    "height": 40,
+    "offsetX": 7,
+    "offsetY": 12
+  }
+}

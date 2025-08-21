@@ -60,6 +60,10 @@ class LoadingScene extends Phaser.Scene {
         this.load.image('element-select-icon', 'elementsekect.png');
         this.load.image('fusion-icon', 'holdflask.png');
         
+        // Load hitbox editor and config
+        this.load.script('hitbox-editor', 'HitboxEditor.js');
+        this.load.script('hitbox-config', 'HitboxConfig.js');
+        
         // Load wave element symbol
         this.load.image('wave-symbol', 'wave.png');
         
@@ -2607,9 +2611,75 @@ class GameScene extends Phaser.Scene {
     }
 
     create() {
+        // Debug: Check tween system at create time
+        console.log('GameScene create - tweens exists:', !!this.tweens);
+        console.log('GameScene create - tweens type:', typeof this.tweens);
+        if (this.tweens) {
+            console.log('Available tween methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(this.tweens)));
+        }
+        
         // Reset game end flags
         this.gameEnded = false;
         this.gameWonCalled = false;
+        
+        // Initialize pause tracking flag VERY EARLY
+        this._firstPauseLogged = false;
+        
+        // Force reset pause states and time scale
+        this.gamePaused = false;
+        this.isPaused = false;
+        this.spellbookOpen = false;
+        this.chestSelectionActive = false;
+        this.pauseSource = null;
+        
+        // Initialize god mode (press G to toggle)
+        this.godMode = false;
+        
+        // Force time scale to 1 and ensure game is not paused
+        console.log('=== INITIAL CREATE: Forcing time scale to 1 in create ===');
+        console.log('Current timeScale:', this.time.timeScale);
+        this.time.timeScale = 1;
+        this.physics.resume();
+        this.tweens.resumeAll();
+        console.log('After forcing, timeScale:', this.time.timeScale);
+        
+        // Monitor timeScale changes - only for first 2 seconds
+        let lastTimeScale = this.time.timeScale;
+        let changeCount = 0;
+        this._timeScaleCheckInterval = setInterval(() => {
+            if (this.time.timeScale !== lastTimeScale) {
+                changeCount++;
+                // Only log first 3 changes to avoid spam
+                if (changeCount <= 3) {
+                    console.error('=== TIMESCALE CHANGED from', lastTimeScale, 'to', this.time.timeScale, '===');
+                    if (changeCount === 1) {
+                        console.trace('First TimeScale change stack trace');
+                    }
+                }
+                lastTimeScale = this.time.timeScale;
+            }
+        }, 10); // Check every 10ms
+        
+        // Stop monitoring after 2 seconds
+        this.time.delayedCall(2000, () => {
+            if (this._timeScaleCheckInterval) {
+                clearInterval(this._timeScaleCheckInterval);
+                this._timeScaleCheckInterval = null;
+                if (changeCount > 3) {
+                    console.log(`TimeScale changed ${changeCount} times total in first 2 seconds`);
+                }
+            }
+        });
+        
+        // Double-check pause state after a short delay
+        this.time.delayedCall(100, () => {
+            if (this.time.timeScale === 0 && !this.gamePaused && !this.chestSelectionActive && !this.spellbookOpen) {
+                console.warn('Game started paused, fixing...');
+                this.time.timeScale = 1;
+                this.physics.resume();
+                this.tweens.resumeAll();
+            }
+        });
         
         // Initialize speed mode and multiplier
         this.speedMode = localStorage.getItem('speedMode') || 'frolic';
@@ -2640,70 +2710,73 @@ class GameScene extends Phaser.Scene {
         
         // Destruction queue no longer needed - using Phaser's built-in methods
         
-        // Override Phaser's collision processing to add safety checks
-        const originalCollideSpriteVsGroup = this.physics.world.collideSpriteVsGroup;
-        this.physics.world.collideSpriteVsGroup = function(sprite, group, collideCallback, processCallback, callbackContext, overlapOnly) {
-            // Safety check - ensure sprite and group are valid
-            if (!sprite || !sprite.body || !group || !group.children) {
-                return false;
-            }
+        // TEMPORARILY DISABLED: Override Phaser's collision processing to add safety checks
+        // const originalCollideSpriteVsGroup = this.physics.world.collideSpriteVsGroup;
+        // this.physics.world.collideSpriteVsGroup = function(sprite, group, collideCallback, processCallback, callbackContext, overlapOnly) {
+        //     // Safety check - ensure sprite and group are valid
+        //     if (!sprite || !sprite.body || !group || !group.children) {
+        //         return false;
+        //     }
             
-            // Filter out invalid entries from group before processing
-            group.children.entries = group.children.entries.filter(entry => 
-                entry && entry.body && entry.active
-            );
+        //     // Filter out invalid entries from group before processing
+        //     group.children.entries = group.children.entries.filter(entry => 
+        //         entry && entry.body && entry.active
+        //     );
             
-            // Call original method with safety
-            try {
-                return originalCollideSpriteVsGroup.call(this, sprite, group, collideCallback, processCallback, callbackContext, overlapOnly);
-            } catch (e) {
-                console.warn('Collision error caught:', e);
-                return false;
-            }
-        };
+        //     // Call original method with safety
+        //     try {
+        //         return originalCollideSpriteVsGroup.call(this, sprite, group, collideCallback, processCallback, callbackContext, overlapOnly);
+        //     } catch (e) {
+        //         console.error('Collision error caught in collideSpriteVsGroup:', e);
+        //         console.error('Stack trace:', e.stack);
+        //         console.error('Sprite:', sprite);
+        //         console.error('Group:', group);
+        //         return false;
+        //     }
+        // };
         
-        // Also override the internal collision checking method
-        const originalCollideObjects = this.physics.world.collideObjects;
-        this.physics.world.collideObjects = function(object1, object2, collideCallback, processCallback, callbackContext, overlapOnly) {
-            // Ensure both objects are valid before processing
-            if (!object1 || !object2) {
-                return false;
-            }
+        // TEMPORARILY DISABLED: Also override the internal collision checking method
+        // const originalCollideObjects = this.physics.world.collideObjects;
+        // this.physics.world.collideObjects = function(object1, object2, collideCallback, processCallback, callbackContext, overlapOnly) {
+        //     // Ensure both objects are valid before processing
+        //     if (!object1 || !object2) {
+        //         return false;
+        //     }
             
-            // Check if object1 is valid
-            if (object1.body && (!object1.active || object1.isDestroying)) {
-                return false;
-            }
+        //     // Check if object1 is valid
+        //     if (object1.body && (!object1.active || object1.isDestroying)) {
+        //         return false;
+        //     }
             
-            // Check if object2 is valid
-            if (object2.body && (!object2.active || object2.isDestroying)) {
-                return false;
-            }
+        //     // Check if object2 is valid
+        //     if (object2.body && (!object2.active || object2.isDestroying)) {
+        //         return false;
+        //     }
             
-            try {
-                return originalCollideObjects.call(this, object1, object2, collideCallback, processCallback, callbackContext, overlapOnly);
-            } catch (e) {
-                console.warn('collideObjects error caught:', e);
-                return false;
-            }
-        };
+        //     try {
+        //         return originalCollideObjects.call(this, object1, object2, collideCallback, processCallback, callbackContext, overlapOnly);
+        //     } catch (e) {
+        //         console.warn('collideObjects error caught:', e);
+        //         return false;
+        //     }
+        // };
         
-        // Override the overlap handler to add more safety
-        const originalOverlapHandler = this.physics.world.overlapHandler;
-        this.physics.world.overlapHandler = function(object1, object2, overlapCallback, processCallback, callbackContext) {
-            // Extra safety checks
-            if (!object1 || !object2) return false;
-            if (!object1.body || !object2.body) return false;
-            if (object1.isDestroying || object2.isDestroying) return false;
-            if (!object1.active || !object2.active) return false;
+        // TEMPORARILY DISABLED: Override the overlap handler to add more safety
+        // const originalOverlapHandler = this.physics.world.overlapHandler;
+        // this.physics.world.overlapHandler = function(object1, object2, overlapCallback, processCallback, callbackContext) {
+        //     // Extra safety checks
+        //     if (!object1 || !object2) return false;
+        //     if (!object1.body || !object2.body) return false;
+        //     if (object1.isDestroying || object2.isDestroying) return false;
+        //     if (!object1.active || !object2.active) return false;
             
-            try {
-                return originalOverlapHandler.call(this, object1, object2, overlapCallback, processCallback, callbackContext);
-            } catch (e) {
-                console.warn('overlapHandler error caught:', e);
-                return false;
-            }
-        };
+        //     try {
+        //         return originalOverlapHandler.call(this, object1, object2, overlapCallback, processCallback, callbackContext);
+        //     } catch (e) {
+        //         console.warn('overlapHandler error caught:', e);
+        //         return false;
+        //     }
+        // };
         
         // Note: Destruction queue removed - we now use Phaser's built-in 
         // disableBody() and time.delayedCall() for proper cleanup
@@ -2820,7 +2893,9 @@ class GameScene extends Phaser.Scene {
         this.enemyDensityMultiplier = densityMultipliers[enemyDensity] || 0.5;
         
         // Reset game state
+        console.log('Initializing player health. maxHealth:', this.maxHealth);
         this.playerHealth = this.maxHealth; // Start with full health
+        console.log('Player health set to:', this.playerHealth);
         this.gameStarted = false; // Will be set to true after countdown
         console.log('GameScene created, gameStarted set to false');
         this.charges = []; // Start with no charges
@@ -2884,8 +2959,8 @@ class GameScene extends Phaser.Scene {
         this.discoveredElements = new Set(); // Track discovered elements
         
         // Initialize element pouch
-        const savedPouch = localStorage.getItem('elementPouch');
-        this.elementPouch = savedPouch ? JSON.parse(savedPouch) : [null, null, null, null];
+        // Don't load pouch from localStorage - start fresh each game
+        this.elementPouch = [null, null, null, null];
         
         // Create and start background music based on user selection
         const selectedBGM = localStorage.getItem('selectedBGM') || 'BGM 1';
@@ -3064,6 +3139,34 @@ class GameScene extends Phaser.Scene {
         this.pKey = this.input.keyboard.addKey('P');
         this.tabKey = this.input.keyboard.addKey('TAB');
         this.debugKey = this.input.keyboard.addKey('D');
+        
+        // God mode toggle (G key)
+        this.gKey = this.input.keyboard.addKey('G');
+        this.gKey.on('down', () => {
+            this.godMode = !this.godMode;
+            console.log('God mode:', this.godMode ? 'ON' : 'OFF');
+            
+            // Visual indicator
+            const godText = this.add.text(this.cameras.main.centerX, 100, 
+                this.godMode ? 'GOD MODE ON' : 'GOD MODE OFF', {
+                fontSize: '32px',
+                color: this.godMode ? '#00ff00' : '#ff0000',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 4
+            });
+            godText.setOrigin(0.5);
+            godText.setScrollFactor(0);
+            godText.setDepth(1000);
+            
+            this.tweens.add({
+                targets: godText,
+                alpha: 0,
+                duration: 2000,
+                ease: 'Power2',
+                onComplete: () => godText.destroy()
+            });
+        });
 
         // Controller mapping info - create this BEFORE using it
         this.controllerInfo = this.add.text(20, 100, '', {
@@ -4034,6 +4137,15 @@ class GameScene extends Phaser.Scene {
                     this.chargeSlots[i] = this.charges[i];
                 }
             }
+            
+            // CRITICAL: Force unpause before starting game
+            console.log('=== FORCING UNPAUSE BEFORE STARTGAME ===');
+            this.gamePaused = false;
+            this.pauseSource = null;
+            this.time.timeScale = 1;
+            this.physics.resume();
+            this.tweens.resumeAll();
+            
             // Don't call updateChargeUI here - UI hasn't been created yet
             this.startGame();
         }
@@ -4446,6 +4558,98 @@ class GameScene extends Phaser.Scene {
             this.startGame();
         }
     }
+    
+    showElementSelectionForChest(selectedElements) {
+        console.log('showElementSelectionForChest called with:', selectedElements);
+        this.pauseGame('chest');
+        
+        // Create a simple selection UI
+        const bg = this.add.rectangle(400, 300, 600, 400, 0x000000, 0.9);
+        bg.setScrollFactor(0);
+        bg.setDepth(20000);
+        bg.setStrokeStyle(3, 0xffd700);
+        
+        const title = this.add.text(400, 180, 'CHOOSE YOUR ELEMENT', {
+            fontSize: '32px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        });
+        title.setOrigin(0.5);
+        title.setScrollFactor(0);
+        title.setDepth(20001);
+        
+        // Create element buttons
+        const buttons = [];
+        selectedElements.forEach((element, index) => {
+            const x = 250 + index * 150;
+            const y = 300;
+            
+            const button = this.add.container(x, y);
+            button.setScrollFactor(0);
+            button.setDepth(20001);
+            
+            const btnBg = this.add.rectangle(0, 0, 120, 150, 0x333333, 0.8);
+            btnBg.setStrokeStyle(2, 0xffffff);
+            button.add(btnBg);
+            
+            // Add element icon
+            const elementConfig = this.elementConfig[element];
+            if (elementConfig) {
+                const icon = this.add.sprite(0, -30, elementConfig.sheet, elementConfig.frame);
+                icon.setScale(0.6);
+                button.add(icon);
+            }
+            
+            const name = this.add.text(0, 30, element.toUpperCase(), {
+                fontSize: '16px',
+                color: '#ffffff'
+            });
+            name.setOrigin(0.5);
+            button.add(name);
+            
+            // Make interactive
+            btnBg.setInteractive({ useHandCursor: true });
+            btnBg.on('pointerdown', () => {
+                // Add element to first available slot
+                let added = false;
+                for (let i = 0; i < 8; i++) {
+                    if (!this.chargeSlots[i]) {
+                        this.chargeSlots[i] = element;
+                        added = true;
+                        break;
+                    }
+                }
+                
+                if (!added) {
+                    // All slots full, add to pouch
+                    for (let i = 0; i < 4; i++) {
+                        if (!this.elementPouch[i]) {
+                            this.elementPouch[i] = element;
+                            added = true;
+                            break;
+                        }
+                    }
+                }
+                
+                // Update UI
+                this.updateChargeUI();
+                
+                // Clean up
+                bg.destroy();
+                title.destroy();
+                buttons.forEach(btn => btn.destroy());
+                
+                // Resume game
+                this.resumeGame('chest');
+                this.chestOpening = false;
+            });
+            
+            buttons.push(button);
+        });
+        
+        // Store UI elements for cleanup
+        this.chestRewardUI = { bg, title, buttons };
+    }
 
     updateElementSelectionHighlight() {
         // Update visual highlight for selected element
@@ -4811,6 +5015,118 @@ class GameScene extends Phaser.Scene {
         // Option to toggle indicators with a key
         this.toggleIndicatorsKey = this.input.keyboard.addKey('I');
         this.indicatorsVisible = true;
+        
+        // Initialize Hitbox Config
+        if (typeof hitboxConfig !== 'undefined') {
+            hitboxConfig.load();
+        }
+        
+        // Initialize Hitbox Editor
+        if (typeof HitboxEditor !== 'undefined') {
+            this.hitboxEditor = new HitboxEditor(this);
+            
+            // Debug mode toggle - B key
+            this.input.keyboard.on('keydown-B', () => {
+            // Toggle debug mode
+            const debugEnabled = localStorage.getItem('debugMode') === 'true';
+            const newDebugState = !debugEnabled;
+            localStorage.setItem('debugMode', newDebugState.toString());
+            
+            // Update physics debug
+            if (this.physics.world) {
+                this.physics.world.drawDebug = newDebugState;
+                if (!newDebugState && this.physics.world.debugGraphic) {
+                    // Clear debug graphics when turning off
+                    this.physics.world.debugGraphic.clear();
+                } else if (newDebugState && !this.physics.world.debugGraphic) {
+                    // Create debug graphics if it doesn't exist
+                    this.physics.world.createDebugGraphic();
+                }
+            }
+            
+            // Show feedback
+            const debugText = this.add.text(400, 50, `Debug Mode: ${newDebugState ? 'ON' : 'OFF'}`, {
+                fontSize: '20px',
+                color: newDebugState ? '#00ff00' : '#ff0000',
+                stroke: '#000000',
+                strokeThickness: 3
+            }).setOrigin(0.5);
+            debugText.setScrollFactor(0);
+            debugText.setDepth(1000);
+            
+            this.tweens.add({
+                targets: debugText,
+                alpha: 0,
+                duration: 1500,
+                onComplete: () => debugText.destroy()
+            });
+        });
+            
+            // H key to toggle editor
+            this.input.keyboard.on('keydown-H', () => {
+                if (!this.isPaused && !this.spellbookOpen && !this.chestSelectionActive && !this.fusionUI) {
+                    const enabled = this.hitboxEditor.toggle();
+                    
+                    // Show feedback
+                    const editorText = this.add.text(400, 100, `Hitbox Editor: ${enabled ? 'ON' : 'OFF'}`, {
+                        fontSize: '20px',
+                        color: enabled ? '#00ff00' : '#ff0000',
+                        stroke: '#000000',
+                        strokeThickness: 3
+                    }).setOrigin(0.5);
+                    editorText.setScrollFactor(0);
+                    editorText.setDepth(1000);
+                    
+                    this.tweens.add({
+                        targets: editorText,
+                        alpha: 0,
+                        duration: 1500,
+                        onComplete: () => editorText.destroy()
+                    });
+                    
+                    if (enabled) {
+                        // Make enemies clickable when editor is on
+                        this.enemies.children.entries.forEach(enemy => {
+                            if (enemy.active) {
+                                enemy.setInteractive({ useHandCursor: true });
+                                enemy.on('pointerdown', () => {
+                                    this.hitboxEditor.selectSprite(enemy);
+                                });
+                            }
+                        });
+                    } else {
+                        // Remove interactivity when editor is off
+                        this.enemies.children.entries.forEach(enemy => {
+                            enemy.removeInteractive();
+                            enemy.off('pointerdown');
+                        });
+                    }
+                }
+            });
+            
+            // Shift+H to export data
+            this.input.keyboard.on('keydown-H', (event) => {
+                if (event.shiftKey && this.hitboxEditor) {
+                    this.hitboxEditor.exportAllData();
+                    
+                    const exportText = this.add.text(400, 150, 'Hitbox data exported to console and clipboard!', {
+                        fontSize: '16px',
+                        color: '#ffff00',
+                        stroke: '#000000',
+                        strokeThickness: 3
+                    }).setOrigin(0.5);
+                    exportText.setScrollFactor(0);
+                    exportText.setDepth(1000);
+                    
+                    this.tweens.add({
+                        targets: exportText,
+                        alpha: 0,
+                        duration: 2000,
+                        onComplete: () => exportText.destroy()
+                    });
+                }
+            });
+        }
     }
 
     updatePlayerIndicators() {
@@ -5080,7 +5396,7 @@ class GameScene extends Phaser.Scene {
                         const pouchIndex = selectedSlot - 8;
                         discardedElement = this.elementPouch[pouchIndex];
                         this.elementPouch[pouchIndex] = this.pendingFusionElement;
-                        localStorage.setItem('elementPouch', JSON.stringify(this.elementPouch));
+                        // Don't save pouch to localStorage
                         
                         // Update UI
                         this.updateChargeUI();
@@ -5119,7 +5435,7 @@ class GameScene extends Phaser.Scene {
                             duration: 2000,
                             onComplete: () => {
                                 successText.destroy();
-                                this.physics.resume();
+                                this.resumeGame('chest');
                                 this.chestOpening = false;
                                 this.pendingFusionElement = null;
                                 
@@ -5461,6 +5777,21 @@ class GameScene extends Phaser.Scene {
 
 
     startGame() {
+        console.log('=== STARTGAME CALLED ===');
+        console.log('Current timeScale:', this.time.timeScale);
+        console.log('gamePaused:', this.gamePaused);
+        console.log('isPaused:', this.isPaused);
+        
+        // SAFETY: Force unpause if somehow still paused
+        if (this.time.timeScale === 0 || this.gamePaused) {
+            console.error('=== GAME WAS PAUSED AT STARTGAME! FORCING UNPAUSE ===');
+            this.gamePaused = false;
+            this.pauseSource = null;
+            this.time.timeScale = 1;
+            this.physics.resume();
+            this.tweens.resumeAll();
+        }
+        
         console.log('Game starting - enabling controls');
 
         // Enable player controls
@@ -5491,6 +5822,32 @@ class GameScene extends Phaser.Scene {
                 
             }
         });
+        
+        // CRITICAL: Add periodic checks for first 3 seconds to ensure game stays unpaused
+        let checkCount = 0;
+        const unpauseCheckInterval = setInterval(() => {
+            checkCount++;
+            
+            // Only check if no legitimate pause sources
+            if (!this.isPaused && !this.spellbookOpen && !this.chestSelectionActive && 
+                !this.fusionUI && (!this.hitboxEditor || !this.hitboxEditor.enabled)) {
+                
+                if (this.time.timeScale === 0 || this.gamePaused) {
+                    console.error(`=== GAME BECAME PAUSED! Check #${checkCount}, forcing unpause ===`);
+                    this.gamePaused = false;
+                    this.pauseSource = null;
+                    this.time.timeScale = 1;
+                    this.physics.resume();
+                    this.tweens.resumeAll();
+                }
+            }
+            
+            // Stop checking after 3 seconds (30 checks)
+            if (checkCount >= 30) {
+                clearInterval(unpauseCheckInterval);
+                console.log('=== Stopped periodic unpause checks ===');
+            }
+        }, 100); // Check every 100ms
     }
 
     getWaveDefinition(waveNumber) {
@@ -5874,6 +6231,36 @@ class GameScene extends Phaser.Scene {
         // Stop all updates if game has ended
         if (this.gameEnded) return;
         
+        // Debug: Check tween system status (disabled to reduce spam)
+        // Uncomment only when debugging tween issues
+        
+        // Emergency check: if time scale is 0 but game is not paused, fix it
+        if (this.time.timeScale === 0 && !this._timeScaleWarningShown) {
+            console.log('TimeScale is 0! Pause states:', {
+                gamePaused: this.gamePaused,
+                isPaused: this.isPaused,
+                spellbookOpen: this.spellbookOpen,
+                chestSelectionActive: this.chestSelectionActive,
+                pauseSource: this.pauseSource
+            });
+            this._timeScaleWarningShown = true; // Only show once
+        }
+        
+        // Clean up stuck damage texts periodically
+        if (this.activeDamageTexts && this.activeDamageTexts.length > 50) {
+            console.warn('Too many active damage texts, cleaning up old ones');
+            // Remove the oldest half
+            const toRemove = this.activeDamageTexts.splice(0, 25);
+            toRemove.forEach(({ text, tween }) => {
+                if (tween && tween.isPlaying()) {
+                    tween.stop();
+                }
+                if (text && text.active) {
+                    text.destroy();
+                }
+            });
+        }
+        
         // Note: We do NOT use physics.world.timeScale as it can cause issues
         // Instead, we manually scale velocities where needed
         
@@ -5889,8 +6276,8 @@ class GameScene extends Phaser.Scene {
             // Removed controller text
         }
 
-        // Update survival time (only when not paused, no menus open, and game started)
-        if (this.time.timeScale > 0 && !this.isPaused && !this.spellbookOpen && !this.chestSelectionActive && this.gameStarted) {
+        // Update survival time (only when not paused and game started)
+        if (!this.gamePaused && this.gameStarted) {
             this.survivalTime += delta * this.speedMultiplier;
         }
         
@@ -6197,6 +6584,11 @@ class GameScene extends Phaser.Scene {
 
 
         if (this.playerHealth <= 0) {
+            if (!this._healthWarningShown) {
+                console.error('UPDATE: Player health is 0 or less! Health:', this.playerHealth);
+                console.trace('Health check stack trace');
+                this._healthWarningShown = true;
+            }
             return;
         }
 
@@ -7160,6 +7552,11 @@ class GameScene extends Phaser.Scene {
                 }
             }
         });
+        
+        // Update hitbox editor if active
+        if (this.hitboxEditor && this.hitboxEditor.enabled) {
+            this.hitboxEditor.updateDisplay();
+        }
 
         // Update wizard health bar position
         this.updateWizardHealthBar();
@@ -7809,8 +8206,8 @@ class GameScene extends Phaser.Scene {
         
         // Initialize pouch if not exists
         if (!this.elementPouch) {
-            const savedPouch = localStorage.getItem('elementPouch');
-            this.elementPouch = savedPouch ? JSON.parse(savedPouch) : [null, null, null, null];
+            // Don't load pouch from localStorage - start fresh each game
+            this.elementPouch = [null, null, null, null];
         }
 
         // Create slots for charges (8) and pouch (4)
@@ -8041,17 +8438,82 @@ class GameScene extends Phaser.Scene {
         });
     }
 
+    // Centralized pause system
+    pauseGame(source = 'unknown') {
+        // Only log the FIRST pause to find the culprit
+        if (!this._firstPauseLogged) {
+            console.error('=== FIRST PAUSE GAME CALLED BY:', source, '===');
+            console.trace('First pause stack trace');
+            this._firstPauseLogged = true;
+        }
+        
+        if (this.gamePaused) {
+            // Don't log repeated pause attempts
+            return;
+        }
+        
+        this.gamePaused = true;
+        this.pauseSource = source;
+        console.log(`Game paused by: ${source}`);
+        
+        // Pause physics and timers
+        this.physics.pause();
+        this.time.timeScale = 0;
+        
+        // Don't pause tweens - we need them for UI animations
+        // this.tweens.pauseAll();
+        
+        // Store current time for survival timer
+        this.pauseStartTime = this.time.now;
+    }
+    
+    resumeGame(source = 'unknown') {
+        console.log(`resumeGame called by: ${source}, current state:`, {
+            gamePaused: this.gamePaused,
+            pauseSource: this.pauseSource,
+            timeScale: this.time.timeScale,
+            chestOpening: this.chestOpening,
+            chestSelectionActive: this.chestSelectionActive
+        });
+        
+        if (!this.gamePaused) {
+            console.log(`Game not paused. Attempted resume by: ${source}`);
+            return;
+        }
+        
+        if (this.pauseSource !== source && source !== 'force') {
+            console.log(`Resume blocked. Paused by: ${this.pauseSource}, Resume attempted by: ${source}`);
+            return;
+        }
+        
+        this.gamePaused = false;
+        this.pauseSource = null;
+        console.log(`Game resumed by: ${source}`);
+        
+        // Resume physics and timers
+        this.physics.resume();
+        this.time.timeScale = 1;
+        
+        // Don't need to resume tweens since we didn't pause them
+        // this.tweens.resumeAll();
+        
+        // Adjust survival time if needed
+        if (this.pauseStartTime) {
+            const pauseDuration = this.time.now - this.pauseStartTime;
+            // Survival time is already paused when timeScale is 0
+            this.pauseStartTime = null;
+        }
+    }
+    
     togglePause() {
         this.isPaused = !this.isPaused;
         this.pauseMenu.setVisible(this.isPaused);
 
         if (this.isPaused) {
+            this.pauseGame('pauseMenu');
             console.log('Pause menu opened');
             // Update pause menu display FIRST
             this.updatePauseMenuDisplay();
-            // Pause physics and all timers
-            this.physics.pause();
-            this.time.timeScale = 0;
             
             // Handle active boss laser
             if (this.activeBossLaser && this.activeBossLaser.active) {
@@ -8349,9 +8811,8 @@ class GameScene extends Phaser.Scene {
                 this.tempInteractiveElements = [];
             }
 
-            // Resume physics and timers
-            this.physics.resume();
-            this.time.timeScale = 1;
+            // Use centralized resume system
+            this.resumeGame('pauseMenu');
             
             // Resume active boss laser
             if (this.activeBossLaser && this.activeBossLaser.active) {
@@ -8820,7 +9281,7 @@ class GameScene extends Phaser.Scene {
         }
         
         // Save pouch state
-        localStorage.setItem('elementPouch', JSON.stringify(this.elementPouch));
+        // Don't save pouch to localStorage
         
         // Rebuild charges array from first 4 charge slots only
         this.charges = [];
@@ -9104,8 +9565,8 @@ class GameScene extends Phaser.Scene {
         
         // Initialize pouch if needed
         if (!this.elementPouch) {
-            const savedPouch = localStorage.getItem('elementPouch');
-            this.elementPouch = savedPouch ? JSON.parse(savedPouch) : [null, null, null, null];
+            // Don't load pouch from localStorage - start fresh each game
+            this.elementPouch = [null, null, null, null];
         }
         
         // Get source and target elements
@@ -9138,7 +9599,7 @@ class GameScene extends Phaser.Scene {
         }
         
         // Save pouch state
-        localStorage.setItem('elementPouch', JSON.stringify(this.elementPouch));
+        // Don't save pouch to localStorage
         
         // Rebuild charges array from first 4 chargeSlots
         this.charges = [];
@@ -9172,7 +9633,7 @@ class GameScene extends Phaser.Scene {
             } else {
                 this.elementPouch[index - 8] = null;
                 // Save pouch state
-                localStorage.setItem('elementPouch', JSON.stringify(this.elementPouch));
+                // Don't save pouch to localStorage
             }
             
             // Rebuild charges array from first 4 slots only
@@ -9649,9 +10110,8 @@ class GameScene extends Phaser.Scene {
         if (this.spellbookOpen) {
             // Update content when opening
             this.updateSpellbookText();
-            // Pause physics and all timers
-            this.physics.pause();
-            this.time.timeScale = 0;
+            // Use centralized pause system
+            this.pauseGame('spellbook');
 
             // Add mouse wheel scrolling
             if (!this.spellbookWheelHandler) {
@@ -9666,30 +10126,33 @@ class GameScene extends Phaser.Scene {
                 this.input.manager.canvas.addEventListener('wheel', this.spellbookWheelHandler);
             }
         } else {
-            // Resume physics and timers
-            this.physics.resume();
-            this.time.timeScale = 1;
+            // Use centralized resume system
+            this.resumeGame('spellbook');
         }
     }
 
 
     cleanupEnemyEffects(enemy) {
-        // Clean up poison timer if it exists
-        if (enemy.poisonTimer) {
-            enemy.poisonTimer.destroy();
-            enemy.poisonTimer = null;
-        }
-        
-        // Clean up burn timer if it exists
-        if (enemy.burnTimer) {
-            enemy.burnTimer.destroy();
-            enemy.burnTimer = null;
-        }
-        
-        // Clean up sun burn timer if it exists
-        if (enemy.sunBurnTick) {
-            enemy.sunBurnTick.destroy();
-            enemy.sunBurnTick = null;
+        try {
+            // Clean up poison timer if it exists
+            if (enemy.poisonTimer) {
+                enemy.poisonTimer.destroy();
+                enemy.poisonTimer = null;
+            }
+            
+            // Clean up burn timer if it exists
+            if (enemy.burnTimer) {
+                enemy.burnTimer.destroy();
+                enemy.burnTimer = null;
+            }
+            
+            // Clean up sun burn timer if it exists
+            if (enemy.sunBurnTick) {
+                enemy.sunBurnTick.destroy();
+                enemy.sunBurnTick = null;
+            }
+        } catch (error) {
+            console.error('Error cleaning up enemy timers:', error);
         }
         
         // Clear all status effects
@@ -9725,23 +10188,34 @@ class GameScene extends Phaser.Scene {
     }
 
     killEnemy(enemy) {
-        if (enemy.isDying) return;
+        if (!enemy || enemy.isDying) return;
         
-        // Immediately disable physics body to prevent any collision errors
-        if (enemy.body) {
-            enemy.body.enable = false;
-        }
-
-        enemy.isDying = true;
+        // Store position before any operations that might fail
         const enemyX = enemy.x;
         const enemyY = enemy.y;
         
-        // Clean up any active effects
-        this.cleanupEnemyEffects(enemy);
-        
-        // Handle boss death specially
-        if (enemy.isBoss) {
-            this.handleBossDeath(enemy);
+        try {
+            // Immediately disable physics body to prevent any collision errors
+            if (enemy.body) {
+                enemy.body.enable = false;
+            }
+
+            enemy.isDying = true;
+            
+            // Clean up any active effects
+            this.cleanupEnemyEffects(enemy);
+            
+            // Handle boss death specially
+            if (enemy.isBoss) {
+                this.handleBossDeath(enemy);
+                return;
+            }
+        } catch (error) {
+            console.error('Error in killEnemy:', error);
+            // Try to recover by destroying the enemy sprite
+            if (enemy && enemy.destroy) {
+                enemy.destroy();
+            }
             return;
         }
         
@@ -9816,22 +10290,26 @@ class GameScene extends Phaser.Scene {
             // Store generation for splitting
             const generation = enemy.generation || 0;
 
+            // Store position for use in callback
+            const deathX = enemyX;
+            const deathY = enemyY;
+            
             // Wait for animation to complete
             enemy.once('animationcomplete', () => {
                 // Only split if not already too small (max 2 splits)
                 if (generation < 2) {
                     // Drop chest if this is an elite's first split
                     if (enemy.isElite && generation === 0) {
-                        this.dropChest(enemyX, enemyY);
+                        this.dropChest(deathX, deathY);
                     }
 
                     // Spawn 2 smaller slimes
                     const offset = 20;
-                    this.spawnSplitSlime(enemyX - offset, enemyY, generation + 1, this.difficultyMultiplier);
-                    this.spawnSplitSlime(enemyX + offset, enemyY, generation + 1, this.difficultyMultiplier);
+                    this.spawnSplitSlime(deathX - offset, deathY, generation + 1, this.difficultyMultiplier);
+                    this.spawnSplitSlime(deathX + offset, deathY, generation + 1, this.difficultyMultiplier);
 
                     // Visual effect for splitting
-                    const splitEffect = this.add.circle(enemyX, enemyY, 20, 0x44ff44, 0.6);
+                    const splitEffect = this.add.circle(deathX, deathY, 20, 0x44ff44, 0.6);
                     splitEffect.setDepth(10);
                     this.tweens.add({
                         targets: splitEffect,
@@ -9845,19 +10323,19 @@ class GameScene extends Phaser.Scene {
                     const baseXP = 2;
                     const waveBonus = Math.floor(this.currentWave / 2); // +1 XP every 2 waves
                     const xpValue = baseXP + waveBonus;
-                    this.dropJewel(enemyX, enemyY, xpValue, 0.075);
+                    this.dropJewel(deathX, deathY, xpValue, 0.075);
 
                     // Item drop chances - now as standalone items
                     const dropRoll = Math.random();
                     if (dropRoll < 0.0125) {
                         // 1.25% chance to drop muffin
-                        this.dropStandaloneItem(enemyX, enemyY + 20, 'muffin');
+                        this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
                     } else if (dropRoll < 0.0175) {
                         // 0.5% chance to drop shield
-                        this.dropStandaloneItem(enemyX, enemyY + 20, 'shield');
+                        this.dropStandaloneItem(deathX, deathY + 20, 'shield');
                     } else if (dropRoll < 0.0225) {
                         // 0.5% chance to drop flamethrower
-                        this.dropStandaloneItem(enemyX, enemyY + 20, 'flamethrower');
+                        this.dropStandaloneItem(deathX, deathY + 20, 'flamethrower');
                     }
                 }
 
@@ -9877,6 +10355,10 @@ class GameScene extends Phaser.Scene {
                 enemy.body.enable = false;
             }
             
+            // Store position for use in callback
+            const deathX = enemyX;
+            const deathY = enemyY;
+            
             this.tweens.add({
                 targets: enemy,
                 alpha: 0,
@@ -9889,11 +10371,11 @@ class GameScene extends Phaser.Scene {
                     for (let i = 0; i < 3 + Math.floor(Math.random() * 3); i++) {
                         const offsetX = (Math.random() - 0.5) * 40;
                         const offsetY = (Math.random() - 0.5) * 40;
-                        this.dropJewel(enemyX + offsetX, enemyY + offsetY, xpValue, 0.075);
+                        this.dropJewel(deathX + offsetX, deathY + offsetY, xpValue, 0.075);
                     }
 
                     // Elite enemies always drop a reward chest
-                    this.dropRewardChest(enemyX, enemyY);
+                    this.dropRewardChest(deathX, deathY);
 
                     this.enemiesKilled.elite++;
                     // Ensure physics body is disabled before destroy
@@ -9917,6 +10399,10 @@ class GameScene extends Phaser.Scene {
 
             // Store if this is an elite golem
             const isEliteGolem = enemy.isEliteGolem;
+            
+            // Store position for use in callback
+            const deathX = enemyX;
+            const deathY = enemyY;
 
             // Wait for animation to complete
             enemy.once('animationcomplete', () => {
@@ -9929,31 +10415,31 @@ class GameScene extends Phaser.Scene {
                     for (let i = 0; i < 12; i++) { // Increased from 8 to 12 jewels
                         const offsetX = (Math.random() - 0.5) * 40;
                         const offsetY = (Math.random() - 0.5) * 40;
-                        this.dropJewel(enemyX + offsetX, enemyY + offsetY, xpValue, 0.10); // Scaled XP, larger size
+                        this.dropJewel(deathX + offsetX, deathY + offsetY, xpValue, 0.10); // Scaled XP, larger size
                     }
                 } else {
                     // Regular golem drops valuable gems - XP scales with wave
                     const baseXP = 4;
                     const waveBonus = Math.floor(this.currentWave / 2); // +1 XP every 2 waves
                     const xpValue = baseXP + waveBonus;
-                    this.dropJewel(enemyX, enemyY, xpValue, 0.09);
-                    this.dropJewel(enemyX + 20, enemyY, xpValue, 0.09);
+                    this.dropJewel(deathX, deathY, xpValue, 0.09);
+                    this.dropJewel(deathX + 20, deathY, xpValue, 0.09);
 
                     // Elements no longer drop from enemies
                     // const element = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
-                    // this.dropItemChest(enemyX, enemyY + 20, 'element', { element: element });
+                    // this.dropItemChest(deathX, deathY + 20, 'element', { element: element });
 
                     // Item drop chances - higher for golems, now as standalone items
                     const dropRoll = Math.random();
                     if (dropRoll < 0.075) {
                         // 7.5% chance to drop muffin
-                        this.dropStandaloneItem(enemyX, enemyY - 20, 'muffin');
+                        this.dropStandaloneItem(deathX, deathY - 20, 'muffin');
                     } else if (dropRoll < 0.085) {
                         // 1% chance to drop shield
-                        this.dropStandaloneItem(enemyX, enemyY - 20, 'shield');
+                        this.dropStandaloneItem(deathX, deathY - 20, 'shield');
                     } else if (dropRoll < 0.095) {
                         // 1% chance to drop flamethrower
-                        this.dropStandaloneItem(enemyX, enemyY - 20, 'flamethrower');
+                        this.dropStandaloneItem(deathX, deathY - 20, 'flamethrower');
                     }
                 }
 
@@ -9972,29 +10458,38 @@ class GameScene extends Phaser.Scene {
                 enemy.body.enable = false;
             }
             
+            // Store position for use in callback
+            const deathX = enemyX;
+            const deathY = enemyY;
+            
+            console.log('Creating enemy death tween for:', enemy.enemyType);
             this.tweens.add({
                 targets: enemy,
                 angle: 360,
                 alpha: 0,
                 duration: 300,
+                onStart: () => {
+                    console.log('Enemy death tween started');
+                },
                 onComplete: () => {
+                    console.log('Enemy death tween completed');
                     // Drop jewel - XP scales with wave
                     const baseXP = 2;
                     const waveBonus = Math.floor(this.currentWave / 2); // +1 XP every 2 waves
                     const xpValue = baseXP + waveBonus;
-                    this.dropJewel(enemyX, enemyY, xpValue, 0.075);
+                    this.dropJewel(deathX, deathY, xpValue, 0.075);
 
                     // Item drop chances - now as standalone items
                     const dropRoll = Math.random();
                     if (dropRoll < 0.0125) {
                         // 1.25% chance to drop muffin
-                        this.dropStandaloneItem(enemyX, enemyY + 20, 'muffin');
+                        this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
                     } else if (dropRoll < 0.0175) {
                         // 0.5% chance to drop shield
-                        this.dropStandaloneItem(enemyX, enemyY + 20, 'shield');
+                        this.dropStandaloneItem(deathX, deathY + 20, 'shield');
                     } else if (dropRoll < 0.0225) {
                         // 0.5% chance to drop flamethrower
-                        this.dropStandaloneItem(enemyX, enemyY + 20, 'flamethrower');
+                        this.dropStandaloneItem(deathX, deathY + 20, 'flamethrower');
                     }
 
                     // Trees no longer drop elements
@@ -10532,6 +11027,7 @@ class GameScene extends Phaser.Scene {
                         });
                     }
                     
+                    console.log('Player hit by projectile! Damage:', projectile.damage, 'Current health:', this.playerHealth);
                     this.playerHealth -= projectile.damage;
                     this.updateHealthBar();
                     this.updateWizardHealthBar();
@@ -10890,8 +11386,11 @@ class GameScene extends Phaser.Scene {
             enemy.moveSpeed = 50; // Reduced by 58% total (was 72)
             enemy.damage = 15; // Base enemy damage
             enemy.play('enemy-walking');
-            enemy.body.setSize(26, 39); // Widened by 30%
-            enemy.body.setOffset(3, 12); // Adjusted offset for wider hitbox
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(enemy, 'tree')) {
+                enemy.body.setSize(26, 39); // Widened by 30%
+                enemy.body.setOffset(3, 12); // Adjusted offset for wider hitbox
+            }
             this.setEnemyDepth(enemy); // Set initial depth
             this.enemies.add(enemy);
         } else if (enemyType === 'bat') {
@@ -10918,8 +11417,11 @@ class GameScene extends Phaser.Scene {
             } catch (e) {
                 console.warn('Failed to play bat flying animation:', e);
             }
-                bat.body.setSize(60, 40);
-                bat.body.setOffset(45, 55);
+                // Apply hitbox from config or use defaults
+                if (!this.applyHitboxConfig(bat, 'bat')) {
+                    bat.body.setSize(60, 40);
+                    bat.body.setOffset(45, 55);
+                }
                 bat.moveSpeed = 92; // Reduced by 44% total (was 132)
                 bat.isFlying = true; // Bats can fly over obstacles
                 bat.damage = 10; // Weak but fast enemy
@@ -11060,8 +11562,11 @@ class GameScene extends Phaser.Scene {
             sorcerer.moveSpeed = 38; // Reduced by 44% total (was 54)
             sorcerer.damage = 35; // Boss enemy high damage
             sorcerer.play('sorcerer-attack');
-            sorcerer.body.setSize(60, 80);
-            sorcerer.body.setOffset(10, 0);
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(sorcerer, 'sorcerer')) {
+                sorcerer.body.setSize(60, 80);
+                sorcerer.body.setOffset(10, 0);
+            }
             sorcerer.element = 'arcane'; // Powerful magic user
             sorcerer.attackRange = 250; // Long range attacks
             sorcerer.attackCooldown = 2500; // Attacks frequently
@@ -11167,29 +11672,90 @@ class GameScene extends Phaser.Scene {
         this.createEnemy(enemyType, x, y);
     }
 
+    applyHitboxConfig(enemy, enemyType) {
+        // Try to apply saved hitbox configuration
+        if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+            return hitboxConfig.applyHitbox(enemy, enemyType);
+        }
+        
+        // Also check localStorage directly
+        const savedData = localStorage.getItem('hitboxData');
+        if (savedData) {
+            try {
+                const hitboxData = JSON.parse(savedData);
+                const config = hitboxData[enemyType];
+                if (config) {
+                    enemy.body.setSize(config.width, config.height);
+                    enemy.body.setOffset(config.offsetX, config.offsetY);
+                    return true;
+                }
+            } catch (e) {
+                console.warn('Failed to apply hitbox from localStorage:', e);
+            }
+        }
+        
+        return false;
+    }
+    
+    applySavedScale(enemy, enemyType) {
+        // Try to apply saved scale data
+        const scaleData = localStorage.getItem('spriteScaleData');
+        if (scaleData) {
+            try {
+                const scales = JSON.parse(scaleData);
+                const scale = scales[enemyType];
+                if (scale) {
+                    enemy.setScale(scale.scaleX, scale.scaleY);
+                    console.log(`Applied saved scale for ${enemyType}: ${scale.scaleX}x${scale.scaleY}`);
+                    return true;
+                }
+            } catch (e) {
+                console.warn('Failed to apply scale from localStorage:', e);
+            }
+        }
+        return false;
+    }
+    
     createEnemy(enemyType, x, y) {
         if (enemyType === 'tree') {
             const enemy = this.physics.add.sprite(x, y, 'enemy-walk', 0);
-            const scaleFactor = 1.2;
-            enemy.setScale(scaleFactor);
+            enemy.enemyType = 'tree';
+            
+            // Apply saved scale or use default
+            if (!this.applySavedScale(enemy, 'tree')) {
+                const scaleFactor = 1.2;
+                enemy.setScale(scaleFactor);
+            }
+            
             enemy.health = 5; // Reduced by 50% from 9
             enemy.maxHealth = enemy.health;
-            enemy.enemyType = 'tree';
             enemy.moveSpeed = 50; // Reduced by 58% total (was 72)
             enemy.damage = 15; // Base enemy damage
             enemy.damage = 1; // Default damage
             enemy.play('enemy-walking');
-            enemy.body.setSize(26, 39);
-            enemy.body.setOffset(3, 12);
+            
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(enemy, 'tree')) {
+                enemy.body.setSize(26, 39);
+                enemy.body.setOffset(3, 12);
+            }
             this.enemies.add(enemy);
         } else if (enemyType === 'bat') {
             const bat = this.physics.add.sprite(x, y, 'bat-fly', 0);
-            bat.setScale(0.8);
+            bat.enemyType = 'bat';
+            
+            // Apply saved scale or use default
+            if (!this.applySavedScale(bat, 'bat')) {
+                bat.setScale(0.8);
+            }
+            
             bat.health = 2; // Increased by 50%
             bat.maxHealth = bat.health;
-            bat.enemyType = 'bat';
-            bat.body.setSize(60, 40);
-            bat.body.setOffset(45, 55);
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(bat, 'bat')) {
+                bat.body.setSize(60, 40);
+                bat.body.setOffset(45, 55);
+            }
             bat.moveSpeed = 92; // Reduced to match spawnEnemy
             bat.isFlying = true;
             this.enemies.add(bat);
@@ -11214,8 +11780,11 @@ class GameScene extends Phaser.Scene {
             mushroom.maxHealth = mushroom.health;
             mushroom.enemyType = 'mushroom';
             mushroom.moveSpeed = 59; // Reduced to match spawnEnemy
-            mushroom.body.setSize(80, 30);  // Adjusted height for smaller sprite
-            mushroom.body.setOffset(35, 8);  // Adjusted offset for smaller sprite
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(mushroom, 'mushroom')) {
+                mushroom.body.setSize(80, 30);  // Adjusted height for smaller sprite
+                mushroom.body.setOffset(35, 8);  // Adjusted offset for smaller sprite
+            }
             this.enemies.add(mushroom);
             
             // Play animation with safety check after all properties are set
@@ -11237,8 +11806,11 @@ class GameScene extends Phaser.Scene {
             fireworm.maxHealth = fireworm.health;
             fireworm.enemyType = 'fireworm';
             fireworm.moveSpeed = 76; // Reduced to match spawnEnemy
-            fireworm.body.setSize(70, 50);
-            fireworm.body.setOffset(10, 20);
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(fireworm, 'fireworm')) {
+                fireworm.body.setSize(70, 50);
+                fireworm.body.setOffset(10, 20);
+            }
             fireworm.element = 'fire';
             this.enemies.add(fireworm);
             
@@ -11262,8 +11834,11 @@ class GameScene extends Phaser.Scene {
             summoner.enemyType = 'summoner';
             summoner.moveSpeed = 25; // Reduced to match spawnEnemy
             summoner.play('summoner-walking');
-            summoner.body.setSize(80, 100);
-            summoner.body.setOffset(40, 20);
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(summoner, 'summoner')) {
+                summoner.body.setSize(80, 100);
+                summoner.body.setOffset(40, 20);
+            }
             summoner.lastSummonTime = 0;
             summoner.summonCooldown = 5000;
             summoner.isSummoning = false;
@@ -11276,8 +11851,11 @@ class GameScene extends Phaser.Scene {
             soul.enemyType = 'soul';
             soul.moveSpeed = 50; // Reduced to match spawnEnemy
             soul.play('soul-moving');
-            soul.body.setSize(60, 60);
-            soul.body.setOffset(18, 18);
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(soul, 'soul')) {
+                soul.body.setSize(60, 60);
+                soul.body.setOffset(18, 18);
+            }
             soul.isFlying = true;
             soul.attackRange = 150;
             soul.attackCooldown = 2000;
@@ -11294,8 +11872,11 @@ class GameScene extends Phaser.Scene {
             bloboid.enemyType = 'bloboid';
             bloboid.moveSpeed = 42; // Reduced to match spawnEnemy
             bloboid.play('bloboid-walking');
-            bloboid.body.setSize(50, 30);
-            bloboid.body.setOffset(15, 2);
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(bloboid, 'bloboid')) {
+                bloboid.body.setSize(50, 30);
+                bloboid.body.setOffset(15, 2);
+            }
             bloboid.element = 'earth';
             this.enemies.add(bloboid);
         } else if (enemyType === 'slime') {
@@ -11306,8 +11887,11 @@ class GameScene extends Phaser.Scene {
             slime.enemyType = 'slime';
             slime.moveSpeed = 38; // Reduced to match spawnEnemy
             slime.play('slime-idle');
-            slime.body.setSize(40, 40);
-            slime.body.setOffset(10, 10);
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(slime, 'slime')) {
+                slime.body.setSize(40, 40);
+                slime.body.setOffset(10, 10);
+            }
             slime.generation = 0;
             this.enemies.add(slime);
         } else if (enemyType === 'fireslime') {
@@ -11319,8 +11903,11 @@ class GameScene extends Phaser.Scene {
             slime.enemyType = 'fireslime';
             slime.moveSpeed = 38; // Reduced to match normal slime
             slime.play('slime-idle');
-            slime.body.setSize(40, 40);
-            slime.body.setOffset(10, 10);
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(slime, 'fireslime')) {
+                slime.body.setSize(40, 40);
+                slime.body.setOffset(10, 10);
+            }
             slime.generation = 0;
             slime.burnDamage = 2; // Applies burn on contact
             slime.burnDuration = 3000; // 3 seconds
@@ -11335,8 +11922,11 @@ class GameScene extends Phaser.Scene {
             golem.golemColor = golemColor;
             golem.moveSpeed = 34; // Reduced to match spawnEnemy
             golem.play(`golem-${golemColor}-walk`);
-            golem.body.setSize(60, 50);
-            golem.body.setOffset(15, 10);
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(golem, 'golem')) {
+                golem.body.setSize(60, 50);
+                golem.body.setOffset(15, 10);
+            }
             golem.element = golemColor === 'orange' ? 'fire' : 'water';
             this.enemies.add(golem);
         } else if (enemyType === 'orangegolem') {
@@ -11349,8 +11939,11 @@ class GameScene extends Phaser.Scene {
             golem.golemColor = 'orange';
             golem.moveSpeed = 34; // Reduced to match spawnEnemy
             golem.play('golem-orange-walk');
-            golem.body.setSize(60, 50);
-            golem.body.setOffset(15, 10);
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(golem, 'golem')) {
+                golem.body.setSize(60, 50);
+                golem.body.setOffset(15, 10);
+            }
             golem.element = 'fire';
             golem.burnDamage = 3; // Applies burn on contact
             golem.burnDuration = 2000; // 2 seconds
@@ -11365,8 +11958,11 @@ class GameScene extends Phaser.Scene {
             sorcerer.moveSpeed = 38; // Reduced by 44% total (was 54)
             sorcerer.damage = 35; // Boss enemy high damage
             sorcerer.play('sorcerer-attack');
-            sorcerer.body.setSize(60, 80);
-            sorcerer.body.setOffset(10, 0);
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(sorcerer, 'sorcerer')) {
+                sorcerer.body.setSize(60, 80);
+                sorcerer.body.setOffset(10, 0);
+            }
             sorcerer.element = 'arcane'; // Powerful magic user
             sorcerer.attackRange = 250; // Long range attacks
             sorcerer.attackCooldown = 2500; // Attacks frequently
@@ -11386,8 +11982,11 @@ class GameScene extends Phaser.Scene {
             imp.isReviving = false;
             imp.isElite = true;
             imp.play('club-imp-walk');
-            imp.body.setSize(30, 40);
-            imp.body.setOffset(15, 10);
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(imp, 'clubimp')) {
+                imp.body.setSize(30, 40);
+                imp.body.setOffset(15, 10);
+            }
             imp.element = 'earth';
             this.enemies.add(imp);
         } else if (enemyType === 'axeimp') {
@@ -11403,8 +12002,11 @@ class GameScene extends Phaser.Scene {
             imp.isReviving = false;
             imp.isElite = true;
             imp.play('axe-imp-walk');
-            imp.body.setSize(30, 40);
-            imp.body.setOffset(15, 10);
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(imp, 'axeimp')) {
+                imp.body.setSize(30, 40);
+                imp.body.setOffset(15, 10);
+            }
             imp.element = 'metal';
             this.enemies.add(imp);
         } else if (enemyType === 'kobold') {
@@ -11416,8 +12018,11 @@ class GameScene extends Phaser.Scene {
             kobold.moveSpeed = 60;
             kobold.damage = 15;
             kobold.play('kobold-walk');
-            kobold.body.setSize(80, 70);
-            kobold.body.setOffset(34, 13);
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(kobold, 'kobold')) {
+                kobold.body.setSize(80, 70);
+                kobold.body.setOffset(34, 13);
+            }
             kobold.element = 'earth';
             this.enemies.add(kobold);
         } else if (enemyType === 'darkbat') {
@@ -11429,8 +12034,11 @@ class GameScene extends Phaser.Scene {
             darkbat.moveSpeed = 100;
             darkbat.damage = 12;
             darkbat.play('dark-bat-fly');
-            darkbat.body.setSize(50, 40);
-            darkbat.body.setOffset(7, 12);
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(darkbat, 'darkbat')) {
+                darkbat.body.setSize(50, 40);
+                darkbat.body.setOffset(7, 12);
+            }
             darkbat.isFlying = true;
             darkbat.element = 'arcane';
             this.setEnemyDepth(darkbat);
@@ -11445,8 +12053,11 @@ class GameScene extends Phaser.Scene {
             demon.moveSpeed = 70;
             demon.damage = 20;
             demon.play('flying-demon-fly');
-            demon.body.setSize(50, 40);
-            demon.body.setOffset(7, 12);
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(demon, 'flyingdemon')) {
+                demon.body.setSize(50, 40);
+                demon.body.setOffset(7, 12);
+            }
             demon.isFlying = true;
             demon.element = 'fire';
             demon.burnDamage = 2;
@@ -11939,7 +12550,7 @@ class GameScene extends Phaser.Scene {
 
     hitEnemy(wizard, enemy) {
         // Check if player is invulnerable, dead, or game is paused/in chest selection
-        if (this.invulnerable || this.isPaused || this.chestSelectionActive || this.playerHealth <= 0) return;
+        if (this.invulnerable || this.godMode || this.isPaused || this.chestSelectionActive || this.playerHealth <= 0) return;
         
         // Check if enemy is hexed (deals no damage)
         if (enemy.isHexed) {
@@ -11980,6 +12591,7 @@ class GameScene extends Phaser.Scene {
 
         // Don't destroy enemy on contact, just damage player
         const damage = enemy.damage || 10; // Use enemy's damage value or default to 10
+        console.log('Player taking damage:', damage, 'Current health:', this.playerHealth, '-> New health:', this.playerHealth - damage);
         this.playerHealth -= damage;
         this.updateHealthBar();
         this.updateWizardHealthBar();
@@ -12066,6 +12678,7 @@ class GameScene extends Phaser.Scene {
             // Wait for death animation to complete
             this.wizard.once('animationcomplete', () => {
                 // Clear any pending timers before changing scene
+                console.error('WIZARD DEATH: Killing all tweens!');
                 this.time.removeAllEvents();
                 this.tweens.killAll();
                 this.scene.start('GameOverScene', {
@@ -12165,6 +12778,7 @@ class GameScene extends Phaser.Scene {
             // Wait for death animation to complete
             this.wizard.once('animationcomplete', () => {
                 // Clear any pending timers before changing scene
+                console.error('WIZARD DEATH: Killing all tweens!');
                 this.time.removeAllEvents();
                 this.tweens.killAll();
                 this.scene.start('GameOverScene', {
@@ -12192,7 +12806,8 @@ class GameScene extends Phaser.Scene {
             delay: tickInterval,
             callback: () => {
                 if (this.playerHealth > 0 && !this.isPaused && !this.chestSelectionActive) {
-                    this.playerHealth -= damage;
+                    console.log('Player taking damage:', damage, 'Current health:', this.playerHealth, '-> New health:', this.playerHealth - damage);
+        this.playerHealth -= damage;
                     this.updateHealthBar();
                     this.updateWizardHealthBar();
                     
@@ -12221,6 +12836,7 @@ class GameScene extends Phaser.Scene {
                         this.wizard.play('wizard-death');
                         this.wizard.setVelocity(0, 0);
                         this.wizard.once('animationcomplete', () => {
+                            console.error('WIZARD DEATH FROM SPAWN ENEMY: Killing all tweens!');
                             this.time.removeAllEvents();
                             this.tweens.killAll();
                             this.scene.start('GameOverScene', {
@@ -12365,32 +12981,69 @@ class GameScene extends Phaser.Scene {
     }
     
     showDamageNumber(x, y, damage, color = '#ffff00') {
-        const damageText = this.add.text(x, y, damage.toString(), {
-            fontSize: '24px',
-            color: color,
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 4
-        });
-        damageText.setOrigin(0.5);
-        damageText.setDepth(150);
+        try {
+            // Don't create damage numbers if game is paused or ending
+            if (this.gamePaused || this.gameEnded) return;
+            
+            const damageText = this.add.text(x, y, damage.toString(), {
+                fontSize: '24px',
+                color: color,
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 4
+            });
+            damageText.setOrigin(0.5);
+            damageText.setDepth(150);
 
-        // Animate floating up and fading out
-        this.tweens.add({
-            targets: damageText,
-            y: y - 50,
-            alpha: 0,
-            duration: 1000,
-            ease: 'Power2',
-            onComplete: () => {
-                damageText.destroy();
+            // Debug disabled - tween system is working
+
+            // Animate floating up and fading out
+            const tween = this.tweens.add({
+                targets: damageText,
+                y: y - 50,
+                alpha: 0,
+                duration: 1000,
+                ease: 'Power2',
+                onComplete: () => {
+                    console.log('Damage text tween completed');
+                    if (damageText && damageText.active) {
+                        damageText.destroy();
+                    }
+                },
+                onUpdate: () => {
+                    // Check if tween is actually updating
+                    if (!tween._updateCount) tween._updateCount = 0;
+                    tween._updateCount++;
+                    if (tween._updateCount === 1) {
+                        console.log('Damage text tween is updating');
+                    }
+                }
+            });
+            
+            // Store reference for cleanup
+            if (!this.activeDamageTexts) {
+                this.activeDamageTexts = [];
             }
-        });
+            this.activeDamageTexts.push({ text: damageText, tween: tween });
+            
+        } catch (error) {
+            console.error('Error showing damage number:', error);
+        }
     }
 
     projectileHitEnemy(projectile, enemy) {
-        // Extra safety check for projectile validity
-        if (!projectile || !projectile.active || !projectile.body || !projectile.body.enable || projectile.isDestroying) {
+        try {
+            // Extra safety check for projectile validity
+            if (!projectile || !projectile.active || !projectile.body || !projectile.body.enable || projectile.isDestroying) {
+                return;
+            }
+            
+            // Extra safety check for enemy validity
+            if (!enemy || !enemy.active || !enemy.body || enemy.isDying) {
+                return;
+            }
+        } catch (error) {
+            console.error('Error in projectileHitEnemy validation:', error);
             return;
         }
         
@@ -12438,11 +13091,8 @@ class GameScene extends Phaser.Scene {
             
             // Destroy non-piercing projectiles
             if (!projectile.isPiercing && !projectile.passThroughEnemies) {
-                // Disable physics body before destroying
-                if (projectile.body) {
-                    projectile.body.enable = false;
-                }
-                projectile.destroy();
+                // Use safe destroy method to clean up particles and timers
+                this.safeDestroyProjectile(projectile);
             }
             return;
         }
@@ -12991,19 +13641,30 @@ class GameScene extends Phaser.Scene {
                     projectile.bounceCount--;
                     projectile.currentTarget = nextTarget;
                     this.setLightningOrbVelocity(projectile, nextTarget);
+                    
+                    // Clear the processing flag so the orb can continue updating
+                    projectile.beingProcessed = false;
 
                     // Visual trail effect
-                    const trail = this.add.sprite(projectile.x, projectile.y, 'lightning-spell');
-                    trail.setScale(0.5);
-                    trail.setAlpha(0.5);
-                    trail.setDepth(19);
-                    this.tweens.add({
-                        targets: trail,
-                        alpha: 0,
-                        scale: 0,
-                        duration: 200,
-                        onComplete: () => trail.destroy()
-                    });
+                    try {
+                        const trail = this.add.sprite(projectile.x, projectile.y, 'lightning-spell');
+                        trail.setScale(0.5);
+                        trail.setAlpha(0.5);
+                        trail.setDepth(19);
+                        this.tweens.add({
+                            targets: trail,
+                            alpha: 0,
+                            scale: 0,
+                            duration: 200,
+                            onComplete: () => {
+                                if (trail && trail.active) {
+                                    trail.destroy();
+                                }
+                            }
+                        });
+                    } catch (e) {
+                        console.warn('Error creating lightning trail effect:', e);
+                    }
                 } else {
                     // No more targets, destroy orb
                     this.safeDestroyProjectile(projectile);
@@ -13022,11 +13683,8 @@ class GameScene extends Phaser.Scene {
         
         // Destroy projectile unless it's a piercing type or pass-through type
         if (!projectile.isPiercing && !projectile.passThroughEnemies) {
-            // Disable physics body before destroying
-            if (projectile.body) {
-                projectile.body.enable = false;
-            }
-            projectile.destroy();
+            // Use safe destroy method to clean up particles and timers
+            this.safeDestroyProjectile(projectile);
         }
     }
 
@@ -13525,7 +14183,10 @@ class GameScene extends Phaser.Scene {
             }
 
             // Show chest reward selection directly on level up
-            this.openChest(wizard, null);
+            // BUT NOT if we're already in a chest selection (e.g., got level up FROM a chest)
+            if (!this.chestSelectionActive && !this.chestOpening) {
+                this.openChest(wizard, null);
+            }
 
             // Spawn a sorcerer every 2 levels (2, 4, 6, etc.)
             if (this.playerLevel % 2 === 0) {
@@ -20937,12 +21598,58 @@ class GameScene extends Phaser.Scene {
             chest.sparkles.destroy();
         }
         
-        // Possible rewards
+        // Count total elements across all slots (active, passive, and pouch)
+        let totalElements = 0;
+        
+        // Count elements in charge slots (active + passive)
+        if (this.chargeSlots && Array.isArray(this.chargeSlots)) {
+            console.log('Checking chargeSlots:', this.chargeSlots);
+            for (let i = 0; i < 8; i++) {
+                const slot = this.chargeSlots[i];
+                console.log(`Slot ${i}: value="${slot}", type=${typeof slot}, truthy=${!!slot}`);
+                if (slot && slot !== 'none' && slot !== null) {
+                    console.log(`Slot ${i} has element:`, slot);
+                    totalElements++;
+                }
+            }
+        } else if (this.charges && Array.isArray(this.charges)) {
+            // Fallback to charges array if chargeSlots not initialized
+            console.log('Using charges array:', this.charges);
+            totalElements += this.charges.length;
+        }
+        
+        // Count elements in pouch
+        if (this.elementPouch && Array.isArray(this.elementPouch)) {
+            console.log('Checking elementPouch:', this.elementPouch);
+            for (let i = 0; i < 4; i++) {
+                if (this.elementPouch[i] && this.elementPouch[i] !== 'none' && this.elementPouch[i] !== null) {
+                    console.log(`Pouch ${i} has element:`, this.elementPouch[i]);
+                    totalElements++;
+                }
+            }
+        }
+        
+        console.log('Reward chest - Total elements counted:', totalElements);
+        
+        // Build rewards array based on what player can use
         const rewards = [
-            { type: 'levelup', icon: '⬆️', name: 'LEVEL UP', color: 0x44ff44 },
-            { type: 'element_upgrade', icon: '⚡', name: 'ELEMENT UPGRADE', color: 0x4444ff },
-            { type: 'fusion', icon: '🔮', name: 'FUSION ELEMENT', color: 0xff44ff }
+            { type: 'levelup', icon: '⬆️', name: 'LEVEL UP', color: 0x44ff44 }
         ];
+        
+        // Only offer element_upgrade if player has at least 1 element
+        if (totalElements > 0) {
+            rewards.push({ type: 'element_upgrade', icon: '⚡', name: 'ELEMENT UPGRADE', color: 0x4444ff });
+        }
+        
+        // Only offer fusion if player has at least 2 elements
+        if (totalElements >= 2) {
+            rewards.push({ type: 'fusion', icon: '🔮', name: 'FUSION ELEMENT', color: 0xff44ff });
+        }
+        
+        // If no elements, add an element selection reward instead
+        if (totalElements === 0) {
+            rewards.push({ type: 'element', icon: '✨', name: 'PRIMARY ELEMENT', color: 0x4444ff });
+        }
         
         // Randomly determine the reward immediately
         const finalReward = rewards[Math.floor(Math.random() * rewards.length)];
@@ -21076,8 +21783,9 @@ class GameScene extends Phaser.Scene {
     }
     
     handleSlotMachineReward(reward, chest) {
-        // Pause physics
-        this.physics.pause();
+        console.log('handleSlotMachineReward called with reward:', reward);
+        // Don't pause physics again - it's already paused from chest opening
+        // this.physics.pause();
         
         switch(reward.type) {
             case 'levelup':
@@ -21135,7 +21843,7 @@ class GameScene extends Phaser.Scene {
                     this.spawnLevelUpGolem();
                 }
                 
-                // Show level up effect
+                // Show simple level up text
                 const levelUpText = this.add.text(400, 300, 'LEVEL UP!', {
                     fontSize: '48px',
                     color: '#ffdd44',
@@ -21147,23 +21855,21 @@ class GameScene extends Phaser.Scene {
                 levelUpText.setScrollFactor(0);
                 levelUpText.setDepth(20010);
                 
-                this.tweens.add({
-                    targets: levelUpText,
-                    scale: { from: 0, to: 1.5 },
-                    alpha: { from: 1, to: 0 },
-                    duration: 2000,
-                    ease: 'Cubic.easeOut',
-                    onComplete: () => {
+                // Use setTimeout instead of Phaser timer to ensure it runs
+                console.log('Setting up level up timer to resume in 2 seconds');
+                setTimeout(() => {
+                    console.log('Level up timer fired - attempting to resume game');
+                    if (levelUpText && levelUpText.active) {
                         levelUpText.destroy();
-                        this.physics.resume();
-                        this.chestOpening = false;
-                        
-                        // Resume boss AI timer if it exists
-                        if (this.bossAITimer) {
-                            this.bossAITimer.paused = false;
-                        }
                     }
-                });
+                    this.resumeGame('chest');
+                    this.chestOpening = false;
+                    
+                    // Resume boss AI timer if it exists
+                    if (this.bossAITimer) {
+                        this.bossAITimer.paused = false;
+                    }
+                }, 2000);
                 break;
                 
             case 'element_upgrade':
@@ -21175,12 +21881,45 @@ class GameScene extends Phaser.Scene {
                 // Give a random fusion element
                 this.giveRandomFusionElement();
                 break;
+                
+            case 'element':
+                // Show element selection UI
+                this.resumeGame('chest');
+                this.chestOpening = false;
+                
+                // Close the reward chest UI
+                const ui = this.scene.get('GameScene')?.children?.getByName?.('rewardChestUI');
+                if (ui) ui.destroy();
+                
+                // Show element selection
+                const primaryElements = ['fire', 'water', 'earth', 'air', 'lightning', 'arcane', 'poison'];
+                const selectedElements = [];
+                
+                // Select 3 random primary elements
+                while (selectedElements.length < 3) {
+                    const elem = primaryElements[Math.floor(Math.random() * primaryElements.length)];
+                    if (!selectedElements.includes(elem)) {
+                        selectedElements.push(elem);
+                    }
+                }
+                
+                // Show the element selection UI
+                this.showElementSelectionForChest(selectedElements);
+                break;
+                
+            default:
+                console.warn('Unknown reward type:', reward.type);
+                // Make sure to resume game for unknown reward types
+                this.resumeGame('chest');
+                this.chestOpening = false;
+                break;
         }
     }
     
     showElementUpgradeUI() {
         console.log('showElementUpgradeUI called - creating element upgrade UI');
-        this.physics.pause();
+        // Don't pause physics again - it's already paused from chest opening
+        // this.physics.pause();
         this.chestOpening = true;
         
         // Get current elements in charge slots (only first 8 slots, not pouch)
@@ -21197,16 +21936,17 @@ class GameScene extends Phaser.Scene {
             noElementsText.setScrollFactor(0);
             noElementsText.setDepth(20002);
             
-            this.time.delayedCall(2000, () => {
+            // Use setTimeout to ensure it runs
+            setTimeout(() => {
                 noElementsText.destroy();
-                this.physics.resume();
+                this.resumeGame('chest');
                 this.chestOpening = false;
                 
                 // Resume boss AI timer if it exists
                 if (this.bossAITimer) {
                     this.bossAITimer.paused = false;
                 }
-            });
+            }, 2000);
             return;
         }
         
@@ -21318,23 +22058,28 @@ class GameScene extends Phaser.Scene {
                     upgradeText.setScrollFactor(0);
                     upgradeText.setDepth(922);
                     
+                    // Start fade animation
                     this.tweens.add({
                         targets: upgradeText,
                         scale: { from: 0, to: 1.5 },
                         alpha: { from: 1, to: 0 },
                         duration: 2000,
-                        ease: 'Cubic.easeOut',
-                        onComplete: () => {
-                            upgradeText.destroy();
-                            this.physics.resume();
-                            this.chestOpening = false;
-                            
-                            // Resume boss AI timer if it exists
-                            if (this.bossAITimer) {
-                                this.bossAITimer.paused = false;
-                            }
-                        }
+                        ease: 'Cubic.easeOut'
                     });
+                    
+                    // Use setTimeout for cleanup and resume
+                    setTimeout(() => {
+                        if (upgradeText && upgradeText.active) {
+                            upgradeText.destroy();
+                        }
+                        this.resumeGame('chest');
+                        this.chestOpening = false;
+                        
+                        // Resume boss AI timer if it exists
+                        if (this.bossAITimer) {
+                            this.bossAITimer.paused = false;
+                        }
+                    }, 2000);
                     
                     // Reset state
                     this.elementUpgradeSelectionActive = false;
@@ -21389,18 +22134,23 @@ class GameScene extends Phaser.Scene {
                         upgradeText.setScrollFactor(0);
                         upgradeText.setDepth(922);
                         
+                        // Start fade animation
                         this.tweens.add({
                             targets: upgradeText,
                             scale: { from: 0, to: 1.5 },
                             alpha: { from: 1, to: 0 },
                             duration: 2000,
-                            ease: 'Cubic.easeOut',
-                            onComplete: () => {
-                                upgradeText.destroy();
-                                this.physics.resume();
-                                this.chestOpening = false;
-                            }
+                            ease: 'Cubic.easeOut'
                         });
+                        
+                        // Use setTimeout for cleanup and resume
+                        setTimeout(() => {
+                            if (upgradeText && upgradeText.active) {
+                                upgradeText.destroy();
+                            }
+                            this.resumeGame('chest');
+                            this.chestOpening = false;
+                        }, 2000);
                         
                         // Reset state
                         this.elementUpgradeSelectionActive = false;
@@ -21542,18 +22292,23 @@ class GameScene extends Phaser.Scene {
                 upgradeText.setScrollFactor(0);
                 upgradeText.setDepth(922);
                 
+                // Start fade animation
                 this.tweens.add({
                     targets: upgradeText,
                     scale: { from: 0, to: 1.5 },
                     alpha: { from: 1, to: 0 },
                     duration: 2000,
-                    ease: 'Cubic.easeOut',
-                    onComplete: () => {
-                        upgradeText.destroy();
-                        this.physics.resume();
-                        this.chestOpening = false;
-                    }
+                    ease: 'Cubic.easeOut'
                 });
+                
+                // Use setTimeout for cleanup and resume
+                setTimeout(() => {
+                    if (upgradeText && upgradeText.active) {
+                        upgradeText.destroy();
+                    }
+                    this.resumeGame('chest');
+                    this.chestOpening = false;
+                }, 2000);
                 
                 // Reset state
                 this.elementUpgradeSelectionActive = false;
@@ -21634,7 +22389,7 @@ class GameScene extends Phaser.Scene {
         if (!added) {
             // This shouldn't happen if chargesFull check is working
             console.error('Failed to add element despite chargesFull being false');
-            this.physics.resume();
+            this.resumeGame('chest');
             this.chestOpening = false;
             return;
         }
@@ -21642,76 +22397,27 @@ class GameScene extends Phaser.Scene {
         // Update UI
         this.updateChargeUI();
         
-        // Show the element gained
-        const bg = this.add.rectangle(400, 300, 500, 400, 0x000000, 0.95);
-        bg.setScrollFactor(0);
-        bg.setDepth(20000);
-        
-        const title = this.add.text(400, 150, 'FUSION ELEMENT ACQUIRED!', {
-            fontSize: '28px',
+        // Show simple notification text instead of complex UI
+        const fusionText = this.add.text(400, 300, `FUSION ELEMENT ACQUIRED!\n${randomElement.toUpperCase()}`, {
+            fontSize: '32px',
             color: '#ff44ff',
             fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 4
+            strokeThickness: 4,
+            align: 'center'
         });
-        title.setOrigin(0.5);
-        title.setScrollFactor(0);
-        title.setDepth(20001);
+        fusionText.setOrigin(0.5);
+        fusionText.setScrollFactor(0);
+        fusionText.setDepth(20010);
         
-        // Get element config with safety check
-        const elementData = this.elementConfig[randomElement];
-        if (!elementData) {
-            console.error(`Element config not found for: ${randomElement}`);
-            this.physics.resume();
+        // Use setTimeout to ensure it runs
+        setTimeout(() => {
+            if (fusionText && fusionText.active) {
+                fusionText.destroy();
+            }
+            this.resumeGame('chest');
             this.chestOpening = false;
-            return;
-        }
-        
-        // Create element icon sprite
-        const elementIcon = elementData.isImage 
-            ? this.add.image(400, 250, elementData.sheet)
-            : this.add.image(400, 250, elementData.sheet, elementData.frame);
-        elementIcon.setScale(0.3); // Scale for visibility
-        elementIcon.setOrigin(0.5);
-        elementIcon.setScrollFactor(0);
-        elementIcon.setDepth(20002);
-        
-        const elementName = this.add.text(400, 320, randomElement.toUpperCase(), {
-            fontSize: '36px',
-            color: elementData.color || '#ffffff',
-            fontStyle: 'bold'
-        });
-        elementName.setOrigin(0.5);
-        elementName.setScrollFactor(0);
-        elementName.setDepth(20002);
-        
-        const description = this.add.text(400, 370, this.getElementDescription(randomElement), {
-            fontSize: '18px',
-            color: '#cccccc',
-            align: 'center',
-            wordWrap: { width: 400 }
-        });
-        description.setOrigin(0.5);
-        description.setScrollFactor(0);
-        description.setDepth(20002);
-        
-        // Auto close after delay
-        this.time.delayedCall(3000, () => {
-            this.tweens.add({
-                targets: [bg, title, elementIcon, elementName, description],
-                alpha: 0,
-                duration: 500,
-                onComplete: () => {
-                    bg.destroy();
-                    title.destroy();
-                    elementIcon.destroy();
-                    elementName.destroy();
-                    description.destroy();
-                    this.physics.resume();
-                    this.chestOpening = false;
-                }
-            });
-        });
+        }, 2000);
     }
     
     showFusionElementDiscardDialog(fusionElement) {
@@ -21934,7 +22640,7 @@ class GameScene extends Phaser.Scene {
                 const pouchIndex = selectedSlot - 8;
                 discardedElement = this.elementPouch[pouchIndex];
                 this.elementPouch[pouchIndex] = this.pendingFusionElement;
-                localStorage.setItem('elementPouch', JSON.stringify(this.elementPouch));
+                // Don't save pouch to localStorage
             }
             
             // Rebuild charges array
@@ -22521,8 +23227,8 @@ class GameScene extends Phaser.Scene {
         }
         this.chestOpening = true;
         
-        // Pause physics immediately
-        this.physics.pause();
+        // Use centralized pause system
+        this.pauseGame('chest');
         
         // Pause boss AI timer if it exists
         if (this.bossAITimer) {
@@ -22560,6 +23266,18 @@ class GameScene extends Phaser.Scene {
     }
 
     showChestRewards(chest) {
+        // Initialize arrays if they don't exist
+        if (!this.charges) {
+            this.charges = [];
+        }
+        if (!this.chargeSlots) {
+            this.chargeSlots = new Array(8).fill(null);
+        }
+        if (!this.elementPouch) {
+            // Don't load pouch from localStorage - start fresh each game
+            this.elementPouch = [null, null, null, null];
+        }
+        
         // Trigger level up reward event if this is from a level up (chest is null)
         if (!chest) {
             // Fire level up reward event
@@ -22573,6 +23291,11 @@ class GameScene extends Phaser.Scene {
         this.chestCursorIndex = 0;
         this.chestRewardType = null;
         console.log('Opening chest, cursor index set to:', this.chestCursorIndex);
+        
+        // Pause game if not already paused
+        if (!this.gamePaused) {
+            this.pauseGame('chest');
+        }
 
         // Initialize gameStarted if not set (for debugging)
         if (this.gameStarted === undefined) {
@@ -22628,6 +23351,51 @@ class GameScene extends Phaser.Scene {
             });
         } else {
             // Normal level up rewards
+            
+            // Count total elements across all slots (active, passive, and pouch)
+            let totalElements = 0;
+            
+            // Count elements in charge slots (active + passive)
+            if (this.chargeSlots && Array.isArray(this.chargeSlots)) {
+                for (let i = 0; i < 8; i++) {
+                    if (this.chargeSlots[i] && this.chargeSlots[i] !== 'none' && this.chargeSlots[i] !== null) totalElements++;
+                }
+            } else if (this.charges && Array.isArray(this.charges)) {
+                // Fallback to charges array if chargeSlots not initialized
+                totalElements += this.charges.length;
+            }
+            
+            // Count elements in pouch
+            if (this.elementPouch && Array.isArray(this.elementPouch)) {
+                for (let i = 0; i < 4; i++) {
+                    if (this.elementPouch[i] && this.elementPouch[i] !== 'none' && this.elementPouch[i] !== null) totalElements++;
+                }
+            }
+            
+            console.log('Chest reward selection - Total elements counted:', totalElements);
+            
+            // Check if player has any elements for fusion (need at least 2)
+            const hasEnoughElementsForFusion = totalElements >= 2;
+            
+            // If player doesn't have enough elements for fusion, replace fusion with another element reward
+            const thirdReward = hasEnoughElementsForFusion ? 
+                {
+                    type: 'fusion',
+                    title: 'FUSION RITUAL',
+                    icon: '🔮',
+                    iconImage: 'fusion-icon',
+                    description: 'Combine 2 elements into a new one',
+                    color: 0xff44ff
+                } :
+                {
+                    type: 'element',
+                    title: 'PRIMARY ELEMENT',
+                    icon: '⚡',
+                    iconImage: 'element-select-icon',
+                    description: 'Choose from 3 primary elements',
+                    color: 0x4444ff
+                };
+            
             rewardTypes = [
                 {
                     type: 'meditate',
@@ -22645,14 +23413,7 @@ class GameScene extends Phaser.Scene {
                     description: 'Choose from 3 primary elements',
                     color: 0x4444ff
                 },
-                {
-                    type: 'fusion',
-                    title: 'FUSION RITUAL',
-                    icon: '🔮',
-                    iconImage: 'fusion-icon',
-                    description: 'Combine 2 elements into a new one',
-                    color: 0xff44ff
-                }
+                thirdReward
             ];
         }
 
@@ -22759,7 +23520,15 @@ class GameScene extends Phaser.Scene {
             // Clear the chest UI reference but keep chest selection active
             this.chestUI = null;
         }
+        
+        // Ensure chestSelectionActive remains true during reward selection
+        this.chestSelectionActive = true;
 
+        // Ensure the game stays paused during reward selection
+        if (!this.gamePaused) {
+            this.pauseGame('chest');
+        }
+        
         if (rewardType === 'meditate') {
             console.log('Meditate reward selected - showing meditate UI');
             this.showMeditateReward();
@@ -22803,10 +23572,15 @@ class GameScene extends Phaser.Scene {
             message.setScrollFactor(0);
             message.setDepth(210);
 
-            this.time.delayedCall(2000, () => {
+            const allLinksTimer = this.time.delayedCall(2000, () => {
                 message.destroy();
                 this.closeChestUI();
             });
+            
+            // Ensure timer runs even if game is paused
+            if (allLinksTimer) {
+                allLinksTimer.paused = false;
+            }
             return;
         }
 
@@ -22833,10 +23607,15 @@ class GameScene extends Phaser.Scene {
             message.setScrollFactor(0);
             message.setDepth(210);
 
-            this.time.delayedCall(2000, () => {
+            const linkAddedTimer = this.time.delayedCall(2000, () => {
                 message.destroy();
                 this.closeChestUI();
             });
+            
+            // Ensure timer runs even if game is paused
+            if (linkAddedTimer) {
+                linkAddedTimer.paused = false;
+            }
 
             // Update charge groups
             this.updateChargeGroups();
@@ -22850,10 +23629,15 @@ class GameScene extends Phaser.Scene {
             message.setScrollFactor(0);
             message.setDepth(210);
 
-            this.time.delayedCall(2000, () => {
+            const noLinksTimer = this.time.delayedCall(2000, () => {
                 message.destroy();
                 this.closeChestUI();
             });
+            
+            // Ensure timer runs even if game is paused
+            if (noLinksTimer) {
+                noLinksTimer.paused = false;
+            }
         }
     }
 
@@ -23065,10 +23849,15 @@ class GameScene extends Phaser.Scene {
                 message.setScrollFactor(0);
                 message.setDepth(210);
 
-                this.time.delayedCall(2000, () => {
+                const damageTimer = this.time.delayedCall(2000, () => {
                     message.destroy();
                     this.closeChestUI();
                 });
+                
+                // Ensure timer runs even if game is paused
+                if (damageTimer) {
+                    damageTimer.paused = false;
+                }
             } else if (upgradeType === 'speed') {
                 this.slotBuffs[slotIndex].speedMultiplier += 0.25; // +25% speed
                 const message = this.add.text(400, 300, `Slot ${slotIndex + 1} speed increased by 25%!`, {
@@ -23080,10 +23869,15 @@ class GameScene extends Phaser.Scene {
                 message.setScrollFactor(0);
                 message.setDepth(210);
 
-                this.time.delayedCall(2000, () => {
+                const speedTimer = this.time.delayedCall(2000, () => {
                     message.destroy();
                     this.closeChestUI();
                 });
+                
+                // Ensure timer runs even if game is paused
+                if (speedTimer) {
+                    speedTimer.paused = false;
+                }
             }
         }
     }
@@ -23110,8 +23904,30 @@ class GameScene extends Phaser.Scene {
     }
 
     showFusionReward() {
+        // Count total elements across all slots
+        let totalElements = 0;
+        
+        // Count elements in charge slots (active + passive)
+        if (this.chargeSlots && Array.isArray(this.chargeSlots)) {
+            for (let i = 0; i < 8; i++) {
+                if (this.chargeSlots[i]) totalElements++;
+            }
+        } else if (this.charges && Array.isArray(this.charges)) {
+            // Fallback to charges array if chargeSlots not initialized
+            totalElements += this.charges.length;
+        }
+        
+        // Count elements in pouch
+        if (this.elementPouch && Array.isArray(this.elementPouch)) {
+            for (let i = 0; i < 4; i++) {
+                if (this.elementPouch[i]) totalElements++;
+            }
+        }
+        
+        console.log('showFusionReward - Total elements counted:', totalElements);
+        
         // Check if player has at least 2 elements
-        if (this.charges.length < 2) {
+        if (totalElements < 2) {
             const message = this.add.text(400, 300, 'Need at least 2 elements to fuse!', {
                 fontSize: '24px',
                 color: '#ff6666'
@@ -23120,10 +23936,15 @@ class GameScene extends Phaser.Scene {
             message.setScrollFactor(0);
             message.setDepth(210);
 
-            this.time.delayedCall(2000, () => {
+            const noElementsTimer = this.time.delayedCall(2000, () => {
                 message.destroy();
                 this.closeChestUI();
             });
+            
+            // Ensure timer runs even if game is paused
+            if (noElementsTimer) {
+                noElementsTimer.paused = false;
+            }
             return;
         }
 
@@ -23324,6 +24145,14 @@ class GameScene extends Phaser.Scene {
             if (this.fusionButton) this.fusionButton.destroy();
             this.fusionUI = null;
         }
+        
+        // IMPORTANT: Maintain chest selection state during fusion animation
+        this.chestSelectionActive = true;
+        
+        // Ensure game stays paused during fusion
+        if (!this.gamePaused) {
+            this.pauseGame('chest');
+        }
 
         // Create fusion particles
         const particles = this.add.particles(400, 300, 'spark', {
@@ -23480,7 +24309,7 @@ class GameScene extends Phaser.Scene {
         });
 
         // After 1 second, flash and show result
-        this.time.delayedCall(1000, () => {
+        setTimeout(() => {
             // Flash effect
             const flash = this.add.rectangle(400, 300, 800, 600, 0xffffff, 0.8);
             flash.setScrollFactor(0);
@@ -23509,7 +24338,7 @@ class GameScene extends Phaser.Scene {
                 targets: resultSprite,
                 scale: 0.8,
                 duration: 800,
-                ease: 'Back.easeOut'
+                ease: 'Back.easeOut',
             });
 
             // Create the element name text with tier if applicable
@@ -23521,7 +24350,7 @@ class GameScene extends Phaser.Scene {
             // Big dramatic name reveal
             const nameText = this.add.text(400, 380, elementName, {
                 fontSize: '48px',
-                color: resultConfig.color || '#ffffff',
+                color: '#ffffff',  // Always white for visibility
                 fontStyle: 'bold',
                 stroke: '#000000',
                 strokeThickness: 6
@@ -23539,7 +24368,7 @@ class GameScene extends Phaser.Scene {
                 alpha: 1,
                 duration: 600,
                 delay: 200,
-                ease: 'Back.easeOut'
+                ease: 'Back.easeOut',
             });
 
             // Add glow effect to name
@@ -23549,7 +24378,7 @@ class GameScene extends Phaser.Scene {
                 duration: 400,
                 yoyo: true,
                 repeat: 2,
-                delay: 800
+                delay: 800,
             });
 
             // Show success text (smaller, below the name)
@@ -23568,8 +24397,9 @@ class GameScene extends Phaser.Scene {
             successText.setAlpha(0);
             
             // Show tier upgrade effects if applicable
+            let bonusText = null;
             if (isTierUpgrade && resultTier > 1) {
-                const bonusText = this.add.text(400, 490, this.getTierBonusDescription(result, resultTier), {
+                bonusText = this.add.text(400, 490, this.getTierBonusDescription(result, resultTier), {
                     fontSize: '16px',
                     color: '#ffdd44',
                     fontStyle: 'italic',
@@ -23585,26 +24415,23 @@ class GameScene extends Phaser.Scene {
                     targets: bonusText,
                     alpha: 1,
                     duration: 500,
-                    delay: 500
-                });
+                    delay: 500,
+                    });
                 
-                // Destroy bonus text with other elements
-                this.time.delayedCall(3000, () => {
-                    bonusText.destroy();
-                });
+                // Bonus text will be destroyed with other elements in cleanup
             }
 
             this.tweens.add({
                 targets: successText,
                 alpha: 1,
                 duration: 500,
-                delay: 300
+                delay: 300,
             });
 
             // Stop particles after a bit
-            this.time.delayedCall(1500, () => {
+            setTimeout(() => {
                 particles.stop();
-            });
+            }, 1500);
 
             // Update game state - remove the fused elements from chargeSlots
             const removedIndices = [];
@@ -23669,7 +24496,9 @@ class GameScene extends Phaser.Scene {
             }
 
             // Clean up after 3 seconds
-            this.time.delayedCall(3000, () => {
+            console.log('Setting up fusion cleanup timer...');
+            setTimeout(() => {
+                console.log('=== Fusion cleanup timer fired ===');
                 sprite1.destroy();
                 sprite2.destroy();
                 resultSprite.destroy();
@@ -23677,9 +24506,16 @@ class GameScene extends Phaser.Scene {
                 successText.destroy();
                 cutsceneBg.destroy();
                 particles.destroy();
+                
+                // Destroy bonus text if it exists
+                if (bonusText && bonusText.active) {
+                    bonusText.destroy();
+                }
+                
+                console.log('Fusion animation complete, calling closeChestUI');
                 this.closeChestUI();
-            });
-        });
+            }, 3000);
+        }, 1000);
     }
 
     setupElementSelection(selectionBg, title, choices) {
@@ -23687,8 +24523,8 @@ class GameScene extends Phaser.Scene {
         
         // Initialize pouch if not exists
         if (!this.elementPouch) {
-            const savedPouch = localStorage.getItem('elementPouch');
-            this.elementPouch = savedPouch ? JSON.parse(savedPouch) : [null, null, null, null];
+            // Don't load pouch from localStorage - start fresh each game
+            this.elementPouch = [null, null, null, null];
         }
         
         let controlHint = null;
@@ -23832,7 +24668,7 @@ class GameScene extends Phaser.Scene {
                                 const pouchIndex = selectedSlot - 8;
                                 discardedElement = this.elementPouch[pouchIndex];
                                 this.elementPouch[pouchIndex] = this.pendingFusionElement;
-                                localStorage.setItem('elementPouch', JSON.stringify(this.elementPouch));
+                                // Don't save pouch to localStorage
                             }
                             
                             // Rebuild charges array
@@ -23876,7 +24712,8 @@ class GameScene extends Phaser.Scene {
                                 duration: 2000,
                                 onComplete: () => {
                                     successText.destroy();
-                                    this.physics.resume();
+                                    // Use centralized resume system to properly restore timeScale
+                                    this.resumeGame('chest');
                                     this.chestOpening = false;
                                     this.pendingFusionElement = null;
                                     
@@ -24256,7 +25093,7 @@ class GameScene extends Phaser.Scene {
         }
         
         // Save pouch state
-        localStorage.setItem('elementPouch', JSON.stringify(this.elementPouch));
+        // Don't save pouch to localStorage
         
         // Update UI
         this.updateChargeUI();
@@ -24271,6 +25108,11 @@ class GameScene extends Phaser.Scene {
     }
 
     closeChestUI() {
+        console.log('=== closeChestUI called ===');
+        console.log('chestSelectionActive:', this.chestSelectionActive);
+        console.log('gamePaused:', this.gamePaused);
+        console.log('timeScale:', this.time.timeScale);
+        
         // Reset charge indicators highlighting
         if (this.chargeIndicators) {
             this.chargeIndicators.forEach((indicator) => {
@@ -24291,8 +25133,20 @@ class GameScene extends Phaser.Scene {
         this.chestSelectionActive = false;
         this.chestUI = null;
         this.chestChargeSelectMode = false;
+        this.chestOpening = false;
+        
+        // Resume the game using centralized system
+        this.resumeGame('chest');
+        
+        console.log('=== After resumeGame in closeChestUI ===');
+        console.log('gamePaused:', this.gamePaused);
+        console.log('timeScale:', this.time.timeScale);
+        
+        // Resume boss AI timer if it exists
+        if (this.bossAITimer) {
+            this.bossAITimer.paused = false;
+        }
         this.selectedChargeToReplace = -1;
-        this.physics.resume();
         this.chestOpening = false;
         
         // Reset all reward-related states
@@ -24305,13 +25159,19 @@ class GameScene extends Phaser.Scene {
         this.fusionUI = null;
         this.chestCursorIndex = 0;
         
-        // Resume boss AI timer if it exists
-        if (this.bossAITimer) {
-            this.bossAITimer.paused = false;
-        }
+        // resumeGame already called above, no need to call again
     }
 
     selectChestElement(element, config, selectionBg, title, controlHint, buttons) {
+        console.log('=== selectChestElement called ===');
+        console.log('Element:', element);
+        console.log('Current charges:', this.charges);
+        console.log('Current chargeSlots:', this.chargeSlots);
+        console.log('Current elementPouch:', this.elementPouch);
+        console.log('chestSelectionActive:', this.chestSelectionActive);
+        console.log('gamePaused:', this.gamePaused);
+        console.log('chestOpening:', this.chestOpening);
+        
         // Make sure we have config
         if (!config) {
             config = this.elementConfig[element];
@@ -24370,7 +25230,7 @@ class GameScene extends Phaser.Scene {
                 const pouchIndex = this.selectedChargeToReplace - 8;
                 this.elementPouch[pouchIndex] = element;
                 console.log(`Updated pouch slot ${pouchIndex}:`, this.elementPouch);
-                localStorage.setItem('elementPouch', JSON.stringify(this.elementPouch));
+                // Don't save pouch to localStorage
             }
 
             // Reset charge indicators highlighting
@@ -24407,13 +25267,22 @@ class GameScene extends Phaser.Scene {
             this.chestChargeSelectMode = false;
             
             // Add a delayed call to ensure slots stay hidden
-            this.time.delayedCall(100, () => {
+            const hideTimer = this.time.delayedCall(100, () => {
                 this.hideExtraChargeSlots();
                 // Force update of charge UI to ensure proper display
                 this.updateChargeUI();
             });
+            
+            // Ensure timer runs even if game is paused
+            if (hideTimer) {
+                hideTimer.paused = false;
+            }
 
             // Check for new discovery
+            if (!this.discoveredElements) {
+                this.discoveredElements = new Set();
+            }
+            
             if (!this.discoveredElements.has(element)) {
                 this.discoveredElements.add(element);
 
@@ -24437,6 +25306,19 @@ class GameScene extends Phaser.Scene {
             // Add element to first available slot
             let added = false;
             
+            // Initialize arrays if needed
+            if (!this.chargeSlots) {
+                this.chargeSlots = new Array(8).fill(null);
+            }
+            
+            if (!this.elementPouch) {
+                this.elementPouch = [null, null, null, null];
+            }
+            
+            if (!this.charges) {
+                this.charges = [];
+            }
+            
             // Try to add to chargeSlots first
             for (let i = 0; i < 8; i++) {
                 if (!this.chargeSlots[i]) {
@@ -24451,7 +25333,7 @@ class GameScene extends Phaser.Scene {
                 for (let i = 0; i < 4; i++) {
                     if (!this.elementPouch[i]) {
                         this.elementPouch[i] = element;
-                        localStorage.setItem('elementPouch', JSON.stringify(this.elementPouch));
+                        // Don't save pouch to localStorage
                         added = true;
                         break;
                     }
@@ -24470,6 +25352,10 @@ class GameScene extends Phaser.Scene {
             this.updateChargeGroups();
 
             // Add to discovered elements
+            if (!this.discoveredElements) {
+                this.discoveredElements = new Set();
+            }
+            
             if (!this.discoveredElements.has(element)) {
                 this.discoveredElements.add(element);
 
@@ -24524,7 +25410,16 @@ class GameScene extends Phaser.Scene {
             this.initialElementSelection = false;
             this.startGame();
         } else {
-            this.physics.resume();
+            console.log('=== About to resume game ===');
+            console.log('gamePaused before resume:', this.gamePaused);
+            console.log('timeScale before resume:', this.time.timeScale);
+            
+            // Use centralized resume system to properly restore timeScale
+            this.resumeGame('chest');
+            
+            console.log('gamePaused after resume:', this.gamePaused);
+            console.log('timeScale after resume:', this.time.timeScale);
+            
             // Hide extra slots when resuming physics
             this.hideExtraChargeSlots();
             
@@ -24538,9 +25433,20 @@ class GameScene extends Phaser.Scene {
         // Final safeguard to ensure extra slots are hidden and mode is reset
         this.chestChargeSelectMode = false;
         this.selectedChargeToReplace = -1;
-        this.time.delayedCall(50, () => {
+        const finalHideTimer = this.time.delayedCall(50, () => {
             this.hideExtraChargeSlots();
         });
+        
+        // Ensure timer runs even if game is paused
+        if (finalHideTimer) {
+            finalHideTimer.paused = false;
+        }
+        
+        console.log('=== End of selectChestElement ===');
+        console.log('Final gamePaused:', this.gamePaused);
+        console.log('Final timeScale:', this.time.timeScale);
+        console.log('Final chestSelectionActive:', this.chestSelectionActive);
+        console.log('Final chestOpening:', this.chestOpening);
     }
 
     handleChestSelectionController() {
@@ -24737,7 +25643,7 @@ class GameScene extends Phaser.Scene {
                     const pouchIndex = selectedSlot - 8;
                     discardedElement = this.elementPouch[pouchIndex];
                     this.elementPouch[pouchIndex] = this.pendingFusionElement;
-                    localStorage.setItem('elementPouch', JSON.stringify(this.elementPouch));
+                    // Don't save pouch to localStorage
                 }
                 
                 // Rebuild charges array
@@ -25048,7 +25954,7 @@ class GameScene extends Phaser.Scene {
     }
     
     damagePlayer(damage, source = null) {
-        if (this.invulnerable || this.playerHealth <= 0 || this.isPaused || this.chestSelectionActive) return;
+        if (this.invulnerable || this.godMode || this.playerHealth <= 0 || this.isPaused || this.chestSelectionActive) return;
         
         // Check for metal shield thorns effect
         if (this.metalShieldActive && source && source.active) {
@@ -25087,6 +25993,7 @@ class GameScene extends Phaser.Scene {
             }
         }
         
+        console.log('Player taking damage:', damage, 'Current health:', this.playerHealth, '-> New health:', this.playerHealth - damage);
         this.playerHealth -= damage;
         this.updateHealthBar();
         this.updateWizardHealthBar();
@@ -25441,18 +26348,18 @@ class GameScene extends Phaser.Scene {
         const barWidth = 600;
         const barHeight = 30;
         
-        this.bossHealthBarBg = this.add.rectangle(400, 50, barWidth, barHeight, 0x000000);
+        this.bossHealthBarBg = this.add.rectangle(400, 550, barWidth, barHeight, 0x000000);
         this.bossHealthBarBg.setStrokeStyle(3, 0xff0000);
         this.bossHealthBarBg.setScrollFactor(0);
-        this.bossHealthBarBg.setDepth(100);
+        this.bossHealthBarBg.setDepth(500);
         
         // Boss health bar fill
-        this.bossHealthBar = this.add.rectangle(400, 50, barWidth - 6, barHeight - 6, 0xff0000);
+        this.bossHealthBar = this.add.rectangle(400, 550, barWidth - 6, barHeight - 6, 0xff0000);
         this.bossHealthBar.setScrollFactor(0);
-        this.bossHealthBar.setDepth(101);
+        this.bossHealthBar.setDepth(501);
         
         // Boss name
-        this.bossNameText = this.add.text(400, 25, 'AWAKENED OBELISK', {
+        this.bossNameText = this.add.text(400, 520, 'AWAKENED OBELISK', {
             fontSize: '20px',
             color: '#ffffff',
             fontStyle: 'bold',
@@ -25461,7 +26368,7 @@ class GameScene extends Phaser.Scene {
         });
         this.bossNameText.setOrigin(0.5);
         this.bossNameText.setScrollFactor(0);
-        this.bossNameText.setDepth(102);
+        this.bossNameText.setDepth(502);
     }
     
     createSandBoss() {
@@ -25533,18 +26440,18 @@ class GameScene extends Phaser.Scene {
         const barWidth = 600;
         const barHeight = 30;
         
-        this.bossHealthBarBg = this.add.rectangle(400, 50, barWidth, barHeight, 0x000000);
+        this.bossHealthBarBg = this.add.rectangle(400, 550, barWidth, barHeight, 0x000000);
         this.bossHealthBarBg.setStrokeStyle(3, 0xFFD700); // Golden border
         this.bossHealthBarBg.setScrollFactor(0);
-        this.bossHealthBarBg.setDepth(100);
+        this.bossHealthBarBg.setDepth(500);
         
         // Boss health bar fill
-        this.bossHealthBar = this.add.rectangle(400, 50, barWidth - 6, barHeight - 6, 0xFFD700); // Golden fill
+        this.bossHealthBar = this.add.rectangle(400, 550, barWidth - 6, barHeight - 6, 0xFFD700); // Golden fill
         this.bossHealthBar.setScrollFactor(0);
-        this.bossHealthBar.setDepth(101);
+        this.bossHealthBar.setDepth(501);
         
         // Boss name
-        this.bossNameText = this.add.text(400, 25, 'SAND GUARDIAN', {
+        this.bossNameText = this.add.text(400, 520, 'SAND GUARDIAN', {
             fontSize: '20px',
             color: '#ffffff',
             fontStyle: 'bold',
@@ -25553,7 +26460,7 @@ class GameScene extends Phaser.Scene {
         });
         this.bossNameText.setOrigin(0.5);
         this.bossNameText.setScrollFactor(0);
-        this.bossNameText.setDepth(102);
+        this.bossNameText.setDepth(502);
     }
     
     createArcherBossHealthBar() {
@@ -25651,18 +26558,18 @@ class GameScene extends Phaser.Scene {
         const barWidth = 600;
         const barHeight = 30;
         
-        this.bossHealthBarBg = this.add.rectangle(400, 50, barWidth, barHeight, 0x000000);
+        this.bossHealthBarBg = this.add.rectangle(400, 550, barWidth, barHeight, 0x000000);
         this.bossHealthBarBg.setStrokeStyle(3, 0xff4400); // Orange-red border
         this.bossHealthBarBg.setScrollFactor(0);
-        this.bossHealthBarBg.setDepth(100);
+        this.bossHealthBarBg.setDepth(500);
         
         // Boss health bar fill
-        this.bossHealthBar = this.add.rectangle(400, 50, barWidth - 6, barHeight - 6, 0xff4400);
+        this.bossHealthBar = this.add.rectangle(400, 550, barWidth - 6, barHeight - 6, 0xff4400);
         this.bossHealthBar.setScrollFactor(0);
-        this.bossHealthBar.setDepth(101);
+        this.bossHealthBar.setDepth(501);
         
         // Boss name
-        this.bossNameText = this.add.text(400, 25, 'DEMON SLIME', {
+        this.bossNameText = this.add.text(400, 520, 'DEMON SLIME', {
             fontSize: '20px',
             color: '#ffffff',
             fontStyle: 'bold',
@@ -25671,7 +26578,7 @@ class GameScene extends Phaser.Scene {
         });
         this.bossNameText.setOrigin(0.5);
         this.bossNameText.setScrollFactor(0);
-        this.bossNameText.setDepth(102);
+        this.bossNameText.setDepth(502);
     }
     
     updateDemonSlimeBossAI() {
