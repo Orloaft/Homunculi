@@ -1,3 +1,27 @@
+// Global fullscreen helper
+function setupFullscreenKey(scene) {
+    scene.input.keyboard.on('keydown-F11', (event) => {
+        event.preventDefault();
+        if (scene.scale.isFullscreen) {
+            scene.scale.stopFullscreen();
+        } else {
+            scene.scale.startFullscreen();
+        }
+    });
+    
+    // Also add Alt+Enter as an alternative
+    scene.input.keyboard.on('keydown', (event) => {
+        if (event.altKey && event.key === 'Enter') {
+            event.preventDefault();
+            if (scene.scale.isFullscreen) {
+                scene.scale.stopFullscreen();
+            } else {
+                scene.scale.startFullscreen();
+            }
+        }
+    });
+}
+
 class LoadingScene extends Phaser.Scene {
     constructor() {
         super({ key: 'LoadingScene' });
@@ -395,6 +419,12 @@ class LoadingScene extends Phaser.Scene {
         // Load kawaii muffin sprite
         this.load.image('muffin', 'Kawaii choco muffin.png');
         
+        // Load shield as a glowing circle/orb sprite (using element orb as placeholder)
+        this.load.image('shield', 'elements3.PNG');
+        
+        // Load flamethrower sprite (using fire spell sprite)
+        this.load.image('flamethrower', 'spells/fire1.png');
+        
         // Load weakspot rune sprite
         this.load.image('weakspot-rune', 'weakspotrune.png');
         
@@ -420,12 +450,26 @@ class LoadingScene extends Phaser.Scene {
         });
         
         this.load.image('archer-projectile', 'archerboss/projectile.png');
+        
+        // Load obelisk sprites
+        this.load.spritesheet('obelisk-idle', 'Obelisk_demo/Obelisk.png', {
+            frameWidth: 2660 / 14, // 190 pixels per frame
+            frameHeight: 240
+        });
+        
+        this.load.spritesheet('obelisk-effects', 'Obelisk_demo/Obelisk_effects.png', {
+            frameWidth: 2660 / 14, // 190 pixels per frame
+            frameHeight: 240
+        });
         }
     }
 
     create() {
         // Set background to match the dark theme
         this.cameras.main.setBackgroundColor('#11130d');
+        
+        // Add global fullscreen toggle (F11)
+        setupFullscreenKey(this);
 
         // Display loading complete image
         const loadingImage = this.add.image(400, 300, 'loading-bg');
@@ -482,6 +526,12 @@ class TitleScene extends Phaser.Scene {
     }
 
     create() {
+        // Add fullscreen toggle
+        setupFullscreenKey(this);
+        
+        // Force resize to ensure proper centering
+        this.scale.refresh();
+        
         // Apply saved volume
         const savedVolume = localStorage.getItem('gameVolume');
         if (savedVolume !== null) {
@@ -1264,7 +1314,7 @@ class StageSelectScene extends Phaser.Scene {
                 fontSize: '16px',
                 color: stage.unlocked ? '#ffffff' : '#666666',
                 fontStyle: 'bold',
-                stroke: '#000000',
+                stroke: '#333333',
                 strokeThickness: 2
             }).setOrigin(0.5);
             container.add(nameText);
@@ -2371,7 +2421,7 @@ class TalentTreeScene extends Phaser.Scene {
                 fontSize: '14px',
                 color: canUnlock && this.talentPoints >= talent.cost ? '#44ff44' : '#ff4444',
                 fontStyle: 'bold',
-                stroke: '#000000',
+                stroke: '#333333',
                 strokeThickness: 2
             }).setOrigin(0.5);
             container.add(costText);
@@ -2611,6 +2661,14 @@ class GameScene extends Phaser.Scene {
     }
 
     create() {
+        // Add fullscreen toggle
+        setupFullscreenKey(this);
+        
+        // Ensure no debug borders are drawn
+        if (this.physics.world.debugGraphic) {
+            this.physics.world.debugGraphic.clear();
+        }
+        
         // Debug: Check tween system at create time
         console.log('GameScene create - tweens exists:', !!this.tweens);
         console.log('GameScene create - tweens type:', typeof this.tweens);
@@ -3243,6 +3301,18 @@ class GameScene extends Phaser.Scene {
             this.obstacleManager.update(this.wizard.x, this.wizard.y);
         }
         
+        // Initialize obelisks as regular group (not static)
+        this.obelisks = this.physics.add.group();
+        this.obeliskChunks = new Set(); // Track which chunks have obelisks
+        this.activeObelisks = new Map(); // Track active obelisks by chunk key
+        
+        // Create obelisk direction indicator
+        this.obeliskIndicator = this.add.triangle(0, 0, 0, 0, 15, 10, 0, 20, 0x00ffff);
+        this.obeliskIndicator.setDepth(900);
+        this.obeliskIndicator.setScrollFactor(0);
+        this.obeliskIndicator.setVisible(false);
+        this.obeliskIndicator.setAlpha(0.8);
+        
         this.jewels = this.physics.add.group();
         this.muffins = this.physics.add.group();
         this.elementOrbs = this.physics.add.group();
@@ -3315,7 +3385,7 @@ class GameScene extends Phaser.Scene {
             }, this);
         this.physics.add.overlap(this.wizard, this.elementOrbs, this.collectElementOrb, 
             (wizard, orb) => {
-                return wizard && wizard.active && orb && orb.active && !orb.isDestroying;
+                return wizard && wizard.active && orb && orb.active && !orb.isDestroying && orb.canCollect;
             }, this);
         this.physics.add.overlap(this.wizard, this.chests, this.openChest, 
             (wizard, chest) => {
@@ -3344,6 +3414,9 @@ class GameScene extends Phaser.Scene {
         const obstacles = this.obstacleManager.getObstaclesGroup();
         this.physics.add.collider(this.wizard, obstacles);
         // Enemies and projectiles can now pass through obstacles
+        
+        // Add overlap detection for obelisks
+        this.physics.add.overlap(this.wizard, this.obelisks, this.handleObeliskInteraction, null, this);
         
         // Add collisions with barriers (only in cave stage, only for player)
         if (this.stage === 'cave' && this.barriers) {
@@ -3591,6 +3664,23 @@ class GameScene extends Phaser.Scene {
         createAnimIfNotExists({
             key: 'obelisk-melee',
             frames: this.anims.generateFrameNumbers('obelisk-boss', { start: 28, end: 34 }),
+            frameRate: 12,
+            repeat: 0
+        });
+        
+        // Create Obelisk Object animations
+        // Idle animation (all 14 frames)
+        createAnimIfNotExists({
+            key: 'obelisk-object-idle',
+            frames: this.anims.generateFrameNumbers('obelisk-idle', { start: 0, end: 13 }),
+            frameRate: 8,
+            repeat: -1
+        });
+        
+        // Activation effect animation
+        createAnimIfNotExists({
+            key: 'obelisk-object-activate',
+            frames: this.anims.generateFrameNumbers('obelisk-effects', { start: 0, end: 13 }),
             frameRate: 12,
             repeat: 0
         });
@@ -5084,14 +5174,14 @@ class GameScene extends Phaser.Scene {
                         onComplete: () => editorText.destroy()
                     });
                     
+                    // Store editor state for newly spawned enemies
+                    this.hitboxEditorEnabled = enabled;
+                    
                     if (enabled) {
                         // Make enemies clickable when editor is on
                         this.enemies.children.entries.forEach(enemy => {
                             if (enemy.active) {
-                                enemy.setInteractive({ useHandCursor: true });
-                                enemy.on('pointerdown', () => {
-                                    this.hitboxEditor.selectSprite(enemy);
-                                });
+                                this.makeEnemyInteractiveForEditor(enemy);
                             }
                         });
                     } else {
@@ -6246,6 +6336,55 @@ class GameScene extends Phaser.Scene {
             this._timeScaleWarningShown = true; // Only show once
         }
         
+        // Failsafe for meditate reward close
+        if (this.pendingMeditateClose && this.time.now >= this.pendingMeditateCloseTime) {
+            console.log('Meditate failsafe triggered - forcing close');
+            this.pendingMeditateClose = false;
+            this.chestSelectionActive = false;
+            this.closeChestUI();
+        }
+        
+        // Performance monitoring and cleanup
+        if (!this.lastPerformanceCheck) {
+            this.lastPerformanceCheck = 0;
+        }
+        if (this.time.now - this.lastPerformanceCheck > 5000) { // Check every 5 seconds
+            this.lastPerformanceCheck = this.time.now;
+            
+            // Log entity counts for debugging
+            const entityCounts = {
+                enemies: this.enemies.children.entries.length,
+                projectiles: this.projectiles.children.entries.length,
+                enemyProjectiles: this.enemyProjectiles.children.entries.length,
+                jewels: this.jewels.children.entries.length,
+                obelisks: this.activeObelisks.size
+            };
+            
+            // Only log if counts are high
+            if (entityCounts.jewels > 200 || entityCounts.enemies > 100 || entityCounts.projectiles > 500) {
+                console.log('Performance check - Entity counts:', entityCounts);
+                
+                // If too many jewels, force cleanup of far ones
+                if (entityCounts.jewels > 300) {
+                    console.warn('Too many jewels, forcing cleanup');
+                    const jewelsToRemove = [];
+                    this.jewels.children.entries.forEach(jewel => {
+                        if (jewel && jewel.active) {
+                            const dist = Phaser.Math.Distance.Between(
+                                jewel.x, jewel.y, 
+                                this.wizard.x, this.wizard.y
+                            );
+                            if (dist > 2000) { // Remove jewels very far away
+                                jewelsToRemove.push(jewel);
+                            }
+                        }
+                    });
+                    jewelsToRemove.forEach(jewel => this.safeDestroyCollectible(jewel));
+                    console.log(`Removed ${jewelsToRemove.length} distant jewels`);
+                }
+            }
+        }
+        
         // Clean up stuck damage texts periodically
         if (this.activeDamageTexts && this.activeDamageTexts.length > 50) {
             console.warn('Too many active damage texts, cleaning up old ones');
@@ -6293,6 +6432,12 @@ class GameScene extends Phaser.Scene {
         // Update obstacle manager to load/unload obstacles based on player position
         if (this.obstacleManager && this.wizard) {
             this.obstacleManager.update(this.wizard.x, this.wizard.y);
+        }
+        
+        // Update obelisks based on player position
+        if (this.wizard) {
+            this.updateObelisks(this.wizard.x, this.wizard.y);
+            this.updateObeliskIndicator();
         }
         
         // Update hexed enemies visuals
@@ -6453,7 +6598,7 @@ class GameScene extends Phaser.Scene {
         // Only open pause menu if no other menus are active
         if (Phaser.Input.Keyboard.JustDown(this.pKey) || (startPressed && !this.gamepadButtonStates[9])) {
             if (this.spellbookOpen || this.chestSelectionActive || this.fusionUI ||
-                this.elementSelectionActive || this.discardConfirmation || this.discardConfirmUI) {
+                this.elementSelectionActive || this.discardConfirmation || this.discardConfirmUI || this.obeliskMenuOpen) {
                 console.log('Pause menu blocked. Active states:', {
                     spellbookOpen: this.spellbookOpen,
                     chestSelectionActive: this.chestSelectionActive,
@@ -6473,11 +6618,17 @@ class GameScene extends Phaser.Scene {
             selectPressed = this.gamepad.buttons[8].pressed;
         }
 
+        // Handle obelisk menu close first (priority)
+        if (this.obeliskMenuOpen && Phaser.Input.Keyboard.JustDown(this.escKey)) {
+            this.closeObeliskMenu();
+            return; // Don't process other ESC actions
+        }
+        
         // Handle spellbook toggle
         if ((Phaser.Input.Keyboard.JustDown(this.escKey) || 
             Phaser.Input.Keyboard.JustDown(this.tabKey) ||
             (selectPressed && !this.gamepadButtonStates[8])) &&
-            !this.isPaused && !this.chestSelectionActive && !this.fusionUI) {
+            !this.isPaused && !this.chestSelectionActive && !this.fusionUI && !this.obeliskMenuOpen) {
             this.toggleSpellbook();
         }
 
@@ -7607,10 +7758,41 @@ class GameScene extends Phaser.Scene {
             flame.setRotation(angle - defaultAngle);
         }
 
+        // Safety check: ensure wizard alpha is correct when not using smoke veil
+        if (!this.smokeVeilActive && this.wizard.alpha < 1) {
+            this.wizard.setAlpha(1);
+        }
+        
         // XP gems are attracted to wizard when in close proximity
+        const jewelsToDestroy = [];
         this.jewels.children.entries.forEach(jewel => {
+            // Skip if jewel is being destroyed or has no physics body
+            if (!jewel || !jewel.active || jewel.isDestroying || !jewel.body || !jewel.body.enable) {
+                return;
+            }
+            
+            // Additional cleanup check - destroy jewels that are invisible or have been marked for destruction
+            if (!jewel.visible || jewel.alpha === 0) {
+                jewelsToDestroy.push(jewel);
+                return;
+            }
+            
+            // Check if jewel is stuck (not moving and very close to wizard)
             const distance = Phaser.Math.Distance.Between(jewel.x, jewel.y, this.wizard.x, this.wizard.y);
-
+            if (distance < 30 && Math.abs(jewel.body.velocity.x) < 1 && Math.abs(jewel.body.velocity.y) < 1) {
+                // Force collection if stuck very close to wizard
+                this.collectJewel(this.wizard, jewel);
+                return;
+            }
+            
+            // Performance: destroy jewels that have been around too long (30 seconds)
+            if (!jewel.spawnTime) {
+                jewel.spawnTime = this.time.now;
+            } else if (this.time.now - jewel.spawnTime > 30000) {
+                jewelsToDestroy.push(jewel);
+                return;
+            }
+            
             if (distance < 120) { // Doubled from 60 to 120 for stronger magnet range
                 // Attract jewel to wizard
                 const angle = Phaser.Math.Angle.Between(jewel.x, jewel.y, this.wizard.x, this.wizard.y);
@@ -7624,6 +7806,9 @@ class GameScene extends Phaser.Scene {
                 jewel.body.setVelocity(0, 0);
             }
         });
+        
+        // Destroy any jewels marked for destruction
+        jewelsToDestroy.forEach(jewel => this.safeDestroyCollectible(jewel));
 
         // Attract muffins to wizard when close
         this.muffins.children.entries.forEach(muffin => {
@@ -10884,7 +11069,7 @@ class GameScene extends Phaser.Scene {
                 onComplete: () => spawnPoof.destroy()
             });
 
-            this.enemies.add(bat);
+            this.addEnemyToGroup(bat);
         }
     }
 
@@ -11212,7 +11397,7 @@ class GameScene extends Phaser.Scene {
             const hexSymbol = this.add.text(enemy.x, enemy.y - 30, '⬢', {
                 fontSize: '16px',
                 color: '#9932cc',
-                stroke: '#000000',
+                stroke: '#333333',
                 strokeThickness: 2
             });
             hexSymbol.setOrigin(0.5);
@@ -11392,7 +11577,7 @@ class GameScene extends Phaser.Scene {
                 enemy.body.setOffset(3, 12); // Adjusted offset for wider hitbox
             }
             this.setEnemyDepth(enemy); // Set initial depth
-            this.enemies.add(enemy);
+            this.addEnemyToGroup(enemy);
         } else if (enemyType === 'bat') {
             // Spawn 2 bat enemies at once
             for (let i = 0; i < 2; i++) {
@@ -11426,7 +11611,7 @@ class GameScene extends Phaser.Scene {
                 bat.isFlying = true; // Bats can fly over obstacles
                 bat.damage = 10; // Weak but fast enemy
                 this.setEnemyDepth(bat); // Set initial depth
-                this.enemies.add(bat);
+                this.addEnemyToGroup(bat);
             }
         }
         if (enemyType === 'mushroom') {
@@ -11450,7 +11635,7 @@ class GameScene extends Phaser.Scene {
             }
             mushroom.body.setSize(80, 30);  // Adjusted height for smaller sprite
             mushroom.body.setOffset(35, 8);  // Adjusted offset for smaller sprite
-            this.enemies.add(mushroom);
+            this.addEnemyToGroup(mushroom);
         } else if (enemyType === 'fireworm') {
             const fireworm = this.physics.add.sprite(x, y, 'fireworm-walk', 0);
             fireworm.setScale(1.2); // Scale up slightly
@@ -11474,7 +11659,7 @@ class GameScene extends Phaser.Scene {
             fireworm.body.setSize(70, 50);
             fireworm.body.setOffset(10, 20);
             fireworm.element = 'fire'; // Fire worms have fire element
-            this.enemies.add(fireworm);
+            this.addEnemyToGroup(fireworm);
         } else if (enemyType === 'summoner') {
             const summoner = this.physics.add.sprite(x, y, 'summoner-idle', 0);
             summoner.setScale(1.5); // Scale to appropriate size
@@ -11489,7 +11674,7 @@ class GameScene extends Phaser.Scene {
             summoner.lastSummonTime = 0;
             summoner.summonCooldown = 5000; // Summon every 5 seconds
             summoner.element = 'arcane'; // Arcane element
-            this.enemies.add(summoner);
+            this.addEnemyToGroup(summoner);
         } else if (enemyType === 'soul') {
             const soul = this.physics.add.sprite(x, y, 'soul-move', 0);
             soul.setScale(0.8);
@@ -11506,7 +11691,7 @@ class GameScene extends Phaser.Scene {
             soul.attackCooldown = 2000; // Attack every 2 seconds
             soul.lastAttackTime = 0;
             soul.element = 'arcane'; // Arcane element like ghosts
-            this.enemies.add(soul);
+            this.addEnemyToGroup(soul);
         } else if (enemyType === 'bloboid') {
             const bloboid = this.physics.add.sprite(x, y, 'bloboid-walk', 0);
             bloboid.setScale(1.5); // Scale up from small sprite
@@ -11521,7 +11706,7 @@ class GameScene extends Phaser.Scene {
             bloboid.body.setSize(50, 30);
             bloboid.body.setOffset(15, 2);
             bloboid.element = 'earth'; // Earth element for blob
-            this.enemies.add(bloboid);
+            this.addEnemyToGroup(bloboid);
         } else if (enemyType === 'slime') {
             // Create slime enemy
             const slime = this.physics.add.sprite(x, y, 'slime-idle', 0);
@@ -11535,7 +11720,7 @@ class GameScene extends Phaser.Scene {
             slime.body.setSize(40, 40);
             slime.body.setOffset(10, 10);
             slime.generation = 0; // For splitting mechanic
-            this.enemies.add(slime);
+            this.addEnemyToGroup(slime);
         } else if (enemyType === 'golem') {
             // Randomly choose golem color
             const golemColor = Math.random() < 0.5 ? 'orange' : 'blue';
@@ -11551,7 +11736,7 @@ class GameScene extends Phaser.Scene {
             golem.body.setSize(60, 50);
             golem.body.setOffset(15, 10);
             golem.element = golemColor === 'orange' ? 'fire' : 'water';
-            this.enemies.add(golem);
+            this.addEnemyToGroup(golem);
         } else if (enemyType === 'sorcerer') {
             // Create sorcerer boss enemy
             const sorcerer = this.physics.add.sprite(x, y, 'sorcerer-attack-0');
@@ -11573,7 +11758,7 @@ class GameScene extends Phaser.Scene {
             sorcerer.lastAttackTime = 0;
             sorcerer.isBoss = true; // Mark as boss enemy
             this.setEnemyDepth(sorcerer); // Set initial depth
-            this.enemies.add(sorcerer);
+            this.addEnemyToGroup(sorcerer);
         } else if (enemyType === 'clubimp') {
             // Create Club Imp enemy
             const imp = this.physics.add.sprite(x, y, 'club-imp-walk-1');
@@ -11589,7 +11774,7 @@ class GameScene extends Phaser.Scene {
             imp.body.setSize(50, 60);
             imp.body.setOffset(15, 10);
             imp.element = 'earth'; // Club imps are earth element
-            this.enemies.add(imp);
+            this.addEnemyToGroup(imp);
         } else if (enemyType === 'axeimp') {
             // Create Axe Imp enemy
             const imp = this.physics.add.sprite(x, y, 'axe-imp-walk-1');
@@ -11605,7 +11790,7 @@ class GameScene extends Phaser.Scene {
             imp.body.setSize(50, 60);
             imp.body.setOffset(15, 10);
             imp.element = 'metal'; // Axe imps are metal element
-            this.enemies.add(imp);
+            this.addEnemyToGroup(imp);
         }
     }
 
@@ -11716,6 +11901,39 @@ class GameScene extends Phaser.Scene {
         return false;
     }
     
+    // Combined function to apply both hitbox and scale data
+    applyEditorData(enemy, enemyType) {
+        // Apply hitbox config
+        const hitboxApplied = this.applyHitboxConfig(enemy, enemyType);
+        
+        // Apply scale
+        const scaleApplied = this.applySavedScale(enemy, enemyType);
+        
+        return { hitboxApplied, scaleApplied };
+    }
+    
+    // Helper method to make enemies interactive for hitbox editor
+    makeEnemyInteractiveForEditor(enemy) {
+        if (!enemy || !enemy.active) return;
+        
+        enemy.setInteractive({ useHandCursor: true });
+        enemy.on('pointerdown', () => {
+            if (this.hitboxEditor && this.hitboxEditorEnabled) {
+                this.hitboxEditor.selectSprite(enemy);
+            }
+        });
+    }
+    
+    // Helper method to add enemy to group with editor support
+    addEnemyToGroup(enemy) {
+        this.enemies.add(enemy);
+        
+        // Make enemy interactive for hitbox editor if enabled
+        if (this.hitboxEditorEnabled) {
+            this.makeEnemyInteractiveForEditor(enemy);
+        }
+    }
+    
     createEnemy(enemyType, x, y) {
         if (enemyType === 'tree') {
             const enemy = this.physics.add.sprite(x, y, 'enemy-walk', 0);
@@ -11739,7 +11957,7 @@ class GameScene extends Phaser.Scene {
                 enemy.body.setSize(26, 39);
                 enemy.body.setOffset(3, 12);
             }
-            this.enemies.add(enemy);
+            this.addEnemyToGroup(enemy);
         } else if (enemyType === 'bat') {
             const bat = this.physics.add.sprite(x, y, 'bat-fly', 0);
             bat.enemyType = 'bat';
@@ -11758,7 +11976,7 @@ class GameScene extends Phaser.Scene {
             }
             bat.moveSpeed = 92; // Reduced to match spawnEnemy
             bat.isFlying = true;
-            this.enemies.add(bat);
+            this.addEnemyToGroup(bat);
             
             // Play animation with safety check after all properties are set
             this.time.delayedCall(10, () => {
@@ -11785,7 +12003,7 @@ class GameScene extends Phaser.Scene {
                 mushroom.body.setSize(80, 30);  // Adjusted height for smaller sprite
                 mushroom.body.setOffset(35, 8);  // Adjusted offset for smaller sprite
             }
-            this.enemies.add(mushroom);
+            this.addEnemyToGroup(mushroom);
             
             // Play animation with safety check after all properties are set
             this.time.delayedCall(10, () => {
@@ -11812,7 +12030,7 @@ class GameScene extends Phaser.Scene {
                 fireworm.body.setOffset(10, 20);
             }
             fireworm.element = 'fire';
-            this.enemies.add(fireworm);
+            this.addEnemyToGroup(fireworm);
             
             // Play animation with safety check after all properties are set
             this.time.delayedCall(10, () => {
@@ -11842,7 +12060,7 @@ class GameScene extends Phaser.Scene {
             summoner.lastSummonTime = 0;
             summoner.summonCooldown = 5000;
             summoner.isSummoning = false;
-            this.enemies.add(summoner);
+            this.addEnemyToGroup(summoner);
         } else if (enemyType === 'soul') {
             const soul = this.physics.add.sprite(x, y, 'soul-move', 0);
             soul.setScale(0.8);
@@ -11861,7 +12079,7 @@ class GameScene extends Phaser.Scene {
             soul.attackCooldown = 2000;
             soul.lastAttackTime = 0;
             soul.element = 'arcane';
-            this.enemies.add(soul);
+            this.addEnemyToGroup(soul);
         } else if (enemyType === 'bloboid') {
             const bloboid = this.physics.add.sprite(x, y, 'bloboid-walk', 0);
             bloboid.setScale(1.5);
@@ -11878,7 +12096,7 @@ class GameScene extends Phaser.Scene {
                 bloboid.body.setOffset(15, 2);
             }
             bloboid.element = 'earth';
-            this.enemies.add(bloboid);
+            this.addEnemyToGroup(bloboid);
         } else if (enemyType === 'slime') {
             const slime = this.physics.add.sprite(x, y, 'slime-idle', 0);
             slime.setScale(1.0);
@@ -11893,7 +12111,7 @@ class GameScene extends Phaser.Scene {
                 slime.body.setOffset(10, 10);
             }
             slime.generation = 0;
-            this.enemies.add(slime);
+            this.addEnemyToGroup(slime);
         } else if (enemyType === 'fireslime') {
             const slime = this.physics.add.sprite(x, y, 'slime-idle', 0);
             slime.setScale(1.0);
@@ -11911,7 +12129,7 @@ class GameScene extends Phaser.Scene {
             slime.generation = 0;
             slime.burnDamage = 2; // Applies burn on contact
             slime.burnDuration = 3000; // 3 seconds
-            this.enemies.add(slime);
+            this.addEnemyToGroup(slime);
         } else if (enemyType === 'golem') {
             const golemColor = Math.random() < 0.5 ? 'orange' : 'blue';
             const golem = this.physics.add.sprite(x, y, `golem-${golemColor}-walk`, 0);
@@ -11928,7 +12146,7 @@ class GameScene extends Phaser.Scene {
                 golem.body.setOffset(15, 10);
             }
             golem.element = golemColor === 'orange' ? 'fire' : 'water';
-            this.enemies.add(golem);
+            this.addEnemyToGroup(golem);
         } else if (enemyType === 'orangegolem') {
             // Always orange golem for lava stage
             const golem = this.physics.add.sprite(x, y, 'golem-orange-walk', 0);
@@ -11947,7 +12165,7 @@ class GameScene extends Phaser.Scene {
             golem.element = 'fire';
             golem.burnDamage = 3; // Applies burn on contact
             golem.burnDuration = 2000; // 2 seconds
-            this.enemies.add(golem);
+            this.addEnemyToGroup(golem);
         } else if (enemyType === 'sorcerer') {
             // Create sorcerer boss enemy
             const sorcerer = this.physics.add.sprite(x, y, 'sorcerer-attack-0');
@@ -11968,7 +12186,7 @@ class GameScene extends Phaser.Scene {
             sorcerer.attackCooldown = 2500; // Attacks frequently
             sorcerer.lastAttackTime = 0;
             sorcerer.isBoss = true; // Mark as boss enemy
-            this.enemies.add(sorcerer);
+            this.addEnemyToGroup(sorcerer);
         } else if (enemyType === 'clubimp') {
             // Create elite Club Imp
             const imp = this.physics.add.sprite(x, y, 'club-imp-walk-1');
@@ -11988,7 +12206,7 @@ class GameScene extends Phaser.Scene {
                 imp.body.setOffset(15, 10);
             }
             imp.element = 'earth';
-            this.enemies.add(imp);
+            this.addEnemyToGroup(imp);
         } else if (enemyType === 'axeimp') {
             // Create elite Axe Imp
             const imp = this.physics.add.sprite(x, y, 'axe-imp-walk-1');
@@ -12008,7 +12226,7 @@ class GameScene extends Phaser.Scene {
                 imp.body.setOffset(15, 10);
             }
             imp.element = 'metal';
-            this.enemies.add(imp);
+            this.addEnemyToGroup(imp);
         } else if (enemyType === 'kobold') {
             const kobold = this.physics.add.sprite(x, y, 'kobold-walk', 0);
             kobold.setScale(1.0);
@@ -12024,7 +12242,7 @@ class GameScene extends Phaser.Scene {
                 kobold.body.setOffset(34, 13);
             }
             kobold.element = 'earth';
-            this.enemies.add(kobold);
+            this.addEnemyToGroup(kobold);
         } else if (enemyType === 'darkbat') {
             const darkbat = this.physics.add.sprite(x, y, 'dark-bat-fly', 0);
             darkbat.setScale(1.2);
@@ -12042,7 +12260,7 @@ class GameScene extends Phaser.Scene {
             darkbat.isFlying = true;
             darkbat.element = 'arcane';
             this.setEnemyDepth(darkbat);
-            this.enemies.add(darkbat);
+            this.addEnemyToGroup(darkbat);
         } else if (enemyType === 'flyingdemon') {
             const demon = this.physics.add.sprite(x, y, 'flying-demon', 0);
             demon.setScale(0.91); // Reduced by 30% from 1.3
@@ -12063,7 +12281,7 @@ class GameScene extends Phaser.Scene {
             demon.burnDamage = 2;
             demon.burnDuration = 2000;
             this.setEnemyDepth(demon);
-            this.enemies.add(demon);
+            this.addEnemyToGroup(demon);
         }
     }
 
@@ -12152,7 +12370,7 @@ class GameScene extends Phaser.Scene {
         }
 
         // Add to enemies group
-        this.enemies.add(golem);
+        this.addEnemyToGroup(golem);
 
         // Special spawn effect - elemental color for golem
         const effectColor = golemColor === 'orange' ? 0xff6600 : 0x0099ff;
@@ -12293,57 +12511,56 @@ class GameScene extends Phaser.Scene {
         
         this.flamethrowerActive = true;
         
-        // Create flamethrower particles
-        const flameParticles = this.add.particles(this.wizard.x, this.wizard.y, 'particle', {
-            speed: { min: 200, max: 400 },
-            scale: { start: 0.8, end: 0 },
-            lifespan: 600,
-            quantity: 5,
-            frequency: 30,
-            tint: [0xff0000, 0xff6600, 0xffaa00],
-            alpha: { start: 0.8, end: 0 },
-            blendMode: 'ADD'
-        });
-        flameParticles.setDepth(this.wizard.depth + 1);
+        // Create flamethrower using fire spell sprites in a cone
+        this.flamethrowerSprites = [];
+        const numFlames = 8;
+        
+        // Create multiple fire sprites for the flame effect
+        for (let i = 0; i < numFlames; i++) {
+            const flame = this.add.sprite(this.wizard.x, this.wizard.y, 'fire-spell');
+            flame.setDepth(this.wizard.depth + 1);
+            flame.setScale(0.8 + (i * 0.15)); // Gradually larger flames
+            flame.setAlpha(0.8 - (i * 0.08)); // Gradually more transparent
+            flame.setBlendMode('ADD');
+            flame.play('fire-spell-anim');
+            this.flamethrowerSprites.push(flame);
+        }
         
         // Track flame direction based on wizard movement
         let lastX = this.wizard.x;
         let lastY = this.wizard.y;
+        this.lastFlameAngle = 0;
         
         // Update flame direction and damage
         const flameUpdate = this.time.addEvent({
             delay: 50,
             callback: () => {
-                if (!this.wizard || !flameParticles) return;
-                
-                // Update particle position
-                flameParticles.x = this.wizard.x;
-                flameParticles.y = this.wizard.y;
+                if (!this.wizard || !this.flamethrowerSprites) return;
                 
                 // Calculate movement direction
                 const dx = this.wizard.x - lastX;
                 const dy = this.wizard.y - lastY;
                 const moveAngle = Math.atan2(dy, dx);
                 
-                // Set particle direction based on movement or last direction
+                // Determine flame angle
+                let flameAngle;
                 if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
-                    flameParticles.setParticleSpeed(200, 400);
-                    flameParticles.setEmitterAngle({
-                        min: (moveAngle * 180 / Math.PI) - 30,
-                        max: (moveAngle * 180 / Math.PI) + 30
-                    });
-                } else if (this.lastFlameAngle !== undefined) {
-                    // Use last angle if not moving
-                    flameParticles.setEmitterAngle({
-                        min: (this.lastFlameAngle * 180 / Math.PI) - 30,
-                        max: (this.lastFlameAngle * 180 / Math.PI) + 30
-                    });
+                    flameAngle = moveAngle;
+                    this.lastFlameAngle = moveAngle;
+                } else {
+                    flameAngle = this.lastFlameAngle;
                 }
                 
-                // Store last angle
-                if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
-                    this.lastFlameAngle = moveAngle;
-                }
+                // Position flame sprites in a cone
+                this.flamethrowerSprites.forEach((flame, index) => {
+                    const distance = 30 + (index * 25); // Distance from wizard
+                    const spreadAngle = (index - 3.5) * 0.15; // Spread the flames
+                    const finalAngle = flameAngle + spreadAngle;
+                    
+                    flame.x = this.wizard.x + Math.cos(finalAngle) * distance;
+                    flame.y = this.wizard.y + Math.sin(finalAngle) * distance;
+                    flame.rotation = finalAngle + Math.PI / 2; // Orient the flame
+                });
                 
                 lastX = this.wizard.x;
                 lastY = this.wizard.y;
@@ -12438,7 +12655,9 @@ class GameScene extends Phaser.Scene {
         this.time.delayedCall(6000, () => {
             this.flamethrowerActive = false;
             flameUpdate.destroy();
-            flameParticles.destroy();
+            // Destroy all flame sprites
+            this.flamethrowerSprites.forEach(flame => flame.destroy());
+            this.flamethrowerSprites = [];
             timerText.destroy();
             delete this.lastFlameAngle;
         });
@@ -12545,7 +12764,7 @@ class GameScene extends Phaser.Scene {
             Math.sin(angle) * 100
         );
 
-        this.enemies.add(slime);
+        this.addEnemyToGroup(slime);
     }
 
     hitEnemy(wizard, enemy) {
@@ -12951,6 +13170,12 @@ class GameScene extends Phaser.Scene {
         // Mark as destroying to prevent double processing
         collectible.isDestroying = true;
         
+        // Stop any movement immediately
+        if (collectible.body) {
+            collectible.body.setVelocity(0, 0);
+            collectible.body.setAcceleration(0, 0);
+        }
+        
         // Use Phaser's disableBody method when available
         if (collectible.disableBody) {
             // This is the recommended Phaser way - disables physics and hides sprite
@@ -12962,7 +13187,7 @@ class GameScene extends Phaser.Scene {
             collectible.body.enable = false;
         }
         
-        // Remove from appropriate physics group
+        // Remove from appropriate physics group BEFORE destroying
         if (this.jewels && this.jewels.contains(collectible)) {
             this.jewels.remove(collectible);
         }
@@ -12976,8 +13201,719 @@ class GameScene extends Phaser.Scene {
             this.chargeExpansions.remove(collectible);
         }
         
-        // Destroy immediately - collectibles don't need delay
-        collectible.destroy();
+        // Destroy with a minimal delay to ensure physics cleanup
+        this.time.delayedCall(10, () => {
+            if (collectible && collectible.destroy) {
+                collectible.destroy();
+            }
+        });
+    }
+    
+    updateObelisks(playerX, playerY) {
+        const chunkX = Math.floor(playerX / this.chunkSize);
+        const chunkY = Math.floor(playerY / this.chunkSize);
+        const viewDistance = 3; // Check chunks within 3 chunks of player
+        
+        // Check chunks around player
+        for (let dx = -viewDistance; dx <= viewDistance; dx++) {
+            for (let dy = -viewDistance; dy <= viewDistance; dy++) {
+                const cx = chunkX + dx;
+                const cy = chunkY + dy;
+                const chunkKey = `${cx},${cy}`;
+                
+                // Skip if chunk already has an obelisk (either spawned or active)
+                if (this.obeliskChunks.has(chunkKey) || this.activeObelisks.has(chunkKey)) continue;
+                
+                // Deterministic spawning: spawn an obelisk every 3 chunks in each direction
+                // This creates a denser grid pattern for more frequent encounters
+                const shouldSpawn = (Math.abs(cx) % 3 === 0 && Math.abs(cy) % 3 === 0) || // Grid intersections
+                                  (Math.abs(cx) % 3 === 1 && Math.abs(cy) % 3 === 2) || // Offset grid 1
+                                  (Math.abs(cx) % 3 === 2 && Math.abs(cy) % 3 === 1); // Offset grid 2
+                
+                if (shouldSpawn) {
+                    this.spawnObelisk(cx, cy);
+                    this.obeliskChunks.add(chunkKey);
+                    // Log only the first few spawns to avoid spam
+                    if (this.obeliskChunks.size <= 5) {
+                        console.log(`Spawned obelisk at chunk ${cx},${cy} (grid position)`);
+                    }
+                }
+            }
+        }
+        
+        // Update existing obelisks
+        this.activeObelisks.forEach((obelisk, key) => {
+            const [ox, oy] = key.split(',').map(Number);
+            const chunkDistance = Math.abs(ox - chunkX) + Math.abs(oy - chunkY);
+            
+            // Clean up distant obelisks (increased cleanup distance)
+            if (chunkDistance > viewDistance + 2) {
+                // Clean up light beam if it exists
+                if (obelisk.lightBeam) {
+                    obelisk.lightBeam.destroy();
+                }
+                obelisk.destroy();
+                this.activeObelisks.delete(key);
+                // Remove from obeliskChunks if not activated, so it can spawn again later
+                if (!obelisk.activated) {
+                    this.obeliskChunks.delete(key);
+                }
+            } else {
+                // Reset interaction flag if player has moved away
+                if (obelisk.hasInteracted && !obelisk.activated) {
+                    const distance = Phaser.Math.Distance.Between(playerX, playerY, obelisk.x, obelisk.y);
+                    if (distance > obelisk.interactionRadius + 50) { // Add buffer zone
+                        obelisk.hasInteracted = false;
+                    }
+                }
+            }
+        });
+    }
+    
+    spawnObelisk(chunkX, chunkY) {
+        // Random position within chunk
+        const x = chunkX * this.chunkSize + Phaser.Math.Between(200, this.chunkSize - 200);
+        const y = chunkY * this.chunkSize + Phaser.Math.Between(200, this.chunkSize - 200);
+        
+        // Create obelisk sprite
+        const obelisk = this.physics.add.sprite(x, y, 'obelisk-idle');
+        obelisk.play('obelisk-object-idle');
+        obelisk.setScale(0.5); // Adjust scale as needed
+        obelisk.setDepth(30); // Ensure it's visible above ground but below UI
+        
+        // Set up physics body for collision
+        obelisk.body.setSize(80, 120); // Hitbox size
+        obelisk.body.setOffset(55, 60); // Center the hitbox
+        obelisk.body.setImmovable(true);
+        
+        // Add custom properties
+        obelisk.isObelisk = true;
+        obelisk.activated = false;
+        obelisk.hasInteracted = false; // Track if player has interacted recently
+        obelisk.interactionRadius = 120; // Radius for interaction
+        
+        // Generate random element requirements
+        const elements = ['fire', 'water', 'earth', 'air', 'lightning', 'holy', 'arcane', 'poison'];
+        const req1 = Phaser.Utils.Array.GetRandom(elements);
+        let req2 = Phaser.Utils.Array.GetRandom(elements);
+        while (req2 === req1) {
+            req2 = Phaser.Utils.Array.GetRandom(elements);
+        }
+        obelisk.requirements = [req1, req2];
+        
+        // Add to groups
+        this.obelisks.add(obelisk);
+        this.activeObelisks.set(`${chunkX},${chunkY}`, obelisk);
+        
+        // Add a glowing effect to make it more visible
+        obelisk.glowTween = this.tweens.add({
+            targets: obelisk,
+            alpha: { from: 0.7, to: 1 },
+            duration: 1500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Add a subtle light beam effect pointing upward
+        const lightBeam = this.add.rectangle(x, y - 120, 20, 240, 0x00ffff, 0.2);
+        lightBeam.setDepth(28);
+        obelisk.beamTween = this.tweens.add({
+            targets: lightBeam,
+            alpha: { from: 0.1, to: 0.3 },
+            scaleY: { from: 1, to: 1.2 },
+            duration: 2000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Store light beam reference for cleanup
+        obelisk.lightBeam = lightBeam;
+        
+        // Override destroy to clean up light beam and tweens
+        const originalDestroy = obelisk.destroy.bind(obelisk);
+        obelisk.destroy = function() {
+            if (this.lightBeam) {
+                this.lightBeam.destroy();
+            }
+            if (this.glowTween) {
+                this.glowTween.stop();
+                this.glowTween.remove();
+            }
+            if (this.beamTween) {
+                this.beamTween.stop();
+                this.beamTween.remove();
+            }
+            originalDestroy();
+        };
+    }
+    
+    updateObeliskIndicator() {
+        if (!this.wizard || !this.obeliskIndicator) return;
+        
+        // Find nearest unactivated obelisk
+        let nearestObelisk = null;
+        let nearestDistance = Infinity;
+        
+        this.activeObelisks.forEach((obelisk) => {
+            if (!obelisk.activated && obelisk.active) {
+                const distance = Phaser.Math.Distance.Between(
+                    this.wizard.x, this.wizard.y,
+                    obelisk.x, obelisk.y
+                );
+                if (distance < nearestDistance) {
+                    nearestDistance = distance;
+                    nearestObelisk = obelisk;
+                }
+            }
+        });
+        
+        // Hide indicator if no obelisk or if very close
+        if (!nearestObelisk || nearestDistance < 400) {
+            this.obeliskIndicator.setVisible(false);
+            return;
+        }
+        
+        // Calculate angle to obelisk
+        const angle = Phaser.Math.Angle.Between(
+            this.wizard.x, this.wizard.y,
+            nearestObelisk.x, nearestObelisk.y
+        );
+        
+        // Position indicator at edge of screen
+        const screenCenterX = 400;
+        const screenCenterY = 300;
+        const edgeDistance = 250; // Distance from center to place indicator
+        
+        const indicatorX = screenCenterX + Math.cos(angle) * edgeDistance;
+        const indicatorY = screenCenterY + Math.sin(angle) * edgeDistance;
+        
+        // Clamp to screen bounds
+        const margin = 30;
+        const clampedX = Phaser.Math.Clamp(indicatorX, margin, 800 - margin);
+        const clampedY = Phaser.Math.Clamp(indicatorY, margin, 600 - margin);
+        
+        this.obeliskIndicator.setPosition(clampedX, clampedY);
+        this.obeliskIndicator.setRotation(angle + Math.PI / 2); // Point towards obelisk
+        this.obeliskIndicator.setVisible(true);
+        
+        // Pulse effect based on distance
+        const alpha = 0.4 + 0.4 * Math.sin(this.time.now * 0.003);
+        this.obeliskIndicator.setAlpha(alpha);
+    }
+    
+    handleObeliskInteraction(wizard, obelisk) {
+        // Skip if already activated or other menus are open
+        if (obelisk.activated || this.isPaused || this.spellbookOpen || 
+            this.chestSelectionActive || this.fusionUI || this.obeliskMenuOpen) {
+            return;
+        }
+        
+        // Skip if player has already interacted and hasn't left the area
+        if (obelisk.hasInteracted) {
+            return;
+        }
+        
+        // Mark as interacted
+        obelisk.hasInteracted = true;
+        
+        // Open obelisk menu
+        this.openObeliskMenu(obelisk);
+    }
+    
+    openObeliskMenu(obelisk) {
+        this.obeliskMenuOpen = true;
+        this.currentObelisk = obelisk;
+        
+        // Pause game
+        this.pauseGame('obelisk');
+        
+        // Create menu container (shifted down to make room for charge slots)
+        this.obeliskMenu = this.add.container(400, 380);
+        this.obeliskMenu.setDepth(950);
+        this.obeliskMenu.setScrollFactor(0);
+        
+        // Background overlay
+        const overlay = this.add.rectangle(0, -80, 800, 600, 0x000000, 0.85);
+        overlay.setInteractive(); // Block clicks
+        
+        // Menu panel (smaller and positioned lower)
+        const panel = this.add.rectangle(0, 0, 500, 300, 0x2a2a2a, 1);
+        panel.setStrokeStyle(3, 0x00ffff);
+        
+        // Title
+        const title = this.add.text(0, -120, 'ANCIENT OBELISK', {
+            fontSize: '28px',
+            color: '#00ffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        
+        // Requirements text
+        const reqText = this.add.text(0, -80, 'Required Elements:', {
+            fontSize: '18px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        
+        // Create requirement display slots
+        const req1Bg = this.add.rectangle(-60, -20, 80, 80, 0x444444, 0.8);
+        req1Bg.setStrokeStyle(3, 0x00ffff);
+        
+        const req2Bg = this.add.rectangle(60, -20, 80, 80, 0x444444, 0.8);
+        req2Bg.setStrokeStyle(3, 0x00ffff);
+        
+        // Add requirement symbols
+        const req1Config = this.elementConfig[obelisk.requirements[0]];
+        const req2Config = this.elementConfig[obelisk.requirements[1]];
+        
+        const req1Symbol = this.add.image(-60, -20, req1Config.sheet, req1Config.frame);
+        req1Symbol.setScale(0.3);
+        
+        const req2Symbol = this.add.image(60, -20, req2Config.sheet, req2Config.frame);
+        req2Symbol.setScale(0.3);
+        
+        // Insert slots text
+        const insertText = this.add.text(0, 50, 'Insert Elements:', {
+            fontSize: '18px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        
+        // Create insert slots (drag targets)
+        this.obeliskSlots = [];
+        
+        const slot1 = this.add.rectangle(-60, 100, 70, 70, 0x333333, 0.8);
+        slot1.setStrokeStyle(3, 0x666666);
+        slot1.setInteractive({ dropZone: true });
+        slot1.slotIndex = 0;
+        slot1.currentElement = null;
+        this.obeliskSlots.push(slot1);
+        
+        const slot2 = this.add.rectangle(60, 100, 70, 70, 0x333333, 0.8);
+        slot2.setStrokeStyle(3, 0x666666);
+        slot2.setInteractive({ dropZone: true });
+        slot2.slotIndex = 1;
+        slot2.currentElement = null;
+        this.obeliskSlots.push(slot2);
+        
+        // Instructions
+        const instructions = this.add.text(0, -300, 'Drag elements from above • ESC or B to close', {
+            fontSize: '14px',
+            color: '#888888'
+        }).setOrigin(0.5);
+        
+        // Close button with padding for easier clicking
+        const closeBtn = this.add.text(230, -120, ' X ', {
+            fontSize: '24px',
+            color: '#ff6666',
+            fontStyle: 'bold',
+            backgroundColor: '#2a2a2a',
+            padding: { x: 10, y: 5 }
+        }).setOrigin(0.5);
+        closeBtn.setInteractive({ useHandCursor: true });
+        closeBtn.on('pointerover', () => {
+            closeBtn.setScale(1.1);
+            closeBtn.setColor('#ff9999');
+        });
+        closeBtn.on('pointerout', () => {
+            closeBtn.setScale(1);
+            closeBtn.setColor('#ff6666');
+        });
+        closeBtn.on('pointerdown', () => {
+            console.log('Obelisk close button clicked');
+            this.closeObeliskMenu();
+        });
+        
+        // Add all to container
+        this.obeliskMenu.add([
+            overlay, panel, title, reqText,
+            req1Bg, req2Bg, req1Symbol, req2Symbol,
+            insertText, slot1, slot2, instructions, closeBtn
+        ]);
+        
+        // Make sure charge UI is visible by updating it
+        this.updateChargeUI();
+        
+        // Show all charge slots including pouch
+        this.showAllChargeSlots();
+        
+        // Make charge indicators draggable for obelisk
+        this.enableObeliskDragAndDrop();
+        
+        // Set up gamepad controls
+        this.obeliskGamepadCheck = this.time.addEvent({
+            delay: 100,
+            callback: () => {
+                if (this.gamepad && this.gamepad.buttons[1] && this.gamepad.buttons[1].pressed) {
+                    // B button pressed
+                    this.closeObeliskMenu();
+                }
+            },
+            loop: true
+        });
+    }
+    
+    enableObeliskDragAndDrop() {
+        // Make all charge indicators draggable (including regular slots)
+        this.chargeIndicators.forEach((indicator, index) => {
+            if (index < this.chargeSlots.length && this.chargeSlots[index]) {
+                const sprite = indicator.sprite;
+                sprite.setInteractive({ draggable: true, useHandCursor: true });
+                sprite.removeAllListeners(); // Clear previous listeners
+                
+                sprite.on('dragstart', (pointer) => {
+                    sprite.setDepth(1002);
+                    sprite.setScale(0.2);
+                });
+                
+                sprite.on('drag', (pointer, dragX, dragY) => {
+                    sprite.x = dragX;
+                    sprite.y = dragY;
+                });
+                
+                sprite.on('dragend', (pointer) => {
+                    // Check if dropped on an obelisk slot
+                    let droppedOnSlot = false;
+                    
+                    this.obeliskSlots.forEach(slot => {
+                        const bounds = slot.getBounds();
+                        if (bounds.contains(pointer.x, pointer.y)) {
+                            droppedOnSlot = true;
+                            
+                            // Clear previous element in this slot
+                            if (slot.elementSprite) {
+                                slot.elementSprite.destroy();
+                            }
+                            
+                            // Add element to slot
+                            slot.currentElement = this.chargeSlots[index];
+                            const elementConfig = this.elementConfig[slot.currentElement];
+                            slot.elementSprite = this.add.image(slot.x, slot.y, elementConfig.sheet, elementConfig.frame);
+                            slot.elementSprite.setScale(0.3);
+                            slot.elementSprite.setScrollFactor(0);
+                            slot.elementSprite.setDepth(951);
+                            this.obeliskMenu.add(slot.elementSprite);
+                            
+                            // Check if both slots are filled correctly
+                            this.checkObeliskCompletion();
+                        }
+                    });
+                    
+                    // Reset sprite position
+                    sprite.x = indicator.bg.x;
+                    sprite.y = indicator.bg.y;
+                    sprite.setScale(0.15);
+                    sprite.setDepth(1000);
+                });
+            }
+        });
+        
+        // Also make extra charge indicators (pouch) draggable if they exist
+        if (this.extraChargeIndicators) {
+            this.extraChargeIndicators.forEach((indicator, index) => {
+                const pouchIndex = index;
+                if (this.elementPouch && this.elementPouch[pouchIndex]) {
+                    const sprite = indicator.sprite;
+                    sprite.setInteractive({ draggable: true, useHandCursor: true });
+                    sprite.removeAllListeners();
+                    
+                    sprite.on('dragstart', (pointer) => {
+                        sprite.setDepth(1002);
+                        sprite.setScale(0.2);
+                    });
+                    
+                    sprite.on('drag', (pointer, dragX, dragY) => {
+                        sprite.x = dragX;
+                        sprite.y = dragY;
+                    });
+                    
+                    sprite.on('dragend', (pointer) => {
+                        // Check if dropped on an obelisk slot
+                        this.obeliskSlots.forEach(slot => {
+                            const bounds = slot.getBounds();
+                            if (bounds.contains(pointer.x, pointer.y)) {
+                                // Clear previous element in this slot
+                                if (slot.elementSprite) {
+                                    slot.elementSprite.destroy();
+                                }
+                                
+                                // Add element to slot from pouch
+                                slot.currentElement = this.elementPouch[pouchIndex];
+                                const elementConfig = this.elementConfig[slot.currentElement];
+                                slot.elementSprite = this.add.image(slot.x, slot.y, elementConfig.sheet, elementConfig.frame);
+                                slot.elementSprite.setScale(0.3);
+                                slot.elementSprite.setScrollFactor(0);
+                                slot.elementSprite.setDepth(951);
+                                this.obeliskMenu.add(slot.elementSprite);
+                                
+                                // Check if both slots are filled correctly
+                                this.checkObeliskCompletion();
+                            }
+                        });
+                        
+                        // Reset sprite position
+                        sprite.x = indicator.bg.x;
+                        sprite.y = indicator.bg.y;
+                        sprite.setScale(0.15);
+                        sprite.setDepth(1000);
+                    });
+                }
+            });
+        }
+    }
+    
+    checkObeliskCompletion() {
+        if (!this.currentObelisk || !this.obeliskSlots) return;
+        
+        // Check if both slots are filled
+        const slot1Element = this.obeliskSlots[0].currentElement;
+        const slot2Element = this.obeliskSlots[1].currentElement;
+        
+        if (!slot1Element || !slot2Element) return;
+        
+        // Check if elements match requirements (order doesn't matter)
+        const req1 = this.currentObelisk.requirements[0];
+        const req2 = this.currentObelisk.requirements[1];
+        
+        if ((slot1Element === req1 && slot2Element === req2) ||
+            (slot1Element === req2 && slot2Element === req1)) {
+            
+            // Success! Activate obelisk
+            this.activateObelisk();
+        }
+    }
+    
+    activateObelisk() {
+        const obelisk = this.currentObelisk;
+        obelisk.activated = true;
+        
+        // Store the inserted elements before closing menu
+        const slot1Element = this.obeliskSlots[0].currentElement;
+        const slot2Element = this.obeliskSlots[1].currentElement;
+        
+        // Find and consume the elements from charge slots
+        let consumed = 0;
+        
+        // Check regular charge slots
+        for (let i = 0; i < this.chargeSlots.length; i++) {
+            if (consumed < 2 && this.chargeSlots[i]) {
+                if (this.chargeSlots[i] === slot1Element || this.chargeSlots[i] === slot2Element) {
+                    this.chargeSlots[i] = null;
+                    consumed++;
+                }
+            }
+        }
+        
+        // Check pouch if needed
+        if (consumed < 2 && this.elementPouch) {
+            for (let i = 0; i < this.elementPouch.length; i++) {
+                if (consumed < 2 && this.elementPouch[i]) {
+                    if (this.elementPouch[i] === slot1Element || this.elementPouch[i] === slot2Element) {
+                        this.elementPouch[i] = null;
+                        consumed++;
+                    }
+                }
+            }
+        }
+        
+        // Rebuild charges array
+        this.charges = [];
+        for (let i = 0; i < 4 && i < this.chargeSlots.length; i++) {
+            if (this.chargeSlots[i] !== null) {
+                this.charges.push(this.chargeSlots[i]);
+            }
+        }
+        
+        // Close menu first
+        this.closeObeliskMenu(false); // Don't resume game yet
+        
+        // Store obelisk position before any destruction
+        const obeliskX = obelisk.x;
+        const obeliskY = obelisk.y;
+        
+        // Play activation animation
+        console.log('Playing obelisk activation animation');
+        obelisk.play('obelisk-object-activate');
+        
+        // Create effects
+        const glowEffect = this.add.circle(obelisk.x, obelisk.y, 50, 0x00ffff, 0.5);
+        this.tweens.add({
+            targets: glowEffect,
+            radius: 200,
+            alpha: 0,
+            duration: 1000,
+            ease: 'Power2',
+            onComplete: () => glowEffect.destroy()
+        });
+        
+        // Wait for animation to complete OR timeout after 2 seconds
+        const animCompleteHandler = () => {
+            console.log('Obelisk activation complete, spawning rewards at position:', obeliskX, obeliskY);
+            // Spawn XP gems - 50 per element (100 total)
+            this.spawnObeliskRewards(obeliskX, obeliskY);
+            
+            // Update UI after gems spawn
+            this.updateChargeUI();
+            
+            // Destroy the obelisk
+            obelisk.destroy();
+            
+            // Remove from active obelisks map
+            this.activeObelisks.forEach((value, key) => {
+                if (value === obelisk) {
+                    this.activeObelisks.delete(key);
+                }
+            });
+            
+            // Resume game
+            this.resumeGame('obelisk');
+        };
+        
+        // Set up animation complete listener
+        obelisk.once('animationcomplete', animCompleteHandler);
+        
+        // Check if animation started properly
+        if (!obelisk.anims || !obelisk.anims.isPlaying) {
+            console.warn('Obelisk animation not playing properly, using short timer');
+            this.time.delayedCall(500, () => {
+                animCompleteHandler();
+            });
+        } else {
+            // Fallback timer in case animation doesn't fire
+            this.time.delayedCall(2000, () => {
+                if (obelisk && obelisk.active) {
+                    console.log('Obelisk animation timeout, forcing completion');
+                    obelisk.off('animationcomplete', animCompleteHandler);
+                    animCompleteHandler();
+                }
+            });
+        }
+    }
+    
+    spawnObeliskRewards(x, y) {
+        console.log('Spawning obelisk rewards at', x, y);
+        const gemCount = 100; // 50 gems per element × 2 elements
+        const baseXP = 10; // Scaled by 100% (doubled from 5)
+        const waveMultiplier = 1 + (this.currentWave * 0.1); // +10% per wave
+        const xpValue = Math.floor(baseXP * waveMultiplier);
+        const scale = 0.1; // Scaled by 100% (doubled from 0.05)
+        
+        // Use the same pattern as enemy drops but in a circular burst
+        for (let i = 0; i < gemCount; i++) {
+            // Spawn in multiple rings for better distribution
+            const ring = Math.floor(i / 20); // 20 gems per ring
+            const angleOffset = (ring * Math.PI / 10); // Offset each ring
+            const angle = ((i % 20) / 20) * Math.PI * 2 + angleOffset;
+            const distance = 50 + (ring * 30); // Each ring is 30 pixels apart
+            
+            const gemX = x + Math.cos(angle) * distance;
+            const gemY = y + Math.sin(angle) * distance;
+            
+            // Use the standard dropJewel function with a small delay
+            this.time.delayedCall(i * 5, () => {
+                const jewel = this.dropJewel(gemX, gemY, xpValue, scale);
+                
+                // Add initial velocity for burst effect
+                if (jewel && jewel.body) {
+                    jewel.body.setVelocity(
+                        Math.cos(angle) * Phaser.Math.Between(50, 100),
+                        Math.sin(angle) * Phaser.Math.Between(50, 100)
+                    );
+                    jewel.body.setDrag(100);
+                }
+            });
+        }
+        
+        // Add a burst effect
+        const burst = this.add.circle(x, y, 10, 0x00ffff, 0.8);
+        this.tweens.add({
+            targets: burst,
+            radius: 250,
+            alpha: 0,
+            duration: 800,
+            ease: 'Power2',
+            onComplete: () => burst.destroy()
+        });
+        
+        // Sound effect if available
+        if (this.sound && this.sound.play) {
+            // this.sound.play('gem-burst', { volume: 0.5 });
+        }
+        
+        // Random fusion element drops (0-3)
+        const numFusionDrops = Math.floor(Math.random() * 4); // 0 to 3
+        const fusionElements = ['gravity', 'smoke', 'moon', 'death', 'sun', 'lava', 
+                               'wave', 'time', 'volcano', 'ice', 'star', 'storm'];
+        
+        for (let i = 0; i < numFusionDrops; i++) {
+            const randomFusion = fusionElements[Math.floor(Math.random() * fusionElements.length)];
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 80 + Math.random() * 40;
+            const dropX = x + Math.cos(angle) * distance;
+            const dropY = y + Math.sin(angle) * distance;
+            
+            this.time.delayedCall(100 + i * 100, () => {
+                this.dropElementOrb(dropX, dropY, randomFusion);
+            });
+        }
+        
+        // Random special item drops (0-3)
+        const numItemDrops = Math.floor(Math.random() * 4); // 0 to 3
+        const specialItems = ['muffin', 'shield', 'flamethrower'];
+        
+        for (let i = 0; i < numItemDrops; i++) {
+            const randomItem = specialItems[Math.floor(Math.random() * specialItems.length)];
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 100 + Math.random() * 50;
+            const dropX = x + Math.cos(angle) * distance;
+            const dropY = y + Math.sin(angle) * distance;
+            
+            this.time.delayedCall(200 + i * 100, () => {
+                this.dropStandaloneItem(dropX, dropY, randomItem);
+            });
+        }
+    }
+    
+    closeObeliskMenu(resumeGame = true) {
+        if (this.obeliskMenu) {
+            // Clean up drag listeners but don't remove interactivity completely
+            this.chargeIndicators.forEach(indicator => {
+                if (indicator.sprite && indicator.sprite.input) {
+                    indicator.sprite.removeAllListeners();
+                    indicator.sprite.disableInteractive();
+                }
+            });
+            
+            // Also clean up extra indicators
+            if (this.extraChargeIndicators) {
+                this.extraChargeIndicators.forEach(indicator => {
+                    if (indicator.sprite && indicator.sprite.input) {
+                        indicator.sprite.removeAllListeners();
+                        indicator.sprite.disableInteractive();
+                    }
+                });
+            }
+            
+            // Destroy menu
+            this.obeliskMenu.destroy();
+            this.obeliskMenu = null;
+        }
+        
+        // Clean up gamepad check
+        if (this.obeliskGamepadCheck) {
+            this.obeliskGamepadCheck.destroy();
+            this.obeliskGamepadCheck = null;
+        }
+        
+        // Hide extra charge slots
+        this.hideExtraChargeSlots();
+        
+        this.obeliskMenuOpen = false;
+        this.currentObelisk = null;
+        this.obeliskSlots = [];
+        
+        if (resumeGame) {
+            this.resumeGame('obelisk');
+        }
     }
     
     showDamageNumber(x, y, damage, color = '#ffff00') {
@@ -13270,28 +14206,47 @@ class GameScene extends Phaser.Scene {
 
         // Apply knockback for earth projectiles
         if (projectile.knockbackForce && projectile.element === 'earth') {
-            // Check if enemy is immune to knockback
-            const currentTime = this.time.now;
-            if (!enemy.knockbackImmuneUntil || currentTime > enemy.knockbackImmuneUntil) {
-                // Apply knockback
-                const angle = Math.atan2(enemy.y - projectile.y, enemy.x - projectile.x);
-                enemy.setVelocity(
-                    Math.cos(angle) * projectile.knockbackForce,
-                    Math.sin(angle) * projectile.knockbackForce
-                );
-
-                // Set knockback immunity for 1.5 seconds
-                enemy.knockbackImmuneUntil = currentTime + 1500;
-
-                // Visual indicator of knockback immunity
-                enemy.knockbackImmune = true;
-
-                // Remove immunity after duration
-                this.time.delayedCall(1500, () => {
-                    if (enemy.active) {
-                        enemy.knockbackImmune = false;
-                    }
+            // Bosses are immune to knockback
+            if (enemy.isBoss) {
+                // Visual feedback for boss knockback immunity
+                const immuneText = this.add.text(enemy.x, enemy.y - 40, 'IMMUNE', {
+                    fontSize: '16px',
+                    color: '#ff4444',
+                    fontStyle: 'bold'
                 });
+                immuneText.setOrigin(0.5);
+                
+                this.tweens.add({
+                    targets: immuneText,
+                    y: enemy.y - 60,
+                    alpha: 0,
+                    duration: 1000,
+                    onComplete: () => immuneText.destroy()
+                });
+            } else {
+                // Check if enemy is immune to knockback
+                const currentTime = this.time.now;
+                if (!enemy.knockbackImmuneUntil || currentTime > enemy.knockbackImmuneUntil) {
+                    // Apply knockback
+                    const angle = Math.atan2(enemy.y - projectile.y, enemy.x - projectile.x);
+                    enemy.setVelocity(
+                        Math.cos(angle) * projectile.knockbackForce,
+                        Math.sin(angle) * projectile.knockbackForce
+                    );
+
+                    // Set knockback immunity for 1.5 seconds
+                    enemy.knockbackImmuneUntil = currentTime + 1500;
+
+                    // Visual indicator of knockback immunity
+                    enemy.knockbackImmune = true;
+
+                    // Remove immunity after duration
+                    this.time.delayedCall(1500, () => {
+                        if (enemy.active) {
+                            enemy.knockbackImmune = false;
+                        }
+                    });
+                }
             }
         }
 
@@ -14101,9 +15056,13 @@ class GameScene extends Phaser.Scene {
             return;
         }
         
+        // Additional check for physics body
+        if (!jewel.body || !jewel.body.enable) {
+            return;
+        }
+        
         // Mark as being processed immediately
         jewel.isDestroying = true;
-        jewel.active = false;
         
         // Add XP - use jewel's stored value or default
         const baseXP = jewel.xpValue || 2;
@@ -14216,8 +15175,47 @@ class GameScene extends Phaser.Scene {
         this.levelText.setText(`Level ${this.playerLevel}`);
         this.xpText.setText(`XP: ${this.playerXP}/${this.xpToNextLevel}`);
 
+        // Visual collection effect using the same sprite as the jewel
+        const collectEffect = this.add.sprite(jewel.x, jewel.y, jewel.texture.key);
+        collectEffect.setScale(jewel.scaleX, jewel.scaleY);
+        collectEffect.setTint(jewel.tintTopLeft || 0x00ff00);
+        collectEffect.setDepth(150);
+        
+        // Play animation if the jewel has one
+        if (jewel.anims && jewel.anims.currentAnim) {
+            collectEffect.play(jewel.anims.currentAnim.key);
+        }
+        
+        // Animate to wizard position
+        this.tweens.add({
+            targets: collectEffect,
+            x: wizard.x,
+            y: wizard.y - 30,
+            scale: 0,
+            alpha: 0,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => collectEffect.destroy()
+        });
+
         // Use safe destruction
         this.safeDestroyCollectible(jewel);
+        
+        // Failsafe: ensure jewel is destroyed even if safeDestroyCollectible fails
+        this.time.delayedCall(50, () => {
+            if (jewel && jewel.scene) {
+                // Force remove from physics group
+                if (this.jewels.contains(jewel)) {
+                    this.jewels.remove(jewel);
+                }
+                // Force destroy
+                try {
+                    jewel.destroy();
+                } catch (e) {
+                    console.warn('Failed to destroy jewel:', e);
+                }
+            }
+        });
     }
 
     dropElementOrb(x, y, element) {
@@ -14226,6 +15224,8 @@ class GameScene extends Phaser.Scene {
             console.log('Invalid element:', element);
             return; // Invalid element
         }
+        
+        console.log('Dropping element orb:', element, 'at', x, y);
 
 
         // Create orb using the element sprite from the correct sheet
@@ -14233,10 +15233,12 @@ class GameScene extends Phaser.Scene {
         orb.element = element;
         orb.setDepth(25);
         orb.body.setVelocity(0, 0);
+        orb.body.setSize(60, 60); // Set collision box size
         orb.setScale(0.1); // Double the size of dropped elements
         orb.setAlpha(1); // Ensure full opacity
         orb.setVisible(true); // Explicitly set visible
         orb.setTint(config.color); // Add color tint to make more visible
+        orb.active = true; // Ensure orb is active
 
 
         // Add floating animation
@@ -14259,13 +15261,33 @@ class GameScene extends Phaser.Scene {
             repeat: -1
         });
 
+        // Ensure physics body is enabled
+        if (orb.body) {
+            orb.body.enable = true;
+            // Set up the body properly
+            orb.body.setCircle(30); // Use circular collision body
+            orb.body.setOffset(0, 0);
+        }
+        
+        // Add a small delay before the orb can be collected to prevent instant collection
+        orb.canCollect = false;
+        this.time.delayedCall(100, () => {
+            if (orb && orb.active) {
+                orb.canCollect = true;
+            }
+        });
+        
         this.elementOrbs.add(orb);
+        console.log('Element orb added to group. Total orbs:', this.elementOrbs.children.size);
         return orb;
     }
 
     collectElementOrb(wizard, orb) {
+        console.log('collectElementOrb called with orb:', orb.element);
+        
         // Extra safety check
         if (!wizard || !orb || orb.isDestroying || !orb.active) {
+            console.log('Safety check failed:', { wizard: !!wizard, orb: !!orb, isDestroying: orb?.isDestroying, active: orb?.active });
             return;
         }
         
@@ -14286,35 +15308,66 @@ class GameScene extends Phaser.Scene {
             }
         }
         
-        if (chargeCount < this.maxCharges) {
-            // Find first empty slot
-            let slotIndex = -1;
-            for (let i = 0; i < 8; i++) {
+        // Try to find an empty slot in order: active charges, passive slots, pouch
+        let placed = false;
+        let slotType = '';
+        let slotIndex = -1;
+        
+        // First check active charge slots (0-3)
+        for (let i = 0; i < Math.min(4, this.maxCharges); i++) {
+            if (this.chargeSlots[i] === null) {
+                this.chargeSlots[i] = orb.element;
+                this.elementTiers.set(`${orb.element}_${i}`, 1);
+                slotType = 'active';
+                slotIndex = i;
+                placed = true;
+                break;
+            }
+        }
+        
+        // Then check passive slots (4-7) if player has them
+        if (!placed && this.maxCharges > 4) {
+            for (let i = 4; i < Math.min(8, this.maxCharges); i++) {
                 if (this.chargeSlots[i] === null) {
+                    this.chargeSlots[i] = orb.element;
+                    this.elementTiers.set(`${orb.element}_${i}`, 1);
+                    slotType = 'passive';
                     slotIndex = i;
+                    placed = true;
                     break;
                 }
             }
-            
-            if (slotIndex !== -1) {
-                this.chargeSlots[slotIndex] = orb.element;
-                
-                // Set tier to 1 for newly collected elements
-                this.elementTiers.set(`${orb.element}_${slotIndex}`, 1);
-                
-                // Rebuild charges array
+        }
+        
+        // Finally check element pouch
+        if (!placed && this.elementPouch) {
+            for (let i = 0; i < this.elementPouch.length; i++) {
+                if (this.elementPouch[i] === null) {
+                    this.elementPouch[i] = orb.element;
+                    slotType = 'pouch';
+                    slotIndex = i;
+                    placed = true;
+                    break;
+                }
+            }
+        }
+        
+        if (placed) {
+            // Rebuild charges array for active/passive slots
+            if (slotType !== 'pouch') {
                 this.charges = [];
-                for (let i = 0; i < 8; i++) {
+                for (let i = 0; i < 4 && i < this.chargeSlots.length; i++) {
                     if (this.chargeSlots[i] !== null) {
                         this.charges.push(this.chargeSlots[i]);
                     }
                 }
-                
-                console.log('Collected element:', orb.element);
-                console.log('Placed in slot:', slotIndex);
-                console.log('Element tier:', 1);
-                console.log('ChargeSlots after collection:', [...this.chargeSlots]);
-                console.log('Charges after collection:', [...this.charges]);
+            }
+            
+            console.log('Collected element:', orb.element);
+            console.log('Placed in', slotType, 'slot:', slotIndex);
+            console.log('ChargeSlots after collection:', [...this.chargeSlots]);
+            if (this.elementPouch) {
+                console.log('Element pouch:', [...this.elementPouch]);
             }
             
             this.updateChargeUI();
@@ -14332,6 +15385,9 @@ class GameScene extends Phaser.Scene {
             let displayText = `+${config.name}`;
             if (wasNewDiscovery) {
                 displayText += ' (NEW!)';
+            }
+            if (slotType === 'pouch') {
+                displayText += ' (Pouch)';
             }
 
             const elementText = this.add.text(wizard.x, wizard.y - 30, displayText, {
@@ -14351,6 +15407,45 @@ class GameScene extends Phaser.Scene {
 
             // Use safe destruction
             this.safeDestroyCollectible(orb);
+            
+            // Failsafe: ensure orb is destroyed even if safeDestroyCollectible fails
+            this.time.delayedCall(50, () => {
+                if (orb && orb.scene) {
+                    // Force remove from physics group
+                    if (this.elementOrbs.contains(orb)) {
+                        this.elementOrbs.remove(orb);
+                    }
+                    // Force destroy
+                    try {
+                        orb.destroy();
+                    } catch (e) {
+                        console.warn('Failed to destroy element orb:', e);
+                    }
+                }
+            });
+        } else {
+            // All slots are full
+            console.log('All slots full, cannot collect element:', orb.element);
+            
+            // Reset orb state so it can be collected later
+            orb.isDestroying = false;
+            orb.active = true;
+            
+            // Show feedback
+            const fullText = this.add.text(wizard.x, wizard.y - 30, 'SLOTS FULL!', {
+                fontSize: '18px',
+                color: '#ff4444',
+                fontStyle: 'bold'
+            });
+            fullText.setOrigin(0.5);
+            
+            this.tweens.add({
+                targets: fullText,
+                y: wizard.y - 60,
+                alpha: 0,
+                duration: 1000,
+                onComplete: () => fullText.destroy()
+            });
         }
     }
 
@@ -20910,8 +22005,8 @@ class GameScene extends Phaser.Scene {
             repeat: -1
         });
         
-        // End invisibility after 5 seconds
-        this.time.delayedCall(5000, () => {
+        // Store timer reference for cleanup
+        this.smokeVeilTimer = this.time.delayedCall(5000, () => {
             // Remove invisibility
             this.smokeVeilActive = false;
             this.wizard.invisible = false;
@@ -21447,15 +22542,7 @@ class GameScene extends Phaser.Scene {
         // Mark as reward chest (not item chest)
         chest.isRewardChest = true;
         
-        // Floating animation
-        this.tweens.add({
-            targets: chest,
-            y: y - 20,
-            duration: 1000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
+        // No floating animation - chest stays stationary
         
         // Golden glow effect for reward chests
         this.tweens.add({
@@ -21468,17 +22555,7 @@ class GameScene extends Phaser.Scene {
             repeat: -1
         });
         
-        // Add sparkle particles
-        const sparkles = this.add.particles(x, y, 'spark', {
-            speed: { min: 20, max: 50 },
-            scale: { start: 0.3, end: 0 },
-            blendMode: 'ADD',
-            lifespan: 1000,
-            frequency: 100,
-            emitZone: { type: 'random', source: new Phaser.Geom.Circle(0, 0, 20) }
-        });
-        sparkles.setDepth(24);
-        chest.sparkles = sparkles;
+        // No sparkle particles
         
         this.chests.add(chest);
     }
@@ -21496,11 +22573,15 @@ class GameScene extends Phaser.Scene {
                 break;
             case 'shield':
                 item = this.physics.add.sprite(x, y, 'shield');
-                scale = 0.6;
+                scale = 0.4;
+                // Add blue tint for shield
+                item.setTint(0x44ccff);
                 break;
             case 'flamethrower':
                 item = this.physics.add.sprite(x, y, 'flamethrower');
-                scale = 0.5;
+                scale = 1.5;
+                // Add orange tint for flamethrower
+                item.setTint(0xff6600);
                 break;
             default:
                 console.warn('Unknown item type:', itemType);
@@ -22402,9 +23483,10 @@ class GameScene extends Phaser.Scene {
             fontSize: '32px',
             color: '#ff44ff',
             fontStyle: 'bold',
-            stroke: '#000000',
+            stroke: '#ffffff',
             strokeThickness: 4,
-            align: 'center'
+            align: 'center',
+            shadow: { offsetX: 2, offsetY: 2, color: '#000000', blur: 8, stroke: true, fill: true }
         });
         fusionText.setOrigin(0.5);
         fusionText.setScrollFactor(0);
@@ -23012,7 +24094,7 @@ class GameScene extends Phaser.Scene {
             const descText = this.add.text(0, 55, itemDescription, {
                 fontSize: '16px',
                 color: '#ffffff',
-                stroke: '#000000',
+                stroke: '#333333',
                 strokeThickness: 2
             }).setOrigin(0.5);
             
@@ -23303,14 +24385,31 @@ class GameScene extends Phaser.Scene {
             this.gameStarted = true;
         }
 
-        // Create reward selection UI - no background, centered on viewport
-        const selectionBg = null; // No background
+        // Create reward selection UI with semi-transparent background
+        const selectionBg = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.85);
+        selectionBg.setScrollFactor(0);
+        selectionBg.setDepth(920);
+        selectionBg.setInteractive(); // Block clicks behind
 
-        // No title text - removed
-        const title = null;
+        // Add title text
+        const titleText = chest ? 'CHOOSE YOUR REWARD' : 'LEVEL UP! CHOOSE YOUR REWARD';
+        const title = this.add.text(400, 120, titleText, {
+            fontSize: '32px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        });
+        title.setOrigin(0.5);
+        title.setScrollFactor(0);
+        title.setDepth(921);
 
-        // No control hint - removed  
-        const controlHint = null;
+        // Add control hint at bottom
+        const controlHint = this.add.text(400, 480, 'Use ← → or mouse to select • Press SPACE or click to confirm', {
+            fontSize: '16px',
+            color: '#cccccc'
+        });
+        controlHint.setOrigin(0.5);
+        controlHint.setScrollFactor(0);
+        controlHint.setDepth(921);
 
         // Create three reward type buttons
         const buttons = [];
@@ -23377,7 +24476,7 @@ class GameScene extends Phaser.Scene {
             // Check if player has any elements for fusion (need at least 2)
             const hasEnoughElementsForFusion = totalElements >= 2;
             
-            // If player doesn't have enough elements for fusion, replace fusion with another element reward
+            // If player doesn't have enough elements for fusion, offer a different reward
             const thirdReward = hasEnoughElementsForFusion ? 
                 {
                     type: 'fusion',
@@ -23388,12 +24487,12 @@ class GameScene extends Phaser.Scene {
                     color: 0xff44ff
                 } :
                 {
-                    type: 'element',
-                    title: 'PRIMARY ELEMENT',
-                    icon: '⚡',
-                    iconImage: 'element-select-icon',
-                    description: 'Choose from 3 primary elements',
-                    color: 0x4444ff
+                    type: 'link',
+                    title: 'LINK SLOT',
+                    icon: '🔗',
+                    iconImage: 'meditate-icon', // Using meditate icon as placeholder
+                    description: 'Add connection between slots',
+                    color: 0x44ff44
                 };
             
             rewardTypes = [
@@ -23426,17 +24525,20 @@ class GameScene extends Phaser.Scene {
             button.setScrollFactor(0);
             button.setDepth(922);
 
-            // Black background for frame
-            const bg = this.add.rectangle(0, 0, 200, 280, 0x000000, 0.9);
+            // Card background with border
+            const bg = this.add.rectangle(0, 0, 200, 280, 0x1a1a1a, 1);
+            bg.setStrokeStyle(2, 0x333333);
             bg.setInteractive({ useHandCursor: true });
 
             // No icon background circle
 
             // Title at the top (moved higher)
             const name = this.add.text(0, -120, reward.title, {
-                fontSize: '18px',
+                fontSize: '20px',
                 color: '#ffffff',
-                fontStyle: 'bold'
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 4
             });
             name.setOrigin(0.5);
 
@@ -23456,9 +24558,11 @@ class GameScene extends Phaser.Scene {
             // Description at the bottom (moved down)
             const description = this.add.text(0, 100, reward.description, {
                 fontSize: '14px',
-                color: '#cccccc',
+                color: '#ffffff',
                 align: 'center',
-                wordWrap: { width: 180 }
+                wordWrap: { width: 180 },
+                stroke: '#333333',
+                strokeThickness: 2
             });
             description.setOrigin(0.5);
 
@@ -23477,16 +24581,35 @@ class GameScene extends Phaser.Scene {
             bg.on('pointerover', () => {
                 // Remove frame from previous selection
                 if (this.chestUI && this.chestUI.buttons) {
-                    this.chestUI.buttons.forEach(btn => btn.bg.setStrokeStyle(0));
+                    this.chestUI.buttons.forEach(btn => {
+                        btn.bg.setStrokeStyle(2, 0x333333);
+                        btn.container.setScale(1);
+                    });
                 }
                 // Update cursor index to match hover
                 this.chestCursorIndex = buttonIndex;
-                // Add frame to hovered button
+                // Add frame and scale to hovered button
                 bg.setStrokeStyle(3, 0xffff00);
+                button.setScale(1.05);
+                
+                // Add glow effect
+                this.tweens.add({
+                    targets: bg,
+                    alpha: { from: 0.9, to: 1 },
+                    duration: 200,
+                    yoyo: true,
+                    repeat: -1
+                });
             });
 
             bg.on('pointerout', () => {
-                // Keep the frame on the current selection
+                // Reset scale but keep selection frame if this is the current selection
+                button.setScale(1);
+                this.tweens.killTweensOf(bg);
+                bg.setAlpha(1);
+                if (this.chestCursorIndex !== buttonIndex) {
+                    bg.setStrokeStyle(2, 0x333333);
+                }
             });
         }
 
@@ -23500,10 +24623,37 @@ class GameScene extends Phaser.Scene {
             chest: chest
         };
         
-        // Set initial selection frame on first button only
-        if (buttons.length > 0) {
-            buttons[0].bg.setStrokeStyle(3, 0xffff00);
+        // Animate cards appearing
+        buttons.forEach((btn, index) => {
+            btn.container.setScale(0);
+            btn.container.setAlpha(0);
+            this.tweens.add({
+                targets: btn.container,
+                scale: 1,
+                alpha: 1,
+                duration: 300,
+                delay: index * 100,
+                ease: 'Back.easeOut'
+            });
+        });
+        
+        // Animate title
+        if (title) {
+            title.setScale(0);
+            this.tweens.add({
+                targets: title,
+                scale: 1,
+                duration: 400,
+                ease: 'Back.easeOut'
+            });
         }
+        
+        // Set initial selection frame on first button after animation
+        this.time.delayedCall(400, () => {
+            if (buttons.length > 0 && buttons[0].bg) {
+                buttons[0].bg.setStrokeStyle(3, 0xffff00);
+            }
+        });
     }
 
     selectChestReward(rewardType, chest) {
@@ -23823,7 +24973,15 @@ class GameScene extends Phaser.Scene {
         // Clean up controller state
         this.meditateSelectionActive = false;
         this.meditateCursorIndex = 0;
+        
+        // Reset controller button states
+        this.prevMeditateLeftPressed = false;
+        this.prevMeditateRightPressed = false;
+        this.prevMeditateConfirmPressed = false;
 
+        // Ensure chestSelectionActive stays true for proper pause handling
+        this.chestSelectionActive = true;
+        
         if (upgradeType === 'link') {
             console.log('Link upgrade selected from meditate menu');
             // Add a random link (existing functionality)
@@ -23849,12 +25007,26 @@ class GameScene extends Phaser.Scene {
                 message.setScrollFactor(0);
                 message.setDepth(210);
 
+                // Animate the message
+                this.tweens.add({
+                    targets: message,
+                    alpha: { from: 0, to: 1 },
+                    scale: { from: 0.8, to: 1 },
+                    duration: 300,
+                    ease: 'Back.easeOut'
+                });
+
+                // Create a timer using delayedCall which works better with pause
                 const damageTimer = this.time.delayedCall(2000, () => {
-                    message.destroy();
+                    if (message && message.active) {
+                        message.destroy();
+                    }
+                    // Ensure we're properly closing the chest UI
+                    this.chestSelectionActive = false;
                     this.closeChestUI();
                 });
                 
-                // Ensure timer runs even if game is paused
+                // Force the timer to run even if game is paused
                 if (damageTimer) {
                     damageTimer.paused = false;
                 }
@@ -23869,15 +25041,39 @@ class GameScene extends Phaser.Scene {
                 message.setScrollFactor(0);
                 message.setDepth(210);
 
+                // Animate the message
+                this.tweens.add({
+                    targets: message,
+                    alpha: { from: 0, to: 1 },
+                    scale: { from: 0.8, to: 1 },
+                    duration: 300,
+                    ease: 'Back.easeOut'
+                });
+
+                // Create a timer using delayedCall which works better with pause
                 const speedTimer = this.time.delayedCall(2000, () => {
-                    message.destroy();
+                    if (message && message.active) {
+                        message.destroy();
+                    }
+                    // Ensure we're properly closing the chest UI
+                    this.chestSelectionActive = false;
                     this.closeChestUI();
                 });
                 
-                // Ensure timer runs even if game is paused
+                // Force the timer to run even if game is paused
                 if (speedTimer) {
                     speedTimer.paused = false;
                 }
+            }
+            
+            // Update charge UI to show the new buffs
+            this.updateChargeUI();
+            
+            // Failsafe: If the timer doesn't work due to pause issues, use a different approach
+            if (this.gamePaused) {
+                // Store a flag to check in update loop
+                this.pendingMeditateClose = true;
+                this.pendingMeditateCloseTime = this.time.now + 2000;
             }
         }
     }
@@ -23910,7 +25106,7 @@ class GameScene extends Phaser.Scene {
         // Count elements in charge slots (active + passive)
         if (this.chargeSlots && Array.isArray(this.chargeSlots)) {
             for (let i = 0; i < 8; i++) {
-                if (this.chargeSlots[i]) totalElements++;
+                if (this.chargeSlots[i] && this.chargeSlots[i] !== 'none' && this.chargeSlots[i] !== null) totalElements++;
             }
         } else if (this.charges && Array.isArray(this.charges)) {
             // Fallback to charges array if chargeSlots not initialized
@@ -23920,7 +25116,7 @@ class GameScene extends Phaser.Scene {
         // Count elements in pouch
         if (this.elementPouch && Array.isArray(this.elementPouch)) {
             for (let i = 0; i < 4; i++) {
-                if (this.elementPouch[i]) totalElements++;
+                if (this.elementPouch[i] && this.elementPouch[i] !== 'none' && this.elementPouch[i] !== null) totalElements++;
             }
         }
         
@@ -24294,8 +25490,9 @@ class GameScene extends Phaser.Scene {
             fontSize: '24px',
             color: '#ffdd44',
             fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 3
+            stroke: '#ffffff',
+            strokeThickness: 3,
+            shadow: { offsetX: 2, offsetY: 2, color: '#000000', blur: 6, stroke: true, fill: true }
         });
         fusingText.setOrigin(0.5);
         fusingText.setScrollFactor(0);
@@ -24352,8 +25549,9 @@ class GameScene extends Phaser.Scene {
                 fontSize: '48px',
                 color: '#ffffff',  // Always white for visibility
                 fontStyle: 'bold',
-                stroke: '#000000',
-                strokeThickness: 6
+                stroke: '#ff44ff',  // Pink stroke to match fusion theme
+                strokeThickness: 6,
+                shadow: { offsetX: 3, offsetY: 3, color: '#000000', blur: 10, stroke: true, fill: true }
             });
             nameText.setOrigin(0.5);
             nameText.setScrollFactor(0);
@@ -24388,8 +25586,9 @@ class GameScene extends Phaser.Scene {
                 fontSize: '20px',
                 color: '#ffdd44',
                 fontStyle: 'italic',
-                stroke: '#000000',
-                strokeThickness: 3
+                stroke: '#ffffff',
+                strokeThickness: 3,
+                shadow: { offsetX: 2, offsetY: 2, color: '#000000', blur: 6, stroke: true, fill: true }
             });
             successText.setOrigin(0.5);
             successText.setScrollFactor(0);
@@ -24403,8 +25602,9 @@ class GameScene extends Phaser.Scene {
                     fontSize: '16px',
                     color: '#ffdd44',
                     fontStyle: 'italic',
-                    stroke: '#000000',
-                    strokeThickness: 2
+                    stroke: '#ffffff',
+                    strokeThickness: 2,
+                    shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 4, stroke: true, fill: true }
                 });
                 bonusText.setOrigin(0.5);
                 bonusText.setScrollFactor(0);
@@ -25481,11 +26681,17 @@ class GameScene extends Phaser.Scene {
             if (leftPressed && !this.prevChestLeftPressed) {
                 console.log('Left pressed, current index:', this.chestCursorIndex);
                 if (this.chestCursorIndex > 0) {
-                    // Remove border from current selection
-                    this.chestUI.buttons[this.chestCursorIndex].bg.setStrokeStyle(0);
+                    // Remove highlight from current
+                    this.chestUI.buttons[this.chestCursorIndex].bg.setStrokeStyle(2, 0x333333);
+                    this.chestUI.buttons[this.chestCursorIndex].container.setScale(1);
+                    this.tweens.killTweensOf(this.chestUI.buttons[this.chestCursorIndex].bg);
+                    this.chestUI.buttons[this.chestCursorIndex].bg.setAlpha(1);
+                    
                     this.chestCursorIndex--;
-                    // Add border to new selection
+                    
+                    // Add highlight to new selection
                     this.chestUI.buttons[this.chestCursorIndex].bg.setStrokeStyle(3, 0xffff00);
+                    this.chestUI.buttons[this.chestCursorIndex].container.setScale(1.05);
                     console.log('Moved LEFT to chest option', this.chestCursorIndex);
                 } else {
                     console.log('Already at leftmost option');
@@ -25496,12 +26702,18 @@ class GameScene extends Phaser.Scene {
             if (rightPressed && !this.prevChestRightPressed) {
                 console.log('Right pressed, current index:', this.chestCursorIndex);
                 if (this.chestCursorIndex < 2) {
-                    // Remove border from current selection
-                    this.chestUI.buttons[this.chestCursorIndex].bg.setStrokeStyle(0);
+                    // Remove highlight from current
+                    this.chestUI.buttons[this.chestCursorIndex].bg.setStrokeStyle(2, 0x333333);
+                    this.chestUI.buttons[this.chestCursorIndex].container.setScale(1);
+                    this.tweens.killTweensOf(this.chestUI.buttons[this.chestCursorIndex].bg);
+                    this.chestUI.buttons[this.chestCursorIndex].bg.setAlpha(1);
+                    
                     this.chestCursorIndex++;
                     console.log('Incremented cursor to:', this.chestCursorIndex);
-                    // Add border to new selection
+                    
+                    // Add highlight to new selection
                     this.chestUI.buttons[this.chestCursorIndex].bg.setStrokeStyle(3, 0xffff00);
+                    this.chestUI.buttons[this.chestCursorIndex].container.setScale(1.05);
                     console.log('Updated visual for index:', this.chestCursorIndex);
                 } else {
                     console.log('Already at rightmost option');
@@ -26227,7 +27439,12 @@ class GameScene extends Phaser.Scene {
         
         // Create boss sprite
         const boss = this.physics.add.sprite(bossX, bossY, 'obelisk-boss', 0);
-        boss.setScale(2); // Make boss large
+        boss.enemyType = 'obelisk-boss';
+        
+        // Apply saved scale or use default
+        if (!this.applySavedScale(boss, 'obelisk-boss')) {
+            boss.setScale(2); // Make boss large
+        }
         
         // Adjust boss health based on enemy density setting
         const baseHealth = 2700;
@@ -26242,10 +27459,12 @@ class GameScene extends Phaser.Scene {
         
         boss.health = Math.floor(baseHealth * healthMultiplier);
         boss.maxHealth = boss.health;
-        boss.enemyType = 'boss';
         boss.isBoss = true;
         boss.moveSpeed = 20; // Reduced from 45 - much slower movement
         boss.isObeliskBoss = true; // Mark as obelisk boss for rune interaction
+        
+        // Apply hitbox configuration (enemyType already set to 'obelisk-boss')
+        this.applyHitboxConfig(boss, boss.enemyType);
         
         // Boss properties
         boss.attackCooldown = 0;
@@ -26261,7 +27480,7 @@ class GameScene extends Phaser.Scene {
         boss.play('obelisk-idle');
         
         // Add to enemies group
-        this.enemies.add(boss);
+        this.addEnemyToGroup(boss);
         
         // Store boss reference
         this.boss = boss;
@@ -26288,7 +27507,12 @@ class GameScene extends Phaser.Scene {
         
         // Create boss sprite
         const boss = this.physics.add.sprite(bossX, bossY, 'archer-boss-walk', 0);
-        boss.setScale(1.5); // Make boss slightly larger
+        boss.enemyType = 'archer-boss';
+        
+        // Apply saved scale or use default
+        if (!this.applySavedScale(boss, 'archer-boss')) {
+            boss.setScale(1.5); // Make boss slightly larger
+        }
         
         // Adjust boss health based on enemy density setting
         const baseHealth = 13200; // Double the tripled health (6600 * 2)
@@ -26303,10 +27527,12 @@ class GameScene extends Phaser.Scene {
         
         boss.health = Math.floor(baseHealth * healthMultiplier);
         boss.maxHealth = boss.health;
-        boss.enemyType = 'boss';
         boss.isBoss = true;
         boss.moveSpeed = 35; // Faster than Obelisk
         boss.isArcherBoss = true; // Mark as archer boss
+        
+        // Apply hitbox configuration (enemyType already set to 'archer-boss')
+        this.applyHitboxConfig(boss, boss.enemyType);
         
         // Boss properties
         boss.attackCooldown = 0;
@@ -26323,7 +27549,7 @@ class GameScene extends Phaser.Scene {
         boss.play('archer-boss-walk');
         
         // Add to enemies group
-        this.enemies.add(boss);
+        this.addEnemyToGroup(boss);
         
         // Store boss reference
         this.boss = boss;
@@ -26379,7 +27605,12 @@ class GameScene extends Phaser.Scene {
         
         // Create boss sprite (using obelisk for now)
         const boss = this.physics.add.sprite(bossX, bossY, 'obelisk-boss', 0);
-        boss.setScale(2);
+        boss.enemyType = 'sand-obelisk-boss';
+        
+        // Apply saved scale or use default
+        if (!this.applySavedScale(boss, 'sand-obelisk-boss')) {
+            boss.setScale(2);
+        }
         boss.setTint(0xFFD700); // Golden/sandy color
         
         // Adjust boss health for sand stage (higher than forest, lower than cave)
@@ -26395,11 +27626,13 @@ class GameScene extends Phaser.Scene {
         
         boss.health = Math.floor(baseHealth * healthMultiplier);
         boss.maxHealth = boss.health;
-        boss.enemyType = 'boss';
         boss.isBoss = true;
         boss.moveSpeed = 30; // Between forest (20) and cave (35)
         boss.isObeliskBoss = true; // Use obelisk AI for now
         boss.isSandBoss = true; // Mark as sand boss
+        
+        // Apply hitbox configuration (enemyType already set to 'sand-obelisk-boss')
+        this.applyHitboxConfig(boss, boss.enemyType);
         
         // Boss properties
         boss.attackCooldown = 0;
@@ -26415,7 +27648,7 @@ class GameScene extends Phaser.Scene {
         boss.play('obelisk-idle');
         
         // Add to enemies group
-        this.enemies.add(boss);
+        this.addEnemyToGroup(boss);
         
         // Store boss reference
         this.boss = boss;
@@ -26498,7 +27731,12 @@ class GameScene extends Phaser.Scene {
         
         // Create boss sprite
         const boss = this.physics.add.sprite(bossX, bossY, 'demon-slime-idle-1');
-        boss.setScale(1.75); // Reduced by 30% from 2.5
+        boss.enemyType = 'demon-slime-boss';
+        
+        // Apply saved scale or use default
+        if (!this.applySavedScale(boss, 'demon-slime-boss')) {
+            boss.setScale(1.75); // Reduced by 30% from 2.5
+        }
         boss.setFlipX(true); // Flip horizontally to face correct direction
         
         // Adjust boss health based on enemy density setting
@@ -26514,10 +27752,12 @@ class GameScene extends Phaser.Scene {
         
         boss.health = Math.floor(baseHealth * healthMultiplier);
         boss.maxHealth = boss.health;
-        boss.enemyType = 'boss';
         boss.isBoss = true;
         boss.isDemonSlime = true;
         boss.moveSpeed = 25; // Slow but deadly
+        
+        // Apply hitbox configuration (enemyType already set to 'demon-slime-boss')
+        this.applyHitboxConfig(boss, boss.enemyType);
         
         // Boss properties
         boss.attackCooldown = 0;
@@ -26533,7 +27773,7 @@ class GameScene extends Phaser.Scene {
         boss.play('demon-slime-idle');
         
         // Add to enemies group
-        this.enemies.add(boss);
+        this.addEnemyToGroup(boss);
         
         // Store boss reference
         this.boss = boss;
@@ -27420,7 +28660,7 @@ class GameScene extends Phaser.Scene {
                 });
                 
                 // Add to enemies group
-                this.enemies.add(enemy);
+                this.addEnemyToGroup(enemy);
             }
         });
     }
@@ -28001,11 +29241,26 @@ const config = {
     backgroundColor: '#11130d',
     pixelArt: true,
     antialias: false,
+    parent: 'game-container',
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: 800,
+        height: 600,
+        min: {
+            width: 400,
+            height: 300
+        },
+        max: {
+            width: 1600,
+            height: 1200
+        }
+    },
     physics: {
         default: 'arcade',
         arcade: {
             gravity: { y: 0 },
-            debug: localStorage.getItem('debugMode') === 'true',
+            debug: false, // Disable debug graphics to remove yellow border
             // Performance optimizations
             fps: 60,
             timeScale: 1,

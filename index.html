@@ -9,17 +9,17 @@
             margin: 0;
             padding: 0;
             background: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            overflow: hidden;
         }
-        canvas {
-            border: 1px solid #333;
+        
+        #game-container {
+            width: 100vw;
+            height: 100vh;
         }
     </style>
 </head>
 <body>
+    <div id="game-container"></div>
     <script src="phaser.min.js"></script>
     <script src="ChunkManager.js"></script>
     <script src="OptimizedEnemyManager.js"></script>

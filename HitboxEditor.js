@@ -184,6 +184,15 @@ class HitboxEditor {
             console.log(`No saved hitbox for ${enemyType}, using current body settings`);
         }
         
+        // Apply saved scale data if available
+        const savedScale = this.scaleData && this.scaleData[enemyType];
+        if (savedScale) {
+            console.log(`Applying saved scale:`, savedScale);
+            sprite.setScale(savedScale.scaleX, savedScale.scaleY);
+        } else {
+            console.log(`No saved scale for ${enemyType}, using current scale`);
+        }
+        
         // Show all control buttons
         this.saveButton.setVisible(true);
         this.copyButton.setVisible(true);
@@ -238,42 +247,43 @@ class HitboxEditor {
             handle.on('dragstart', (pointer) => {
                 this.isDragging = true;
                 handle.setData('isBeingDragged', true);
-                handle.setData('dragStartX', pointer.x);
-                handle.setData('dragStartY', pointer.y);
-                handle.setData('handleStartX', handle.x);
-                handle.setData('handleStartY', handle.y);
                 handle.setFillStyle(this.colors.active);
+                
+                // Store initial hitbox state
+                const body = this.currentSprite.body;
+                const spriteX = this.currentSprite.x;
+                const spriteY = this.currentSprite.y;
+                
+                // Calculate and store initial bounds
+                const left = spriteX - this.currentSprite.displayOriginX + body.offset.x;
+                const top = spriteY - this.currentSprite.displayOriginY + body.offset.y;
+                const right = left + body.width;
+                const bottom = top + body.height;
+                
+                this.dragStartBounds = { left, top, right, bottom };
+                console.log('Drag start bounds:', this.dragStartBounds);
             });
             
             handle.on('drag', (pointer, dragX, dragY) => {
-                // Calculate movement from initial drag position
-                const dragStartX = handle.getData('dragStartX');
-                const dragStartY = handle.getData('dragStartY');
-                const handleStartX = handle.getData('handleStartX');
-                const handleStartY = handle.getData('handleStartY');
+                // Phaser's dragX and dragY are the new positions
+                handle.x = dragX;
+                handle.y = dragY;
                 
-                // Only proceed if we have valid start data
-                if (dragStartX === undefined || handleStartX === undefined) return;
-                
-                // Calculate the delta from the start of the drag
-                const deltaX = pointer.x - dragStartX;
-                const deltaY = pointer.y - dragStartY;
-                
-                // Apply the delta to the original handle position
-                handle.x = handleStartX + deltaX;
-                handle.y = handleStartY + deltaY;
-                
-                // Only update hitbox if movement is significant
-                if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
-                    this.updateHitboxFromHandles();
-                }
+                // Update hitbox in real-time
+                this.updateHitboxFromHandles();
             });
             
             handle.on('dragend', () => {
                 this.isDragging = false;
                 handle.setData('isBeingDragged', false);
                 handle.setFillStyle(this.colors.handles);
+                
+                // Final update
+                this.updateHitboxFromHandles();
                 this.updateDisplay();
+                
+                // Clear stored bounds
+                this.dragStartBounds = null;
                 
                 // Auto-save on drag end
                 this.saveCurrentHitbox();
@@ -311,6 +321,77 @@ class HitboxEditor {
         }
     }
     
+    updateHandlesAfterDrag(draggedHandle, left, top, right, bottom) {
+        // Only update handles that should move based on which handle was dragged
+        const w = right - left;
+        const h = bottom - top;
+        
+        switch (draggedHandle) {
+            case 'topLeft':
+                // When dragging top-left, update: top row and left column
+                this.handles.topLeft.setPosition(left, top);
+                this.handles.topMiddle.setPosition(left + w/2, top);
+                this.handles.middleLeft.setPosition(left, top + h/2);
+                this.handles.center.setPosition(left + w/2, top + h/2);
+                this.handles.bottomLeft.setPosition(left, bottom);
+                break;
+            case 'topMiddle':
+                // When dragging top-middle, update: top row
+                this.handles.topLeft.setPosition(left, top);
+                this.handles.topMiddle.setPosition(left + w/2, top);
+                this.handles.topRight.setPosition(right, top);
+                this.handles.center.setPosition(left + w/2, top + h/2);
+                break;
+            case 'topRight':
+                // When dragging top-right, update: top row and right column
+                this.handles.topMiddle.setPosition(left + w/2, top);
+                this.handles.topRight.setPosition(right, top);
+                this.handles.middleRight.setPosition(right, top + h/2);
+                this.handles.center.setPosition(left + w/2, top + h/2);
+                this.handles.bottomRight.setPosition(right, bottom);
+                break;
+            case 'middleLeft':
+                // When dragging middle-left, update: left column
+                this.handles.topLeft.setPosition(left, top);
+                this.handles.middleLeft.setPosition(left, top + h/2);
+                this.handles.bottomLeft.setPosition(left, bottom);
+                this.handles.center.setPosition(left + w/2, top + h/2);
+                break;
+            case 'middleRight':
+                // When dragging middle-right, update: right column
+                this.handles.topRight.setPosition(right, top);
+                this.handles.middleRight.setPosition(right, top + h/2);
+                this.handles.bottomRight.setPosition(right, bottom);
+                this.handles.center.setPosition(left + w/2, top + h/2);
+                break;
+            case 'bottomLeft':
+                // When dragging bottom-left, update: bottom row and left column
+                this.handles.middleLeft.setPosition(left, top + h/2);
+                this.handles.bottomLeft.setPosition(left, bottom);
+                this.handles.bottomMiddle.setPosition(left + w/2, bottom);
+                this.handles.center.setPosition(left + w/2, top + h/2);
+                break;
+            case 'bottomMiddle':
+                // When dragging bottom-middle, update: bottom row
+                this.handles.bottomLeft.setPosition(left, bottom);
+                this.handles.bottomMiddle.setPosition(left + w/2, bottom);
+                this.handles.bottomRight.setPosition(right, bottom);
+                this.handles.center.setPosition(left + w/2, top + h/2);
+                break;
+            case 'bottomRight':
+                // When dragging bottom-right, update: bottom row and right column
+                this.handles.bottomMiddle.setPosition(left + w/2, bottom);
+                this.handles.bottomRight.setPosition(right, bottom);
+                this.handles.middleRight.setPosition(right, top + h/2);
+                this.handles.center.setPosition(left + w/2, top + h/2);
+                break;
+            case 'center':
+                // When moving center, update all handles
+                this.updateHandlePositions();
+                break;
+        }
+    }
+    
     updateHitboxFromHandles() {
         if (!this.currentSprite) return;
         
@@ -332,12 +413,28 @@ class HitboxEditor {
         const spriteX = this.currentSprite.x;
         const spriteY = this.currentSprite.y;
         
-        // Get current hitbox bounds
-        // Calculate the current body position using the same formula as display
-        let left = spriteX - this.currentSprite.displayOriginX + body.offset.x;
-        let top = spriteY - this.currentSprite.displayOriginY + body.offset.y;
-        let right = left + body.width;
-        let bottom = top + body.height;
+        // Debug logging
+        console.log('Before update:', {
+            position,
+            handlePos: { x: handle.x, y: handle.y },
+            bodySize: { width: body.width, height: body.height },
+            bodyOffset: { x: body.offset.x, y: body.offset.y }
+        });
+        
+        // Use stored bounds from drag start if available, otherwise calculate current
+        let left, top, right, bottom;
+        if (this.dragStartBounds) {
+            left = this.dragStartBounds.left;
+            top = this.dragStartBounds.top;
+            right = this.dragStartBounds.right;
+            bottom = this.dragStartBounds.bottom;
+        } else {
+            // Fallback: calculate current bounds
+            left = spriteX - this.currentSprite.displayOriginX + body.offset.x;
+            top = spriteY - this.currentSprite.displayOriginY + body.offset.y;
+            right = left + body.width;
+            bottom = top + body.height;
+        }
         
         // Update bounds based on which handle is being dragged
         switch (position) {
@@ -403,14 +500,21 @@ class HitboxEditor {
         this.currentSprite.body.setSize(width, height);
         this.currentSprite.body.setOffset(offsetX, offsetY);
         
-        // Update all handle positions to maintain rectangle shape
-        this.updateHandlePositions();
+        // Debug logging
+        console.log('After update:', {
+            newSize: { width, height },
+            newOffset: { x: offsetX, y: offsetY },
+            bounds: { left, top, right, bottom }
+        });
         
-        // Update display
-        this.updateDisplay();
+        // Update only the handles that need to move based on which handle is being dragged
+        this.updateHandlesAfterDrag(position, left, top, right, bottom);
+        
+        // Update display without updating handle positions since we just positioned them
+        this.updateDisplay(true);
     }
     
-    updateDisplay() {
+    updateDisplay(skipHandleUpdate = false) {
         if (!this.enabled) return;
         
         // Clear previous graphics
@@ -453,7 +557,9 @@ class HitboxEditor {
             );
             
             // Update handle positions
-            this.updateHandlePositions();
+            if (!skipHandleUpdate) {
+                this.updateHandlePositions();
+            }
             
             // Update info text
             this.infoText.setText([
@@ -522,12 +628,18 @@ class HitboxEditor {
         // In a real implementation, this would send to a server
         localStorage.setItem('hitboxData', JSON.stringify(this.hitboxData, null, 2));
         
+        // Also save combined data with scale info
+        const combinedData = {
+            hitboxes: this.hitboxData,
+            scales: this.scaleData || {}
+        };
+        
         // Also attempt to save via a simple server if available
         if (window.location.protocol !== 'file:') {
             fetch('/api/save-hitboxes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(this.hitboxData, null, 2)
+                body: JSON.stringify(combinedData, null, 2)
             }).catch(err => {
                 console.log('Server save not available, using localStorage only');
             });
@@ -658,6 +770,9 @@ class HitboxEditor {
         // Save scale data to localStorage
         localStorage.setItem('spriteScaleData', JSON.stringify(this.scaleData));
         
+        // Also save to server if available
+        this.saveToJSON();
+        
         // Show feedback
         const scaleText = factor > 1 ? 'Scale increased!' : 'Scale decreased!';
         const confirmText = this.scene.add.text(
@@ -726,6 +841,14 @@ class HitboxEditor {
         console.log(JSON.stringify(this.scaleData, null, 2));
         console.log('=== END EXPORT ===');
         
+        // Save to proper format for game to use
+        if (this.hitboxData) {
+            localStorage.setItem('hitboxData', JSON.stringify(this.hitboxData));
+        }
+        if (this.scaleData) {
+            localStorage.setItem('spriteScaleData', JSON.stringify(this.scaleData));
+        }
+        
         // Copy both to clipboard
         const exportData = {
             hitboxes: this.hitboxData,
@@ -733,6 +856,8 @@ class HitboxEditor {
         };
         const dataStr = JSON.stringify(exportData, null, 2);
         navigator.clipboard.writeText(dataStr);
+        
+        console.log('Data saved to localStorage and copied to clipboard');
         
         return exportData;
     }
