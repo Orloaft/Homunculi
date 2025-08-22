@@ -47,15 +47,15 @@ class LoadingScene extends Phaser.Scene {
         this.load.image('title-words', 'titlewords.PNG');
 
         // Load wizard sprites
-        this.load.spritesheet('wizard-idle', 'wizmove/newiz/wizard idle.png', {
+        this.load.spritesheet('wizard-idle', 'wizmove/newiz/wizard_idle.PNG', {
             frameWidth: 80,
             frameHeight: 80
         });
-        this.load.spritesheet('wizard-fly', 'wizmove/newiz/wizard fly forward.png', {
+        this.load.spritesheet('wizard-fly', 'wizmove/newiz/wizard_fly_forward.png', {
             frameWidth: 80,
             frameHeight: 80
         });
-        this.load.spritesheet('wizard-death', 'wizmove/newiz/wizard death.png', {
+        this.load.spritesheet('wizard-death', 'wizmove/newiz/wizard_death.PNG', {
             frameWidth: 80,
             frameHeight: 80
         });
@@ -718,7 +718,7 @@ class TitleScene extends Phaser.Scene {
         }
 
         this.input.keyboard.once('keydown-SPACE', () => {
-            this.transitionToStageSelect();
+            this.animateStartTextAndTransition(startText);
         });
 
         // Enable gamepad support
@@ -732,7 +732,13 @@ class TitleScene extends Phaser.Scene {
         if (this.input.gamepad && this.input.gamepad.total > 0) {
             const pad = this.input.gamepad.getPad(0);
             if (pad && (pad.buttons[0].pressed || pad.buttons[9].pressed)) {
-                this.transitionToStageSelect();
+                // Find the start text by its text content
+                const startText = this.children.list.find(child => 
+                    child.text && child.text.includes('Press SPACE')
+                );
+                if (startText && !this.isTransitioning) {
+                    this.animateStartTextAndTransition(startText);
+                }
             }
         }
     }
@@ -1286,11 +1292,39 @@ class TitleScene extends Phaser.Scene {
         });
     }
     
-    transitionToStageSelect() {
+    animateStartTextAndTransition(startText) {
         // Prevent multiple transitions
         if (this.isTransitioning) return;
         this.isTransitioning = true;
         
+        // Kill any existing tweens on the start text
+        this.tweens.killTweensOf(startText);
+        
+        // Quick flash and scale animation
+        this.tweens.add({
+            targets: startText,
+            alpha: 1,
+            scale: 1.2,
+            duration: 150,
+            ease: 'Power2',
+            onComplete: () => {
+                // Then fade out
+                this.tweens.add({
+                    targets: startText,
+                    alpha: 0,
+                    scale: 0.8,
+                    duration: 300,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        // Start transition after text disappears
+                        this.transitionToStageSelect();
+                    }
+                });
+            }
+        });
+    }
+    
+    transitionToStageSelect() {
         // Disable input during transition
         this.input.keyboard.enabled = false;
         
@@ -1306,7 +1340,9 @@ class TitleScene extends Phaser.Scene {
                 duration: 1500,
                 ease: 'Power2',
                 onComplete: () => {
-                    this.titleMusic.stop();
+                    if (this.titleMusic) {
+                        this.titleMusic.stop();
+                    }
                 }
             });
         }
@@ -2026,9 +2062,11 @@ class StageSelectScene extends Phaser.Scene {
                     duration: 500,
                     ease: 'Power2',
                     onComplete: () => {
-                        this.stageSelectMusic.stop();
-                        this.stageSelectMusic.destroy();
-                        this.stageSelectMusic = null;
+                        if (this.stageSelectMusic) {
+                            this.stageSelectMusic.stop();
+                            this.stageSelectMusic.destroy();
+                            this.stageSelectMusic = null;
+                        }
                     }
                 });
             }
@@ -2076,9 +2114,11 @@ class StageSelectScene extends Phaser.Scene {
                     duration: 500,
                     ease: 'Power2',
                     onComplete: () => {
-                        this.stageSelectMusic.stop();
-                        this.stageSelectMusic.destroy();
-                        this.stageSelectMusic = null;
+                        if (this.stageSelectMusic) {
+                            this.stageSelectMusic.stop();
+                            this.stageSelectMusic.destroy();
+                            this.stageSelectMusic = null;
+                        }
                     }
                 });
             }
@@ -2157,24 +2197,17 @@ class StageSelectScene extends Phaser.Scene {
                 button.nameText.setColor('#ffffff');
             }
             
-            // Update description
-            if (button.descText) {
-                button.descText.setText(stage.description);
-                button.descText.setColor('#aaaaff');
-            }
             
             // Make it interactive
             button.island.setInteractive({ useHandCursor: true });
             
             button.island.on('pointerover', () => {
                 button.island.setScale(button.island.scale * 1.2);
-                button.descText.setVisible(true);
                 button.glow.setScale(1.5);
             });
             
             button.island.on('pointerout', () => {
                 button.island.setScale(stage.isNexus ? 0.4 : 0.3);
-                button.descText.setVisible(false);
                 button.glow.setScale(1);
             });
             
@@ -2198,6 +2231,11 @@ class StageSelectScene extends Phaser.Scene {
     }
     
     transitionToTitle() {
+        // Kill any existing music tweens first
+        if (this.stageSelectMusic) {
+            this.tweens.killTweensOf(this.stageSelectMusic);
+        }
+        
         // Stop stage select music
         if (this.stageSelectMusic && this.stageSelectMusic.isPlaying) {
             this.stageSelectMusic.stop();
@@ -3429,6 +3467,12 @@ class GameScene extends Phaser.Scene {
         // Try to minimize the grey background visibility
         // Since we can't remove it without editing the sprites, we'll work with it
         this.wizard.setAlpha(1.0);
+        
+        // Set initial texture frame to prevent errors
+        this.wizard.setFrame(0);
+        
+        // Flag to prevent animation calls before they're created
+        this.animationsReady = false;
         
         // Create player visibility indicators
         this.createPlayerIndicators();
@@ -6227,6 +6271,9 @@ class GameScene extends Phaser.Scene {
         this.startNewWave();
 
         console.log('Game fully started!');
+        
+        // Mark animations as ready to prevent errors
+        this.animationsReady = true;
 
         // updateChargeUI should handle all the display updates now
         
@@ -7425,27 +7472,43 @@ class GameScene extends Phaser.Scene {
             this.debugDirectionLine.stroke();
         }
 
-        // Play appropriate animation
-        if (moving) {
-            const currentAnim = this.wizard.anims.currentAnim?.key;
-            if (currentAnim !== 'wizard-fly-start' && currentAnim !== 'wizard-fly-loop') {
-                // Start with the startup animation
-                this.wizard.play('wizard-fly-start');
-                this.wizard.once('animationcomplete', () => {
-                    // After startup, play the loop
-                    if (this.wizard.body.velocity.x !== 0 || this.wizard.body.velocity.y !== 0) {
-                        this.wizard.play('wizard-fly-loop');
+        // Play appropriate animation only if animations are ready
+        if (this.animationsReady) {
+            if (moving) {
+                const currentAnim = this.wizard.anims.currentAnim?.key;
+                if (currentAnim !== 'wizard-fly-start' && currentAnim !== 'wizard-fly-loop') {
+                    // Start with the startup animation
+                    if (this.anims.exists('wizard-fly-start')) {
+                        this.wizard.play('wizard-fly-start');
+                        this.wizard.once('animationcomplete', () => {
+                            // After startup, play the loop
+                            if (this.wizard.body.velocity.x !== 0 || this.wizard.body.velocity.y !== 0) {
+                                if (this.anims.exists('wizard-fly-loop')) {
+                                    this.wizard.play('wizard-fly-loop');
+                                }
+                            }
+                        });
+                    } else {
+                        // Fallback if animation doesn't exist
+                        this.wizard.setTexture('wizard-fly', 0);
                     }
-                });
-            }
-        } else {
-            const currentAnim = this.wizard.anims.currentAnim?.key;
-            if (currentAnim !== 'wizard-idle-full' && currentAnim !== 'wizard-idle-loop') {
-                // Play full idle animation once, then loop
-                this.wizard.play('wizard-idle-full');
-                this.wizard.once('animationcomplete', () => {
-                    this.wizard.play('wizard-idle-loop');
-                });
+                }
+            } else {
+                const currentAnim = this.wizard.anims.currentAnim?.key;
+                if (currentAnim !== 'wizard-idle-full' && currentAnim !== 'wizard-idle-loop') {
+                    // Play full idle animation once, then loop
+                    if (this.anims.exists('wizard-idle-full')) {
+                        this.wizard.play('wizard-idle-full');
+                        this.wizard.once('animationcomplete', () => {
+                            if (this.anims.exists('wizard-idle-loop')) {
+                                this.wizard.play('wizard-idle-loop');
+                            }
+                        });
+                    } else {
+                        // Fallback if animation doesn't exist
+                        this.wizard.setTexture('wizard-idle', 0);
+                    }
+                }
             }
         }
 
@@ -23128,11 +23191,10 @@ class GameScene extends Phaser.Scene {
         // Randomly determine the reward immediately
         const finalReward = rewards[Math.floor(Math.random() * rewards.length)];
         
-        // Create simple reward display UI
+        // Create simple reward display UI - minimalistic style
         const bg = this.add.rectangle(400, 300, 400, 300, 0x000000, 0.95);
         bg.setScrollFactor(0);
         bg.setDepth(20000);
-        bg.setStrokeStyle(4, 0xffd700);
         
         // Title
         const title = this.add.text(400, 200, 'REWARD CHEST', {
@@ -25537,9 +25599,8 @@ class GameScene extends Phaser.Scene {
             return;
         }
 
-        // Create fusion UI
+        // Create fusion UI - minimalistic style
         const fusionBg = this.add.rectangle(400, 300, 700, 450, 0x000000, 0.9);
-        fusionBg.setStrokeStyle(3, 0xff44ff);
         fusionBg.setScrollFactor(0);
         fusionBg.setDepth(920);
 
