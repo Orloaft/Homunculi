@@ -76,6 +76,11 @@ class LoadingScene extends Phaser.Scene {
         this.load.image('desert-tile', 'desert.png');
         this.load.image('tree', 'foliage.png');
         
+        // Load additional stage assets
+        this.load.image('cactus', 'cactuse.png');
+        this.load.image('tombstone', 'tombstone.png');
+        this.load.image('skullfloor-tile', 'skullfloor.png');
+        
         // Load charge slot upgrade sprite
         this.load.image('charge-slot', 'chargeslot.png');
         
@@ -115,9 +120,19 @@ class LoadingScene extends Phaser.Scene {
         // Load metal element symbol
         this.load.image('metal-symbol', 'metal.png');
         
+        // Load additional element symbols
+        this.load.image('smoke-symbol', 'smoke.png');
+        this.load.image('mud-symbol', 'mud.png');
+        this.load.image('earth-symbol', 'earth.png');
+        this.load.image('zodiac-symbol', 'zodiac.png');
+        this.load.image('holy-symbol', 'holy.png');
+        this.load.image('philostone-symbol', 'philostone.png');
+        
         // Load background music
         this.load.audio('bgm', 'homonculibgm.mp3');
         this.load.audio('bgm2', 'bgm2.mp3');
+        this.load.audio('stageselect-bgm', 'VGMA Challenge 08(stageselect).ogg');
+        this.load.audio('title-bgm', 'Ludum Dare 28 03(title).ogg');
 
         // Load element symbols sprite sheets
         this.load.spritesheet('element-symbols', 'elements.png', {
@@ -391,11 +406,38 @@ class LoadingScene extends Phaser.Scene {
             frameWidth: 96,
             frameHeight: 96 // 384 / 4 frames
         });
+        
+        // Load grave-specific soul sprites
+        this.load.spritesheet('soul-move-grave', 'newenemies/Soul/Soul/move/Soul_move-grave.png', {
+            frameWidth: 96,
+            frameHeight: 96 // 768 / 8 frames
+        });
+        
+        this.load.spritesheet('soul-attack-grave', 'newenemies/Soul/Soul/attack/Soul_attack-grave.png', {
+            frameWidth: 96,
+            frameHeight: 96 // 960 / 10 frames
+        });
 
         // Load bloboid enemy sprite
         this.load.spritesheet('bloboid-walk', 'newenemies/blob/blob minion walk.png', {
             frameWidth: 80, // 640 / 8 frames
             frameHeight: 35
+        });
+        
+        // Load skeleton enemies for grave stage
+        this.load.spritesheet('skeleton-yellow-walk', 'skeleton/Skeleton_01_Yellow_Walk10frames.png', {
+            frameWidth: 96, // 960 / 10 frames
+            frameHeight: 64
+        });
+        
+        this.load.spritesheet('skeleton-seeker-walk', 'skeleton/skeleton_seeker_walk.png', {
+            frameWidth: 120, // Single column, 6 frames
+            frameHeight: 120 // 720 / 6 frames
+        });
+        
+        this.load.spritesheet('skeleton-seeker-spawn', 'skeleton/skeleton_seeker_spawn.png', {
+            frameWidth: 120, // Single column, 11 frames
+            frameHeight: 120 // 1320 / 11 frames
         });
 
 
@@ -459,6 +501,12 @@ class LoadingScene extends Phaser.Scene {
         
         this.load.spritesheet('obelisk-effects', 'Obelisk_demo/Obelisk_effects.png', {
             frameWidth: 2660 / 14, // 190 pixels per frame
+            frameHeight: 240
+        });
+        
+        // Load voidkin sprite for void stage
+        this.load.spritesheet('voidkin', 'voidkin15frames.png', {
+            frameWidth: 3360 / 15, // 224 pixels per frame
             frameHeight: 240
         });
         }
@@ -541,6 +589,28 @@ class TitleScene extends Phaser.Scene {
         // Set background to black first
         this.cameras.main.setBackgroundColor('#000000');
         
+        // Handle audio context unlocking and start title music
+        const startMusic = () => {
+            if (!this.titleMusic || !this.titleMusic.isPlaying) {
+                this.titleMusic = this.sound.add('title-bgm', { 
+                    loop: true, 
+                    volume: 0.5 
+                });
+                this.titleMusic.play();
+            }
+        };
+        
+        // Try to start music immediately
+        if (this.sound.locked) {
+            // If audio is locked, wait for user interaction
+            this.sound.once('unlocked', () => {
+                startMusic();
+            });
+        } else {
+            // Audio is already unlocked, start immediately
+            startMusic();
+        }
+        
         // Create a black overlay that will fade out
         const blackOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000);
         blackOverlay.setDepth(1000);
@@ -557,30 +627,56 @@ class TitleScene extends Phaser.Scene {
 
         bg.setScale(scale);
         
-        // Fade out the black overlay to reveal the scene
+        // Fade out the black overlay to reveal the scene - slower for cinematic effect
         this.tweens.add({
             targets: blackOverlay,
             alpha: 0,
-            duration: 1500,
+            duration: 2000, // Slower fade for more cinematic feel
             ease: 'Power2',
+            delay: 500, // Small delay before fade starts
             onComplete: () => {
                 blackOverlay.destroy();
             }
         });
 
+        // Title starts invisible and fades in with scale effect
         const title = this.add.image(400, 200, 'title-words');
         title.setOrigin(0.5);
-        title.setScale(0.8); // Adjust scale as needed
+        title.setScale(0.6); // Start smaller
+        title.setAlpha(0); // Start invisible
+        
+        // Fade in title with scale effect
+        this.tweens.add({
+            targets: title,
+            alpha: 1,
+            scale: 0.8,
+            duration: 2000,
+            delay: 1000, // Delay so background is visible first
+            ease: 'Power2.easeOut'
+        });
 
+        // Start text appears after title
         const startText = this.add.text(400, 400, 'Press SPACE or A to Start', {
             fontSize: '28px',
             color: '#aaffaa'
         }).setOrigin(0.5);
-
+        startText.setAlpha(0); // Start invisible
+        
+        // Fade in start text after title
         this.tweens.add({
             targets: startText,
-            alpha: 0,
+            alpha: 1,
             duration: 1000,
+            delay: 2500, // Appears after title is visible
+            ease: 'Power2'
+        });
+
+        // Pulsing animation starts after text is visible
+        this.tweens.add({
+            targets: startText,
+            alpha: 0.3,
+            duration: 1000,
+            delay: 3500, // Start pulsing after text has faded in
             yoyo: true,
             repeat: -1
         });
@@ -608,9 +704,21 @@ class TitleScene extends Phaser.Scene {
         
         // Fullscreen button - top right corner
         this.createFullscreenButton();
+        
+        // Add one-time click handler to unlock audio if needed
+        if (this.sound.locked) {
+            const unlockAudio = () => {
+                if (this.sound.locked) {
+                    // This will trigger audio unlock
+                    this.sound.unlock();
+                }
+                this.input.off('pointerdown', unlockAudio);
+            };
+            this.input.on('pointerdown', unlockAudio);
+        }
 
         this.input.keyboard.once('keydown-SPACE', () => {
-            this.scene.start('StageSelectScene');
+            this.transitionToStageSelect();
         });
 
         // Enable gamepad support
@@ -624,7 +732,7 @@ class TitleScene extends Phaser.Scene {
         if (this.input.gamepad && this.input.gamepad.total > 0) {
             const pad = this.input.gamepad.getPad(0);
             if (pad && (pad.buttons[0].pressed || pad.buttons[9].pressed)) {
-                this.scene.start('StageSelectScene');
+                this.transitionToStageSelect();
             }
         }
     }
@@ -1177,6 +1285,48 @@ class TitleScene extends Phaser.Scene {
             this.scale.off(Phaser.Scale.Events.LEAVE_FULLSCREEN);
         });
     }
+    
+    transitionToStageSelect() {
+        // Prevent multiple transitions
+        if (this.isTransitioning) return;
+        this.isTransitioning = true;
+        
+        // Disable input during transition
+        this.input.keyboard.enabled = false;
+        
+        // Create fade overlay
+        const fadeOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0);
+        fadeOverlay.setDepth(2000);
+        
+        // Fade out music
+        if (this.titleMusic && this.titleMusic.isPlaying) {
+            this.tweens.add({
+                targets: this.titleMusic,
+                volume: 0,
+                duration: 1500,
+                ease: 'Power2',
+                onComplete: () => {
+                    this.titleMusic.stop();
+                }
+            });
+        }
+        
+        // Fade to black
+        this.tweens.add({
+            targets: fadeOverlay,
+            alpha: 1,
+            duration: 1500,
+            ease: 'Power2',
+            onComplete: () => {
+                // Clean up music reference
+                if (this.titleMusic) {
+                    this.titleMusic.destroy();
+                    this.titleMusic = null;
+                }
+                this.scene.start('StageSelectScene');
+            }
+        });
+    }
 }
 
 class StageSelectScene extends Phaser.Scene {
@@ -1204,6 +1354,16 @@ class StageSelectScene extends Phaser.Scene {
         this.time.delayedCall(this.inputCooldown, () => {
             this.inputEnabled = true;
         });
+        
+        // Create voidkin animation
+        if (!this.anims.exists('voidkin-idle')) {
+            this.anims.create({
+                key: 'voidkin-idle',
+                frames: this.anims.generateFrameNumbers('voidkin', { start: 0, end: 14 }),
+                frameRate: 10,
+                repeat: -1
+            });
+        }
         
         // Initialize stages in create to get latest localStorage values
         const nexusVisited = localStorage.getItem('nexusVisited') === 'true';
@@ -1236,8 +1396,40 @@ class StageSelectScene extends Phaser.Scene {
         // Create deep space/abyss background
         this.cameras.main.setBackgroundColor('#0a0a1a');
         
+        // Start stage select music with fade in
+        if (!this.stageSelectMusic || !this.stageSelectMusic.isPlaying) {
+            this.stageSelectMusic = this.sound.add('stageselect-bgm', { 
+                loop: true, 
+                volume: 0 // Start at 0 volume
+            });
+            this.stageSelectMusic.play();
+            
+            // Fade in music
+            this.tweens.add({
+                targets: this.stageSelectMusic,
+                volume: 0.5,
+                duration: 2000,
+                ease: 'Power2'
+            });
+        }
+        
         // Add floating particles for mystical effect
         this.createAbyssParticles();
+        
+        // Create fade in overlay
+        const fadeInOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000);
+        fadeInOverlay.setDepth(1500);
+        
+        // Fade in from black
+        this.tweens.add({
+            targets: fadeInOverlay,
+            alpha: 0,
+            duration: 1500,
+            ease: 'Power2',
+            onComplete: () => {
+                fadeInOverlay.destroy();
+            }
+        });
         
         // Title removed per request
 
@@ -1283,7 +1475,17 @@ class StageSelectScene extends Phaser.Scene {
             
             // Main island sprite
             let island = null;
-            if (stage.icon && this.textures.exists(stage.icon)) {
+            if (stage.icon === 'void') {
+                // Special case for void stage - use animated voidkin sprite
+                island = this.add.sprite(0, 0, 'voidkin');
+                island.setScale(0.84); // 200% larger (0.42 * 2)
+                island.setAlpha(stage.unlocked ? 1 : 0.5);
+                if (!stage.unlocked) {
+                    island.setTint(0x444444);
+                }
+                island.play('voidkin-idle');
+                container.add(island);
+            } else if (stage.icon && this.textures.exists(stage.icon)) {
                 island = this.add.image(0, 0, stage.icon);
                 island.setScale(stage.isNexus ? 0.4 : 0.3);
                 island.setAlpha(stage.unlocked ? 1 : 0.5);
@@ -1327,7 +1529,7 @@ class StageSelectScene extends Phaser.Scene {
             if (stage.unlocked) {
                 island.setInteractive({ useHandCursor: true });
                 
-                const originalScale = stage.isNexus ? 0.4 : 0.3;
+                const originalScale = stage.icon === 'void' ? 0.84 : (stage.isNexus ? 0.4 : 0.3);
                 
                 island.on('pointerover', () => {
                     // Update selected stage when hovering
@@ -1352,8 +1554,6 @@ class StageSelectScene extends Phaser.Scene {
                             duration: 200,
                             ease: 'Power2.easeOut'
                         });
-                        
-                        this.hideStageDescription();
                     }
                 });
                 
@@ -1468,7 +1668,7 @@ class StageSelectScene extends Phaser.Scene {
         });
 
         backButton.on('pointerdown', () => {
-            this.scene.start('TitleScene');
+            this.transitionToTitle();
         });
 
         // Keyboard/gamepad controls
@@ -1727,7 +1927,7 @@ class StageSelectScene extends Phaser.Scene {
 
         // Go back
         if (backJustPressed) {
-            this.scene.start('TitleScene');
+            this.transitionToTitle();
         }
 
         // Store button states
@@ -1744,7 +1944,7 @@ class StageSelectScene extends Phaser.Scene {
         if (this.stageButtons[this.selectedStage]) {
             const btn = this.stageButtons[this.selectedStage];
             if (btn.island) {
-                const originalScale = btn.stage.isNexus ? 0.4 : 0.3;
+                const originalScale = btn.stage.icon === 'void' ? 0.84 : (btn.stage.isNexus ? 0.4 : 0.3);
                 this.tweens.add({
                     targets: btn.island,
                     scale: originalScale,
@@ -1752,7 +1952,6 @@ class StageSelectScene extends Phaser.Scene {
                     ease: 'Power2.easeOut'
                 });
             }
-            this.hideStageDescription();
             this.tweens.add({
                 targets: btn.glow,
                 scale: 1,
@@ -1766,7 +1965,7 @@ class StageSelectScene extends Phaser.Scene {
         const btn = this.stageButtons[this.selectedStage];
         if (btn.stage.unlocked) {
             if (btn.island) {
-                const originalScale = btn.stage.isNexus ? 0.4 : 0.3;
+                const originalScale = btn.stage.icon === 'void' ? 0.84 : (btn.stage.isNexus ? 0.4 : 0.3);
                 this.tweens.add({
                     targets: btn.island,
                     scale: originalScale * 1.3,
@@ -1818,7 +2017,22 @@ class StageSelectScene extends Phaser.Scene {
                     this.scene.start('TalentTreeScene');
                 }
             });
-        } else if (index === 0 || index === 1 || index === 2 || index === 3) {
+            
+            // Fade out music
+            if (this.stageSelectMusic && this.stageSelectMusic.isPlaying) {
+                this.tweens.add({
+                    targets: this.stageSelectMusic,
+                    volume: 0,
+                    duration: 500,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        this.stageSelectMusic.stop();
+                        this.stageSelectMusic.destroy();
+                        this.stageSelectMusic = null;
+                    }
+                });
+            }
+        } else if (index === 0 || index === 1 || index === 2 || index === 3 || index === 4) {
             // Fade to black before starting game
             const fadeOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000);
             fadeOverlay.setAlpha(0);
@@ -1853,6 +2067,21 @@ class StageSelectScene extends Phaser.Scene {
                     });
                 }
             });
+            
+            // Fade out music
+            if (this.stageSelectMusic && this.stageSelectMusic.isPlaying) {
+                this.tweens.add({
+                    targets: this.stageSelectMusic,
+                    volume: 0,
+                    duration: 500,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        this.stageSelectMusic.stop();
+                        this.stageSelectMusic.destroy();
+                        this.stageSelectMusic = null;
+                    }
+                });
+            }
         } else {
             // Show coming soon message for other stages
             const message = this.add.text(400, 300, 'COMING SOON!', {
@@ -1965,6 +2194,29 @@ class StageSelectScene extends Phaser.Scene {
                     unlockText.destroy();
                 }
             });
+        });
+    }
+    
+    transitionToTitle() {
+        // Stop stage select music
+        if (this.stageSelectMusic && this.stageSelectMusic.isPlaying) {
+            this.stageSelectMusic.stop();
+            this.stageSelectMusic.destroy();
+            this.stageSelectMusic = null;
+        }
+        
+        // Fade to black
+        const fadeOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0);
+        fadeOverlay.setDepth(2000);
+        
+        this.tweens.add({
+            targets: fadeOverlay,
+            alpha: 1,
+            duration: 500,
+            ease: 'Power2',
+            onComplete: () => {
+                this.scene.start('TitleScene');
+            }
         });
     }
 }
@@ -3026,9 +3278,17 @@ class GameScene extends Phaser.Scene {
         
         this.bgMusic = this.sound.add(bgmKey, {
             loop: true,
-            volume: 0.5
+            volume: 0 // Start at 0 volume for fade in
         });
         this.bgMusic.play();
+        
+        // Fade in music
+        this.tweens.add({
+            targets: this.bgMusic,
+            volume: 0.5,
+            duration: 2000,
+            ease: 'Power2'
+        });
         
         // Add starting element from options
         const startElement = localStorage.getItem('startElement');
@@ -3055,11 +3315,11 @@ class GameScene extends Phaser.Scene {
             // First sprite sheet (elements.png)
             fire: { frame: 0, color: 0xff4444, name: 'Fire', sheet: 'element-symbols', fireRate: 3150 }, // Reduced by 30%
             water: { frame: 1, color: 0x4444ff, name: 'Water', sheet: 'element-symbols', fireRate: 1800 },
-            earth: { frame: 6, color: 0x44ff44, name: 'Earth', sheet: 'element-symbols2', fireRate: 3000 },
+            earth: { frame: 0, color: 0x44ff44, name: 'Earth', sheet: 'earth-symbol', isImage: true, fireRate: 3000 },
             rock: { frame: 3, color: 0x8b4513, name: 'Rock', sheet: 'element-symbols', fireRate: 2250 },
             air: { frame: 4, color: 0xcccccc, name: 'Air', sheet: 'element-symbols', fireRate: 1200 },
             lightning: { frame: 5, color: 0xffff44, name: 'Lightning', sheet: 'element-symbols', fireRate: 1500 },
-            holy: { frame: 6, color: 0xffdd00, name: 'Holy', sheet: 'element-symbols' },
+            holy: { frame: 0, color: 0xffdd00, name: 'Holy', sheet: 'holy-symbol', isImage: true },
             arcane: { frame: 7, color: 0xff44ff, name: 'Arcane', sheet: 'element-symbols', fireRate: 2400 },
             dust: { frame: 8, color: 0xcc9966, name: 'Dust', sheet: 'element-symbols' },
 
@@ -3070,7 +3330,7 @@ class GameScene extends Phaser.Scene {
             volcano: { frame: 3, color: 0xcc3300, name: 'Volcano', sheet: 'element-symbols2' },
             ice: { frame: 4, color: 0x00ddff, name: 'Ice', sheet: 'element-symbols2', fireRate: 2500 },
             meteor: { frame: 5, color: 0xff8800, name: 'Meteor', sheet: 'element-symbols2', fireRate: 1500 },
-            mud: { frame: 9, color: 0x664422, name: 'Mud', sheet: 'element-symbols3' },
+            mud: { frame: 0, color: 0x664422, name: 'Mud', sheet: 'mud-symbol', isImage: true },
             storm: { frame: 7, color: 0xffff00, name: 'Storm', sheet: 'element-symbols2' },
             crystal: { frame: 8, color: 0xffaaff, name: 'Crystal', sheet: 'element-symbols2' },
 
@@ -3080,22 +3340,22 @@ class GameScene extends Phaser.Scene {
             sand: { frame: 0, color: 0xf4a460, name: 'Sand', sheet: 'sand-symbol', isImage: true },
             gravity: { frame: 0, color: 0x4b0082, name: 'Gravity', sheet: 'gravity-symbol', isImage: true },
             sun: { frame: 0, color: 0xffeb3b, name: 'Sun', sheet: 'sun-symbol', isImage: true, fireRate: 999999 },
-            smoke: { frame: 5, color: 0x696969, name: 'Smoke', sheet: 'element-symbols3', fireRate: 999999 },
+            smoke: { frame: 0, color: 0x696969, name: 'Smoke', sheet: 'smoke-symbol', isImage: true, fireRate: 999999 },
             wave: { frame: 0, color: 0x00bcd4, name: 'Wave', sheet: 'wave-symbol', isImage: true },
             star: { frame: 0, color: 0xffffff, name: 'Star', sheet: 'star-symbol', isImage: true },
-            zodiac: { frame: 0, color: 0xffd700, name: 'Zodiac', sheet: 'star-symbol', isImage: true },
+            zodiac: { frame: 0, color: 0xffd700, name: 'Zodiac', sheet: 'zodiac-symbol', isImage: true },
             hex: { frame: 1, color: 0x9932cc, name: 'Hex', sheet: 'element-symbols2' },
             venom: { frame: 2, color: 0x8b00ff, name: 'Venom', sheet: 'element-symbols2', fireRate: 2000 },
             moon: { frame: 0, color: 0xe0e0e0, name: 'Moon', sheet: 'moon-symbol', isImage: true, fireRate: 12000 },
             nature: { frame: 2, color: 0x00ff00, name: 'Nature', sheet: 'element-symbols' },
             life: { frame: 0, color: 0xff6666, name: 'Life', sheet: 'life-symbol', isImage: true },
-            philosopherstone: { frame: 3, color: 0xffd700, name: 'Philosopher Stone', sheet: 'element-symbols3', fireRate: 999999 },
+            philosopherstone: { frame: 0, color: 0xffd700, name: 'Philosopher Stone', sheet: 'philostone-symbol', isImage: true, fireRate: 999999 },
             halo: { frame: 2, color: 0x87ceeb, name: 'Halo', sheet: 'element-symbols3', fireRate: 999999 },
             metal: { frame: 0, color: 0xc0c0c0, name: 'Metal', sheet: 'metal-symbol', isImage: true, fireRate: 999999 }
         };
 
         // Define primary elements (can drop from enemies)
-        this.primaryElements = ['fire', 'water', 'earth', 'air', 'lightning', 'arcane', 'poison'];
+        this.primaryElements = ['fire', 'water', 'earth', 'air', 'lightning', 'arcane'];
         
         // Element tier tracking - maps "element_slotIndex" to tier level
         // We use element_slotIndex as key to track tier per slot, not just per element type
@@ -3327,7 +3587,12 @@ class GameScene extends Phaser.Scene {
         });
         
         // Set up collision between wizard and enemy projectiles
-        this.physics.add.overlap(this.wizard, this.enemyProjectiles, this.handleEnemyProjectileHit, null, this);
+        this.physics.add.overlap(this.wizard, this.enemyProjectiles, this.handleEnemyProjectileHit, 
+            // Process callback to filter out invalid projectiles
+            (wizard, projectile) => {
+                return wizard && wizard.active && wizard.body && wizard.body.enable &&
+                       projectile && projectile.active && projectile.body && projectile.body.enable;
+            }, this);
 
         this.physics.add.overlap(this.wizard, this.enemies, this.hitEnemy, 
             // Process callback to filter out invalid enemies
@@ -3866,6 +4131,14 @@ class GameScene extends Phaser.Scene {
             repeat: 0
         });
         
+        // Create voidkin animation
+        createAnimIfNotExists({
+            key: 'voidkin-idle',
+            frames: this.anims.generateFrameNumbers('voidkin', { start: 0, end: 14 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        
         // Create Axe Imp animations
         createAnimIfNotExists({
             key: 'axe-imp-walk',
@@ -4033,6 +4306,21 @@ class GameScene extends Phaser.Scene {
             frameRate: 15,
             repeat: -1
         });
+        
+        // Grave-specific soul animations
+        createAnimIfNotExists({
+            key: 'soul-moving-grave',
+            frames: this.anims.generateFrameNumbers('soul-move-grave', { start: 0, end: 7 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        
+        createAnimIfNotExists({
+            key: 'soul-attacking-grave',
+            frames: this.anims.generateFrameNumbers('soul-attack-grave', { start: 0, end: 9 }),
+            frameRate: 12,
+            repeat: 0
+        });
 
         // Bloboid animation
         createAnimIfNotExists({
@@ -4040,6 +4328,28 @@ class GameScene extends Phaser.Scene {
             frames: this.anims.generateFrameNumbers('bloboid-walk', { start: 0, end: 7 }),
             frameRate: 10,
             repeat: -1
+        });
+        
+        // Skeleton animations for grave stage
+        createAnimIfNotExists({
+            key: 'skeleton-yellow-walking',
+            frames: this.anims.generateFrameNumbers('skeleton-yellow-walk', { start: 0, end: 9 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        
+        createAnimIfNotExists({
+            key: 'skeleton-seeker-walking',
+            frames: this.anims.generateFrameNumbers('skeleton-seeker-walk', { start: 0, end: 5 }),
+            frameRate: 8,
+            repeat: -1
+        });
+        
+        createAnimIfNotExists({
+            key: 'skeleton-seeker-spawning',
+            frames: this.anims.generateFrameNumbers('skeleton-seeker-spawn', { start: 0, end: 10 }),
+            frameRate: 10,
+            repeat: 0 // Play once
         });
         
         // Create Kobold animation
@@ -4862,6 +5172,24 @@ class GameScene extends Phaser.Scene {
 
         // Set a dark background color as base
         this.cameras.main.setBackgroundColor('#11130d');
+        
+        // Create fade in overlay
+        const fadeInOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000);
+        fadeInOverlay.setScrollFactor(0); // Keep it fixed to camera
+        fadeInOverlay.setDepth(10000); // Above everything
+        
+        // Fade in from black
+        this.time.delayedCall(100, () => { // Small delay to ensure everything is loaded
+            this.tweens.add({
+                targets: fadeInOverlay,
+                alpha: 0,
+                duration: 1500,
+                ease: 'Power2',
+                onComplete: () => {
+                    fadeInOverlay.destroy();
+                }
+            });
+        });
 
         // Remove world bounds - allow infinite movement
         this.physics.world.setBounds(false);
@@ -4877,6 +5205,8 @@ class GameScene extends Phaser.Scene {
             tileName = 'lava-tile';
         } else if (this.stage === 'sand') {
             tileName = 'desert-tile';
+        } else if (this.stage === 'grave') {
+            tileName = 'skullfloor-tile';
         }
         
         // Create a tilesprite that covers the entire screen
@@ -6012,6 +6342,81 @@ class GameScene extends Phaser.Scene {
                         { type: 'fireslime', weight: 20, count: 4 },
                         { type: 'fireworm', weight: 20, count: 4 },
                         { type: 'bat', weight: 15, count: 5 }
+                    ],
+                    spawnInterval: 1500,
+                    maxEnemies: 80
+                }
+            ];
+        } else if (this.stage === 'grave') {
+            // Grave stage waves: yellow skeletons, skeleton seekers, lost souls, club imps and axe imps
+            baseWaves = [
+                // Wave 0 (0:00-1:00) - Introduction - Easy start with yellow skeletons
+                {
+                    enemies: [
+                        { type: 'yellowskeleton', weight: 70, count: 2 },
+                        { type: 'soul', weight: 30, count: 1 }
+                    ],
+                    spawnInterval: 3000,  // Slower spawn rate
+                    maxEnemies: 15  // Fewer total enemies
+                },
+                // Wave 1 (1:00-2:00) - Add skeleton seekers
+                {
+                    enemies: [
+                        { type: 'yellowskeleton', weight: 40, count: 3 },
+                        { type: 'skeletonseeker', weight: 30, count: 2 },
+                        { type: 'soul', weight: 30, count: 2 }
+                    ],
+                    spawnInterval: 1500,
+                    maxEnemies: 35
+                },
+                // Wave 2 (2:00-3:00) - Add imps
+                {
+                    enemies: [
+                        { type: 'yellowskeleton', weight: 25, count: 3 },
+                        { type: 'skeletonseeker', weight: 25, count: 2 },
+                        { type: 'soul', weight: 25, count: 2 },
+                        { type: 'clubimp', weight: 12, count: 1 },
+                        { type: 'axeimp', weight: 13, count: 1 }
+                    ],
+                    spawnInterval: 1200,
+                    maxEnemies: 45,
+                    specialEvent: { time: 30, type: 'swarm', enemy: 'yellowskeleton', count: 10 }
+                },
+                // Wave 3 (3:00-4:00) - More seekers and imps
+                {
+                    enemies: [
+                        { type: 'yellowskeleton', weight: 20, count: 3 },
+                        { type: 'skeletonseeker', weight: 30, count: 3 },
+                        { type: 'soul', weight: 20, count: 2 },
+                        { type: 'clubimp', weight: 15, count: 2 },
+                        { type: 'axeimp', weight: 15, count: 2 }
+                    ],
+                    spawnInterval: 1000,
+                    maxEnemies: 55
+                },
+                // Wave 4 (4:00-5:00) - Add sorcerers
+                {
+                    enemies: [
+                        { type: 'skeletonseeker', weight: 25, count: 3 },
+                        { type: 'soul', weight: 20, count: 3 },
+                        { type: 'clubimp', weight: 15, count: 2 },
+                        { type: 'axeimp', weight: 15, count: 2 },
+                        { type: 'yellowskeleton', weight: 20, count: 3 },
+                        { type: 'sorcerer', weight: 5, count: 1 }
+                    ],
+                    spawnInterval: 2000,
+                    maxEnemies: 65,
+                    specialEvent: { time: 30, type: 'circle', enemy: 'skeletonseeker', count: 8 }
+                },
+                // Wave 5+ (5:00+) - Full grave roster
+                {
+                    enemies: [
+                        { type: 'skeletonseeker', weight: 25, count: 4 },
+                        { type: 'yellowskeleton', weight: 20, count: 4 },
+                        { type: 'soul', weight: 20, count: 3 },
+                        { type: 'clubimp', weight: 12, count: 2 },
+                        { type: 'axeimp', weight: 13, count: 2 },
+                        { type: 'sorcerer', weight: 10, count: 1 }
                     ],
                     spawnInterval: 1500,
                     maxEnemies: 80
@@ -7427,8 +7832,28 @@ class GameScene extends Phaser.Scene {
                     }
                 }
             }
-            // Only update velocity if not stunned, blinded, frozen
-            else if (!enemy.stunned && !enemy.blinded && !enemy.frozen && !this.wizard.invisible && !enemy.isObeliskBoss) {
+            // Handle skeleton seeker spawn behavior
+            else if (enemy.enemyType === 'skeletonseeker' && enemy.isSpawning && !enemy.hasActivated) {
+                const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
+                
+                // Check if player is close enough to trigger spawn
+                if (distance <= enemy.activationDistance) {
+                    enemy.hasActivated = true;
+                    enemy.isSpawning = true; // Ensure spawning flag stays true
+                    enemy.play('skeleton-seeker-spawning');
+                    
+                    // After spawn animation completes, switch to walking
+                    enemy.once('animationcomplete', () => {
+                        enemy.isSpawning = false;
+                        enemy.moveSpeed = enemy.normalSpeed;
+                        enemy.play('skeleton-seeker-walking');
+                    });
+                }
+                // Stay still while waiting
+                enemy.setVelocity(0, 0);
+            }
+            // Only update velocity if not stunned, blinded, frozen (and not a spawning skeleton seeker)
+            else if (!enemy.stunned && !enemy.blinded && !enemy.frozen && !this.wizard.invisible && !enemy.isObeliskBoss && !(enemy.enemyType === 'skeletonseeker' && enemy.isSpawning)) {
                 // Get enemy speed based on type
                 let moveSpeed = (enemy.moveSpeed || (enemy.enemyType === 'tree' ? 48 : 60)) * this.speedMultiplier;
 
@@ -7463,7 +7888,7 @@ class GameScene extends Phaser.Scene {
                     }
 
                     // Flip enemies to face wizard
-                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'soul' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'mushroom' || enemy.enemyType === 'sorcerer' || enemy.enemyType === 'clubimp' || enemy.enemyType === 'axeimp' || enemy.enemyType === 'kobold') {
+                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'soul' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'mushroom' || enemy.enemyType === 'sorcerer' || enemy.enemyType === 'clubimp' || enemy.enemyType === 'axeimp' || enemy.enemyType === 'kobold' || enemy.enemyType === 'yellowskeleton' || enemy.enemyType === 'skeletonseeker') {
                         if (this.wizard.x < enemy.x) {
                             enemy.setFlipX(true); // Face left
                         } else {
@@ -7494,7 +7919,7 @@ class GameScene extends Phaser.Scene {
                     }
 
                     // Flip enemies to face wizard even when stopped
-                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'mushroom' || enemy.enemyType === 'clubimp' || enemy.enemyType === 'axeimp' || enemy.enemyType === 'kobold') {
+                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'mushroom' || enemy.enemyType === 'clubimp' || enemy.enemyType === 'axeimp' || enemy.enemyType === 'kobold' || enemy.enemyType === 'yellowskeleton' || enemy.enemyType === 'skeletonseeker') {
                         if (this.wizard.x < enemy.x) {
                             enemy.setFlipX(true); // Face left
                         } else {
@@ -8142,7 +8567,7 @@ class GameScene extends Phaser.Scene {
             'mud': { elements: ['water', 'earth'], description: 'Slows enemies significantly' },
             'dust': { elements: ['earth', 'air'], description: 'Blinds and slows enemies in large area' },
             'ice': { elements: ['water', 'air'], description: 'Freezes enemies solid' },
-            'poison': { elements: ['water', 'dark'], description: 'Drops poison mines for continuous damage' },
+            'poison': { elements: ['water', 'arcane'], description: 'Drops poison mines for continuous damage' },
             'storm': { elements: ['lightning', 'air'], description: 'Chain lightning between enemies' },
             'smoke': { elements: ['fire', 'air'], description: 'Creates obscuring smoke clouds' },
             
@@ -10815,7 +11240,7 @@ class GameScene extends Phaser.Scene {
         // Play attack animation
         soul.isAttacking = true;
         soul.setVelocity(0, 0); // Stop moving during attack
-        soul.play('soul-attacking');
+        soul.play(soul.isGraveSoul ? 'soul-attacking-grave' : 'soul-attacking');
 
         // Fire projectile midway through animation
         this.time.delayedCall(400, () => {
@@ -10847,9 +11272,6 @@ class GameScene extends Phaser.Scene {
             projectile.setTint(0x00ffff);
 
             // Add to enemy projectiles group
-            if (!this.enemyProjectiles || !this.enemyProjectiles.children) {
-                this.enemyProjectiles = this.physics.add.group();
-            }
             this.enemyProjectiles.add(projectile);
 
             // Auto-destroy after 3 seconds
@@ -10868,7 +11290,7 @@ class GameScene extends Phaser.Scene {
         soul.once('animationcomplete', () => {
             if (soul && soul.active && !soul.isDying) {
                 soul.isAttacking = false;
-                soul.play('soul-moving');
+                soul.play(soul.isGraveSoul ? 'soul-moving-grave' : 'soul-moving');
             }
         });
     }
@@ -11150,112 +11572,7 @@ class GameScene extends Phaser.Scene {
             };
 
             // Add to projectiles group for collision detection
-            if (!this.enemyProjectiles || !this.enemyProjectiles.children) {
-                this.enemyProjectiles = this.physics.add.group();
-
-                // Set up collision with wizard
-                this.physics.add.overlap(this.wizard, this.enemyProjectiles, (wizard, projectile) => {
-                    // Skip damage if game is paused, chest selection is active, or wizard is invulnerable
-                    if (this.isPaused || this.chestSelectionActive || this.invulnerable || this.wizard.isInvulnerable) {
-                        if (this.wizard.isInvulnerable) {
-                            // Show immunity effect for shield
-                            const immuneText = this.add.text(this.wizard.x, this.wizard.y - 50, 'IMMUNE', {
-                                fontSize: '16px',
-                                color: '#44ffff',
-                                fontStyle: 'bold'
-                            });
-                            immuneText.setOrigin(0.5);
-                            immuneText.setDepth(150);
-                            
-                            this.tweens.add({
-                                targets: immuneText,
-                                y: immuneText.y - 30,
-                                alpha: 0,
-                                duration: 800,
-                                ease: 'Power2',
-                                onComplete: () => immuneText.destroy()
-                            });
-                        }
-                        projectile.destroy();
-                        return;
-                    }
-                    
-                    // Check if this is an archer arrow with teleport ability
-                    if (projectile.teleportPlayer && projectile.angle !== undefined) {
-                        // Teleport player 200 pixels in the direction the arrow was pointing
-                        const teleportDistance = 200;
-                        const newX = this.wizard.x + Math.cos(projectile.angle) * teleportDistance;
-                        const newY = this.wizard.y + Math.sin(projectile.angle) * teleportDistance;
-                        
-                        // Keep player within reasonable bounds
-                        const boundedX = Phaser.Math.Clamp(newX, this.wizard.x - 400, this.wizard.x + 400);
-                        const boundedY = Phaser.Math.Clamp(newY, this.wizard.y - 400, this.wizard.y + 400);
-                        
-                        this.wizard.setPosition(boundedX, boundedY);
-                        
-                        // Teleport effect
-                        const teleportText = this.add.text(this.wizard.x, this.wizard.y - 50, 'TELEPORTED!', {
-                            fontSize: '20px',
-                            color: '#ff00ff',
-                            fontStyle: 'bold'
-                        });
-                        teleportText.setOrigin(0.5);
-                        teleportText.setDepth(150);
-                        
-                        this.tweens.add({
-                            targets: teleportText,
-                            y: teleportText.y - 30,
-                            alpha: 0,
-                            duration: 800,
-                            ease: 'Power2',
-                            onComplete: () => teleportText.destroy()
-                        });
-                    }
-                    
-                    console.log('Player hit by projectile! Damage:', projectile.damage, 'Current health:', this.playerHealth);
-                    this.playerHealth -= projectile.damage;
-                    this.updateHealthBar();
-                    this.updateWizardHealthBar();
-
-                    // Flash red when hit
-                    this.wizard.setTint(0xff0000);
-                    this.time.delayedCall(100, () => {
-                        this.wizard.clearTint();
-                    });
-
-                    // Brief invulnerability
-                    this.invulnerable = true;
-                    this.time.delayedCall(500, () => {
-                        this.invulnerable = false;
-                    });
-
-                    if (this.playerHealth <= 0) {
-                        // Stop background music
-                        if (this.bgMusic) {
-                            this.bgMusic.stop();
-                        }
-                        
-                        // Play death animation
-                        this.wizard.play('wizard-death');
-                        this.wizard.setVelocity(0, 0); // Stop movement
-
-                        // Wait for death animation to complete
-                        this.wizard.once('animationcomplete', () => {
-                            // Clear any pending timers before changing scene
-                            this.time.removeAllEvents();
-                            this.tweens.killAll();
-                            this.scene.start('GameOverScene', {
-                                survivalTime: this.survivalTime,
-                                enemiesKilled: this.enemiesKilled,
-                                itemsCollected: this.itemsCollected,
-                                won: false
-                            });
-                        });
-                    }
-
-                    projectile.destroy();
-                });
-            }
+            // Note: collision is already set up in create(), no need to duplicate
 
             this.enemyProjectiles.add(projectile);
 
@@ -11544,6 +11861,19 @@ class GameScene extends Phaser.Scene {
             } else {
                 enemyType = 'sorcerer'; // 15% - more common in lava land
             }
+        } else if (this.stage === 'grave') {
+            // Grave enemies: yellow skeletons, skeleton seekers, lost souls, club imps and axe imps
+            if (rand < 0.30) {
+                enemyType = 'yellowskeleton'; // 30%
+            } else if (rand < 0.55) {
+                enemyType = 'skeletonseeker'; // 25%
+            } else if (rand < 0.75) {
+                enemyType = 'soul'; // 20% - lost souls
+            } else if (rand < 0.95) {
+                enemyType = Math.random() < 0.5 ? 'clubimp' : 'axeimp'; // 20% imps
+            } else {
+                enemyType = 'sorcerer'; // 5% - rare boss enemy
+            }
         } else {
             // Forest enemies: trees, mushrooms, bats, bloboids, summoners, sorcerer (rare)
             if (rand < 0.25) {
@@ -11676,14 +12006,16 @@ class GameScene extends Phaser.Scene {
             summoner.element = 'arcane'; // Arcane element
             this.addEnemyToGroup(summoner);
         } else if (enemyType === 'soul') {
-            const soul = this.physics.add.sprite(x, y, 'soul-move', 0);
-            soul.setScale(0.8);
+            const isGrave = this.stage === 'grave';
+            const spriteKey = isGrave ? 'soul-move-grave' : 'soul-move';
+            const soul = this.physics.add.sprite(x, y, spriteKey, 0);
+            soul.setScale(isGrave ? 1.0 : 0.8); // Larger in grave stage
             soul.health = 6; // Increased by 50% // Medium health
             soul.maxHealth = soul.health;
             soul.enemyType = 'soul';
             soul.moveSpeed = 50; // Reduced by 44% total (was 72)
             soul.damage = 20; // Ranged enemy, medium damage
-            soul.play('soul-moving');
+            soul.play(isGrave ? 'soul-moving-grave' : 'soul-moving');
             soul.body.setSize(60, 60);
             soul.body.setOffset(18, 18);
             soul.isFlying = true; // Souls float
@@ -11691,6 +12023,12 @@ class GameScene extends Phaser.Scene {
             soul.attackCooldown = 2000; // Attack every 2 seconds
             soul.lastAttackTime = 0;
             soul.element = 'arcane'; // Arcane element like ghosts
+            
+            // Track if this is a grave soul
+            if (isGrave) {
+                soul.isGraveSoul = true;
+            }
+            
             this.addEnemyToGroup(soul);
         } else if (enemyType === 'bloboid') {
             const bloboid = this.physics.add.sprite(x, y, 'bloboid-walk', 0);
@@ -12062,13 +12400,15 @@ class GameScene extends Phaser.Scene {
             summoner.isSummoning = false;
             this.addEnemyToGroup(summoner);
         } else if (enemyType === 'soul') {
-            const soul = this.physics.add.sprite(x, y, 'soul-move', 0);
-            soul.setScale(0.8);
+            const isGrave = this.stage === 'grave';
+            const spriteKey = isGrave ? 'soul-move-grave' : 'soul-move';
+            const soul = this.physics.add.sprite(x, y, spriteKey, 0);
+            soul.setScale(isGrave ? 1.0 : 0.8); // Larger in grave stage
             soul.health = 6; // Increased by 50%
             soul.maxHealth = soul.health;
             soul.enemyType = 'soul';
             soul.moveSpeed = 50; // Reduced to match spawnEnemy
-            soul.play('soul-moving');
+            soul.play(isGrave ? 'soul-moving-grave' : 'soul-moving');
             // Apply hitbox from config or use defaults
             if (!this.applyHitboxConfig(soul, 'soul')) {
                 soul.body.setSize(60, 60);
@@ -12079,6 +12419,12 @@ class GameScene extends Phaser.Scene {
             soul.attackCooldown = 2000;
             soul.lastAttackTime = 0;
             soul.element = 'arcane';
+            
+            // Track if this is a grave soul
+            if (isGrave) {
+                soul.isGraveSoul = true;
+            }
+            
             this.addEnemyToGroup(soul);
         } else if (enemyType === 'bloboid') {
             const bloboid = this.physics.add.sprite(x, y, 'bloboid-walk', 0);
@@ -12282,6 +12628,46 @@ class GameScene extends Phaser.Scene {
             demon.burnDuration = 2000;
             this.setEnemyDepth(demon);
             this.addEnemyToGroup(demon);
+        } else if (enemyType === 'yellowskeleton') {
+            const skeleton = this.physics.add.sprite(x, y, 'skeleton-yellow-walk', 0);
+            skeleton.setScale(1.0);
+            skeleton.health = 4;
+            skeleton.maxHealth = skeleton.health;
+            skeleton.enemyType = 'yellowskeleton';
+            skeleton.moveSpeed = 45;
+            skeleton.damage = 15;
+            skeleton.play('skeleton-yellow-walking');
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(skeleton, 'yellowskeleton')) {
+                skeleton.body.setSize(40, 50);
+                skeleton.body.setOffset(28, 14);
+            }
+            this.setEnemyDepth(skeleton);
+            this.addEnemyToGroup(skeleton);
+        } else if (enemyType === 'skeletonseeker') {
+            const seeker = this.physics.add.sprite(x, y, 'skeleton-seeker-spawn', 0);
+            seeker.setScale(0.8);
+            seeker.health = 6;
+            seeker.maxHealth = seeker.health;
+            seeker.enemyType = 'skeletonseeker';
+            seeker.moveSpeed = 0; // Starts stationary
+            seeker.normalSpeed = 65; // Speed after spawning
+            seeker.damage = 20;
+            seeker.isSpawning = true;
+            seeker.hasActivated = false;
+            seeker.activationDistance = 150; // Distance to trigger spawn animation
+            
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(seeker, 'skeletonseeker')) {
+                seeker.body.setSize(60, 80);
+                seeker.body.setOffset(30, 40);
+            }
+            
+            // Start with first frame of spawn animation (buried state)
+            seeker.setFrame(0);
+            
+            this.setEnemyDepth(seeker);
+            this.addEnemyToGroup(seeker);
         }
     }
 
@@ -12911,6 +13297,10 @@ class GameScene extends Phaser.Scene {
     }
     
     handleEnemyProjectileHit(wizard, projectile) {
+        // Safety checks
+        if (!wizard || !wizard.active || !wizard.body || !wizard.body.enable) return;
+        if (!projectile || !projectile.active || !projectile.body) return;
+        
         // Skip damage if game is paused, chest selection is active, wizard is invulnerable, or arrow has ricocheted
         if (this.isPaused || this.chestSelectionActive || this.invulnerable || this.wizard.isInvulnerable || projectile.hasRicocheted) {
             if (this.wizard.isInvulnerable) {
@@ -13988,6 +14378,9 @@ class GameScene extends Phaser.Scene {
         
         // Skip if enemy is dying or doesn't have an active physics body
         if (enemy.isDying || !enemy.body || !enemy.body.enable) return;
+        
+        // Skip if skeleton seeker is still spawning
+        if (enemy.enemyType === 'skeletonseeker' && enemy.isSpawning) return;
         
         // Skip if enemy already has 0 or negative health
         if (enemy.health <= 0) {
@@ -22973,7 +23366,7 @@ class GameScene extends Phaser.Scene {
                 if (ui) ui.destroy();
                 
                 // Show element selection
-                const primaryElements = ['fire', 'water', 'earth', 'air', 'lightning', 'arcane', 'poison'];
+                const primaryElements = ['fire', 'water', 'earth', 'air', 'lightning', 'arcane'];
                 const selectedElements = [];
                 
                 // Select 3 random primary elements
@@ -24417,7 +24810,7 @@ class GameScene extends Phaser.Scene {
 
         if (this.initialElementSelection) {
             // For initial game start, directly show element choices
-            const primaryElements = ['fire', 'water', 'earth', 'air', 'lightning', 'arcane', 'poison'];
+            const primaryElements = ['fire', 'water', 'earth', 'air', 'lightning', 'arcane'];
             const selectedElements = [];
 
             // Select 3 random primary elements
@@ -25434,6 +25827,7 @@ class GameScene extends Phaser.Scene {
             'lightning+water': 'storm',
             'earth+lightning': 'gravity',
             'arcane+earth': 'gravity',
+            'arcane+water': 'poison',
             'arcane+poison': 'life',
             'earth+poison': 'life',
             'lightning+poison': 'life',
@@ -29274,6 +29668,11 @@ const config = {
     input: {
         gamepad: true,
         queue: false  // Process input immediately
+    },
+    audio: {
+        disableWebAudio: false,
+        context: null,
+        noAudio: false
     },
     // Critical performance settings
     render: {

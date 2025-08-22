@@ -128,6 +128,80 @@ class ObstacleManager {
                     [0, 0, 0, 0],
                     [0, 0, 0, 0]
                 ]
+            ],
+            sand: [
+                // Single cactus (rare)
+                [
+                    [0, 0, 0, 0],
+                    [0, 1, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0]
+                ],
+                // Two cacti diagonal
+                [
+                    [1, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 1],
+                    [0, 0, 0, 0]
+                ],
+                // Empty pattern 1
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0]
+                ],
+                // Empty pattern 2
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0]
+                ],
+                // Single cactus corner
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 1, 0]
+                ]
+            ],
+            grave: [
+                // Single tombstone center
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 1, 0, 0],
+                    [0, 0, 0, 0]
+                ],
+                // Two tombstones row
+                [
+                    [0, 0, 0, 0],
+                    [0, 1, 1, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0]
+                ],
+                // Empty pattern 1
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0]
+                ],
+                // Corner tombstone
+                [
+                    [0, 0, 0, 1],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0]
+                ],
+                // Empty pattern 2
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0]
+                ]
             ]
         };
         
@@ -135,7 +209,9 @@ class ObstacleManager {
         this.obstacleTypes = {
             forest: 'tree',
             cave: 'rock',
-            lava: 'lava-rock'
+            lava: 'lava-rock',
+            sand: 'cactus',
+            grave: 'tombstone'
         };
     }
     
@@ -275,6 +351,12 @@ class ObstacleManager {
             // Use cave rock with red tint for lava
             texture = 'cave-rock';
             scale = 0.4;
+        } else if (this.stage === 'sand') {
+            texture = 'cactus';
+            scale = 0.125; // Scaled down by 75% (25% of 0.5)
+        } else if (this.stage === 'grave') {
+            texture = 'tombstone';
+            scale = 0.105; // Scaled down another 30% from 0.15
         }
         
         // Check if texture exists
@@ -303,6 +385,14 @@ class ObstacleManager {
         } else if (this.stage === 'lava') {
             obstacle.body.setSize(35, 35);
             obstacle.body.setOffset(22, 42);
+        } else if (this.stage === 'sand') {
+            // Cactus has narrow collision box (scaled down)
+            obstacle.body.setSize(10, 15);
+            obstacle.body.setOffset(5, 10);
+        } else if (this.stage === 'grave') {
+            // Tombstone collision box (scaled down further)
+            obstacle.body.setSize(7, 8);
+            obstacle.body.setOffset(3, 6);
         }
         
         // Refresh the physics body after scaling
