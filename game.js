@@ -45,6 +45,20 @@ class LoadingScene extends Phaser.Scene {
         this.load.image('title-bg', 'magustitle.png');
         this.load.image('gameover-bg', 'gameover.png');
         this.load.image('title-words', 'titlewords.PNG');
+        
+        // Load stage title images
+        this.load.image('fight-title', 'fighttitle.png');
+        this.load.image('forestland-title', 'stagetitles/forestlandtitle.png');
+        this.load.image('caveland-title', 'stagetitles/cavelandtitle.png');
+        this.load.image('desertland-title', 'stagetitles/desertlandtitle.png');
+        this.load.image('lavaland-title', 'stagetitles/lavalandtitle.png');
+        this.load.image('graveland-title', 'stagetitles/gravelandtitle.png');
+        this.load.image('castleland-title', 'stagetitles/castlelandtitle.png');
+        this.load.image('spireland-title', 'stagetitles/spirelandtitle.png');
+        this.load.image('voidland-title', 'stagetitles/voidtitle.PNG');
+        this.load.image('arcadeland-title', 'stagetitles/arcadelandtitle.png');
+        this.load.image('snowland-title', 'stagetitles/snowlandtitle.png');
+        this.load.image('nexus-title', 'stagetitles/nexustitle.png');
 
         // Load wizard sprites
         this.load.spritesheet('wizard-idle', 'wizmove/newiz/wizard_idle.PNG', {
@@ -88,6 +102,10 @@ class LoadingScene extends Phaser.Scene {
         this.load.image('meditate-icon', 'meditate.png');
         this.load.image('element-select-icon', 'elementsekect.png');
         this.load.image('fusion-icon', 'holdflask.png');
+        
+        // Load socket sprites for charge slots
+        this.load.image('grey-socket', 'orbs/sockets/greysocket.png');
+        this.load.image('grey-socket-select', 'orbs/sockets/greysocketselect.png');
         
         // Load hitbox editor and config
         this.load.script('hitbox-editor', 'HitboxEditor.js');
@@ -133,6 +151,15 @@ class LoadingScene extends Phaser.Scene {
         this.load.audio('bgm2', 'bgm2.mp3');
         this.load.audio('stageselect-bgm', 'VGMA Challenge 08(stageselect).ogg');
         this.load.audio('title-bgm', 'Ludum Dare 28 03(title).ogg');
+        this.load.audio('forestland-bgm', 'Sketchbook 2024-08-07(forestland).ogg');
+        this.load.audio('caveland-bgm', 'DavidKBD - Pink Bloom Pack - 01 - Pink Bloom(caveland).ogg');
+        this.load.audio('desertland-bgm', 'Sketchbook 2024-06-19(desertland).ogg');
+        this.load.audio('graveland-bgm', 'Ludum Dare 32 03\'9graveland).ogg');
+        this.load.audio('boss1-bgm', 'Sketchbook 2024-12-05(bossloop4).ogg');
+        this.load.audio('boss2-intro-bgm', 'Sketchbook 2024-09-04_IN(bossloop3pt1).ogg');
+        this.load.audio('boss2-loop-bgm', 'Sketchbook 2024-09-04_LOOP(bossloop3pt2).ogg');
+        this.load.audio('boss3-bgm', 'Sketchbook 2024-02-07(bossloop2).ogg');
+        this.load.audio('boss4-bgm', 'DavidKBD - Pink Bloom Pack - 02 - Portal to Underworld(bossloop5).ogg');
 
         // Load element symbols sprite sheets
         this.load.spritesheet('element-symbols', 'elements.png', {
@@ -234,10 +261,6 @@ class LoadingScene extends Phaser.Scene {
             frameHeight: 64
         });
 
-        // Load sorcerer enemy sprites
-        for (let i = 0; i < 10; i++) {
-            this.load.image(`sorcerer-attack-${i}`, `newenemies/sorcerer villain/sorcerer attack_Animation 1_${i}.png`);
-        }
 
         // Load spell effect sprites
         this.load.spritesheet('fire-spell', 'spells/fire1.png', {
@@ -509,6 +532,37 @@ class LoadingScene extends Phaser.Scene {
             frameWidth: 3360 / 15, // 224 pixels per frame
             frameHeight: 240
         });
+        
+        // Load Nekros boss sprites (individual frames)
+        // Walk animation
+        for (let i = 1; i <= 12; i++) {
+            this.load.image(`nekros-walk-${i}`, `Nekros/walk/walk_${i}.png`);
+        }
+        
+        // Fly animation
+        for (let i = 1; i <= 6; i++) {
+            this.load.image(`nekros-fly-${i}`, `Nekros/fly/fly_${i}.png`);
+        }
+        
+        // Attack 1 animation
+        for (let i = 1; i <= 7; i++) {
+            this.load.image(`nekros-attack1-${i}`, `Nekros/1atk/1atk_${i}.png`);
+        }
+        
+        // Attack 2 animation
+        for (let i = 1; i <= 9; i++) {
+            this.load.image(`nekros-attack2-${i}`, `Nekros/2atk/2atk_${i}.png`);
+        }
+        
+        // Death animation
+        for (let i = 1; i <= 11; i++) {
+            this.load.image(`nekros-death-${i}`, `Nekros/death/death_${i}.png`);
+        }
+        
+        // Hurt animation
+        for (let i = 1; i <= 5; i++) {
+            this.load.image(`nekros-hurt-${i}`, `Nekros/hurt/hurt_${i}.png`);
+        }
         }
     }
 
@@ -576,6 +630,9 @@ class TitleScene extends Phaser.Scene {
     create() {
         // Add fullscreen toggle
         setupFullscreenKey(this);
+        
+        // Re-enable keyboard input (may be disabled from previous scenes)
+        this.input.keyboard.enabled = true;
         
         // Force resize to ensure proper centering
         this.scale.refresh();
@@ -702,8 +759,14 @@ class TitleScene extends Phaser.Scene {
             this.showOptionsMenu();
         });
         
-        // Fullscreen button - top right corner
-        this.createFullscreenButton();
+        // Controller hint text (initially hidden)
+        this.controllerHint = this.add.text(750, 530, 'Press SELECT', {
+            fontSize: '16px',
+            color: '#aaaaaa'
+        }).setOrigin(1, 1);
+        this.controllerHint.setVisible(false);
+        
+        // Fullscreen button removed - now in options menu
         
         // Add one-time click handler to unlock audio if needed
         if (this.sound.locked) {
@@ -717,38 +780,92 @@ class TitleScene extends Phaser.Scene {
             this.input.on('pointerdown', unlockAudio);
         }
 
-        this.input.keyboard.once('keydown-SPACE', () => {
-            this.animateStartTextAndTransition(startText);
-        });
+        // Store keyboard listener function so we can re-add it if needed
+        this.spaceKeyHandler = () => {
+            if (!this.optionsMenu && !this.isTransitioning) {
+                this.animateStartTextAndTransition(startText);
+            }
+        };
+        
+        // Use on() instead of once() and manage it manually
+        this.input.keyboard.on('keydown-SPACE', this.spaceKeyHandler);
 
         // Enable gamepad support
         if (this.input.gamepad.total > 0) {
             this.gamepad = this.input.gamepad.getPad(0);
+            // Show controller hint immediately if controller is detected
+            if (this.controllerHint && this.gamepad) {
+                this.controllerHint.setVisible(true);
+            }
         }
+        
+        // Reset button states when entering scene
+        this.prevButtonStates = null;
+        
+        // Reset transition flag when entering scene
+        this.isTransitioning = false;
     }
 
     update() {
-        // Check for gamepad Start button or A button
+        // Always try to update gamepad reference
         if (this.input.gamepad && this.input.gamepad.total > 0) {
             const pad = this.input.gamepad.getPad(0);
-            if (pad && (pad.buttons[0].pressed || pad.buttons[9].pressed)) {
-                // Find the start text by its text content
-                const startText = this.children.list.find(child => 
-                    child.text && child.text.includes('Press SPACE')
-                );
-                if (startText && !this.isTransitioning) {
-                    this.animateStartTextAndTransition(startText);
+            if (pad && !this.gamepad) {
+                this.gamepad = pad;
+                // Show controller hint when controller is detected
+                if (this.controllerHint) {
+                    this.controllerHint.setVisible(true);
                 }
             }
+            
+            if (pad) {
+                // Check if button was just pressed (not held from previous scene)
+                if (!this.prevButtonStates) {
+                    this.prevButtonStates = {
+                        a: pad.buttons[0].pressed,
+                        start: pad.buttons[9].pressed,
+                        select: pad.buttons[8].pressed
+                    };
+                }
+                
+                const aJustPressed = pad.buttons[0].pressed && !this.prevButtonStates.a;
+                const startJustPressed = pad.buttons[9].pressed && !this.prevButtonStates.start;
+                const selectJustPressed = pad.buttons[8].pressed && !this.prevButtonStates.select;
+                
+                if ((aJustPressed || startJustPressed) && !this.isTransitioning && !this.optionsMenu) {
+                    // Find the start text by its text content
+                    const startText = this.children.list.find(child => 
+                        child.text && child.text.includes('Press SPACE')
+                    );
+                    if (startText) {
+                        this.animateStartTextAndTransition(startText);
+                    }
+                }
+                
+                // Check for Select button to open options
+                if (selectJustPressed && !this.optionsMenu) {
+                    this.showOptionsMenu();
+                }
+                
+                // Update previous states
+                this.prevButtonStates.a = pad.buttons[0].pressed;
+                this.prevButtonStates.start = pad.buttons[9].pressed;
+                this.prevButtonStates.select = pad.buttons[8].pressed;
+            }
+        }
+        
+        // Handle options menu controller input if open
+        if (this.optionsMenu) {
+            this.handleOptionsMenuController();
         }
     }
     
     showOptionsMenu() {
-        // Create options menu overlay
-        const overlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.9);
+        // Create full viewport options menu overlay
+        const overlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.95);
         overlay.setInteractive(); // Block clicks to elements below
         
-        const menuTitle = this.add.text(400, 50, 'OPTIONS', {
+        const menuTitle = this.add.text(400, 40, 'OPTIONS', {
             fontSize: '42px',
             color: '#ffd700',
             fontStyle: 'bold',
@@ -757,7 +874,7 @@ class TitleScene extends Phaser.Scene {
         }).setOrigin(0.5);
         
         // Debug mode toggle
-        const debugContainer = this.add.container(400, 120);
+        const debugContainer = this.add.container(200, 130);
         const debugLabel = this.add.text(-200, 0, 'Debug Mode:', {
             fontSize: '22px',
             color: '#ffffff'
@@ -783,7 +900,7 @@ class TitleScene extends Phaser.Scene {
         debugContainer.add([debugLabel, debugCheckbox, debugCheck]);
         
         // Show all recipes toggle
-        const recipesContainer = this.add.container(400, 160);
+        const recipesContainer = this.add.container(200, 180);
         const recipesLabel = this.add.text(-200, 0, 'Show All Recipes:', {
             fontSize: '22px',
             color: '#ffffff'
@@ -813,7 +930,7 @@ class TitleScene extends Phaser.Scene {
         recipesContainer.add([recipesLabel, recipesCheckbox, recipesCheck]);
         
         // Unlock all stages toggle
-        const stagesContainer = this.add.container(400, 200);
+        const stagesContainer = this.add.container(200, 230);
         const stagesLabel = this.add.text(-200, 0, 'Unlock All Stages:', {
             fontSize: '22px',
             color: '#ffffff'
@@ -848,8 +965,37 @@ class TitleScene extends Phaser.Scene {
         
         stagesContainer.add([stagesLabel, stagesCheckbox, stagesCheck]);
         
+        // Fullscreen toggle
+        const fullscreenContainer = this.add.container(200, 280);
+        const fullscreenLabel = this.add.text(-200, 0, 'Fullscreen:', {
+            fontSize: '22px',
+            color: '#ffffff'
+        }).setOrigin(0, 0.5);
+        
+        const fullscreenCheckbox = this.add.rectangle(150, 0, 35, 35, 0x444444);
+        fullscreenCheckbox.setStrokeStyle(3, 0xffd700);
+        fullscreenCheckbox.setInteractive({ useHandCursor: true });
+        
+        const fullscreenCheck = this.add.text(150, 0, '✓', {
+            fontSize: '24px',
+            color: '#00ff00',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        fullscreenCheck.setVisible(this.scale.isFullscreen);
+        
+        fullscreenCheckbox.on('pointerdown', () => {
+            if (this.scale.isFullscreen) {
+                this.scale.stopFullscreen();
+            } else {
+                this.scale.startFullscreen();
+            }
+            fullscreenCheck.setVisible(this.scale.isFullscreen);
+        });
+        
+        fullscreenContainer.add([fullscreenLabel, fullscreenCheckbox, fullscreenCheck]);
+        
         // Volume control
-        const volumeContainer = this.add.container(400, 240);
+        const volumeContainer = this.add.container(600, 130);
         const volumeLabel = this.add.text(-200, 0, 'Volume:', {
             fontSize: '22px',
             color: '#ffffff'
@@ -882,7 +1028,7 @@ class TitleScene extends Phaser.Scene {
         volumeContainer.add([volumeLabel, sliderBg, sliderHandle, volumePercent]);
         
         // Starting element selection
-        const elementContainer = this.add.container(400, 280);
+        const elementContainer = this.add.container(600, 180);
         const elementLabel = this.add.text(-200, 0, 'Start Element:', {
             fontSize: '22px',
             color: '#ffffff'
@@ -934,7 +1080,7 @@ class TitleScene extends Phaser.Scene {
         
         // Hyper mode toggle
         // Speed Mode Dial
-        const speedContainer = this.add.container(400, 320);
+        const speedContainer = this.add.container(200, 370);
         const speedLabel = this.add.text(-200, 0, 'Game Speed:', {
             fontSize: '22px',
             color: '#ffffff'
@@ -1023,7 +1169,7 @@ class TitleScene extends Phaser.Scene {
         speedContainer.add([speedLabel, dialBg, speedText, speedLeftArrow, speedRightArrow, speedHint]);
         
         // Enemy Density Dial
-        const densityContainer = this.add.container(400, 370);
+        const densityContainer = this.add.container(600, 370);
         const densityLabel = this.add.text(-200, 0, 'Enemy Density:', {
             fontSize: '22px',
             color: '#ffffff'
@@ -1112,7 +1258,7 @@ class TitleScene extends Phaser.Scene {
         densityContainer.add([densityLabel, densityDialBg, densityText, densityLeftArrow, densityRightArrow, densityHint]);
         
         // BGM selector
-        const bgmContainer = this.add.container(400, 430);
+        const bgmContainer = this.add.container(400, 480);
         const bgmLabel = this.add.text(-200, 0, 'Background Music:', {
             fontSize: '22px',
             color: '#ffffff'
@@ -1157,7 +1303,7 @@ class TitleScene extends Phaser.Scene {
         bgmContainer.add([bgmLabel, bgmText, bgmLeftArrow, bgmRightArrow]);
         
         // Close button
-        const closeButton = this.add.text(400, 460, 'CLOSE', {
+        const closeButton = this.add.text(400, 540, 'CLOSE', {
             fontSize: '28px',
             color: '#ffffff',
             backgroundColor: '#444444',
@@ -1176,25 +1322,226 @@ class TitleScene extends Phaser.Scene {
         });
         
         closeButton.on('pointerdown', () => {
-            // Clean up all menu elements
-            overlay.destroy();
-            menuTitle.destroy();
-            debugContainer.destroy();
-            recipesContainer.destroy();
-            stagesContainer.destroy();
-            volumeContainer.destroy();
-            elementContainer.destroy();
-            speedContainer.destroy();
-            densityContainer.destroy();
-            bgmContainer.destroy();
-            closeButton.destroy();
+            this.closeOptionsMenu();
         });
         
-        // Store references for cleanup
+        // Define update volume text function
+        const updateVolumeText = () => {
+            volumePercent.setText(Math.round(this.game.sound.volume * 100) + '%');
+        };
+        
+        // Define update element display function
+        const updateElementDisplay = () => {
+            elementText.setText(elements[currentElementIndex].toUpperCase());
+        };
+        
+        // Store references for cleanup and controller navigation
         this.optionsMenu = {
             overlay, menuTitle, debugContainer, recipesContainer, stagesContainer,
-            volumeContainer, elementContainer, speedContainer, densityContainer, bgmContainer, closeButton
+            fullscreenContainer, volumeContainer, elementContainer, speedContainer, densityContainer, bgmContainer, closeButton,
+            // Store interactive elements for controller navigation
+            controls: {
+                debugCheckbox,
+                recipesCheckbox,
+                stagesCheckbox,
+                fullscreenCheckbox,
+                sliderHandle,
+                leftArrow,  // element left arrow
+                rightArrow, // element right arrow
+                speedLeftArrow,
+                speedRightArrow,
+                densityLeftArrow,
+                densityRightArrow,
+                bgmLeftArrow,
+                bgmRightArrow,
+                closeButton
+            },
+            // Store update functions
+            updateFunctions: {
+                updateVolumeText,
+                updateElementDisplay,
+                updateSpeedDisplay,
+                updateDensityDisplay
+            },
+            // Current values
+            currentValues: {
+                elementIndex: currentElementIndex,
+                speedIndex: currentSpeedIndex,
+                densityIndex: currentDensityIndex,
+                bgmIndex: currentBGMIndex
+            }
         };
+        
+        // Initialize controller navigation
+        this.optionsMenuSelectedIndex = 0;
+        this.optionsMenuItems = [
+            { type: 'checkbox', element: debugCheckbox, action: 'toggle' },
+            { type: 'checkbox', element: recipesCheckbox, action: 'toggle' },
+            { type: 'checkbox', element: stagesCheckbox, action: 'toggle' },
+            { type: 'checkbox', element: fullscreenCheckbox, action: 'toggle' },
+            { type: 'slider', element: sliderHandle, action: 'volume' },
+            { type: 'selector', leftArrow: leftArrow, rightArrow: rightArrow, action: 'element' },
+            { type: 'selector', leftArrow: speedLeftArrow, rightArrow: speedRightArrow, action: 'speed' },
+            { type: 'selector', leftArrow: densityLeftArrow, rightArrow: densityRightArrow, action: 'density' },
+            { type: 'selector', leftArrow: bgmLeftArrow, rightArrow: bgmRightArrow, action: 'bgm' },
+            { type: 'button', element: closeButton, action: 'close' }
+        ];
+        
+        // Highlight first item
+        this.highlightOptionsMenuItem(0);
+    }
+    
+    closeOptionsMenu() {
+        if (this.optionsMenu) {
+            // Clean up all menu elements
+            this.optionsMenu.overlay.destroy();
+            this.optionsMenu.menuTitle.destroy();
+            this.optionsMenu.debugContainer.destroy();
+            this.optionsMenu.recipesContainer.destroy();
+            this.optionsMenu.stagesContainer.destroy();
+            this.optionsMenu.fullscreenContainer.destroy();
+            this.optionsMenu.volumeContainer.destroy();
+            this.optionsMenu.elementContainer.destroy();
+            this.optionsMenu.speedContainer.destroy();
+            this.optionsMenu.densityContainer.destroy();
+            this.optionsMenu.bgmContainer.destroy();
+            this.optionsMenu.closeButton.destroy();
+            this.optionsMenu = null;
+            this.optionsMenuItems = null;
+            this.optionsMenuSelectedIndex = 0;
+        }
+    }
+    
+    highlightOptionsMenuItem(index) {
+        // Safety check - make sure menu items exist
+        if (!this.optionsMenuItems || !this.optionsMenu) return;
+        
+        // Clear previous highlights
+        this.optionsMenuItems.forEach((item, i) => {
+            if (item.type === 'checkbox') {
+                // Checkboxes are rectangles
+                if (item.element && item.element.active) {
+                    item.element.setStrokeStyle(i === index ? 5 : 3, i === index ? 0xffff00 : 0xffd700);
+                    item.element.setScale(i === index ? 1.2 : 1.0);
+                }
+            } else if (item.type === 'button') {
+                // Buttons are text objects with setColor
+                if (item.element && item.element.active) {
+                    item.element.setColor(i === index ? '#ffff00' : '#ffffff');
+                    item.element.setScale(i === index ? 1.3 : 1.0);
+                    item.element.setShadow(i === index ? 4 : 0, i === index ? 4 : 0, i === index ? '#000000' : '', i === index ? 8 : 0);
+                }
+            } else if (item.type === 'selector') {
+                // Selector arrows are text objects - make them much bigger and brighter
+                if (item.leftArrow && item.leftArrow.active) {
+                    item.leftArrow.setColor(i === index ? '#ffff00' : '#ffffff');
+                    item.leftArrow.setScale(i === index ? 1.5 : 1.0);
+                    item.leftArrow.setShadow(i === index ? 2 : 0, i === index ? 2 : 0, i === index ? '#000000' : '', i === index ? 8 : 0);
+                }
+                if (item.rightArrow && item.rightArrow.active) {
+                    item.rightArrow.setColor(i === index ? '#ffff00' : '#ffffff');
+                    item.rightArrow.setScale(i === index ? 1.5 : 1.0);
+                    item.rightArrow.setShadow(i === index ? 2 : 0, i === index ? 2 : 0, i === index ? '#000000' : '', i === index ? 8 : 0);
+                }
+            } else if (item.type === 'slider') {
+                // Slider handle is a circle, change fill color and size
+                if (item.element && item.element.active) {
+                    item.element.setFillStyle(i === index ? 0xffff00 : 0xffd700);
+                    item.element.setScale(i === index ? 1.5 : 1.0);
+                    item.element.setStrokeStyle(i === index ? 3 : 0, 0xffffff);
+                }
+            }
+        });
+    }
+    
+    handleOptionsMenuController() {
+        if (!this.optionsMenu || !this.gamepad) return;
+        
+        const pad = this.gamepad;
+        
+        // Initialize previous states if not set
+        if (!this.prevOptionsButtonStates) {
+            this.prevOptionsButtonStates = {
+                up: false,
+                down: false,
+                left: false,
+                right: false,
+                a: false,
+                b: false
+            };
+        }
+        
+        // Check inputs
+        const upPressed = pad.leftStick.y < -0.5 || (pad.buttons[12] && pad.buttons[12].pressed);
+        const downPressed = pad.leftStick.y > 0.5 || (pad.buttons[13] && pad.buttons[13].pressed);
+        const leftPressed = pad.leftStick.x < -0.5 || (pad.buttons[14] && pad.buttons[14].pressed);
+        const rightPressed = pad.leftStick.x > 0.5 || (pad.buttons[15] && pad.buttons[15].pressed);
+        const aPressed = pad.buttons[0] && pad.buttons[0].pressed;
+        const bPressed = pad.buttons[1] && pad.buttons[1].pressed;
+        
+        // Navigate up/down
+        if (upPressed && !this.prevOptionsButtonStates.up) {
+            this.optionsMenuSelectedIndex--;
+            if (this.optionsMenuSelectedIndex < 0) {
+                this.optionsMenuSelectedIndex = this.optionsMenuItems.length - 1;
+            }
+            this.highlightOptionsMenuItem(this.optionsMenuSelectedIndex);
+        }
+        
+        if (downPressed && !this.prevOptionsButtonStates.down) {
+            this.optionsMenuSelectedIndex++;
+            if (this.optionsMenuSelectedIndex >= this.optionsMenuItems.length) {
+                this.optionsMenuSelectedIndex = 0;
+            }
+            this.highlightOptionsMenuItem(this.optionsMenuSelectedIndex);
+        }
+        
+        // Handle item interaction
+        const currentItem = this.optionsMenuItems[this.optionsMenuSelectedIndex];
+        
+        if (currentItem.type === 'checkbox' && aPressed && !this.prevOptionsButtonStates.a) {
+            // Toggle checkbox
+            currentItem.element.emit('pointerdown');
+        } else if (currentItem.type === 'selector') {
+            if (leftPressed && !this.prevOptionsButtonStates.left) {
+                currentItem.leftArrow.emit('pointerdown');
+            } else if (rightPressed && !this.prevOptionsButtonStates.right) {
+                currentItem.rightArrow.emit('pointerdown');
+            }
+        } else if (currentItem.type === 'slider') {
+            // Volume slider - use left/right to adjust
+            if (leftPressed && !this.prevOptionsButtonStates.left) {
+                const currentVolume = this.game.sound.volume;
+                const newVolume = Math.max(0, currentVolume - 0.1);
+                this.game.sound.volume = newVolume;
+                localStorage.setItem('gameVolume', newVolume.toString());
+                this.optionsMenu.updateFunctions.updateVolumeText();
+                currentItem.element.x = 860 + (newVolume * 150);
+            } else if (rightPressed && !this.prevOptionsButtonStates.right) {
+                const currentVolume = this.game.sound.volume;
+                const newVolume = Math.min(1, currentVolume + 0.1);
+                this.game.sound.volume = newVolume;
+                localStorage.setItem('gameVolume', newVolume.toString());
+                this.optionsMenu.updateFunctions.updateVolumeText();
+                currentItem.element.x = 860 + (newVolume * 150);
+            }
+        } else if (currentItem.type === 'button' && aPressed && !this.prevOptionsButtonStates.a) {
+            // Close button
+            currentItem.element.emit('pointerdown');
+        }
+        
+        // B button to close menu
+        if (bPressed && !this.prevOptionsButtonStates.b) {
+            this.closeOptionsMenu();
+        }
+        
+        // Update previous states
+        this.prevOptionsButtonStates.up = upPressed;
+        this.prevOptionsButtonStates.down = downPressed;
+        this.prevOptionsButtonStates.left = leftPressed;
+        this.prevOptionsButtonStates.right = rightPressed;
+        this.prevOptionsButtonStates.a = aPressed;
+        this.prevOptionsButtonStates.b = bPressed;
     }
     
     createFullscreenButton() {
@@ -1289,6 +1636,11 @@ class TitleScene extends Phaser.Scene {
         this.events.once('shutdown', () => {
             this.scale.off(Phaser.Scale.Events.ENTER_FULLSCREEN);
             this.scale.off(Phaser.Scale.Events.LEAVE_FULLSCREEN);
+            
+            // Clean up keyboard handler
+            if (this.spaceKeyHandler) {
+                this.input.keyboard.off('keydown-SPACE', this.spaceKeyHandler);
+            }
         });
     }
     
@@ -1325,6 +1677,11 @@ class TitleScene extends Phaser.Scene {
     }
     
     transitionToStageSelect() {
+        // Remove keyboard handler
+        if (this.spaceKeyHandler) {
+            this.input.keyboard.off('keydown-SPACE', this.spaceKeyHandler);
+        }
+        
         // Disable input during transition
         this.input.keyboard.enabled = false;
         
@@ -1381,9 +1738,49 @@ class StageSelectScene extends Phaser.Scene {
         this.load.image('island-castle', 'islands/castle.png');
         this.load.image('island-spire', 'islands/spire.png');
         this.load.image('island-crystal', 'islands/crystal.png');
+        
+        // Load planet sprites
+        this.load.image('planet-forest', 'planets/forestland.png');
+        this.load.image('planet-cave', 'planets/caveland.png');
+        this.load.image('planet-sand', 'planets/desertland.png');
+        this.load.image('planet-lava', 'planets/lavaland.png');
+        this.load.image('planet-grave', 'planets/graveland.png');
+        this.load.image('planet-castle', 'planets/castleland.png');
+        this.load.image('planet-spire', 'planets/spireland.png');
+        this.load.image('planet-snow', 'planets/snowland.png');
+        
+        // Load essence sprite for Nexus
+        this.load.image('essence', 'essence.png');
+        
+        // Load stage title images
+        this.load.image('title-forest', 'stagetitles/forestlandtitle.png');
+        this.load.image('title-cave', 'stagetitles/cavelandtitle.png');
+        this.load.image('title-sand', 'stagetitles/desertlandtitle.png');
+        this.load.image('title-lava', 'stagetitles/lavalandtitle.png');
+        this.load.image('title-grave', 'stagetitles/gravelandtitle.png');
+        this.load.image('title-castle', 'stagetitles/castlelandtitle.png');
+        this.load.image('title-spire', 'stagetitles/spirelandtitle.png');
+        this.load.image('title-void', 'stagetitles/voidtitle.PNG');
+        this.load.image('title-arcade', 'stagetitles/arcadelandtitle.png');
+        
+        // Load arcade assets
+        this.load.image('arcademachine', 'arcademachine.png');
+        this.load.image('arcadeoverlay', 'arcadeoverlay.png');
+        this.load.image('arcade-controlpanel', 'arcadeoverlay-export.png');
+        
+        // Load orb sprites for arcade game
+        this.load.image('orb-fire', 'orbs/fireorb.png');
+        this.load.image('orb-water', 'orbs/waterorb.png');
+        this.load.image('orb-nature', 'orbs/natureorb.png');
+        this.load.image('orb-lightning', 'orbs/lightiningorb.png');
+        this.load.image('orb-ice', 'orbs/iceorb.png');
+        this.load.image('orb-arcane', 'orbs/arcaneorb.png');
     }
 
     create() {
+        // Re-enable keyboard input
+        this.input.keyboard.enabled = true;
+        
         // Add input cooldown to prevent button press carryover
         this.inputCooldown = 500; // 500ms cooldown
         this.inputEnabled = false;
@@ -1410,23 +1807,25 @@ class StageSelectScene extends Phaser.Scene {
         
         this.stages = [
             { name: 'Forest Land', unlocked: nexusVisited || unlockAllStages || localStorage.getItem('forestLandUnlocked') === 'true', description: 'A mystical forest filled with danger', 
-              icon: 'island-forest', color: 0x44ff44, x: 200, y: 300 },
+              icon: 'planet-forest', color: 0x44ff44, x: 200, y: 300 },
             { name: 'Cave Land', unlocked: unlockAllStages || localStorage.getItem('caveLandUnlocked') === 'true', description: 'Dark caverns with unknown threats', 
-              icon: 'island-cave', color: 0x8B4513, x: 400, y: 200 },
+              icon: 'planet-cave', color: 0x8B4513, x: 400, y: 200 },
             { name: 'Sand Land', unlocked: unlockAllStages || localStorage.getItem('sandLandUnlocked') === 'true', description: 'Ancient pyramids in endless dunes', 
-              icon: 'island-sand', color: 0xFFD700, x: 600, y: 200 },
+              icon: 'planet-sand', color: 0xFFD700, x: 600, y: 200 },
             { name: 'Lava Land', unlocked: unlockAllStages || localStorage.getItem('lavaLandUnlocked') === 'true', description: 'Burning fields of molten rock', 
-              icon: 'island-volcano', color: 0xFF4500, x: 300, y: 450 },
+              icon: 'planet-lava', color: 0xFF4500, x: 300, y: 450 },
             { name: 'Grave Land', unlocked: unlockAllStages || localStorage.getItem('graveLandUnlocked') === 'true', description: 'Where the dead refuse to rest', 
-              icon: 'island-grave', color: 0x444444, x: 500, y: 400 },
+              icon: 'planet-grave', color: 0x444444, x: 500, y: 400 },
             { name: 'Castle Land', unlocked: unlockAllStages || localStorage.getItem('castleLandUnlocked') === 'true', description: 'An ancient fortress of evil', 
-              icon: 'island-castle', color: 0x666666, x: 700, y: 300 },
+              icon: 'planet-castle', color: 0x666666, x: 700, y: 300 },
             { name: 'Spire Land', unlocked: unlockAllStages || localStorage.getItem('spireLandUnlocked') === 'true', description: 'Tower reaching to the heavens', 
-              icon: 'island-spire', color: 0x8B6914, x: 150, y: 400 },
+              icon: 'planet-spire', color: 0x8B6914, x: 150, y: 400 },
             { name: 'The Void', unlocked: unlockAllStages || localStorage.getItem('voidLandUnlocked') === 'true', description: 'The final dimension of darkness', 
               icon: 'void', color: 0x4B0082, x: 700, y: 450 },
             { name: 'Nexus', unlocked: true, description: 'Eternal power awaits within', 
-              icon: 'island-crystal', color: 0x9966ff, x: 400, y: 350, isNexus: true }
+              icon: 'essence', color: 0x9966ff, x: 400, y: 350, isNexus: true },
+            { name: 'Arcade', unlocked: true, description: 'Test your gem matching skills!', 
+              icon: 'arcademachine', color: 0x00ff00, x: 750, y: 550, isArcade: true }
         ];
         
         // Create deep space/abyss background
@@ -1484,8 +1883,8 @@ class StageSelectScene extends Phaser.Scene {
             // Create container for the stage node
             const container = this.add.container(stage.x, stage.y);
             
-            // Hide non-nexus nodes initially
-            if (!stage.isNexus) {
+            // Hide non-nexus nodes initially (except arcade)
+            if (!stage.isNexus && !stage.isArcade) {
                 container.setAlpha(0);
                 container.setScale(0.1);
                 container.x = nexusX;
@@ -1523,7 +1922,7 @@ class StageSelectScene extends Phaser.Scene {
                 container.add(island);
             } else if (stage.icon && this.textures.exists(stage.icon)) {
                 island = this.add.image(0, 0, stage.icon);
-                island.setScale(stage.isNexus ? 0.4 : 0.3);
+                island.setScale(stage.isNexus ? 0.4 : stage.isArcade ? 0.5 : 0.3);
                 island.setAlpha(stage.unlocked ? 1 : 0.5);
                 if (!stage.unlocked) {
                     island.setTint(0x444444);
@@ -1546,16 +1945,7 @@ class StageSelectScene extends Phaser.Scene {
             
             // No lock icon per request
             
-            // Stage name (floating below island)
-            const displayName = stage.unlocked ? stage.name.toUpperCase() : '???';
-            const nameText = this.add.text(0, 60, displayName, {
-                fontSize: '16px',
-                color: stage.unlocked ? '#ffffff' : '#666666',
-                fontStyle: 'bold',
-                stroke: '#333333',
-                strokeThickness: 2
-            }).setOrigin(0.5);
-            container.add(nameText);
+            // No text names under planets per request
             
             // Description text removed from container - will be created separately
             
@@ -1565,7 +1955,7 @@ class StageSelectScene extends Phaser.Scene {
             if (stage.unlocked) {
                 island.setInteractive({ useHandCursor: true });
                 
-                const originalScale = stage.icon === 'void' ? 0.84 : (stage.isNexus ? 0.4 : 0.3);
+                const originalScale = stage.icon === 'void' ? 0.84 : (stage.isNexus ? 0.4 : stage.isArcade ? 0.5 : 0.3);
                 
                 island.on('pointerover', () => {
                     // Update selected stage when hovering
@@ -1602,7 +1992,6 @@ class StageSelectScene extends Phaser.Scene {
                 container, 
                 island, 
                 glow,
-                nameText, 
                 stage 
             });
             
@@ -1612,7 +2001,7 @@ class StageSelectScene extends Phaser.Scene {
         // Animate nodes emerging from nexus
         this.time.delayedCall(500, () => {
             this.stageButtons.forEach((button, index) => {
-                if (!button.stage.isNexus) {
+                if (!button.stage.isNexus && !button.stage.isArcade) {
                     // Calculate delay based on distance from nexus
                     const distance = Phaser.Math.Distance.Between(nexusX, nexusY, button.stage.x, button.stage.y);
                     const delay = index * 150 + (distance / 5);
@@ -1713,25 +2102,19 @@ class StageSelectScene extends Phaser.Scene {
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
         this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
-        // Create description text area at top of screen (initially hidden)
-        this.descriptionBg = this.add.rectangle(400, 60, 600, 80, 0x000000, 0.8);
-        this.descriptionBg.setStrokeStyle(2, 0xffd700);
-        this.descriptionBg.setVisible(false);
+        // Create title image for stage names at top of screen
+        this.descriptionTitleImage = this.add.image(400, 72, 'forestland-title'); // Moved down 20%
+        this.descriptionTitleImage.setOrigin(0.5);
+        this.descriptionTitleImage.setScale(0.12); // Scale down by additional 20%
+        this.descriptionTitleImage.setVisible(false);
         
-        this.descriptionTitle = this.add.text(400, 40, '', {
+        // Keep title text as fallback for locked stages
+        this.descriptionTitle = this.add.text(400, 72, '', {
             fontSize: '24px',
             color: '#ffd700',
             fontStyle: 'bold'
         }).setOrigin(0.5);
         this.descriptionTitle.setVisible(false);
-        
-        this.descriptionText = this.add.text(400, 70, '', {
-            fontSize: '16px',
-            color: '#ffffff',
-            align: 'center',
-            wordWrap: { width: 550 }
-        }).setOrigin(0.5);
-        this.descriptionText.setVisible(false);
         
         // Highlight Nexus initially (it's always unlocked)
         this.selectedStage = 8; // Nexus is at index 8
@@ -1739,44 +2122,94 @@ class StageSelectScene extends Phaser.Scene {
     }
     
     showStageDescription(stage) {
-        if (!this.descriptionBg || !this.descriptionTitle || !this.descriptionText) {
-            return;
+        // Hide both title elements first
+        this.descriptionTitle.setVisible(false);
+        this.descriptionTitleImage.setVisible(false);
+        
+        // Show appropriate title (image or text)
+        if (stage.unlocked) {
+            // Map stage names to title image keys
+            const titleImageMap = {
+                'Forest Land': 'forestland-title',
+                'Cave Land': 'caveland-title',
+                'Sand Land': 'desertland-title',
+                'Lava Land': 'lavaland-title',
+                'Grave Land': 'graveland-title',
+                'Castle Land': 'castleland-title',
+                'Spire Land': 'spireland-title',
+                'The Void': 'voidland-title',
+                'Arcade': 'arcadeland-title',
+                'Snow Land': 'snowland-title',
+                'Nexus': 'nexus-title'
+            };
+            
+            const titleKey = titleImageMap[stage.name];
+            if (titleKey && this.textures.exists(titleKey)) {
+                this.descriptionTitleImage.setTexture(titleKey);
+                this.descriptionTitleImage.setVisible(true);
+                this.descriptionTitleImage.setAlpha(0);
+                
+                // Shift Void title down and to the left since it's taller
+                if (stage.name === 'The Void') {
+                    this.descriptionTitleImage.x = 300; // Shift left
+                    this.descriptionTitleImage.y = 85; // Shift down to prevent cutoff
+                } else {
+                    this.descriptionTitleImage.x = 400; // Center position
+                    this.descriptionTitleImage.y = 72; // Normal position
+                }
+                
+                // Fade in animation
+                this.tweens.add({
+                    targets: this.descriptionTitleImage,
+                    alpha: 1,
+                    duration: 200,
+                    ease: 'Power2.easeOut'
+                });
+            } else {
+                // Fallback to text
+                this.descriptionTitle.setText(stage.name.toUpperCase());
+                this.descriptionTitle.setVisible(true);
+                this.descriptionTitle.setAlpha(0);
+                
+                // Fade in animation
+                this.tweens.add({
+                    targets: this.descriptionTitle,
+                    alpha: 1,
+                    duration: 200,
+                    ease: 'Power2.easeOut'
+                });
+            }
+        } else {
+            // Use text for locked stages
+            const title = '???';
+            this.descriptionTitle.setText(title);
+            this.descriptionTitle.setVisible(true);
+            this.descriptionTitle.setAlpha(0);
+            
+            // Fade in animation
+            this.tweens.add({
+                targets: this.descriptionTitle,
+                alpha: 1,
+                duration: 200,
+                ease: 'Power2.easeOut'
+            });
         }
-        
-        const title = stage.unlocked ? stage.name.toUpperCase() : '???';
-        const desc = stage.unlocked ? stage.description : '???';
-        
-        this.descriptionTitle.setText(title);
-        this.descriptionText.setText(desc);
-        
-        this.descriptionBg.setVisible(true);
-        this.descriptionTitle.setVisible(true);
-        this.descriptionText.setVisible(true);
-        
-        // Fade in animation
-        this.descriptionBg.setAlpha(0);
-        this.descriptionTitle.setAlpha(0);
-        this.descriptionText.setAlpha(0);
-        
-        this.tweens.add({
-            targets: [this.descriptionBg, this.descriptionTitle, this.descriptionText],
-            alpha: 1,
-            duration: 200,
-            ease: 'Power2.easeOut'
-        });
     }
     
     hideStageDescription() {
-        if (this.descriptionBg && this.descriptionTitle && this.descriptionText) {
+        const fadeTargets = [];
+        if (this.descriptionTitle && this.descriptionTitle.visible) fadeTargets.push(this.descriptionTitle);
+        if (this.descriptionTitleImage && this.descriptionTitleImage.visible) fadeTargets.push(this.descriptionTitleImage);
+        
+        if (fadeTargets.length > 0) {
             this.tweens.add({
-                targets: [this.descriptionBg, this.descriptionTitle, this.descriptionText],
+                targets: fadeTargets,
                 alpha: 0,
                 duration: 200,
                 ease: 'Power2.easeOut',
                 onComplete: () => {
-                    if (this.descriptionBg) this.descriptionBg.setVisible(false);
                     if (this.descriptionTitle) this.descriptionTitle.setVisible(false);
-                    if (this.descriptionText) this.descriptionText.setVisible(false);
+                    if (this.descriptionTitleImage) this.descriptionTitleImage.setVisible(false);
                 }
             });
         }
@@ -1912,13 +2345,17 @@ class StageSelectScene extends Phaser.Scene {
 
         // Handle navigation
         const leftJustPressed = Phaser.Input.Keyboard.JustDown(this.cursors.left) ||
-            (pad && pad.leftStick.x < -0.5 && !this.leftPressed);
+            (pad && pad.leftStick.x < -0.5 && !this.leftPressed) ||
+            (pad && pad.buttons[14] && pad.buttons[14].pressed && !this.dpadLeftPressed);
         const rightJustPressed = Phaser.Input.Keyboard.JustDown(this.cursors.right) ||
-            (pad && pad.rightStick.x > 0.5 && !this.rightPressed);
+            (pad && pad.leftStick.x > 0.5 && !this.rightPressed) ||
+            (pad && pad.buttons[15] && pad.buttons[15].pressed && !this.dpadRightPressed);
         const upJustPressed = Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
-            (pad && pad.leftStick.y < -0.5 && !this.upPressed);
+            (pad && pad.leftStick.y < -0.5 && !this.upPressed) ||
+            (pad && pad.buttons[12] && pad.buttons[12].pressed && !this.dpadUpPressed);
         const downJustPressed = Phaser.Input.Keyboard.JustDown(this.cursors.down) ||
-            (pad && pad.leftStick.y > 0.5 && !this.downPressed);
+            (pad && pad.leftStick.y > 0.5 && !this.downPressed) ||
+            (pad && pad.buttons[13] && pad.buttons[13].pressed && !this.dpadDownPressed);
         const confirmJustPressed = Phaser.Input.Keyboard.JustDown(this.spaceKey) ||
             Phaser.Input.Keyboard.JustDown(this.enterKey) ||
             (pad && pad.buttons[0].pressed && !this.confirmPressed);
@@ -1931,6 +2368,7 @@ class StageSelectScene extends Phaser.Scene {
             let nearestIndex = this.selectedStage;
             let nearestDistance = Infinity;
             
+            // First try to find unlocked stages
             this.stages.forEach((stage, index) => {
                 if (index === this.selectedStage || !stage.unlocked) return;
                 
@@ -1938,18 +2376,63 @@ class StageSelectScene extends Phaser.Scene {
                 const dy = stage.y - currentStage.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                // Check direction
+                // Check direction with more lenient angle
                 let validDirection = false;
-                if (leftJustPressed && dx < -20) validDirection = true;
-                else if (rightJustPressed && dx > 20) validDirection = true;
-                else if (upJustPressed && dy < -20) validDirection = true;
-                else if (downJustPressed && dy > 20) validDirection = true;
+                if (leftJustPressed && dx < -20) {
+                    // Allow some vertical movement when going left
+                    validDirection = Math.abs(dy) < Math.abs(dx);
+                }
+                else if (rightJustPressed && dx > 20) {
+                    // Allow some vertical movement when going right
+                    validDirection = Math.abs(dy) < Math.abs(dx);
+                }
+                else if (upJustPressed && dy < -20) {
+                    // Allow some horizontal movement when going up
+                    validDirection = Math.abs(dx) < Math.abs(dy);
+                }
+                else if (downJustPressed && dy > 20) {
+                    // Allow some horizontal movement when going down
+                    validDirection = Math.abs(dx) < Math.abs(dy);
+                }
                 
                 if (validDirection && distance < nearestDistance) {
                     nearestDistance = distance;
                     nearestIndex = index;
                 }
             });
+            
+            // If no unlocked stage found in direction, check locked stages too
+            if (nearestIndex === this.selectedStage) {
+                nearestDistance = Infinity;
+                
+                this.stages.forEach((stage, index) => {
+                    if (index === this.selectedStage) return;
+                    
+                    const dx = stage.x - currentStage.x;
+                    const dy = stage.y - currentStage.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // Check direction with more lenient angle
+                    let validDirection = false;
+                    if (leftJustPressed && dx < -20) {
+                        validDirection = Math.abs(dy) < Math.abs(dx);
+                    }
+                    else if (rightJustPressed && dx > 20) {
+                        validDirection = Math.abs(dy) < Math.abs(dx);
+                    }
+                    else if (upJustPressed && dy < -20) {
+                        validDirection = Math.abs(dx) < Math.abs(dy);
+                    }
+                    else if (downJustPressed && dy > 20) {
+                        validDirection = Math.abs(dx) < Math.abs(dy);
+                    }
+                    
+                    if (validDirection && distance < nearestDistance) {
+                        nearestDistance = distance;
+                        nearestIndex = index;
+                    }
+                });
+            }
             
             if (nearestIndex !== this.selectedStage) {
                 this.highlightStage(nearestIndex);
@@ -1963,14 +2446,23 @@ class StageSelectScene extends Phaser.Scene {
 
         // Go back
         if (backJustPressed) {
-            this.transitionToTitle();
+            if (this.detailViewActive) {
+                // Exit detail view instead of going to title
+                this.exitDetailView();
+            } else {
+                this.transitionToTitle();
+            }
         }
 
         // Store button states
         this.leftPressed = pad && pad.leftStick.x < -0.5;
-        this.rightPressed = pad && pad.rightStick.x > 0.5;
+        this.rightPressed = pad && pad.leftStick.x > 0.5;
         this.upPressed = pad && pad.leftStick.y < -0.5;
         this.downPressed = pad && pad.leftStick.y > 0.5;
+        this.dpadLeftPressed = pad && pad.buttons[14] && pad.buttons[14].pressed;
+        this.dpadRightPressed = pad && pad.buttons[15] && pad.buttons[15].pressed;
+        this.dpadUpPressed = pad && pad.buttons[12] && pad.buttons[12].pressed;
+        this.dpadDownPressed = pad && pad.buttons[13] && pad.buttons[13].pressed;
         this.confirmPressed = pad && pad.buttons[0].pressed;
         this.backPressed = pad && pad.buttons[1].pressed;
     }
@@ -1980,7 +2472,7 @@ class StageSelectScene extends Phaser.Scene {
         if (this.stageButtons[this.selectedStage]) {
             const btn = this.stageButtons[this.selectedStage];
             if (btn.island) {
-                const originalScale = btn.stage.icon === 'void' ? 0.84 : (btn.stage.isNexus ? 0.4 : 0.3);
+                const originalScale = btn.stage.icon === 'void' ? 0.84 : (btn.stage.isNexus ? 0.4 : btn.stage.isArcade ? 0.5 : 0.3);
                 this.tweens.add({
                     targets: btn.island,
                     scale: originalScale,
@@ -2001,7 +2493,7 @@ class StageSelectScene extends Phaser.Scene {
         const btn = this.stageButtons[this.selectedStage];
         if (btn.stage.unlocked) {
             if (btn.island) {
-                const originalScale = btn.stage.icon === 'void' ? 0.84 : (btn.stage.isNexus ? 0.4 : 0.3);
+                const originalScale = btn.stage.icon === 'void' ? 0.84 : (btn.stage.isNexus ? 0.4 : btn.stage.isArcade ? 0.5 : 0.3);
                 this.tweens.add({
                     targets: btn.island,
                     scale: originalScale * 1.3,
@@ -2070,58 +2562,12 @@ class StageSelectScene extends Phaser.Scene {
                     }
                 });
             }
-        } else if (index === 0 || index === 1 || index === 2 || index === 3 || index === 4) {
-            // Fade to black before starting game
-            const fadeOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000);
-            fadeOverlay.setAlpha(0);
-            fadeOverlay.setDepth(1000);
-
-            this.tweens.add({
-                targets: fadeOverlay,
-                alpha: 1,
-                duration: 500,
-                ease: 'Power2',
-                onComplete: () => {
-                    // Start loading scene which will transition to the game
-                    const stageMapping = {
-                        0: 'forest',
-                        1: 'cave',
-                        2: 'sand',
-                        3: 'lava',
-                        4: 'grave',
-                        5: 'castle',
-                        6: 'spire',
-                        7: 'void'
-                    };
-                    let stageName = stageMapping[index] || 'forest';
-                    
-                    // Check if performance mode is enabled
-                    const performanceMode = localStorage.getItem('performanceMode') === 'true';
-                    const nextScene = performanceMode ? 'UltraOptimizedGameScene' : 'GameScene';
-                    
-                    this.scene.start('LoadingScene', {
-                        nextScene: nextScene,
-                        data: { stage: stageName }
-                    });
-                }
-            });
-            
-            // Fade out music
-            if (this.stageSelectMusic && this.stageSelectMusic.isPlaying) {
-                this.tweens.add({
-                    targets: this.stageSelectMusic,
-                    volume: 0,
-                    duration: 500,
-                    ease: 'Power2',
-                    onComplete: () => {
-                        if (this.stageSelectMusic) {
-                            this.stageSelectMusic.stop();
-                            this.stageSelectMusic.destroy();
-                            this.stageSelectMusic = null;
-                        }
-                    }
-                });
-            }
+        } else if (stage.isArcade) {
+            // Start arcade game
+            this.startArcadeGame();
+        } else if (stage.unlocked && !stage.isNexus) {
+            // Show detailed view instead of immediately starting
+            this.showDetailedView(index);
         } else {
             // Show coming soon message for other stages
             const message = this.add.text(400, 300, 'COMING SOON!', {
@@ -2135,6 +2581,348 @@ class StageSelectScene extends Phaser.Scene {
                 alpha: 0,
                 duration: 1500,
                 ease: 'Power2'
+            });
+        }
+    }
+    
+    showDetailedView(index) {
+        if (this.detailViewActive) return;
+        this.detailViewActive = true;
+        
+        const selectedStage = this.stages[index];
+        const selectedButton = this.stageButtons[index];
+        
+        // Disable input during transition
+        this.input.enabled = false;
+        
+        // Show stage title at top
+        this.showStageDescription(selectedStage);
+        
+        // Animate other planets away
+        this.stageButtons.forEach((btn, btnIndex) => {
+            if (btnIndex !== index) {
+                // Calculate direction away from center
+                const angleFromCenter = Math.atan2(btn.container.y - 300, btn.container.x - 400);
+                const distance = 800;
+                const targetX = btn.container.x + Math.cos(angleFromCenter) * distance;
+                const targetY = btn.container.y + Math.sin(angleFromCenter) * distance;
+                
+                this.tweens.add({
+                    targets: btn.container,
+                    x: targetX,
+                    y: targetY,
+                    alpha: 0,
+                    duration: 800,
+                    ease: 'Power2.easeIn'
+                });
+            }
+        });
+        
+        // Move selected planet to left side and enlarge
+        this.tweens.add({
+            targets: selectedButton.container,
+            x: 200, // Left side of screen
+            y: 300, // Center vertically
+            duration: 1000,
+            ease: 'Power2.easeInOut',
+            onComplete: () => {
+                // Enlarge the planet
+                const planet = selectedButton.island || selectedButton.planet;
+                if (planet) {
+                    const currentScale = planet.scale;
+                    this.tweens.add({
+                        targets: planet,
+                        scale: currentScale * 1.25, // Enlarge by 25%
+                        duration: 500,
+                        ease: 'Back.easeOut'
+                    });
+                }
+            }
+        });
+        
+        // Create details section on the right
+        this.time.delayedCall(800, () => {
+            this.createStageDetails(selectedStage, index);
+            this.input.enabled = true;
+        });
+        
+        // Hide constellation paths
+        if (this.constellationGraphics) {
+            this.tweens.add({
+                targets: this.constellationGraphics,
+                alpha: 0,
+                duration: 500
+            });
+        }
+    }
+    
+    createStageDetails(stage, index) {
+        // Create details container
+        this.detailsContainer = this.add.container(600, 300);
+        this.detailsContainer.setAlpha(0);
+        
+        // Background for details
+        const detailsBg = this.add.rectangle(0, 0, 350, 400, 0x000000, 0.8);
+        detailsBg.setStrokeStyle(2, 0xffffff);
+        this.detailsContainer.add(detailsBg);
+        
+        // Stage stats (no title needed since it's already shown at top)
+        const stats = this.getStageStats(index);
+        let yPos = -120;
+        
+        stats.forEach(stat => {
+            const statText = this.add.text(-140, yPos, stat.label + ':', {
+                fontSize: '18px',
+                color: '#ffffff'
+            }).setOrigin(0, 0.5);
+            this.detailsContainer.add(statText);
+            
+            const valueText = this.add.text(140, yPos, stat.value, {
+                fontSize: '18px',
+                color: stat.color || '#00ff00'
+            }).setOrigin(1, 0.5);
+            this.detailsContainer.add(valueText);
+            
+            yPos += 35;
+        });
+        
+        // Play button
+        const playButton = this.add.rectangle(0, 150, 200, 50, 0x00ff00);
+        playButton.setInteractive({ useHandCursor: true });
+        playButton.setStrokeStyle(2, 0xffffff);
+        this.detailsContainer.add(playButton);
+        
+        const playText = this.add.text(0, 150, 'ENTER STAGE', {
+            fontSize: '24px',
+            color: '#000000',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.detailsContainer.add(playText);
+        
+        // Play button interaction
+        playButton.on('pointerover', () => {
+            playButton.setFillStyle(0x00cc00);
+        });
+        
+        playButton.on('pointerout', () => {
+            playButton.setFillStyle(0x00ff00);
+        });
+        
+        playButton.on('pointerdown', () => {
+            this.startStage(index);
+        });
+        
+        // Back button
+        const backButton = this.add.text(-150, -180, '< BACK', {
+            fontSize: '20px',
+            color: '#ffffff'
+        }).setOrigin(0, 0.5);
+        backButton.setInteractive({ useHandCursor: true });
+        this.detailsContainer.add(backButton);
+        
+        backButton.on('pointerover', () => {
+            backButton.setColor('#ffff00');
+        });
+        
+        backButton.on('pointerout', () => {
+            backButton.setColor('#ffffff');
+        });
+        
+        backButton.on('pointerdown', () => {
+            this.exitDetailView();
+        });
+        
+        // Fade in details
+        this.tweens.add({
+            targets: this.detailsContainer,
+            alpha: 1,
+            duration: 500,
+            ease: 'Power2.easeOut'
+        });
+    }
+    
+    getStageImageKey(stageName) {
+        const imageMap = {
+            'Forest Land': 'forestland-title',
+            'Cave Land': 'caveland-title',
+            'Sand Land': 'desertland-title',
+            'Lava Land': 'lavaland-title',
+            'Grave Land': 'graveland-title',
+            'Castle Land': 'castleland-title',
+            'Spire Land': 'spireland-title',
+            'The Void': 'voidland-title',
+            'Nexus': 'nexus-title'
+        };
+        return imageMap[stageName] || null;
+    }
+    
+    getStageStats(index) {
+        // Return stage-specific stats
+        const statsMap = {
+            0: [ // Forest
+                { label: 'Difficulty', value: 'Easy', color: '#00ff00' },
+                { label: 'Enemies', value: '25-30' },
+                { label: 'Boss', value: 'Tree Zombie' },
+                { label: 'Elements', value: 'Nature, Earth' }
+            ],
+            1: [ // Cave
+                { label: 'Difficulty', value: 'Easy', color: '#00ff00' },
+                { label: 'Enemies', value: '30-35' },
+                { label: 'Boss', value: 'Crystal Guardian' },
+                { label: 'Elements', value: 'Rock, Crystal' }
+            ],
+            2: [ // Desert
+                { label: 'Difficulty', value: 'Medium', color: '#ffff00' },
+                { label: 'Enemies', value: '35-40' },
+                { label: 'Boss', value: 'Sand Wyrm' },
+                { label: 'Elements', value: 'Sand, Fire' }
+            ],
+            3: [ // Lava
+                { label: 'Difficulty', value: 'Hard', color: '#ff8800' },
+                { label: 'Enemies', value: '40-50' },
+                { label: 'Boss', value: 'Lava Golem' },
+                { label: 'Elements', value: 'Fire, Lava' }
+            ],
+            4: [ // Grave
+                { label: 'Difficulty', value: 'Hard', color: '#ff8800' },
+                { label: 'Enemies', value: '45-55' },
+                { label: 'Boss', value: 'Lich King' },
+                { label: 'Elements', value: 'Death, Poison' }
+            ],
+            5: [ // Castle
+                { label: 'Difficulty', value: 'Very Hard', color: '#ff0000' },
+                { label: 'Enemies', value: '50-60' },
+                { label: 'Boss', value: 'Dark Knight' },
+                { label: 'Elements', value: 'Metal, Arcane' }
+            ],
+            6: [ // Spire
+                { label: 'Difficulty', value: 'Very Hard', color: '#ff0000' },
+                { label: 'Enemies', value: '55-65' },
+                { label: 'Boss', value: 'Sky Serpent' },
+                { label: 'Elements', value: 'Air, Lightning' }
+            ],
+            7: [ // Void
+                { label: 'Difficulty', value: 'Extreme', color: '#ff00ff' },
+                { label: 'Enemies', value: '60-70' },
+                { label: 'Boss', value: 'Void Lord' },
+                { label: 'Elements', value: 'Void, Chaos' }
+            ]
+        };
+        
+        return statsMap[index] || [];
+    }
+    
+    exitDetailView() {
+        if (!this.detailViewActive) return;
+        
+        // Fade out details
+        this.tweens.add({
+            targets: this.detailsContainer,
+            alpha: 0,
+            duration: 300,
+            onComplete: () => {
+                this.detailsContainer.destroy();
+            }
+        });
+        
+        // Return planets to original positions
+        this.stageButtons.forEach((btn, index) => {
+            const stage = this.stages[index];
+            
+            this.tweens.add({
+                targets: btn.container,
+                x: stage.x,
+                y: stage.y,
+                alpha: 1,
+                duration: 800,
+                ease: 'Power2.easeOut'
+            });
+            
+            // Reset planet scale
+            const planet = btn.island || btn.planet;
+            if (planet) {
+                const originalScale = stage.icon === 'void' ? 0.84 : (stage.isNexus ? 0.4 : stage.isArcade ? 0.5 : 0.3);
+                this.tweens.add({
+                    targets: planet,
+                    scale: originalScale,
+                    duration: 500,
+                    ease: 'Power2.easeOut'
+                });
+            }
+        });
+        
+        // Show constellation paths again
+        if (this.constellationGraphics) {
+            this.tweens.add({
+                targets: this.constellationGraphics,
+                alpha: 1,
+                duration: 500
+            });
+        }
+        
+        this.time.delayedCall(500, () => {
+            this.detailViewActive = false;
+        });
+    }
+    
+    startStage(index) {
+        // Fade to black before starting game
+        const fadeOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000);
+        fadeOverlay.setAlpha(0);
+        fadeOverlay.setDepth(1000);
+
+        // Disable input during transition
+        this.input.keyboard.enabled = false;
+        this.input.enabled = false;
+
+        this.tweens.add({
+            targets: fadeOverlay,
+            alpha: 1,
+            duration: 1000,
+            ease: 'Power2',
+            onComplete: () => {
+                // Start loading scene which will transition to the game
+                const stageMapping = {
+                    0: 'forest',
+                    1: 'cave',
+                    2: 'sand',
+                    3: 'lava',
+                    4: 'grave',
+                    5: 'castle',
+                    6: 'spire',
+                    7: 'void'
+                };
+                let stageName = stageMapping[index] || 'forest';
+                
+                // Check if performance mode is enabled
+                const performanceMode = localStorage.getItem('performanceMode') === 'true';
+                const nextScene = performanceMode ? 'UltraOptimizedGameScene' : 'GameScene';
+                
+                // Clean up music reference before transitioning
+                if (this.stageSelectMusic) {
+                    this.stageSelectMusic.destroy();
+                    this.stageSelectMusic = null;
+                }
+                
+                this.scene.start('LoadingScene', {
+                    nextScene: nextScene,
+                    data: { stage: stageName }
+                });
+            }
+        });
+        
+        // Fade out music with longer duration
+        if (this.stageSelectMusic && this.stageSelectMusic.isPlaying) {
+            this.tweens.add({
+                targets: this.stageSelectMusic,
+                volume: 0,
+                duration: 800,
+                ease: 'Power2',
+                onComplete: () => {
+                    if (this.stageSelectMusic) {
+                        this.stageSelectMusic.stop();
+                    }
+                }
             });
         }
     }
@@ -2231,30 +3019,1161 @@ class StageSelectScene extends Phaser.Scene {
     }
     
     transitionToTitle() {
+        // Disable input during transition
+        this.input.keyboard.enabled = false;
+        this.input.enabled = false;
+        
         // Kill any existing music tweens first
         if (this.stageSelectMusic) {
             this.tweens.killTweensOf(this.stageSelectMusic);
         }
         
-        // Stop stage select music
+        // Fade out music
         if (this.stageSelectMusic && this.stageSelectMusic.isPlaying) {
-            this.stageSelectMusic.stop();
-            this.stageSelectMusic.destroy();
-            this.stageSelectMusic = null;
+            this.tweens.add({
+                targets: this.stageSelectMusic,
+                volume: 0,
+                duration: 800,
+                ease: 'Power2',
+                onComplete: () => {
+                    if (this.stageSelectMusic) {
+                        this.stageSelectMusic.stop();
+                        this.stageSelectMusic.destroy();
+                        this.stageSelectMusic = null;
+                    }
+                }
+            });
         }
         
-        // Fade to black
+        // Fade to black with longer duration
         const fadeOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0);
         fadeOverlay.setDepth(2000);
         
         this.tweens.add({
             targets: fadeOverlay,
             alpha: 1,
-            duration: 500,
+            duration: 1000,
             ease: 'Power2',
             onComplete: () => {
+                // Clean up any remaining references
+                if (this.stageSelectMusic) {
+                    this.stageSelectMusic.destroy();
+                    this.stageSelectMusic = null;
+                }
                 this.scene.start('TitleScene');
             }
+        });
+    }
+    
+    startArcadeGame() {
+        // Fade out music
+        if (this.stageSelectMusic && this.stageSelectMusic.isPlaying) {
+            this.tweens.add({
+                targets: this.stageSelectMusic,
+                volume: 0,
+                duration: 500,
+                ease: 'Power2',
+                onComplete: () => {
+                    if (this.stageSelectMusic) {
+                        this.stageSelectMusic.stop();
+                        this.stageSelectMusic.destroy();
+                        this.stageSelectMusic = null;
+                    }
+                    // Start the arcade scene after music fades
+                    this.scene.start('ArcadeScene');
+                }
+            });
+        } else {
+            // Start immediately if no music playing
+            this.scene.start('ArcadeScene');
+        }
+    }
+}
+
+class ArcadeScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'ArcadeScene' });
+        this.score = 0;
+        this.level = 1;
+        this.selectedGem = null;
+        this.isSwapping = false;
+        this.comboCount = 0;
+        this.gameOver = false;
+    }
+    
+    preload() {
+        // Load arcade music
+        this.load.audio('arcade-bgm', 'Sketchbook 2024-05-01_02(arcade).ogg');
+        
+        // Load arcade control panel animation frames
+        this.load.image('arcade-frame1', 'arcadeframe1.png');
+        this.load.image('arcade-frame2', 'arcadeframe2.png');
+        this.load.image('arcade-frame3', 'arcadeframe3.png');
+        
+        // Load orb images for arcade gems
+        this.load.image('orb-fire', 'orbs/orb1.png');
+        this.load.image('orb-water', 'orbs/orb2.png');
+        this.load.image('orb-nature', 'orbs/orb3.png');
+        this.load.image('orb-lightning', 'orbs/orb4.png');
+        this.load.image('orb-ice', 'orbs/orb5.png');
+        this.load.image('orb-arcane', 'orbs/orb6.png');
+    }
+    
+    create() {
+        // Set up arcade game background
+        this.cameras.main.setBackgroundColor('#0a0a1a');
+        
+        // Will create starfield after calculating screen bounds
+        
+        // Add control panel at bottom of screen
+        this.controlPanel = this.add.sprite(400, 440, 'arcade-frame1');
+        this.controlPanel.setDepth(1000);
+        
+        // Scale control panel to fit screen width, then reduce by 30%
+        const panelBounds = this.controlPanel.getBounds();
+        const panelScale = (800 / panelBounds.width) * 0.7; // 30% smaller
+        this.controlPanel.setScale(panelScale * 0.9);
+        
+        // Store animation frames
+        this.panelFrames = ['arcade-frame1', 'arcade-frame2', 'arcade-frame3'];
+        this.currentPanelFrame = 0;
+        
+        // Set up game grid
+        this.gridWidth = 8;
+        this.gridHeight = 8;
+        this.gemSize = 45 * 0.9;
+        
+        // Calculate tight screen bounds around gem grid
+        const gridTotalWidth = this.gridWidth * this.gemSize;
+        const gridTotalHeight = this.gridHeight * this.gemSize;
+        const screenPadding = 20; // Small padding around gems
+        
+        // Center the grid on screen
+        const screenCenterX = 400;
+        const screenCenterY = 200;
+        this.gridStartX = screenCenterX - gridTotalWidth / 2;
+        this.gridStartY = screenCenterY - gridTotalHeight / 2;
+        
+        // Create screen frame that fits tightly around gems
+        const screenFrame = this.add.graphics();
+        screenFrame.setDepth(10); // Behind everything else
+        
+        // Calculate screen dimensions based on gem grid
+        const screenX = this.gridStartX - screenPadding;
+        const screenY = this.gridStartY - screenPadding;
+        const screenWidth = (gridTotalWidth + (screenPadding * 2)) * 0.9;
+        const screenHeight = (gridTotalHeight + (screenPadding * 2)) * 0.9;
+        
+        // Outer frame
+        screenFrame.fillStyle(0x2a2a2a);
+        screenFrame.fillRoundedRect(screenX - 10, screenY - 10, screenWidth + 20, screenHeight + 20, 10);
+        
+        // Inner screen area (very dark background)
+        screenFrame.fillStyle(0x0a0a1a);
+        screenFrame.fillRect(screenX, screenY, screenWidth, screenHeight);
+        
+        // Screen border only (no fill)
+        screenFrame.lineStyle(3, 0x444444);
+        screenFrame.strokeRect(screenX, screenY, screenWidth, screenHeight);
+        
+        // Corner decorations
+        screenFrame.fillStyle(0x666666);
+        const cornerSize = 15;
+        screenFrame.fillRect(screenX - 5, screenY - 5, cornerSize, 3);
+        screenFrame.fillRect(screenX - 5, screenY - 5, 3, cornerSize);
+        screenFrame.fillRect(screenX + screenWidth - cornerSize + 5, screenY - 5, cornerSize, 3);
+        screenFrame.fillRect(screenX + screenWidth + 2, screenY - 5, 3, cornerSize);
+        screenFrame.fillRect(screenX - 5, screenY + screenHeight + 2, cornerSize, 3);
+        screenFrame.fillRect(screenX - 5, screenY + screenHeight - cornerSize + 5, 3, cornerSize);
+        screenFrame.fillRect(screenX + screenWidth - cornerSize + 5, screenY + screenHeight + 2, cornerSize, 3);
+        screenFrame.fillRect(screenX + screenWidth + 2, screenY + screenHeight - cornerSize + 5, 3, cornerSize);
+        
+        // Create starfield background within the tight screen area
+        for (let i = 0; i < 50; i++) {
+            const star = this.add.circle(
+                Phaser.Math.Between(screenX + 5, screenX + screenWidth - 5),
+                Phaser.Math.Between(screenY + 5, screenY + screenHeight - 5),
+                Phaser.Math.Between(1, 2),
+                0xffffff,
+                Phaser.Math.FloatBetween(0.3, 0.8)
+            );
+            star.setDepth(50); // Behind gems but above screen background
+            
+            this.tweens.add({
+                targets: star,
+                alpha: Phaser.Math.FloatBetween(0.1, 0.3),
+                duration: Phaser.Math.Between(1000, 3000),
+                yoyo: true,
+                repeat: -1
+            });
+        }
+        
+        // Play arcade music with fade in
+        this.arcadeMusic = this.sound.add('arcade-bgm', { loop: true, volume: 0 });
+        this.arcadeMusic.play();
+        
+        // Fade in music after a short delay
+        this.time.delayedCall(200, () => {
+            this.tweens.add({
+                targets: this.arcadeMusic,
+                volume: 0.4,
+                duration: 1000,
+                ease: 'Power2'
+            });
+        });
+        
+        this.gems = [];
+        this.gemTypes = [
+            'orb-fire',
+            'orb-water',
+            'orb-nature',
+            'orb-lightning',
+            'orb-ice',
+            'orb-arcane'
+        ];
+        
+        // Initialize grid
+        this.createGrid();
+        
+        // Debug log grid position
+        console.log('Grid setup:', {
+            gridStartX: this.gridStartX,
+            gridStartY: this.gridStartY,
+            gemSize: this.gemSize,
+            gridWidth: this.gridWidth,
+            gridHeight: this.gridHeight,
+            totalWidth: this.gridWidth * this.gemSize,
+            totalHeight: this.gridHeight * this.gemSize
+        });
+        
+        // Score tracking (internal only, no display)
+        this.scoreText = { setText: () => {} }; // Dummy object to prevent errors
+        this.levelText = { setText: () => {} }; // Dummy object to prevent errors
+        
+        // Initialize exit dialog state
+        this.exitDialogActive = false;
+        this.exitDialogSelection = 0; // 0 = No, 1 = Yes
+        
+        // Keyboard controls
+        this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+        
+        // Controller support
+        this.gamepad = null;
+        this.cursorX = 0;
+        this.cursorY = 0;
+        
+        // Create cursor highlight
+        this.cursorHighlight = this.add.graphics();
+        this.cursorHighlight.lineStyle(2, 0x00ff00);
+        this.cursorHighlight.strokeRect(
+            this.gridStartX + this.cursorX * this.gemSize - this.gemSize/2,
+            this.gridStartY + this.cursorY * this.gemSize - this.gemSize/2,
+            this.gemSize,
+            this.gemSize
+        );
+        this.cursorHighlight.setDepth(98);
+        
+        // Initialize controller states
+        this.prevLeftPressed = false;
+        this.prevRightPressed = false;
+        this.prevUpPressed = false;
+        this.prevDownPressed = false;
+        this.prevConfirmPressed = false;
+        this.prevBackPressed = false;
+        
+        // Check for initial matches
+        this.time.delayedCall(500, () => {
+            this.checkForMatches();
+        });
+    }
+    
+    createGrid() {
+        // Clear existing gems
+        if (this.gems.length > 0) {
+            for (let y = 0; y < this.gridHeight; y++) {
+                for (let x = 0; x < this.gridWidth; x++) {
+                    if (this.gems[y] && this.gems[y][x]) {
+                        this.gems[y][x].destroy();
+                    }
+                }
+            }
+        }
+        
+        this.gems = [];
+        
+        // Create new grid
+        for (let y = 0; y < this.gridHeight; y++) {
+            this.gems[y] = [];
+            for (let x = 0; x < this.gridWidth; x++) {
+                this.createGem(x, y);
+            }
+        }
+    }
+    
+    createGem(x, y, dropHeight = 0) {
+        const gemType = Phaser.Math.RND.pick(this.gemTypes);
+        const posX = this.gridStartX + x * this.gemSize;
+        const posY = this.gridStartY + y * this.gemSize - dropHeight;
+        
+        const gem = this.add.image(posX, posY, gemType);
+        // Scale gem to 35% of cell size for better spacing (15% more space)
+        gem.setScale((this.gemSize / 100) * 0.35);
+        gem.setInteractive({ useHandCursor: true });
+        gem.setDepth(200); // Ensure gems are above screen
+        
+        // Debug first gem
+        if (x === 0 && y === 0) {
+            console.log('First gem created:', {
+                x: posX,
+                y: posY,
+                type: gemType,
+                scale: gem.scale,
+                depth: gem.depth
+            });
+        }
+        
+        // Store grid position
+        gem.gridX = x;
+        gem.gridY = y;
+        gem.gemType = gemType;
+        
+        // Add gem to grid
+        this.gems[y][x] = gem;
+        
+        // Animate drop if needed
+        if (dropHeight > 0) {
+            this.tweens.add({
+                targets: gem,
+                y: this.gridStartY + y * this.gemSize,
+                duration: 300,
+                ease: 'Bounce.easeOut'
+            });
+        }
+        
+        // Set up interactions
+        gem.on('pointerdown', () => {
+            if (!this.isSwapping && !this.gameOver) {
+                this.selectGem(gem);
+            }
+        });
+        
+        gem.on('pointerover', () => {
+            if (!this.isSwapping && !this.gameOver) {
+                gem.setScale((this.gemSize / 100) * 0.35 * 1.1); // 10% larger on hover
+            }
+        });
+        
+        gem.on('pointerout', () => {
+            if (!this.isSwapping && !this.gameOver) {
+                gem.setScale((this.gemSize / 100) * 0.35); // Back to normal
+            }
+        });
+        
+        return gem;
+    }
+    
+    selectGem(gem) {
+        if (!this.selectedGem) {
+            // First selection
+            this.selectedGem = gem;
+            gem.setTint(0xffff00);
+            
+            // Add selection effect
+            const selectEffect = this.add.graphics();
+            selectEffect.lineStyle(2, 0xffff00);
+            selectEffect.strokeRect(
+                gem.x - this.gemSize/2,
+                gem.y - this.gemSize/2,
+                this.gemSize,
+                this.gemSize
+            );
+            selectEffect.setDepth(99);
+            gem.selectEffect = selectEffect;
+        } else {
+            // Second selection - check if adjacent
+            const dx = Math.abs(gem.gridX - this.selectedGem.gridX);
+            const dy = Math.abs(gem.gridY - this.selectedGem.gridY);
+            
+            if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
+                // Adjacent - swap them
+                this.swapGems(this.selectedGem, gem);
+            } else {
+                // Not adjacent - select new gem
+                this.selectedGem.clearTint();
+                if (this.selectedGem.selectEffect) {
+                    this.selectedGem.selectEffect.destroy();
+                }
+                
+                this.selectedGem = gem;
+                gem.setTint(0xffff00);
+                
+                const selectEffect = this.add.graphics();
+                selectEffect.lineStyle(2, 0xffff00);
+                selectEffect.strokeRect(
+                    gem.x - this.gemSize/2,
+                    gem.y - this.gemSize/2,
+                    this.gemSize,
+                    this.gemSize
+                );
+                selectEffect.setDepth(99);
+                gem.selectEffect = selectEffect;
+            }
+        }
+    }
+    
+    swapGems(gem1, gem2) {
+        this.isSwapping = true;
+        
+        // Clear selection
+        gem1.clearTint();
+        gem2.clearTint();
+        if (gem1.selectEffect) gem1.selectEffect.destroy();
+        if (gem2.selectEffect) gem2.selectEffect.destroy();
+        this.selectedGem = null;
+        
+        // Swap positions in grid
+        const tempX = gem1.gridX;
+        const tempY = gem1.gridY;
+        gem1.gridX = gem2.gridX;
+        gem1.gridY = gem2.gridY;
+        gem2.gridX = tempX;
+        gem2.gridY = tempY;
+        
+        // Update grid array
+        this.gems[gem1.gridY][gem1.gridX] = gem1;
+        this.gems[gem2.gridY][gem2.gridX] = gem2;
+        
+        // Animate swap
+        const gem1TargetX = this.gridStartX + gem1.gridX * this.gemSize;
+        const gem1TargetY = this.gridStartY + gem1.gridY * this.gemSize;
+        const gem2TargetX = this.gridStartX + gem2.gridX * this.gemSize;
+        const gem2TargetY = this.gridStartY + gem2.gridY * this.gemSize;
+        
+        this.tweens.add({
+            targets: gem1,
+            x: gem1TargetX,
+            y: gem1TargetY,
+            duration: 200,
+            ease: 'Power2'
+        });
+        
+        this.tweens.add({
+            targets: gem2,
+            x: gem2TargetX,
+            y: gem2TargetY,
+            duration: 200,
+            ease: 'Power2',
+            onComplete: () => {
+                // Check for matches after swap
+                const matches = this.checkForMatches();
+                
+                if (matches.length === 0) {
+                    // No matches - swap back
+                    this.swapBack(gem1, gem2);
+                } else {
+                    this.isSwapping = false;
+                }
+            }
+        });
+    }
+    
+    swapBack(gem1, gem2) {
+        // Swap positions back
+        const tempX = gem1.gridX;
+        const tempY = gem1.gridY;
+        gem1.gridX = gem2.gridX;
+        gem1.gridY = gem2.gridY;
+        gem2.gridX = tempX;
+        gem2.gridY = tempY;
+        
+        // Update grid array
+        this.gems[gem1.gridY][gem1.gridX] = gem1;
+        this.gems[gem2.gridY][gem2.gridX] = gem2;
+        
+        // Animate swap back
+        const gem1TargetX = this.gridStartX + gem1.gridX * this.gemSize;
+        const gem1TargetY = this.gridStartY + gem1.gridY * this.gemSize;
+        const gem2TargetX = this.gridStartX + gem2.gridX * this.gemSize;
+        const gem2TargetY = this.gridStartY + gem2.gridY * this.gemSize;
+        
+        this.tweens.add({
+            targets: gem1,
+            x: gem1TargetX,
+            y: gem1TargetY,
+            duration: 200,
+            ease: 'Power2'
+        });
+        
+        this.tweens.add({
+            targets: gem2,
+            x: gem2TargetX,
+            y: gem2TargetY,
+            duration: 200,
+            ease: 'Power2',
+            onComplete: () => {
+                this.isSwapping = false;
+            }
+        });
+    }
+    
+    checkForMatches() {
+        const matches = [];
+        
+        // Check horizontal matches
+        for (let y = 0; y < this.gridHeight; y++) {
+            for (let x = 0; x < this.gridWidth - 2; x++) {
+                const gem1 = this.gems[y][x];
+                const gem2 = this.gems[y][x + 1];
+                const gem3 = this.gems[y][x + 2];
+                
+                if (gem1 && gem2 && gem3 && 
+                    gem1.gemType === gem2.gemType && 
+                    gem2.gemType === gem3.gemType) {
+                    
+                    // Found horizontal match
+                    const match = [gem1, gem2, gem3];
+                    
+                    // Check for longer matches
+                    for (let i = x + 3; i < this.gridWidth; i++) {
+                        const nextGem = this.gems[y][i];
+                        if (nextGem && nextGem.gemType === gem1.gemType) {
+                            match.push(nextGem);
+                        } else {
+                            break;
+                        }
+                    }
+                    
+                    matches.push(match);
+                    x += match.length - 1; // Skip checked gems
+                }
+            }
+        }
+        
+        // Check vertical matches
+        for (let x = 0; x < this.gridWidth; x++) {
+            for (let y = 0; y < this.gridHeight - 2; y++) {
+                const gem1 = this.gems[y][x];
+                const gem2 = this.gems[y + 1][x];
+                const gem3 = this.gems[y + 2][x];
+                
+                if (gem1 && gem2 && gem3 && 
+                    gem1.gemType === gem2.gemType && 
+                    gem2.gemType === gem3.gemType) {
+                    
+                    // Found vertical match
+                    const match = [gem1, gem2, gem3];
+                    
+                    // Check for longer matches
+                    for (let i = y + 3; i < this.gridHeight; i++) {
+                        const nextGem = this.gems[i][x];
+                        if (nextGem && nextGem.gemType === gem1.gemType) {
+                            match.push(nextGem);
+                        } else {
+                            break;
+                        }
+                    }
+                    
+                    // Check if any gem is already in a match
+                    let isNewMatch = true;
+                    for (const existingMatch of matches) {
+                        for (const gem of match) {
+                            if (existingMatch.includes(gem)) {
+                                isNewMatch = false;
+                                break;
+                            }
+                        }
+                        if (!isNewMatch) break;
+                    }
+                    
+                    if (isNewMatch) {
+                        matches.push(match);
+                        y += match.length - 1; // Skip checked gems
+                    }
+                }
+            }
+        }
+        
+        // Process matches if any found
+        if (matches.length > 0) {
+            this.processMatches(matches);
+        }
+        
+        return matches;
+    }
+    
+    processMatches(matches) {
+        let totalScore = 0;
+        
+        // Calculate score and remove matched gems
+        matches.forEach((match, index) => {
+            const baseScore = match.length * 10;
+            const comboMultiplier = 1 + (this.comboCount * 0.5);
+            const matchScore = Math.floor(baseScore * comboMultiplier * this.level);
+            totalScore += matchScore;
+            
+            // Remove gems with animation
+            match.forEach((gem, i) => {
+                this.time.delayedCall(i * 50, () => {
+                    // Create sparkle effect
+                    const sparkle = this.add.circle(gem.x, gem.y, this.gemSize/2, 0xffff00, 0.8);
+                    sparkle.setDepth(150);
+                    
+                    this.tweens.add({
+                        targets: sparkle,
+                        scale: 2,
+                        alpha: 0,
+                        duration: 300,
+                        ease: 'Power2',
+                        onComplete: () => {
+                            sparkle.destroy();
+                        }
+                    });
+                    
+                    // Destroy gem
+                    gem.destroy();
+                    this.gems[gem.gridY][gem.gridX] = null;
+                });
+            });
+        });
+        
+        // Update score
+        this.score += totalScore;
+        this.scoreText.setText('SCORE: ' + this.score);
+        
+        // Animate control panel when scoring
+        this.animateControlPanel();
+        
+        // Increase combo
+        this.comboCount++;
+        
+        // Drop gems and fill empty spaces
+        this.time.delayedCall(300, () => {
+            this.dropGems();
+        });
+        
+        // Check level progression
+        if (this.score > this.level * 500) {
+            this.levelUp();
+        }
+    }
+    
+    dropGems() {
+        let dropped = false;
+        
+        // Drop existing gems
+        for (let x = 0; x < this.gridWidth; x++) {
+            for (let y = this.gridHeight - 1; y >= 0; y--) {
+                if (!this.gems[y][x]) {
+                    // Find gem above to drop
+                    for (let searchY = y - 1; searchY >= 0; searchY--) {
+                        if (this.gems[searchY][x]) {
+                            // Found a gem to drop
+                            const gem = this.gems[searchY][x];
+                            this.gems[y][x] = gem;
+                            this.gems[searchY][x] = null;
+                            
+                            // Update gem position
+                            gem.gridY = y;
+                            
+                            // Animate drop
+                            this.tweens.add({
+                                targets: gem,
+                                y: this.gridStartY + y * this.gemSize,
+                                duration: 200,
+                                ease: 'Power2'
+                            });
+                            
+                            dropped = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Fill empty spaces at top
+        for (let x = 0; x < this.gridWidth; x++) {
+            let emptyCount = 0;
+            for (let y = 0; y < this.gridHeight; y++) {
+                if (!this.gems[y][x]) {
+                    emptyCount++;
+                    this.createGem(x, y, emptyCount * this.gemSize);
+                }
+            }
+        }
+        
+        // Check for new matches after drop
+        this.time.delayedCall(400, () => {
+            const newMatches = this.checkForMatches();
+            if (newMatches.length === 0) {
+                // No more matches - reset combo
+                this.comboCount = 0;
+                
+                // Check if no moves available
+                if (!this.hasValidMoves()) {
+                    this.showNoMoves();
+                }
+            }
+        });
+    }
+    
+    hasValidMoves() {
+        // Check all possible swaps
+        for (let y = 0; y < this.gridHeight; y++) {
+            for (let x = 0; x < this.gridWidth; x++) {
+                // Check swap with right neighbor
+                if (x < this.gridWidth - 1) {
+                    if (this.wouldCreateMatch(x, y, x + 1, y)) {
+                        return true;
+                    }
+                }
+                
+                // Check swap with bottom neighbor
+                if (y < this.gridHeight - 1) {
+                    if (this.wouldCreateMatch(x, y, x, y + 1)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        return false;
+    }
+    
+    wouldCreateMatch(x1, y1, x2, y2) {
+        // Temporarily swap in array
+        const temp = this.gems[y1][x1];
+        this.gems[y1][x1] = this.gems[y2][x2];
+        this.gems[y2][x2] = temp;
+        
+        // Check if this creates a match
+        let hasMatch = false;
+        
+        // Check around first position
+        if (this.checkMatchAt(x1, y1)) {
+            hasMatch = true;
+        }
+        
+        // Check around second position
+        if (this.checkMatchAt(x2, y2)) {
+            hasMatch = true;
+        }
+        
+        // Swap back
+        this.gems[y2][x2] = this.gems[y1][x1];
+        this.gems[y1][x1] = temp;
+        
+        return hasMatch;
+    }
+    
+    checkMatchAt(x, y) {
+        const gem = this.gems[y][x];
+        if (!gem) return false;
+        
+        const gemType = gem.gemType;
+        
+        // Check horizontal
+        let left = 0;
+        let right = 0;
+        
+        for (let i = x - 1; i >= 0; i--) {
+            if (this.gems[y][i] && this.gems[y][i].gemType === gemType) {
+                left++;
+            } else {
+                break;
+            }
+        }
+        
+        for (let i = x + 1; i < this.gridWidth; i++) {
+            if (this.gems[y][i] && this.gems[y][i].gemType === gemType) {
+                right++;
+            } else {
+                break;
+            }
+        }
+        
+        if (left + right + 1 >= 3) {
+            return true;
+        }
+        
+        // Check vertical
+        let up = 0;
+        let down = 0;
+        
+        for (let i = y - 1; i >= 0; i--) {
+            if (this.gems[i][x] && this.gems[i][x].gemType === gemType) {
+                up++;
+            } else {
+                break;
+            }
+        }
+        
+        for (let i = y + 1; i < this.gridHeight; i++) {
+            if (this.gems[i][x] && this.gems[i][x].gemType === gemType) {
+                down++;
+            } else {
+                break;
+            }
+        }
+        
+        if (up + down + 1 >= 3) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    showNoMoves() {
+        this.gameOver = true;
+        
+        const noMovesText = this.add.text(400, 300, 'NO MOVES!\nRESHUFFLING...', {
+            fontSize: '32px',
+            color: '#ff0000',
+            fontStyle: 'bold',
+            align: 'center',
+            backgroundColor: '#000000',
+            padding: { x: 20, y: 10 }
+        }).setOrigin(0.5);
+        noMovesText.setDepth(1002);
+        
+        // Reshuffle after delay
+        this.time.delayedCall(2000, () => {
+            noMovesText.destroy();
+            this.reshuffleGrid();
+            this.gameOver = false;
+        });
+    }
+    
+    reshuffleGrid() {
+        // Collect all gem types
+        const allGemTypes = [];
+        for (let y = 0; y < this.gridHeight; y++) {
+            for (let x = 0; x < this.gridWidth; x++) {
+                if (this.gems[y][x]) {
+                    allGemTypes.push(this.gems[y][x].gemType);
+                }
+            }
+        }
+        
+        // Shuffle array
+        for (let i = allGemTypes.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [allGemTypes[i], allGemTypes[j]] = [allGemTypes[j], allGemTypes[i]];
+        }
+        
+        // Reassign gem types
+        let index = 0;
+        for (let y = 0; y < this.gridHeight; y++) {
+            for (let x = 0; x < this.gridWidth; x++) {
+                if (this.gems[y][x]) {
+                    const newType = allGemTypes[index++];
+                    this.gems[y][x].setTexture(newType);
+                    this.gems[y][x].gemType = newType;
+                }
+            }
+        }
+        
+        // Check for accidental matches
+        this.time.delayedCall(100, () => {
+            this.checkForMatches();
+        });
+    }
+    
+    levelUp() {
+        this.level++;
+        this.levelText.setText('LEVEL: ' + this.level);
+        
+        // Show level up message
+        const levelUpText = this.add.text(400, 300, 'LEVEL UP!', {
+            fontSize: '48px',
+            color: '#00ff00',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+        levelUpText.setDepth(1002);
+        levelUpText.setScale(0);
+        
+        this.tweens.add({
+            targets: levelUpText,
+            scale: 1.5,
+            duration: 500,
+            ease: 'Back.easeOut',
+            yoyo: true,
+            hold: 500,
+            onComplete: () => {
+                levelUpText.destroy();
+            }
+        });
+    }
+    
+    update() {
+        // Update gamepad reference
+        if (this.input.gamepad && this.input.gamepad.total > 0) {
+            this.gamepad = this.input.gamepad.getPad(0);
+        }
+        
+        // Check for controller/keyboard input
+        const leftPressed = this.cursors.left.isDown ||
+            (this.gamepad && ((this.gamepad.leftStick.x < -0.5) || (this.gamepad.buttons[14] && this.gamepad.buttons[14].pressed)));
+        const rightPressed = this.cursors.right.isDown ||
+            (this.gamepad && ((this.gamepad.leftStick.x > 0.5) || (this.gamepad.buttons[15] && this.gamepad.buttons[15].pressed)));
+        const upPressed = this.cursors.up.isDown ||
+            (this.gamepad && ((this.gamepad.leftStick.y < -0.5) || (this.gamepad.buttons[12] && this.gamepad.buttons[12].pressed)));
+        const downPressed = this.cursors.down.isDown ||
+            (this.gamepad && ((this.gamepad.leftStick.y > 0.5) || (this.gamepad.buttons[13] && this.gamepad.buttons[13].pressed)));
+        const confirmPressed = this.spaceKey.isDown || this.enterKey.isDown ||
+            (this.gamepad && this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed);
+        const backPressed = this.escKey.isDown ||
+            (this.gamepad && this.gamepad.buttons[1] && this.gamepad.buttons[1].pressed);
+        
+        // Handle exit dialog
+        if (this.exitDialogActive) {
+            // Handle dialog navigation
+            if (leftPressed && !this.prevLeftPressed && this.exitDialogSelection !== 0) {
+                this.exitDialogSelection = 0;
+                this.updateExitDialogHighlight();
+            }
+            if (rightPressed && !this.prevRightPressed && this.exitDialogSelection !== 1) {
+                this.exitDialogSelection = 1;
+                this.updateExitDialogHighlight();
+            }
+            
+            // Confirm dialog selection
+            if (confirmPressed && !this.prevConfirmPressed) {
+                if (this.exitDialogSelection === 0) {
+                    this.closeExitDialog();
+                } else {
+                    this.exitArcade();
+                }
+            }
+            
+            // Cancel dialog with B/ESC
+            if (backPressed && !this.prevBackPressed) {
+                this.closeExitDialog();
+            }
+        } else {
+            // Handle opening exit dialog
+            if (backPressed && !this.prevBackPressed) {
+                this.showExitDialog();
+            }
+            
+            // Handle game navigation (only when dialog not active)
+            if (!this.isSwapping && !this.gameOver) {
+                if (leftPressed && !this.prevLeftPressed && this.cursorX > 0) {
+                    this.cursorX--;
+                    this.updateCursorHighlight();
+                }
+                if (rightPressed && !this.prevRightPressed && this.cursorX < this.gridWidth - 1) {
+                    this.cursorX++;
+                    this.updateCursorHighlight();
+                }
+                if (upPressed && !this.prevUpPressed && this.cursorY > 0) {
+                    this.cursorY--;
+                    this.updateCursorHighlight();
+                }
+                if (downPressed && !this.prevDownPressed && this.cursorY < this.gridHeight - 1) {
+                    this.cursorY++;
+                    this.updateCursorHighlight();
+                }
+                
+                // Handle selection
+                if (confirmPressed && !this.prevConfirmPressed) {
+                    const gem = this.gems[this.cursorY][this.cursorX];
+                    if (gem) {
+                        this.selectGem(gem);
+                    }
+                }
+            }
+        }
+        
+        // Store previous states
+        this.prevLeftPressed = leftPressed;
+        this.prevRightPressed = rightPressed;
+        this.prevUpPressed = upPressed;
+        this.prevDownPressed = downPressed;
+        this.prevConfirmPressed = confirmPressed;
+        this.prevBackPressed = backPressed;
+    }
+    
+    updateCursorHighlight() {
+        this.cursorHighlight.clear();
+        this.cursorHighlight.lineStyle(2, 0x00ff00);
+        this.cursorHighlight.strokeRect(
+            this.gridStartX + this.cursorX * this.gemSize - this.gemSize/2,
+            this.gridStartY + this.cursorY * this.gemSize - this.gemSize/2,
+            this.gemSize,
+            this.gemSize
+        );
+    }
+    
+    showExitDialog() {
+        if (this.exitDialogActive) return;
+        
+        this.exitDialogActive = true;
+        this.exitDialogSelection = 0; // Default to "No"
+        
+        // Create semi-transparent background
+        this.exitDialogBg = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.7);
+        this.exitDialogBg.setDepth(2000);
+        
+        // Create dialog box
+        this.exitDialogBox = this.add.rectangle(400, 300, 400, 200, 0x222222);
+        this.exitDialogBox.setStrokeStyle(3, 0x00ff00);
+        this.exitDialogBox.setDepth(2001);
+        
+        // Dialog text
+        this.exitDialogText = this.add.text(400, 260, 'Return to Stage Select?', {
+            fontSize: '24px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.exitDialogText.setDepth(2002);
+        
+        // No button
+        this.exitNoButton = this.add.text(320, 320, 'NO', {
+            fontSize: '20px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            backgroundColor: '#444444',
+            padding: { x: 20, y: 10 }
+        }).setOrigin(0.5);
+        this.exitNoButton.setDepth(2002);
+        
+        // No button highlight border
+        this.exitNoHighlight = this.add.rectangle(320, 320, 
+            this.exitNoButton.width + 10, 
+            this.exitNoButton.height + 10, 
+            0x000000, 0);
+        this.exitNoHighlight.setStrokeStyle(2, 0xffff00);
+        this.exitNoHighlight.setDepth(2001);
+        
+        // Yes button
+        this.exitYesButton = this.add.text(480, 320, 'YES', {
+            fontSize: '20px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            backgroundColor: '#444444',
+            padding: { x: 20, y: 10 }
+        }).setOrigin(0.5);
+        this.exitYesButton.setDepth(2002);
+        
+        // Yes button highlight border
+        this.exitYesHighlight = this.add.rectangle(480, 320, 
+            this.exitYesButton.width + 10, 
+            this.exitYesButton.height + 10, 
+            0x000000, 0);
+        this.exitYesHighlight.setStrokeStyle(2, 0xffff00);
+        this.exitYesHighlight.setDepth(2001);
+        this.exitYesHighlight.setVisible(false); // Start hidden
+        
+        // Make buttons interactive for mouse
+        this.exitNoButton.setInteractive({ useHandCursor: true });
+        this.exitYesButton.setInteractive({ useHandCursor: true });
+        
+        this.exitNoButton.on('pointerover', () => {
+            this.exitDialogSelection = 0;
+            this.updateExitDialogHighlight();
+        });
+        
+        this.exitYesButton.on('pointerover', () => {
+            this.exitDialogSelection = 1;
+            this.updateExitDialogHighlight();
+        });
+        
+        this.exitNoButton.on('pointerdown', () => {
+            this.closeExitDialog();
+        });
+        
+        this.exitYesButton.on('pointerdown', () => {
+            this.exitArcade();
+        });
+    }
+    
+    updateExitDialogHighlight() {
+        if (this.exitDialogSelection === 0) {
+            this.exitNoHighlight.setVisible(true);
+            this.exitYesHighlight.setVisible(false);
+        } else {
+            this.exitNoHighlight.setVisible(false);
+            this.exitYesHighlight.setVisible(true);
+        }
+    }
+    
+    closeExitDialog() {
+        if (!this.exitDialogActive) return;
+        
+        this.exitDialogActive = false;
+        
+        // Destroy dialog elements
+        if (this.exitDialogBg) this.exitDialogBg.destroy();
+        if (this.exitDialogBox) this.exitDialogBox.destroy();
+        if (this.exitDialogText) this.exitDialogText.destroy();
+        if (this.exitNoButton) this.exitNoButton.destroy();
+        if (this.exitYesButton) this.exitYesButton.destroy();
+        if (this.exitNoHighlight) this.exitNoHighlight.destroy();
+        if (this.exitYesHighlight) this.exitYesHighlight.destroy();
+    }
+    
+    exitArcade() {
+        // Stop music with fade out
+        if (this.arcadeMusic && this.arcadeMusic.isPlaying) {
+            this.tweens.add({
+                targets: this.arcadeMusic,
+                volume: 0,
+                duration: 500,
+                ease: 'Power2',
+                onComplete: () => {
+                    if (this.arcadeMusic) {
+                        this.arcadeMusic.stop();
+                        this.arcadeMusic.destroy();
+                        this.arcadeMusic = null;
+                    }
+                    // Return to stage select after music fades
+                    this.scene.start('StageSelectScene');
+                }
+            });
+        } else {
+            // Return immediately if no music
+            this.scene.start('StageSelectScene');
+        }
+    }
+    
+    animateControlPanel() {
+        // Clear any existing animation
+        if (this.panelAnimTimer) {
+            this.panelAnimTimer.remove();
+        }
+        
+        // Reset to first frame
+        this.currentPanelFrame = 0;
+        this.controlPanel.setTexture(this.panelFrames[0]);
+        
+        // Animate through frames for 1 second
+        let frameCount = 0;
+        const totalFrames = 12; // About 12 frames over 1 second at 60fps
+        
+        this.panelAnimTimer = this.time.addEvent({
+            delay: 1000 / totalFrames, // ~83ms per frame
+            callback: () => {
+                frameCount++;
+                
+                // Cycle through the 3 frames
+                this.currentPanelFrame = (this.currentPanelFrame + 1) % this.panelFrames.length;
+                this.controlPanel.setTexture(this.panelFrames[this.currentPanelFrame]);
+                
+                // Stop after 1 second
+                if (frameCount >= totalFrames) {
+                    this.panelAnimTimer.remove();
+                    this.panelAnimTimer = null;
+                    // Return to first frame
+                    this.controlPanel.setTexture(this.panelFrames[0]);
+                }
+            },
+            repeat: totalFrames - 1
         });
     }
 }
@@ -2266,7 +4185,7 @@ class GameOverScene extends Phaser.Scene {
 
     init(data) {
         this.survivalTime = data.survivalTime || 0;
-        this.enemiesKilled = data.enemiesKilled || { tree: 0, slime: 0, golem: 0, elite: 0, bat: 0, sorcerer: 0, mushroom: 0, fireworm: 0, summoner: 0, soul: 0, bloboid: 0 };
+        this.enemiesKilled = data.enemiesKilled || { tree: 0, slime: 0, golem: 0, elite: 0, bat: 0, mushroom: 0, fireworm: 0, summoner: 0, soul: 0, bloboid: 0 };
         this.itemsCollected = data.itemsCollected || { jewels: 0, muffins: 0, elements: 0 };
         this.won = data.won || false;
         this.stage = data.stage || 'forest';
@@ -2983,6 +4902,10 @@ class GameScene extends Phaser.Scene {
         // Initialize god mode (press G to toggle)
         this.godMode = false;
         
+        // Initialize collision processing queue to prevent simultaneous collisions
+        this.collisionQueue = [];
+        this.processingCollisions = false;
+        
         // Force time scale to 1 and ensure game is not paused
         console.log('=== INITIAL CREATE: Forcing time scale to 1 in create ===');
         console.log('Current timeScale:', this.time.timeScale);
@@ -3276,7 +5199,7 @@ class GameScene extends Phaser.Scene {
                 projectiles: new Array(100)
             };
         }
-        this.enemiesKilled = { tree: 0, slime: 0, golem: 0, elite: 0, bat: 0, sorcerer: 0, mushroom: 0, fireworm: 0, summoner: 0, soul: 0, bloboid: 0 };
+        this.enemiesKilled = { tree: 0, slime: 0, golem: 0, elite: 0, bat: 0, mushroom: 0, fireworm: 0, summoner: 0, soul: 0, bloboid: 0 };
         this.itemsCollected = { jewels: 0, muffins: 0, elements: 0 };
         this.eliteEnemies = [];
         this.chests = this.physics.add.group();
@@ -3310,9 +5233,21 @@ class GameScene extends Phaser.Scene {
         // Don't load pouch from localStorage - start fresh each game
         this.elementPouch = [null, null, null, null];
         
-        // Create and start background music based on user selection
-        const selectedBGM = localStorage.getItem('selectedBGM') || 'BGM 1';
-        const bgmKey = selectedBGM === 'BGM 1' ? 'bgm' : 'bgm2';
+        // Create and start background music based on stage
+        let bgmKey;
+        if (this.stage === 'forest') {
+            bgmKey = 'forestland-bgm';
+        } else if (this.stage === 'cave') {
+            bgmKey = 'caveland-bgm';
+        } else if (this.stage === 'sand') {
+            bgmKey = 'desertland-bgm';
+        } else if (this.stage === 'grave') {
+            bgmKey = 'graveland-bgm';
+        } else {
+            // Use default music for other stages
+            const selectedBGM = localStorage.getItem('selectedBGM') || 'BGM 1';
+            bgmKey = selectedBGM === 'BGM 1' ? 'bgm' : 'bgm2';
+        }
         
         this.bgMusic = this.sound.add(bgmKey, {
             loop: true,
@@ -3406,6 +5341,49 @@ class GameScene extends Phaser.Scene {
             fireRate: [1.0, 0.85, 0.7, 0.6, 0.5], // Fire rate multiplier per tier (lower = faster)
             projectileCount: [1, 1, 2, 2, 3], // Number of projectiles per tier
             duration: [1.0, 1.2, 1.4, 1.6, 1.8] // Effect duration multiplier per tier
+        };
+
+        // Tier-specific spell progression framework
+        // Each spell can have unique effects at different tiers
+        this.spellTierProgression = {
+            fire: {
+                1: { description: "Basic fireball", poolSize: 1.0, burnDuration: 2000 },
+                2: { description: "Enhanced fireball with larger burn pools", poolSize: 1.3, burnDuration: 2500 },
+                3: { description: "Twin fireballs with extended burn", poolSize: 1.5, burnDuration: 3000 },
+                4: { description: "Explosive fireballs with spreading flames", poolSize: 1.8, burnDuration: 3500 },
+                5: { description: "Inferno blast with massive burn area", poolSize: 2.0, burnDuration: 4000 }
+            },
+            water: {
+                1: { description: "Small water wave", waveWidth: 1.0, slowDuration: 1000 },
+                2: { description: "Wider wave with stronger slow", waveWidth: 1.3, slowDuration: 1500 },
+                3: { description: "Dual waves in V formation", waveWidth: 1.5, slowDuration: 2000 },
+                4: { description: "Tsunami with knockback", waveWidth: 1.8, slowDuration: 2500 },
+                5: { description: "Tidal surge that floods the area", waveWidth: 2.0, slowDuration: 3000 }
+            },
+            earth: {
+                1: { description: "Basic earthquake line", lineLength: 1.0, stunChance: 0.1 },
+                2: { description: "Extended quake with tremors", lineLength: 1.3, stunChance: 0.2 },
+                3: { description: "Twin fault lines", lineLength: 1.5, stunChance: 0.3 },
+                4: { description: "Seismic rupture with debris", lineLength: 1.8, stunChance: 0.4 },
+                5: { description: "Tectonic devastation", lineLength: 2.0, stunChance: 0.5 }
+            },
+            lightning: {
+                1: { description: "Single homing bolt", chainCount: 0, sparkRadius: 0 },
+                2: { description: "Faster bolt with sparks", chainCount: 0, sparkRadius: 30 },
+                3: { description: "Chain lightning (2 jumps)", chainCount: 2, sparkRadius: 40 },
+                4: { description: "Storm bolt (3 jumps)", chainCount: 3, sparkRadius: 50 },
+                5: { description: "Thunder god's wrath (5 jumps)", chainCount: 5, sparkRadius: 60 }
+            },
+            // Add more elements here following the same pattern
+            // This framework allows you to define unique progression for each spell
+        };
+
+        // Helper function to get spell tier effects
+        this.getSpellTierEffects = function(element, tier) {
+            if (this.spellTierProgression[element] && this.spellTierProgression[element][tier]) {
+                return this.spellTierProgression[element][tier];
+            }
+            return null;
         };
 
         // Element descriptions for the discovery menu
@@ -3624,8 +5602,15 @@ class GameScene extends Phaser.Scene {
         this.enemyProjectiles = this.physics.add.group({
             runChildUpdate: false,
             removeCallback: (projectile) => {
+                // Mark as destroying when removed from group
+                projectile.isDestroying = true;
                 if (projectile.body) {
                     projectile.body.enable = false;
+                }
+                // Clean up any timers when removed
+                if (projectile.destroyTimer) {
+                    projectile.destroyTimer.remove();
+                    projectile.destroyTimer = null;
                 }
             }
         });
@@ -3635,7 +5620,8 @@ class GameScene extends Phaser.Scene {
             // Process callback to filter out invalid projectiles
             (wizard, projectile) => {
                 return wizard && wizard.active && wizard.body && wizard.body.enable &&
-                       projectile && projectile.active && projectile.body && projectile.body.enable;
+                       projectile && projectile.active && projectile.body && projectile.body.enable &&
+                       !projectile.isDestroying;
             }, this);
 
         this.physics.add.overlap(this.wizard, this.enemies, this.hitEnemy, 
@@ -3677,7 +5663,7 @@ class GameScene extends Phaser.Scene {
                     return false;
                 }
             }, this);
-        this.physics.add.overlap(this.projectiles, this.wizard, this.bossProjectileHitPlayer, 
+        this.physics.add.overlap(this.enemyProjectiles, this.wizard, this.bossProjectileHitPlayer, 
             // Process callback for boss projectiles
             (projectile, wizard) => {
                 return projectile && projectile.active && projectile.body && projectile.body.enable && 
@@ -3870,6 +5856,14 @@ class GameScene extends Phaser.Scene {
             frames: this.anims.generateFrameNumbers('poison-spell', { start: 0, end: 8 }),
             frameRate: 12,
             repeat: 0
+        });
+        
+        // Create poison spell animation for Nekros boss attacks
+        createAnimIfNotExists({
+            key: 'poison-spell-anim',
+            frames: this.anims.generateFrameNumbers('poison-spell', { start: 0, end: 8 }),
+            frameRate: 12,
+            repeat: -1  // Loop for the cloud effect
         });
         
         // Create XP gem animation
@@ -4508,25 +6502,80 @@ class GameScene extends Phaser.Scene {
             repeat: 0
         });
 
-
-        // Create sorcerer animation
+        // Create Nekros boss animations
+        // Walk animation (12 frames)
+        const nekrosWalkFrames = [];
+        for (let i = 1; i <= 12; i++) {
+            nekrosWalkFrames.push({ key: `nekros-walk-${i}` });
+        }
         createAnimIfNotExists({
-            key: 'sorcerer-attack',
-            frames: [
-                { key: 'sorcerer-attack-0' },
-                { key: 'sorcerer-attack-1' },
-                { key: 'sorcerer-attack-2' },
-                { key: 'sorcerer-attack-3' },
-                { key: 'sorcerer-attack-4' },
-                { key: 'sorcerer-attack-5' },
-                { key: 'sorcerer-attack-6' },
-                { key: 'sorcerer-attack-7' },
-                { key: 'sorcerer-attack-8' },
-                { key: 'sorcerer-attack-9' }
-            ],
+            key: 'nekros-walk',
+            frames: nekrosWalkFrames,
             frameRate: 10,
             repeat: -1
         });
+        
+        // Fly animation (6 frames)
+        const nekrosFlyFrames = [];
+        for (let i = 1; i <= 6; i++) {
+            nekrosFlyFrames.push({ key: `nekros-fly-${i}` });
+        }
+        createAnimIfNotExists({
+            key: 'nekros-fly',
+            frames: nekrosFlyFrames,
+            frameRate: 12,
+            repeat: -1
+        });
+        
+        // Attack1 animation (7 frames)
+        const nekrosAttack1Frames = [];
+        for (let i = 1; i <= 7; i++) {
+            nekrosAttack1Frames.push({ key: `nekros-attack1-${i}` });
+        }
+        createAnimIfNotExists({
+            key: 'nekros-attack1',
+            frames: nekrosAttack1Frames,
+            frameRate: 10,
+            repeat: 0
+        });
+        
+        // Attack2 animation (9 frames)
+        const nekrosAttack2Frames = [];
+        for (let i = 1; i <= 9; i++) {
+            nekrosAttack2Frames.push({ key: `nekros-attack2-${i}` });
+        }
+        createAnimIfNotExists({
+            key: 'nekros-attack2',
+            frames: nekrosAttack2Frames,
+            frameRate: 10,
+            repeat: 0
+        });
+        
+        // Death animation (11 frames)
+        const nekrosDeathFrames = [];
+        for (let i = 1; i <= 11; i++) {
+            nekrosDeathFrames.push({ key: `nekros-death-${i}` });
+        }
+        createAnimIfNotExists({
+            key: 'nekros-death',
+            frames: nekrosDeathFrames,
+            frameRate: 10,
+            repeat: 0
+        });
+        
+        // Hurt animation (5 frames)
+        const nekrosHurtFrames = [];
+        for (let i = 1; i <= 5; i++) {
+            nekrosHurtFrames.push({ key: `nekros-hurt-${i}` });
+        }
+        createAnimIfNotExists({
+            key: 'nekros-hurt',
+            frames: nekrosHurtFrames,
+            frameRate: 12,
+            repeat: 0
+        });
+
+        // Create sorcerer animation
 
         // Create chest animations
         createAnimIfNotExists({
@@ -4591,7 +6640,7 @@ class GameScene extends Phaser.Scene {
             this.tweens.resumeAll();
             
             // Don't call updateChargeUI here - UI hasn't been created yet
-            this.startGame();
+            this.startGameSequence();
         }
     }
 
@@ -4746,21 +6795,133 @@ class GameScene extends Phaser.Scene {
 
         // Disable player controls initially
         this.gameStarted = false;
-
+        
+        // Disable input during intro
+        this.input.keyboard.enabled = false;
+        
         // Start wizard at last frame of death animation
         this.wizard.play('wizard-death');
         this.wizard.anims.pause();
         this.wizard.anims.setCurrentFrame(this.wizard.anims.currentAnim.frames[this.wizard.anims.currentAnim.frames.length - 1]);
-
-        console.log('Starting resurrection animation with countdown');
-
-        // Start resurrection animation immediately
-        this.startResurrectionAnimation();
-
-        // Silent countdown continues in background
-        // The game will start after the animation and delay in startResurrectionAnimation
+        
+        // Create dark overlay for dramatic effect
+        const overlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.7);
+        overlay.setScrollFactor(0);
+        overlay.setDepth(900);
+        
+        // Show stage name image
+        const stageImageKey = this.getStageImageKey();
+        const stageImage = this.add.image(400, 250, stageImageKey);
+        stageImage.setOrigin(0.5);
+        stageImage.setScrollFactor(0);
+        stageImage.setDepth(901);
+        stageImage.setAlpha(0);
+        stageImage.setScale(0.25); // Scale down by 75%
+        
+        // Fade in stage name with retro effect
+        this.tweens.add({
+            targets: stageImage,
+            alpha: 1,
+            scale: 0.25, // Keep at 25% scale
+            duration: 1000,
+            ease: 'Back.easeOut'
+        });
+        
+        // After 1.5 seconds, start resurrection animation
+        this.time.delayedCall(1500, () => {
+            console.log('Starting resurrection animation');
+            
+            // Start playing wizard death animation backwards
+            this.startResurrectionAnimation();
+            
+            // After 2 seconds, show FIGHT text
+            this.time.delayedCall(2000, () => {
+                // Fade out stage name
+                this.tweens.add({
+                    targets: stageImage,
+                    alpha: 0,
+                    duration: 500,
+                    onComplete: () => stageImage.destroy()
+                });
+                
+                // Create FIGHT image with dynamic animation
+                const fightImage = this.add.image(400, 300, 'fight-title');
+                fightImage.setOrigin(0.5);
+                fightImage.setScrollFactor(0);
+                fightImage.setDepth(902);
+                fightImage.setScale(0.1);
+                
+                // Animate FIGHT image with retro zoom effect
+                this.tweens.add({
+                    targets: fightImage,
+                    scale: 1.2,
+                    duration: 500,
+                    ease: 'Back.easeOut',
+                    onComplete: () => {
+                        // Add shake effect for retro feel
+                        this.tweens.add({
+                            targets: fightImage,
+                            x: '+=10',
+                            duration: 50,
+                            yoyo: true,
+                            repeat: 3
+                        });
+                        
+                        // Hold for a moment then fade out
+                        this.time.delayedCall(700, () => {
+                            this.tweens.add({
+                                targets: [fightImage, overlay],
+                                alpha: 0,
+                                duration: 1000,
+                                onComplete: () => {
+                                    fightImage.destroy();
+                                    overlay.destroy();
+                                    
+                                    // Re-enable input
+                                    this.input.keyboard.enabled = true;
+                                    
+                                    // Start the game
+                                    this.startGame();
+                                }
+                            });
+                        });
+                    }
+                });
+            });
+        });
 
         console.log('Game sequence setup complete');
+    }
+    
+    getStageImageKey() {
+        const stageImageKeys = {
+            'forest': 'forestland-title',
+            'cave': 'caveland-title',
+            'sand': 'desertland-title',
+            'lava': 'lavaland-title',
+            'grave': 'graveland-title',
+            'castle': 'castleland-title',
+            'spire': 'spireland-title',
+            'void': 'voidland-title',
+            'arcade': 'arcadeland-title',
+            'snow': 'snowland-title'
+        };
+        
+        return stageImageKeys[this.currentStage] || 'forestland-title';
+    }
+    
+    getStageName() {
+        const stageNames = {
+            'forest': 'FOREST LAND',
+            'cave': 'CAVE LAND',
+            'sand': 'DESERT LAND',
+            'lava': 'LAVA LAND',
+            'grave': 'GRAVE LAND',
+            'castle': 'CASTLE LAND',
+            'spire': 'SPIRE LAND',
+            'void': 'THE VOID'
+        };
+        return stageNames[this.stage] || 'UNKNOWN LAND';
     }
 
     showElementSelection() {
@@ -5011,7 +7172,6 @@ class GameScene extends Phaser.Scene {
         const bg = this.add.rectangle(400, 300, 600, 400, 0x000000, 0.9);
         bg.setScrollFactor(0);
         bg.setDepth(20000);
-        bg.setStrokeStyle(3, 0xffd700);
         
         const title = this.add.text(400, 180, 'CHOOSE YOUR ELEMENT', {
             fontSize: '32px',
@@ -5021,6 +7181,15 @@ class GameScene extends Phaser.Scene {
         title.setOrigin(0.5);
         title.setScrollFactor(0);
         title.setDepth(20001);
+        
+        // Add control hint
+        const controlHint = this.add.text(400, 380, 'Use ← → or gamepad to select • Press SPACE or A to confirm', {
+            fontSize: '16px',
+            color: '#cccccc'
+        });
+        controlHint.setOrigin(0.5);
+        controlHint.setScrollFactor(0);
+        controlHint.setDepth(20001);
         
         // Create element buttons
         const buttons = [];
@@ -5033,7 +7202,7 @@ class GameScene extends Phaser.Scene {
             button.setDepth(20001);
             
             const btnBg = this.add.rectangle(0, 0, 120, 150, 0x333333, 0.8);
-            btnBg.setStrokeStyle(2, 0xffffff);
+            btnBg.setStrokeStyle(2, index === 0 ? 0xffff00 : 0xffffff); // Highlight first option
             button.add(btnBg);
             
             // Add element icon
@@ -5050,6 +7219,9 @@ class GameScene extends Phaser.Scene {
             });
             name.setOrigin(0.5);
             button.add(name);
+            
+            // Store button info for controller navigation
+            buttons.push({ container: button, element: element, bg: btnBg });
             
             // Make interactive
             btnBg.setInteractive({ useHandCursor: true });
@@ -5081,18 +7253,68 @@ class GameScene extends Phaser.Scene {
                 // Clean up
                 bg.destroy();
                 title.destroy();
-                buttons.forEach(btn => btn.destroy());
+                controlHint.destroy();
+                buttons.forEach(btn => btn.container.destroy());
+                
+                // Clear element selection state
+                this.elementSelectionActive = false;
+                this.elementSelectionUI = null;
                 
                 // Resume game
                 this.resumeGame('chest');
                 this.chestOpening = false;
             });
-            
-            buttons.push(button);
         });
         
-        // Store UI elements for cleanup
-        this.chestRewardUI = { bg, title, buttons };
+        // Store UI elements for controller navigation
+        this.elementSelectionActive = true;
+        this.elementSelectionIndex = 0;
+        this.elementSelectionUI = { 
+            bg, 
+            title, 
+            controlHint,
+            buttons,
+            selectElement: (index) => {
+                const element = selectedElements[index];
+                // Add element to first available slot
+                let added = false;
+                for (let i = 0; i < 8; i++) {
+                    if (!this.chargeSlots[i]) {
+                        this.chargeSlots[i] = element;
+                        added = true;
+                        break;
+                    }
+                }
+                
+                if (!added) {
+                    // All slots full, add to pouch
+                    for (let i = 0; i < 4; i++) {
+                        if (!this.elementPouch[i]) {
+                            this.elementPouch[i] = element;
+                            added = true;
+                            break;
+                        }
+                    }
+                }
+                
+                // Update UI
+                this.updateChargeUI();
+                
+                // Clean up
+                bg.destroy();
+                title.destroy();
+                controlHint.destroy();
+                buttons.forEach(btn => btn.container.destroy());
+                
+                // Clear element selection state
+                this.elementSelectionActive = false;
+                this.elementSelectionUI = null;
+                
+                // Resume game
+                this.resumeGame('chest');
+                this.chestOpening = false;
+            }
+        };
     }
 
     updateElementSelectionHighlight() {
@@ -5196,17 +7418,10 @@ class GameScene extends Phaser.Scene {
                 this.wizard.play('wizard-idle-loop');
             });
 
-            // Start game after animation plus some delay
-            this.time.delayedCall(2000, () => {
-                console.log('Starting game after resurrection');
-                this.startGame();
-            });
-
         } catch (error) {
             console.error('Error in startResurrectionAnimation:', error);
-            // Fallback: start game directly
+            // Fallback: play idle
             this.wizard.play('wizard-idle-loop');
-            this.startGame();
         }
     }
 
@@ -6441,15 +8656,14 @@ class GameScene extends Phaser.Scene {
                     spawnInterval: 1000,
                     maxEnemies: 55
                 },
-                // Wave 4 (4:00-5:00) - Add sorcerers
+                // Wave 4 (4:00-5:00) - Increased soul spawn rate
                 {
                     enemies: [
                         { type: 'skeletonseeker', weight: 25, count: 3 },
-                        { type: 'soul', weight: 20, count: 3 },
+                        { type: 'soul', weight: 25, count: 3 },
                         { type: 'clubimp', weight: 15, count: 2 },
                         { type: 'axeimp', weight: 15, count: 2 },
-                        { type: 'yellowskeleton', weight: 20, count: 3 },
-                        { type: 'sorcerer', weight: 5, count: 1 }
+                        { type: 'yellowskeleton', weight: 20, count: 3 }
                     ],
                     spawnInterval: 2000,
                     maxEnemies: 65,
@@ -6458,12 +8672,11 @@ class GameScene extends Phaser.Scene {
                 // Wave 5+ (5:00+) - Full grave roster
                 {
                     enemies: [
-                        { type: 'skeletonseeker', weight: 25, count: 4 },
-                        { type: 'yellowskeleton', weight: 20, count: 4 },
+                        { type: 'skeletonseeker', weight: 30, count: 4 },
+                        { type: 'yellowskeleton', weight: 25, count: 4 },
                         { type: 'soul', weight: 20, count: 3 },
                         { type: 'clubimp', weight: 12, count: 2 },
-                        { type: 'axeimp', weight: 13, count: 2 },
-                        { type: 'sorcerer', weight: 10, count: 1 }
+                        { type: 'axeimp', weight: 13, count: 2 }
                     ],
                     spawnInterval: 1500,
                     maxEnemies: 80
@@ -6872,6 +9085,23 @@ class GameScene extends Phaser.Scene {
             this.survivalTime += delta * this.speedMultiplier;
         }
         
+        // Periodic cleanup of invalid enemy projectiles (every 2 seconds)
+        if (!this.lastProjectileCleanup) this.lastProjectileCleanup = 0;
+        if (time - this.lastProjectileCleanup > 2000) {
+            this.lastProjectileCleanup = time;
+            if (this.enemyProjectiles) {
+                const toRemove = [];
+                this.enemyProjectiles.children.entries.forEach(projectile => {
+                    if (projectile && (!projectile.active || !projectile.body || !projectile.body.enable || projectile.isDestroying)) {
+                        toRemove.push(projectile);
+                    }
+                });
+                toRemove.forEach(projectile => {
+                    this.safeDestroyProjectile(projectile);
+                });
+            }
+        }
+        
         // Update infinite scrolling floor
         if (this.floor) {
             // Since floor has scrollFactor(0), it stays with camera automatically
@@ -7207,6 +9437,12 @@ class GameScene extends Phaser.Scene {
             return;
         }
         
+        // Handle element selection controller input (for chest rewards)
+        if (this.elementSelectionActive && this.elementSelectionUI) {
+            this.handleElementSelectionController();
+            return;
+        }
+        
         // Handle element upgrade controller input
         if (this.elementUpgradeSelectionActive && this.elementUpgradeUI) {
             this.handleElementUpgradeController();
@@ -7222,6 +9458,12 @@ class GameScene extends Phaser.Scene {
         // Handle fusion element discard mode controller input
         if (this.fusionElementDiscardMode) {
             this.handleFusionElementDiscardController();
+            return;
+        }
+        
+        // Handle obelisk menu controller input
+        if (this.obeliskMenuOpen && this.obeliskMenu) {
+            this.handleObeliskMenuController();
             return;
         }
         
@@ -7854,47 +10096,6 @@ class GameScene extends Phaser.Scene {
                     }
                 }
             }
-            // Handle sorcerer behavior
-            else if (enemy.enemyType === 'sorcerer') {
-                const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
-
-                // Move towards wizard but stop at attack range
-                if (distance > enemy.attackRange && !enemy.stunned && !enemy.blinded && !enemy.frozen && !this.wizard.invisible) {
-                    const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
-                    let speed = enemy.moveSpeed;
-
-                    // Apply slow effects
-                    if (!enemy.isDying && enemy.wet && enemy.wetEndTime && this.time.now < enemy.wetEndTime) {
-                        speed *= enemy.waterSlowFactor || 0.5;
-                    }
-                    if (!enemy.isDying && enemy.muddy && enemy.muddyEndTime && this.time.now < enemy.muddyEndTime) {
-                        speed *= enemy.mudSlowFactor || 0.2;
-                    }
-
-                    enemy.setVelocity(
-                        Math.cos(angle) * speed,
-                        Math.sin(angle) * speed
-                    );
-                } else {
-                    enemy.setVelocity(0, 0);
-                }
-
-                // Face the wizard
-                if (this.wizard.x < enemy.x) {
-                    enemy.setFlipX(true);
-                } else {
-                    enemy.setFlipX(false);
-                }
-
-                // Attack when in range
-                if (distance <= enemy.attackRange && !enemy.isAttacking) {
-                    if (!enemy.lastAttackTime) enemy.lastAttackTime = 0;
-                    if (time > enemy.lastAttackTime + enemy.attackCooldown) {
-                        this.sorcererAttack(enemy);
-                        enemy.lastAttackTime = time;
-                    }
-                }
-            }
             // Handle skeleton seeker spawn behavior
             else if (enemy.enemyType === 'skeletonseeker' && enemy.isSpawning && !enemy.hasActivated) {
                 const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
@@ -8138,9 +10339,16 @@ class GameScene extends Phaser.Scene {
                 }
                 
                 if (projectile.currentTarget && projectile.texture && projectile.texture.key === 'lightning-spell' && !projectile.beingProcessed) {
-                // Check if current target is still valid
-                if (!projectile.currentTarget.active || !projectile.currentTarget.body || !projectile.currentTarget.body.enable || projectile.currentTarget.isDying) {
-                    // Target died, find new target or destroy
+                // Check if current target is still valid or became immune
+                if (!projectile.currentTarget.active || 
+                    !projectile.currentTarget.body || 
+                    !projectile.currentTarget.body.enable || 
+                    projectile.currentTarget.isDying ||
+                    (projectile.currentTarget.enemyType === 'skeletonseeker' && projectile.currentTarget.isSpawning) ||
+                    projectile.currentTarget.isDamageImmune ||
+                    projectile.currentTarget.isInvulnerable ||
+                    (projectile.currentTarget.immuneTime && projectile.currentTarget.immuneTime > 0)) {
+                    // Target died or became immune, find new target or destroy
                     if (projectile.bounceCount > 0) {
                         let nextTarget = null;
                         let nearestDistance = 250;
@@ -8148,6 +10356,14 @@ class GameScene extends Phaser.Scene {
                         this.enemies.children.entries.forEach(enemy => {
                             if (enemy.active && enemy.body && enemy.body.enable && !enemy.isDying && 
                                 projectile.hitEnemies && !projectile.hitEnemies.has(enemy)) {
+                                // Skip enemies that are spawning, immune, or hidden
+                                if ((enemy.enemyType === 'skeletonseeker' && enemy.isSpawning) || 
+                                    enemy.isDamageImmune || 
+                                    enemy.isInvulnerable ||
+                                    (enemy.immuneTime && enemy.immuneTime > 0)) {
+                                    return;
+                                }
+                                
                                 const dist = Phaser.Math.Distance.Between(projectile.x, projectile.y, enemy.x, enemy.y);
                                 if (dist < nearestDistance) {
                                     nearestDistance = dist;
@@ -8396,18 +10612,28 @@ class GameScene extends Phaser.Scene {
         // Update enemy homing projectiles
         if (this.enemyProjectiles) {
             this.enemyProjectiles.children.entries.forEach(projectile => {
-                if (projectile.isHoming && projectile.active) {
-                    // Enemy projectiles always target the wizard
-                    if (this.wizard && this.wizard.active) {
-                        const angle = Phaser.Math.Angle.Between(projectile.x, projectile.y, this.wizard.x, this.wizard.y);
-                        const speed = projectile.homingSpeed || 150;
-                        projectile.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+                try {
+                    // Extra safety checks
+                    if (!projectile || !projectile.active || !projectile.body || !projectile.body.enable || projectile.isDestroying) {
+                        return;
+                    }
+                    
+                    if (projectile.isHoming && projectile.active && !projectile.isDestroying) {
+                        // Enemy projectiles always target the wizard
+                        if (this.wizard && this.wizard.active && this.wizard.body && this.wizard.body.enable) {
+                            const angle = Phaser.Math.Angle.Between(projectile.x, projectile.y, this.wizard.x, this.wizard.y);
+                            const speed = projectile.homingSpeed || 150;
+                            projectile.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
 
-                        // Rotate soul bullets to face wizard
-                        if (projectile.texture.key === 'soul-bullet') {
-                            projectile.setRotation(angle);
+                            // Rotate soul bullets to face wizard (with extra check)
+                            if (projectile.texture && projectile.texture.key === 'soul-bullet') {
+                                projectile.setRotation(angle);
+                            }
                         }
                     }
+                } catch (e) {
+                    console.warn('Error updating enemy homing projectile:', e);
+                    this.safeDestroyProjectile(projectile);
                 }
             });
         }
@@ -8421,12 +10647,15 @@ class GameScene extends Phaser.Scene {
                         if (dist < 25) {
                             // Deal damage over time (once per 500ms)
                             if (!enemy.lastFireDamage || time > enemy.lastFireDamage + 500) {
-                                enemy.health -= 1;
-                                enemy.lastFireDamage = time;
-                                enemy.setTint(0xff6666);
-                                this.time.delayedCall(200, () => {
-                                    if (enemy.active) enemy.clearTint();
-                                });
+                                // Check for damage immunity (Nekros in flight mode)
+                                if (!enemy.isDamageImmune) {
+                                    enemy.health -= 1;
+                                    enemy.lastFireDamage = time;
+                                    enemy.setTint(0xff6666);
+                                    this.time.delayedCall(200, () => {
+                                        if (enemy.active) enemy.clearTint();
+                                    });
+                                }
 
                                 if (enemy.health <= 0) {
                                     // Immediately disable physics body
@@ -8451,12 +10680,15 @@ class GameScene extends Phaser.Scene {
                         if (dist < zone.radius) {
                             // Deal damage over time (once per 500ms)
                             if (!enemy.lastEarthDamage || time > enemy.lastEarthDamage + 500) {
-                                enemy.health -= 2;
-                                enemy.lastEarthDamage = time;
-                                enemy.setTint(0x8B4513); // Brown tint
-                                this.time.delayedCall(200, () => {
-                                    if (enemy.active) enemy.clearTint();
-                                });
+                                // Check for damage immunity (Nekros in flight mode)
+                                if (!enemy.isDamageImmune) {
+                                    enemy.health -= 2;
+                                    enemy.lastEarthDamage = time;
+                                    enemy.setTint(0x8B4513); // Brown tint
+                                    this.time.delayedCall(200, () => {
+                                        if (enemy.active) enemy.clearTint();
+                                    });
+                                }
 
                                 if (enemy.health <= 0) {
                                     // Immediately disable physics body
@@ -8483,8 +10715,11 @@ class GameScene extends Phaser.Scene {
                         new Phaser.Geom.Circle(orb.x, orb.y, 6),
                         new Phaser.Geom.Circle(enemy.x, enemy.y, 10)
                     )) {
-                        // Orbiting orbs deal 3 damage
-                        enemy.health -= 3;
+                        // Check for damage immunity (Nekros in flight mode)
+                        if (!enemy.isDamageImmune) {
+                            // Orbiting orbs deal 3 damage
+                            enemy.health -= 3;
+                        }
                         if (enemy.health <= 0) {
                             // Immediately disable physics body
                             if (enemy.body) {
@@ -8893,23 +11128,29 @@ class GameScene extends Phaser.Scene {
             // Different colors for active, passive, and pouch slots
             const isActiveSlot = row === 0;
             const isPouchSlot = row === 2;
-            const slotColor = isPouchSlot ? 0x2a4a2a : (isActiveSlot ? 0x444444 : 0x2a2a2a);
-            const strokeColor = isPouchSlot ? 0x4a6a4a : (isActiveSlot ? 0xffffff : 0x666666);
-            const slotBg = this.add.rectangle(slotX, slotY_pos, 80, 80, slotColor);
-            slotBg.setStrokeStyle(2, strokeColor);
+            // Use socket sprite instead of rectangle
+            const slotBg = this.add.image(slotX, slotY_pos, 'grey-socket');
+            slotBg.setScale(0.217); // Scale 368px to 80px (80/368 = 0.217)
             slotBg.setData('slotIndex', i);
             slotBg.setData('isActiveSlot', isActiveSlot);
             slotBg.setData('isPouchSlot', isPouchSlot);
             slotBg.setInteractive({ dropZone: true });
+            
+            // Store original texture for highlighting
+            slotBg.setData('originalTexture', 'grey-socket');
+            slotBg.setData('highlightTexture', 'grey-socket-select');
+            
             this.pauseMenu.add(slotBg);
             
             // Debug mouse events
             slotBg.on('pointerover', () => {
                 console.log(`Mouse over slot ${i} at x=${slotX}`);
-                slotBg.setStrokeStyle(3, 0xffff00);
+                // Change to highlight texture on hover
+                slotBg.setTexture('grey-socket-select');
             });
             slotBg.on('pointerout', () => {
-                slotBg.setStrokeStyle(2, strokeColor);
+                // Change back to original texture
+                slotBg.setTexture('grey-socket');
             });
 
             // Charge indicator using image (make it draggable) - default to first sheet
@@ -9213,14 +11454,59 @@ class GameScene extends Phaser.Scene {
             this.linkMode = false;
             this.linkCursorIndex = 0;
 
-            // Create cursor indicator for controller
+            // Create cursor indicator for controller with enhanced visibility
             if (!this.pauseMenuCursor) {
-                this.pauseMenuCursor = this.add.rectangle(0, 0, 85, 85, 0x00ff00, 0);
-                this.pauseMenuCursor.setStrokeStyle(3, 0x00ff00, 1);
-                this.pauseMenuCursor.setDepth(350); // Increased from 250 to ensure it's above menu
+                // Create a container for multiple visual elements
+                this.pauseMenuCursor = this.add.container(0, 0);
+                
+                // Outer glow effect
+                const outerGlow = this.add.rectangle(0, 0, 95, 95, 0xffff00, 0.2);
+                outerGlow.setStrokeStyle(2, 0xffff00, 0.5);
+                
+                // Main cursor with thick border
+                const mainCursor = this.add.rectangle(0, 0, 85, 85, 0x000000, 0);
+                mainCursor.setStrokeStyle(6, 0xffff00, 1);
+                
+                // Inner highlight
+                const innerHighlight = this.add.rectangle(0, 0, 75, 75, 0xffff00, 0.1);
+                innerHighlight.setStrokeStyle(2, 0xffffff, 0.8);
+                
+                // Add all elements to the container
+                this.pauseMenuCursor.add([outerGlow, mainCursor, innerHighlight]);
+                
+                this.pauseMenuCursor.setDepth(350); // Ensure it's above menu
                 this.pauseMenuCursor.setScrollFactor(0);
+                
+                // Add pulsing animation for better visibility
+                this.tweens.add({
+                    targets: [outerGlow, innerHighlight],
+                    alpha: { from: 0.2, to: 0.5 },
+                    scale: { from: 1, to: 1.1 },
+                    duration: 800,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+                
+                // Add rotating corners for extra visibility
+                const corner1 = this.add.text(-40, -40, '┌', { fontSize: '20px', color: '#ffff00' });
+                const corner2 = this.add.text(40, -40, '┐', { fontSize: '20px', color: '#ffff00' });
+                const corner3 = this.add.text(40, 40, '┘', { fontSize: '20px', color: '#ffff00' });
+                const corner4 = this.add.text(-40, 40, '└', { fontSize: '20px', color: '#ffff00' });
+                
+                this.pauseMenuCursor.add([corner1, corner2, corner3, corner4]);
+                
+                // Rotate the corners
+                this.tweens.add({
+                    targets: [corner1, corner2, corner3, corner4],
+                    angle: 360,
+                    duration: 3000,
+                    repeat: -1,
+                    ease: 'Linear'
+                });
             }
-            this.pauseMenuCursor.setVisible(true);
+            // Always show cursor when controller is connected
+            this.pauseMenuCursor.setVisible(this.gamepad !== null);
             this.updatePauseMenuCursor();
 
             // SOLUTION: Move elements out of container temporarily to ensure they work
@@ -10351,10 +12637,10 @@ class GameScene extends Phaser.Scene {
     }
 
     showDiscardConfirmation(index) {
-        // Create confirmation dialog
-        const confirmBg = this.add.rectangle(400, 300, 300, 150, 0x000000, 0.9);
+        // Create confirmation dialog with higher z-index
+        const confirmBg = this.add.rectangle(400, 300, 300, 150, 0x000000, 0.95);
         confirmBg.setStrokeStyle(2, 0xffffff);
-        confirmBg.setDepth(300);
+        confirmBg.setDepth(1000); // Higher depth to draw above pause menu
         confirmBg.setScrollFactor(0);
 
         const elementName = (index < 8 && this.chargeSlots[index]) ? this.chargeSlots[index] : 
@@ -10364,7 +12650,7 @@ class GameScene extends Phaser.Scene {
             fontSize: '18px',
             color: '#ffffff'
         }).setOrigin(0.5);
-        confirmText.setDepth(301);
+        confirmText.setDepth(1001);
         confirmText.setScrollFactor(0);
 
         const controlText = this.gamepad ? 'Yes (A)' : 'Yes (Y/Enter)';
@@ -10372,7 +12658,7 @@ class GameScene extends Phaser.Scene {
             fontSize: '16px',
             color: '#44ff44'
         }).setOrigin(0.5);
-        yesText.setDepth(301);
+        yesText.setDepth(1001);
         yesText.setScrollFactor(0);
         yesText.setInteractive({ useHandCursor: true });
 
@@ -10381,7 +12667,7 @@ class GameScene extends Phaser.Scene {
             fontSize: '16px',
             color: '#ff4444'
         }).setOrigin(0.5);
-        noText.setDepth(301);
+        noText.setDepth(1001);
         noText.setScrollFactor(0);
         noText.setInteractive({ useHandCursor: true });
 
@@ -10451,6 +12737,60 @@ class GameScene extends Phaser.Scene {
         };
 
         this.input.keyboard.on('keydown', handleKey);
+        
+        // Add controller support
+        if (this.gamepad) {
+            // Store previous button states for the discard dialog
+            this.prevDiscardAPressed = this.gamepad.buttons[0] ? this.gamepad.buttons[0].pressed : false;
+            this.prevDiscardBPressed = this.gamepad.buttons[1] ? this.gamepad.buttons[1].pressed : false;
+            
+            // Create update event for controller input
+            this.discardControllerHandler = this.time.addEvent({
+                delay: 16,
+                callback: () => {
+                    if (!this.discardConfirmation || !this.discardConfirmation.active || !this.gamepad) {
+                        if (this.discardControllerHandler) {
+                            this.discardControllerHandler.destroy();
+                            this.discardControllerHandler = null;
+                        }
+                        return;
+                    }
+                    
+                    const aPressed = this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed;
+                    const bPressed = this.gamepad.buttons[1] && this.gamepad.buttons[1].pressed;
+                    
+                    // A button - confirm discard
+                    if (aPressed && !this.prevDiscardAPressed) {
+                        const idx = this.discardConfirmation.index;
+                        this.discardConfirmation.elements.forEach(el => el.destroy());
+                        this.discardConfirmation = null;
+                        this.discardConfirmUI = null;
+                        this.discardCharge(idx, true);
+                        this.input.keyboard.off('keydown', handleKey);
+                        if (this.discardControllerHandler) {
+                            this.discardControllerHandler.destroy();
+                            this.discardControllerHandler = null;
+                        }
+                    }
+                    
+                    // B button - cancel
+                    if (bPressed && !this.prevDiscardBPressed) {
+                        this.discardConfirmation.elements.forEach(el => el.destroy());
+                        this.discardConfirmation = null;
+                        this.discardConfirmUI = null;
+                        this.input.keyboard.off('keydown', handleKey);
+                        if (this.discardControllerHandler) {
+                            this.discardControllerHandler.destroy();
+                            this.discardControllerHandler = null;
+                        }
+                    }
+                    
+                    this.prevDiscardAPressed = aPressed;
+                    this.prevDiscardBPressed = bPressed;
+                },
+                loop: true
+            });
+        }
     }
 
     updatePauseMenuCursor() {
@@ -10462,35 +12802,56 @@ class GameScene extends Phaser.Scene {
                 const link = this.linkButtons[this.linkCursorIndex];
                 this.pauseMenuCursor.x = this.pauseMenu.x + link.btn.x;
                 this.pauseMenuCursor.y = this.pauseMenu.y + link.btn.y;
-                // Make cursor smaller for link buttons and change color
-                this.pauseMenuCursor.setSize(35, 25);
-                this.pauseMenuCursor.setStrokeStyle(3, 0xffff00, 1); // Yellow for link mode
+                // Scale down for link buttons
+                this.pauseMenuCursor.setScale(0.5, 0.3);
             }
         } else {
             // Normal mode cursor positioning
-            this.pauseMenuCursor.setStrokeStyle(3, 0x00ff00, 1); // Green for normal mode
+            this.pauseMenuCursor.setScale(1, 1); // Reset to normal size
 
-            if (this.pauseMenuCursorIndex < 8) {
-                // Hovering over a charge slot (now supports 8 slots)
+            if (this.pauseMenuCursorIndex < 12) {
+                // Clear previous slot highlights
+                this.pauseChargeSlots.forEach((s, idx) => {
+                    if (idx < 12 && s && s.bg) {
+                        // Reset to normal socket texture
+                        s.bg.setTexture('grey-socket');
+                    }
+                });
+                
+                // Hovering over a charge slot (supports all 12 slots)
                 const slot = this.pauseChargeSlots[this.pauseMenuCursorIndex];
-                if (slot && this.pauseMenuCursorIndex < this.maxCharges) {
+                if (slot) {
                     this.pauseMenuCursor.x = this.pauseMenu.x + slot.x;
                     this.pauseMenuCursor.y = this.pauseMenu.y + slot.y;
-                    // Reset to normal size for slots
-                    this.pauseMenuCursor.setSize(85, 85);
+                    
+                    // Change to highlighted socket texture
+                    if (slot.bg) {
+                        slot.bg.setTexture('grey-socket-select');
+                    }
                     
                     // Show element description for controller navigation
-                    if (this.chargeSlots && this.chargeSlots[this.pauseMenuCursorIndex]) {
-                        const element = this.chargeSlots[this.pauseMenuCursorIndex];
+                    let element = null;
+                    let isPouchSlot = false;
+                    
+                    if (this.pauseMenuCursorIndex < 8 && this.chargeSlots && this.chargeSlots[this.pauseMenuCursorIndex]) {
+                        element = this.chargeSlots[this.pauseMenuCursorIndex];
+                    } else if (this.pauseMenuCursorIndex >= 8 && this.pauseMenuCursorIndex < 12 && 
+                               this.elementPouch && this.elementPouch[this.pauseMenuCursorIndex - 8]) {
+                        element = this.elementPouch[this.pauseMenuCursorIndex - 8];
+                        isPouchSlot = true;
+                    }
+                    
+                    if (element) {
                         const config = this.elementConfig[element];
-                        const isPassiveSlot = this.pauseMenuCursorIndex >= 4;
+                        const isPassiveSlot = this.pauseMenuCursorIndex >= 4 && this.pauseMenuCursorIndex < 8;
                         
                         if (config) {
                             const activeDesc = this.elementDescriptions[element];
                             const passiveDesc = this.getPassiveDescription(element);
                             
-                            this.elementDescriptionTitle.setText(config.name + (isPassiveSlot ? ' (Passive)' : ' (Active)'));
-                            this.elementDescriptionText.setText(isPassiveSlot ? passiveDesc : activeDesc);
+                            let slotType = isPouchSlot ? ' (Pouch)' : (isPassiveSlot ? ' (Passive)' : ' (Active)');
+                            this.elementDescriptionTitle.setText(config.name + slotType);
+                            this.elementDescriptionText.setText(isPouchSlot ? activeDesc : (isPassiveSlot ? passiveDesc : activeDesc));
                             this.elementDescriptionTitle.setVisible(true);
                             this.elementDescriptionText.setVisible(true);
                             this.elementDescriptionBg.setVisible(true);
@@ -10503,7 +12864,7 @@ class GameScene extends Phaser.Scene {
                 }
             } else {
                 // Hovering over a link button
-                const linkIndex = this.pauseMenuCursorIndex - 8;
+                const linkIndex = this.pauseMenuCursorIndex - 12; // 12 slots before link buttons
                 if (linkIndex < this.linkButtons.length) {
                     const link = this.linkButtons[linkIndex];
                     this.pauseMenuCursor.x = this.pauseMenu.x + link.btn.x;
@@ -10534,7 +12895,8 @@ class GameScene extends Phaser.Scene {
                 this.discardConfirmUI.yes.destroy();
                 this.discardConfirmUI.no.destroy();
                 this.discardConfirmUI = null;
-                this.discardCharge(index);
+                this.discardConfirmation = null;
+                this.discardCharge(index, true);
             } else if (bPressed && !this.prevPauseBPressed) {
                 // Cancel discard
                 this.discardConfirmUI.bg.destroy();
@@ -10542,6 +12904,7 @@ class GameScene extends Phaser.Scene {
                 this.discardConfirmUI.yes.destroy();
                 this.discardConfirmUI.no.destroy();
                 this.discardConfirmUI = null;
+                this.discardConfirmation = null;
             }
 
             // Store states and return early
@@ -10563,10 +12926,10 @@ class GameScene extends Phaser.Scene {
                     this.linkCursorIndex = this.linkButtons.length - 1;
                 }
             } else {
-                // Normal navigation
+                // Normal navigation - navigate through all 12 slots + link buttons
                 this.pauseMenuCursorIndex--;
                 if (this.pauseMenuCursorIndex < 0) {
-                    this.pauseMenuCursorIndex = this.maxCharges + this.linkButtons.length - 1;
+                    this.pauseMenuCursorIndex = 12 + this.linkButtons.length - 1; // 12 slots total
                 }
             }
             this.updatePauseMenuCursor();
@@ -10580,9 +12943,9 @@ class GameScene extends Phaser.Scene {
                     this.linkCursorIndex = 0;
                 }
             } else {
-                // Normal navigation
+                // Normal navigation - navigate through all 12 slots + link buttons
                 this.pauseMenuCursorIndex++;
-                if (this.pauseMenuCursorIndex >= this.maxCharges + this.linkButtons.length) {
+                if (this.pauseMenuCursorIndex >= 12 + this.linkButtons.length) { // 12 slots total
                     this.pauseMenuCursorIndex = 0;
                 }
             }
@@ -10600,13 +12963,20 @@ class GameScene extends Phaser.Scene {
                 }
             } else {
                 // Normal charge selection/placement
-                if (this.pauseMenuCursorIndex < this.maxCharges) {
-                    // Charge slot
+                if (this.pauseMenuCursorIndex < 12) {
+                    // Charge or pouch slot
                     const slotIndex = this.pauseMenuCursorIndex;
 
                     if (this.pauseMenuSelectedCharge === -1) {
                         // Pick up charge if there is one
-                        if (slotIndex < this.charges.length) {
+                        let hasElement = false;
+                        if (slotIndex < 8 && this.chargeSlots && this.chargeSlots[slotIndex]) {
+                            hasElement = true;
+                        } else if (slotIndex >= 8 && slotIndex < 12 && this.elementPouch && this.elementPouch[slotIndex - 8]) {
+                            hasElement = true;
+                        }
+                        
+                        if (hasElement) {
                             this.pauseMenuSelectedCharge = slotIndex;
                             // Visual feedback
                             this.pauseChargeSlots[slotIndex].circle.setScale(0.25); // Adjusted for new scale
@@ -10634,7 +13004,36 @@ class GameScene extends Phaser.Scene {
                 this.pauseChargeSlots[this.pauseMenuSelectedCharge].circle.setScale(1);
                 this.pauseChargeSlots[this.pauseMenuSelectedCharge].circle.setAlpha(1);
                 this.pauseMenuSelectedCharge = -1;
-            } else if (this.pauseMenuCursorIndex < this.maxCharges && this.pauseMenuCursorIndex < this.charges.length) {
+            } else if (this.pauseMenuCursorIndex < 12) {
+                // Check if slot has an element to discard
+                let hasElement = false;
+                if (this.pauseMenuCursorIndex < 8 && this.chargeSlots && this.chargeSlots[this.pauseMenuCursorIndex]) {
+                    hasElement = true;
+                } else if (this.pauseMenuCursorIndex >= 8 && this.pauseMenuCursorIndex < 12 && 
+                           this.elementPouch && this.elementPouch[this.pauseMenuCursorIndex - 8]) {
+                    hasElement = true;
+                }
+                
+                if (hasElement) {
+                    // Show discard confirmation
+                    this.showDiscardConfirmation(this.pauseMenuCursorIndex);
+                }
+            }
+        }
+
+        // X button - discard element
+        const xPressed = this.gamepad.buttons[2] && this.gamepad.buttons[2].pressed;
+        if (xPressed && !this.prevPauseXPressed && this.pauseMenuCursorIndex < 12) {
+            // Check if slot has an element to discard
+            let hasElement = false;
+            if (this.pauseMenuCursorIndex < 8 && this.chargeSlots && this.chargeSlots[this.pauseMenuCursorIndex]) {
+                hasElement = true;
+            } else if (this.pauseMenuCursorIndex >= 8 && this.pauseMenuCursorIndex < 12 && 
+                       this.elementPouch && this.elementPouch[this.pauseMenuCursorIndex - 8]) {
+                hasElement = true;
+            }
+            
+            if (hasElement) {
                 // Show discard confirmation
                 this.showDiscardConfirmation(this.pauseMenuCursorIndex);
             }
@@ -10659,117 +13058,11 @@ class GameScene extends Phaser.Scene {
         this.prevPauseRightPressed = rightPressed;
         this.prevPauseAPressed = aPressed;
         this.prevPauseBPressed = bPressed;
+        this.prevPauseXPressed = xPressed;
         this.prevPauseYPressed = yPressed;
     }
 
-    showDiscardConfirmation(chargeIndex) {
-        if (!this.pauseMenu || !this.pauseMenu.visible || chargeIndex >= this.charges.length) return;
-
-        const element = this.charges[chargeIndex];
-        const config = this.elementConfig[element];
-
-        // Create confirmation dialog
-        const confirmBg = this.add.rectangle(400, 300, 400, 200, 0x000000, 0.95);
-        confirmBg.setStrokeStyle(3, 0xff4444);
-        confirmBg.setScrollFactor(0);
-        confirmBg.setDepth(400);
-
-        const confirmText = this.add.text(400, 250, `Discard ${config.name}?`, {
-            fontSize: '24px',
-            color: '#ffffff',
-            fontStyle: 'bold'
-        });
-        confirmText.setOrigin(0.5);
-        confirmText.setScrollFactor(0);
-        confirmText.setDepth(401);
-
-        const yesText = this.add.text(320, 320, 'Yes (Y/A)', {
-            fontSize: '18px',
-            color: '#44ff44'
-        });
-        yesText.setOrigin(0.5);
-        yesText.setScrollFactor(0);
-        yesText.setDepth(401);
-        yesText.setInteractive({ useHandCursor: true });
-
-        const noText = this.add.text(480, 320, 'No (N/B)', {
-            fontSize: '18px',
-            color: '#ff4444'
-        });
-        noText.setOrigin(0.5);
-        noText.setScrollFactor(0);
-        noText.setDepth(401);
-        noText.setInteractive({ useHandCursor: true });
-
-        // Define keyboard handler
-        const handleKey = (event) => {
-            if (!this.discardConfirmUI || !this.discardConfirmUI.active) return;
-
-            if (event.key === 'y' || event.key === 'Y' || event.key === 'Enter') {
-                // Confirm discard
-                const idx = this.discardConfirmUI.chargeIndex;
-                this.discardConfirmUI.bg.destroy();
-                this.discardConfirmUI.text.destroy();
-                this.discardConfirmUI.yes.destroy();
-                this.discardConfirmUI.no.destroy();
-                this.discardConfirmUI = null;
-                this.discardCharge(idx, true);
-                this.input.keyboard.off('keydown', handleKey);
-            } else if (event.key === 'n' || event.key === 'N' || event.key === 'Escape') {
-                // Cancel discard
-                this.discardConfirmUI.bg.destroy();
-                this.discardConfirmUI.text.destroy();
-                this.discardConfirmUI.yes.destroy();
-                this.discardConfirmUI.no.destroy();
-                this.discardConfirmUI = null;
-                this.input.keyboard.off('keydown', handleKey);
-            }
-        };
-
-        // Add mouse hover effects
-        yesText.on('pointerover', () => yesText.setScale(1.1));
-        yesText.on('pointerout', () => yesText.setScale(1));
-        noText.on('pointerover', () => noText.setScale(1.1));
-        noText.on('pointerout', () => noText.setScale(1));
-
-        // Add mouse click handlers
-        yesText.on('pointerdown', () => {
-            if (this.discardConfirmUI && this.discardConfirmUI.active) {
-                const idx = this.discardConfirmUI.chargeIndex;
-                this.discardConfirmUI.bg.destroy();
-                this.discardConfirmUI.text.destroy();
-                this.discardConfirmUI.yes.destroy();
-                this.discardConfirmUI.no.destroy();
-                this.discardConfirmUI = null;
-                this.discardCharge(idx, true);
-                this.input.keyboard.off('keydown', handleKey);
-            }
-        });
-
-        noText.on('pointerdown', () => {
-            if (this.discardConfirmUI && this.discardConfirmUI.active) {
-                this.discardConfirmUI.bg.destroy();
-                this.discardConfirmUI.text.destroy();
-                this.discardConfirmUI.yes.destroy();
-                this.discardConfirmUI.no.destroy();
-                this.discardConfirmUI = null;
-                this.input.keyboard.off('keydown', handleKey);
-            }
-        });
-
-        // Add keyboard listener
-        this.input.keyboard.on('keydown', handleKey);
-
-        // Store confirmation UI
-        this.discardConfirmUI = {
-            bg: confirmBg,
-            text: confirmText,
-            yes: yesText,
-            no: noText,
-            chargeIndex: chargeIndex,
-            active: true
-        };
-    }
+    // DUPLICATE FUNCTION REMOVED - Using the one at line 10695 instead
 
     toggleSpellbook() {
         this.spellbookOpen = !this.spellbookOpen;
@@ -10823,6 +13116,12 @@ class GameScene extends Phaser.Scene {
             if (enemy.sunBurnTick) {
                 enemy.sunBurnTick.destroy();
                 enemy.sunBurnTick = null;
+            }
+            
+            // Clean up soul attack timer if it exists
+            if (enemy.attackTimer) {
+                enemy.attackTimer.destroy();
+                enemy.attackTimer = null;
             }
         } catch (error) {
             console.error('Error cleaning up enemy timers:', error);
@@ -11306,47 +13605,52 @@ class GameScene extends Phaser.Scene {
         soul.play(soul.isGraveSoul ? 'soul-attacking-grave' : 'soul-attacking');
 
         // Fire projectile midway through animation
-        this.time.delayedCall(400, () => {
-            if (!soul || !soul.active || soul.isDying) return;
-
-            // Create soul bullet projectile
-            const angle = Phaser.Math.Angle.Between(soul.x, soul.y, this.wizard.x, this.wizard.y);
-            const projectile = this.physics.add.sprite(soul.x, soul.y, 'soul-bullet');
-            if (this.anims.exists('soul-bullet-anim')) {
-                projectile.play('soul-bullet-anim');
-            }
-            projectile.setScale(0.5);
-            projectile.isEnemyProjectile = true;
-            projectile.damage = 5;
-            projectile.setDepth(5);
-
-            // Make it homing
-            projectile.isHoming = true;
-            projectile.homingSpeed = 150;
-            projectile.homingTarget = this.wizard; // Target the wizard directly
-
-            // Set initial velocity towards wizard
-            projectile.setVelocity(
-                Math.cos(angle) * projectile.homingSpeed,
-                Math.sin(angle) * projectile.homingSpeed
-            );
-
-            // Add ghostly tint
-            projectile.setTint(0x00ffff);
-
-            // Add to enemy projectiles group
-            this.enemyProjectiles.add(projectile);
-
-            // Auto-destroy after 3 seconds
-            this.time.delayedCall(3000, () => {
-                if (projectile.active) {
-                    // Disable physics body before destroying
-                    if (projectile.body) {
-                        projectile.body.enable = false;
-                    }
-                    projectile.destroy();
+        soul.attackTimer = this.time.delayedCall(400, () => {
+            // Safety checks
+            if (!soul || !soul.active || soul.isDying || soul.isDestroying) return;
+            if (!this.wizard || !this.wizard.active || !this.wizard.body) return;
+            if (!this.enemyProjectiles) return;
+            
+            try {
+                // Create soul bullet projectile
+                const angle = Phaser.Math.Angle.Between(soul.x, soul.y, this.wizard.x, this.wizard.y);
+                const projectile = this.physics.add.sprite(soul.x, soul.y, 'soul-bullet');
+                
+                // Mark projectile creation time to prevent simultaneous collision issues
+                projectile.creationTime = this.time.now;
+                projectile.isEnemyProjectile = true;
+                projectile.damage = 5;
+                projectile.setDepth(5);
+                projectile.setScale(0.5);
+                
+                if (this.anims.exists('soul-bullet-anim')) {
+                    projectile.play('soul-bullet-anim');
                 }
-            });
+
+                // Make it homing
+                projectile.isHoming = true;
+                projectile.homingSpeed = 150;
+                projectile.homingTarget = this.wizard; // Target the wizard directly
+
+                // Set initial velocity towards wizard
+                projectile.setVelocity(
+                    Math.cos(angle) * projectile.homingSpeed,
+                    Math.sin(angle) * projectile.homingSpeed
+                );
+
+                // Add ghostly tint
+                projectile.setTint(0x00ffff);
+
+                // Add to enemy projectiles group
+                this.enemyProjectiles.add(projectile);
+
+                // Auto-destroy after 3 seconds
+                projectile.destroyTimer = this.time.delayedCall(3000, () => {
+                    this.safeDestroyProjectile(projectile);
+                });
+            } catch (e) {
+                console.warn('Error creating soul projectile:', e);
+            }
         });
 
         // Return to move animation after attack
@@ -11358,124 +13662,6 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-
-    sorcererAttack(sorcerer) {
-        // Sorcerer casts powerful arcane spells
-        sorcerer.isAttacking = true;
-        sorcerer.setVelocity(0, 0); // Stop moving during attack
-        
-        // Choose attack type randomly
-        const attackType = Math.random();
-        
-        if (attackType < 0.5) {
-            // Arcane barrage - rapid fire projectiles
-            let projectileCount = 0;
-            const fireProjectile = () => {
-                if (!sorcerer || !sorcerer.active || sorcerer.isDying || projectileCount >= 5) return;
-                
-                const angle = Phaser.Math.Angle.Between(sorcerer.x, sorcerer.y, this.wizard.x, this.wizard.y);
-                const randomSpread = (Math.random() - 0.5) * 0.3; // Small random spread
-                
-                // Create arcane projectile
-                const projectile = this.physics.add.sprite(sorcerer.x, sorcerer.y, 'arcane-spell');
-                if (this.anims.exists('arcane-spell-anim')) {
-                    projectile.play('arcane-spell-anim');
-                }
-                projectile.setScale(1.0);
-                projectile.isEnemyProjectile = true;
-                projectile.damage = 6;
-                projectile.setDepth(5);
-                projectile.setTint(0xff00ff); // Magenta tint for sorcerer
-                
-                // Set velocity with slight spread
-                const speed = 250;
-                projectile.setVelocity(
-                    Math.cos(angle + randomSpread) * speed,
-                    Math.sin(angle + randomSpread) * speed
-                );
-                
-                // Add to enemy projectiles group
-                if (!this.enemyProjectiles || !this.enemyProjectiles.children) {
-                    this.enemyProjectiles = this.physics.add.group();
-                }
-                this.enemyProjectiles.add(projectile);
-                
-                // Auto-destroy after 2 seconds
-                this.time.delayedCall(2000, () => {
-                    if (projectile.active) {
-                        // Disable physics body before destroying
-                        if (projectile.body) {
-                            projectile.body.enable = false;
-                        }
-                        projectile.destroy();
-                    }
-                });
-                
-                projectileCount++;
-                
-                // Fire next projectile
-                if (projectileCount < 5) {
-                    this.time.delayedCall(150, fireProjectile);
-                }
-            };
-            
-            // Start firing after short delay
-            this.time.delayedCall(300, fireProjectile);
-            
-        } else {
-            // Arcane explosion - area attack around wizard
-            this.time.delayedCall(500, () => {
-                if (!sorcerer || !sorcerer.active || sorcerer.isDying) return;
-                
-                // Create warning circle at wizard position
-                const warningCircle = this.add.circle(this.wizard.x, this.wizard.y, 100, 0xff00ff, 0.3);
-                warningCircle.setDepth(4);
-                
-                // Pulse warning
-                this.tweens.add({
-                    targets: warningCircle,
-                    scale: { from: 0.8, to: 1.2 },
-                    alpha: { from: 0.3, to: 0.6 },
-                    duration: 300,
-                    yoyo: true,
-                    repeat: 2
-                });
-                
-                // Explosion after delay
-                this.time.delayedCall(1000, () => {
-                    if (!this.wizard || !this.wizard.active) return;
-                    
-                    // Create explosion effect
-                    const explosion = this.add.circle(this.wizard.x, this.wizard.y, 10, 0xff00ff, 0.8);
-                    explosion.setDepth(5);
-                    
-                    this.tweens.add({
-                        targets: explosion,
-                        scale: { from: 0.1, to: 10 },
-                        alpha: { from: 0.8, to: 0 },
-                        duration: 300,
-                        onComplete: () => {
-                            explosion.destroy();
-                            warningCircle.destroy();
-                        }
-                    });
-                    
-                    // Deal damage if wizard is in range
-                    const distance = Phaser.Math.Distance.Between(explosion.x, explosion.y, this.wizard.x, this.wizard.y);
-                    if (distance < 100) {
-                        this.damagePlayer(10);
-                    }
-                });
-            });
-        }
-        
-        // Return to normal after attack
-        this.time.delayedCall(2000, () => {
-            if (sorcerer && sorcerer.active && !sorcerer.isDying) {
-                sorcerer.isAttacking = false;
-            }
-        });
-    }
 
     summonMinions(summoner) {
         // Don't summon minions if boss is active
@@ -11558,105 +13744,6 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    fireSorcererProjectile(sorcerer) {
-        // Safety check - ensure sorcerer is valid and active
-        if (!sorcerer || !sorcerer.active || sorcerer.isDying) return;
-
-        // Create dark purple projectile texture if not exists (larger size)
-        if (!this.textures.exists('sorcerer-proj')) {
-            const graphics = this.add.graphics();
-            graphics.fillStyle(0x6633ff, 1);
-            graphics.fillCircle(12, 12, 12); // Doubled size
-            graphics.fillStyle(0x9966ff, 1);
-            graphics.fillCircle(12, 12, 6); // Doubled size
-            graphics.generateTexture('sorcerer-proj', 24, 24); // Doubled size
-            graphics.destroy();
-        }
-
-        // Calculate base angle to wizard
-        const baseAngle = Phaser.Math.Angle.Between(sorcerer.x, sorcerer.y, this.wizard.x, this.wizard.y);
-        const speed = 20; // 50% slower than before (was 40)
-
-        // Create two projectiles with slight angle offset
-        for (let i = 0; i < 2; i++) {
-            const projectile = this.physics.add.sprite(sorcerer.x, sorcerer.y - 10, 'sorcerer-proj');
-            projectile.isEnemyProjectile = true;
-            projectile.damage = 10;
-            projectile.body.setCollideWorldBounds(false);
-            projectile.setDepth(5);
-            projectile.setScale(1); // Keep normal scale since texture is already larger
-
-            // Store spiral data
-            projectile.spiralAngle = i * Math.PI; // Start 180 degrees apart
-            projectile.spiralRadius = 0;
-            projectile.baseAngle = baseAngle;
-            projectile.centerX = sorcerer.x;
-            projectile.centerY = sorcerer.y - 10;
-            projectile.spiralSpeed = 0.02; // Much smaller spiral expansion
-
-            // Initial velocity
-            projectile.setVelocity(
-                Math.cos(baseAngle) * speed,
-                Math.sin(baseAngle) * speed
-            );
-
-            // Add purple glow effect
-            this.tweens.add({
-                targets: projectile,
-                scale: { from: 0.8, to: 1.2 },
-                alpha: { from: 1, to: 0.6 },
-                duration: 400,
-                yoyo: true,
-                repeat: -1
-            });
-
-            // Update function for spiral movement
-            projectile.update = (time, delta) => {
-                if (!projectile.active) return;
-
-                // Increase spiral angle and radius
-                projectile.spiralAngle += 0.08; // Slower rotation for tighter spiral
-                projectile.spiralRadius += projectile.spiralSpeed * delta;
-
-                // Calculate spiral offset
-                const spiralX = Math.cos(projectile.spiralAngle) * projectile.spiralRadius;
-                const spiralY = Math.sin(projectile.spiralAngle) * projectile.spiralRadius;
-
-                // Update center position based on base velocity
-                projectile.centerX += Math.cos(projectile.baseAngle) * speed * delta / 1000;
-                projectile.centerY += Math.sin(projectile.baseAngle) * speed * delta / 1000;
-
-                // Set actual position
-                projectile.x = projectile.centerX + spiralX;
-                projectile.y = projectile.centerY + spiralY;
-
-                // Rotate projectile
-                projectile.rotation += 0.2;
-            };
-
-            // Add to projectiles group for collision detection
-            // Note: collision is already set up in create(), no need to duplicate
-
-            this.enemyProjectiles.add(projectile);
-
-            // Store in a list for updating
-            if (!this.spiralProjectiles) {
-                this.spiralProjectiles = [];
-            }
-            this.spiralProjectiles.push(projectile);
-
-            // Destroy projectile after 6 seconds
-            this.time.delayedCall(6000, () => {
-                if (projectile.active) {
-                    const index = this.spiralProjectiles.indexOf(projectile);
-                    if (index > -1) {
-                        this.spiralProjectiles.splice(index, 1);
-                    }
-                    projectile.destroy();
-                }
-            });
-        }
-    }
 
     fireProjectile() {
         const elementCounts = { fire: 0, lightning: 0, water: 0, earth: 0 };
@@ -11904,10 +13991,8 @@ class GameScene extends Phaser.Scene {
                 enemyType = 'golem'; // 15%
             } else if (rand < 0.75) {
                 enemyType = 'kobold'; // 15%
-            } else if (rand < 0.95) {
-                enemyType = 'darkbat'; // 20%
             } else {
-                enemyType = 'sorcerer'; // 5% - rare boss enemy
+                enemyType = 'darkbat'; // 25% (increased from 20%)
             }
         } else if (this.stage === 'lava') {
             // Lava enemies: fire slimes, fire worms, imps, flying demons, orange golems
@@ -11919,10 +14004,8 @@ class GameScene extends Phaser.Scene {
                 enemyType = Math.random() < 0.5 ? 'clubimp' : 'axeimp'; // 15% imps
             } else if (rand < 0.70) {
                 enemyType = 'flyingdemon'; // 15%
-            } else if (rand < 0.85) {
-                enemyType = 'orangegolem'; // 15%
             } else {
-                enemyType = 'sorcerer'; // 15% - more common in lava land
+                enemyType = 'orangegolem'; // 30% (increased from 15%)
             }
         } else if (this.stage === 'grave') {
             // Grave enemies: yellow skeletons, skeleton seekers, lost souls, club imps and axe imps
@@ -11932,10 +14015,8 @@ class GameScene extends Phaser.Scene {
                 enemyType = 'skeletonseeker'; // 25%
             } else if (rand < 0.75) {
                 enemyType = 'soul'; // 20% - lost souls
-            } else if (rand < 0.95) {
-                enemyType = Math.random() < 0.5 ? 'clubimp' : 'axeimp'; // 20% imps
             } else {
-                enemyType = 'sorcerer'; // 5% - rare boss enemy
+                enemyType = Math.random() < 0.5 ? 'clubimp' : 'axeimp'; // 25% imps (increased from 20%)
             }
         } else {
             // Forest enemies: trees, mushrooms, bats, bloboids, summoners, sorcerer (rare)
@@ -11947,10 +14028,8 @@ class GameScene extends Phaser.Scene {
                 enemyType = 'bat'; // 20%
             } else if (rand < 0.82) {
                 enemyType = 'bloboid'; // 17%
-            } else if (rand < 0.95) {
-                enemyType = 'summoner'; // 13%
             } else {
-                enemyType = 'sorcerer'; // 5% - rare boss enemy
+                enemyType = 'summoner'; // 18% (increased from 13%)
             }
         }
 
@@ -12138,28 +14217,6 @@ class GameScene extends Phaser.Scene {
             golem.body.setOffset(15, 10);
             golem.element = golemColor === 'orange' ? 'fire' : 'water';
             this.addEnemyToGroup(golem);
-        } else if (enemyType === 'sorcerer') {
-            // Create sorcerer boss enemy
-            const sorcerer = this.physics.add.sprite(x, y, 'sorcerer-attack-0');
-            sorcerer.setScale(1.5); // Large boss size
-            sorcerer.health = 30; // Very high health - boss enemy
-            sorcerer.maxHealth = sorcerer.health;
-            sorcerer.enemyType = 'sorcerer';
-            sorcerer.moveSpeed = 38; // Reduced by 44% total (was 54)
-            sorcerer.damage = 35; // Boss enemy high damage
-            sorcerer.play('sorcerer-attack');
-            // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(sorcerer, 'sorcerer')) {
-                sorcerer.body.setSize(60, 80);
-                sorcerer.body.setOffset(10, 0);
-            }
-            sorcerer.element = 'arcane'; // Powerful magic user
-            sorcerer.attackRange = 250; // Long range attacks
-            sorcerer.attackCooldown = 2500; // Attacks frequently
-            sorcerer.lastAttackTime = 0;
-            sorcerer.isBoss = true; // Mark as boss enemy
-            this.setEnemyDepth(sorcerer); // Set initial depth
-            this.addEnemyToGroup(sorcerer);
         } else if (enemyType === 'clubimp') {
             // Create Club Imp enemy
             const imp = this.physics.add.sprite(x, y, 'club-imp-walk-1');
@@ -12597,17 +14654,19 @@ class GameScene extends Phaser.Scene {
             sorcerer.isBoss = true; // Mark as boss enemy
             this.addEnemyToGroup(sorcerer);
         } else if (enemyType === 'clubimp') {
-            // Create elite Club Imp
+            // Create Club Imp
             const imp = this.physics.add.sprite(x, y, 'club-imp-walk-1');
-            imp.setScale(1.2); // Elite size
-            imp.health = 10; // Double health for elite
+            // Apply saved scale or default to 3x
+            if (!this.applySavedScale(imp, 'clubimp')) {
+                imp.setScale(3);
+            }
+            imp.health = 5;
             imp.maxHealth = imp.health;
             imp.enemyType = 'clubimp';
             imp.moveSpeed = 65;
             imp.damage = 20;
             imp.hasRevived = false;
             imp.isReviving = false;
-            imp.isElite = true;
             imp.play('club-imp-walk');
             // Apply hitbox from config or use defaults
             if (!this.applyHitboxConfig(imp, 'clubimp')) {
@@ -12617,17 +14676,19 @@ class GameScene extends Phaser.Scene {
             imp.element = 'earth';
             this.addEnemyToGroup(imp);
         } else if (enemyType === 'axeimp') {
-            // Create elite Axe Imp
+            // Create Axe Imp
             const imp = this.physics.add.sprite(x, y, 'axe-imp-walk-1');
-            imp.setScale(1.2); // Elite size
-            imp.health = 8; // Double health for elite
+            // Apply saved scale or default to 3x
+            if (!this.applySavedScale(imp, 'axeimp')) {
+                imp.setScale(3);
+            }
+            imp.health = 4;
             imp.maxHealth = imp.health;
             imp.enemyType = 'axeimp';
             imp.moveSpeed = 75;
             imp.damage = 25;
             imp.hasRevived = false;
             imp.isReviving = false;
-            imp.isElite = true;
             imp.play('axe-imp-walk');
             // Apply hitbox from config or use defaults
             if (!this.applyHitboxConfig(imp, 'axeimp')) {
@@ -13362,107 +15423,125 @@ class GameScene extends Phaser.Scene {
     handleEnemyProjectileHit(wizard, projectile) {
         // Safety checks
         if (!wizard || !wizard.active || !wizard.body || !wizard.body.enable) return;
-        if (!projectile || !projectile.active || !projectile.body) return;
+        if (!projectile || !projectile.active || !projectile.body || projectile.isDestroying) return;
         
-        // Skip damage if game is paused, chest selection is active, wizard is invulnerable, or arrow has ricocheted
-        if (this.isPaused || this.chestSelectionActive || this.invulnerable || this.wizard.isInvulnerable || projectile.hasRicocheted) {
-            if (this.wizard.isInvulnerable) {
-                // Show immunity effect for shield
-                const immuneText = this.add.text(this.wizard.x, this.wizard.y - 50, 'IMMUNE', {
-                    fontSize: '16px',
-                    color: '#44ffff',
-                    fontStyle: 'bold'
-                });
-                immuneText.setOrigin(0.5);
-                immuneText.setDepth(150);
-                
-                this.tweens.add({
-                    targets: immuneText,
-                    y: immuneText.y - 30,
-                    alpha: 0,
-                    duration: 800,
-                    ease: 'Power2',
-                    onComplete: () => immuneText.destroy()
-                });
-            }
-            projectile.destroy();
+        // Prevent simultaneous collision processing for very recently created projectiles
+        if (projectile.creationTime && this.time.now - projectile.creationTime < 50) {
             return;
         }
         
-        // Check if this is an archer arrow with teleport ability
-        if (projectile.teleportPlayer && projectile.angle !== undefined) {
-            // Teleport player 200 pixels in the direction the arrow was pointing
-            const teleportDistance = 200;
-            const newX = this.wizard.x + Math.cos(projectile.angle) * teleportDistance;
-            const newY = this.wizard.y + Math.sin(projectile.angle) * teleportDistance;
-            
-            // Keep player within reasonable bounds
-            const boundedX = Phaser.Math.Clamp(newX, this.wizard.x - 400, this.wizard.x + 400);
-            const boundedY = Phaser.Math.Clamp(newY, this.wizard.y - 400, this.wizard.y + 400);
-            
-            this.wizard.setPosition(boundedX, boundedY);
-            
-            // Teleport effect
-            const teleportText = this.add.text(this.wizard.x, this.wizard.y - 50, 'TELEPORTED!', {
-                fontSize: '20px',
-                color: '#ff00ff',
-                fontStyle: 'bold'
-            });
-            teleportText.setOrigin(0.5);
-            teleportText.setDepth(150);
-            
-            this.tweens.add({
-                targets: teleportText,
-                y: teleportText.y - 30,
-                alpha: 0,
-                duration: 800,
-                ease: 'Power2',
-                onComplete: () => teleportText.destroy()
-            });
-        }
+        // Mark projectile as being processed immediately
+        projectile.isDestroying = true;
         
-        this.playerHealth -= projectile.damage || 10;
-        this.updateHealthBar();
-        this.updateWizardHealthBar();
-
-        // Flash red when hit
-        this.wizard.setTint(0xff0000);
-        this.time.delayedCall(100, () => {
-            this.wizard.clearTint();
-        });
-
-        // Brief invulnerability
-        this.invulnerable = true;
-        this.time.delayedCall(500, () => {
-            this.invulnerable = false;
-        });
-
-        if (this.playerHealth <= 0) {
-            // Stop background music
-            if (this.bgMusic) {
-                this.bgMusic.stop();
+        // Queue the collision for processing on next frame
+        this.time.delayedCall(0, () => {
+            // Double check projectile is still valid
+            if (!projectile || !projectile.active) return;
+            
+            // Skip damage if game is paused, chest selection is active, wizard is invulnerable, in god mode, or arrow has ricocheted
+            if (this.isPaused || this.chestSelectionActive || this.invulnerable || this.godMode || this.wizard.isInvulnerable || projectile.hasRicocheted) {
+                if (this.wizard && this.wizard.isInvulnerable) {
+                    // Show immunity effect for shield
+                    const immuneText = this.add.text(this.wizard.x, this.wizard.y - 50, 'IMMUNE', {
+                        fontSize: '16px',
+                        color: '#44ffff',
+                        fontStyle: 'bold'
+                    });
+                    immuneText.setOrigin(0.5);
+                    immuneText.setDepth(150);
+                    
+                    this.tweens.add({
+                        targets: immuneText,
+                        y: immuneText.y - 30,
+                        alpha: 0,
+                        duration: 800,
+                        ease: 'Power2',
+                        onComplete: () => immuneText.destroy()
+                    });
+                }
+                // Use safe destroy method
+                this.safeDestroyProjectile(projectile);
+                return;
             }
             
-            // Play death animation
-            this.wizard.play('wizard-death');
-            this.wizard.setVelocity(0, 0); // Stop movement
-
-            // Wait for death animation to complete
-            this.wizard.once('animationcomplete', () => {
-                // Clear any pending timers before changing scene
-                console.error('WIZARD DEATH: Killing all tweens!');
-                this.time.removeAllEvents();
-                this.tweens.killAll();
-                this.scene.start('GameOverScene', {
-                    survivalTime: this.survivalTime,
-                    enemiesKilled: this.enemiesKilled,
-                    itemsCollected: this.itemsCollected,
-                    won: false
+            // Check if this is an archer arrow with teleport ability
+            if (projectile.teleportPlayer && projectile.angle !== undefined) {
+                // Teleport player 200 pixels in the direction the arrow was pointing
+                const teleportDistance = 200;
+                const newX = this.wizard.x + Math.cos(projectile.angle) * teleportDistance;
+                const newY = this.wizard.y + Math.sin(projectile.angle) * teleportDistance;
+                
+                // Keep player within reasonable bounds
+                const boundedX = Phaser.Math.Clamp(newX, this.wizard.x - 400, this.wizard.x + 400);
+                const boundedY = Phaser.Math.Clamp(newY, this.wizard.y - 400, this.wizard.y + 400);
+                
+                this.wizard.setPosition(boundedX, boundedY);
+                
+                // Teleport effect
+                const teleportText = this.add.text(this.wizard.x, this.wizard.y - 50, 'TELEPORTED!', {
+                    fontSize: '20px',
+                    color: '#ff00ff',
+                    fontStyle: 'bold'
                 });
-            });
-        }
+                teleportText.setOrigin(0.5);
+                teleportText.setDepth(150);
+                
+                this.tweens.add({
+                    targets: teleportText,
+                    y: teleportText.y - 30,
+                    alpha: 0,
+                    duration: 800,
+                    ease: 'Power2',
+                    onComplete: () => teleportText.destroy()
+                });
+            }
+            
+            this.playerHealth -= projectile.damage || 10;
+            this.updateHealthBar();
+            this.updateWizardHealthBar();
 
-        projectile.destroy();
+            // Flash red when hit
+            this.wizard.setTint(0xff0000);
+            this.time.delayedCall(100, () => {
+                if (this.wizard && this.wizard.active) {
+                    this.wizard.clearTint();
+                }
+            });
+
+            // Brief invulnerability
+            this.invulnerable = true;
+            this.time.delayedCall(500, () => {
+                this.invulnerable = false;
+            });
+            
+            // Destroy projectile after handling hit
+            this.safeDestroyProjectile(projectile);
+
+            if (this.playerHealth <= 0) {
+                // Stop background music
+                if (this.bgMusic) {
+                    this.bgMusic.stop();
+                }
+                
+                // Play death animation
+                this.wizard.play('wizard-death');
+                this.wizard.setVelocity(0, 0); // Stop movement
+
+                // Wait for death animation to complete
+                this.wizard.once('animationcomplete', () => {
+                    // Clear any pending timers before changing scene
+                    console.error('WIZARD DEATH: Killing all tweens!');
+                    this.time.removeAllEvents();
+                    this.tweens.killAll();
+                    this.scene.start('GameOverScene', {
+                        survivalTime: this.survivalTime,
+                        enemiesKilled: this.enemiesKilled,
+                        itemsCollected: this.itemsCollected,
+                        won: false
+                    });
+                });
+            }
+        });
     }
     
     applyPlayerBurn(damage, duration) {
@@ -13528,60 +15607,71 @@ class GameScene extends Phaser.Scene {
     safeDestroyProjectile(projectile) {
         if (!projectile || projectile.isDestroying) return;
         
-        // Mark as destroying to prevent double processing
-        projectile.isDestroying = true;
-        
-        // Clean up any associated timers
-        if (projectile.destroyTimer) {
-            projectile.destroyTimer.remove();
-            projectile.destroyTimer = null;
-        }
-        if (projectile.returnTimer) {
-            projectile.returnTimer.remove();
-            projectile.returnTimer = null;
-        }
-        if (projectile.particleTimer) {
-            projectile.particleTimer.remove();
-            projectile.particleTimer = null;
-        }
-        if (projectile.trailInterval) {
-            projectile.trailInterval.remove();
-            projectile.trailInterval = null;
-        }
-        if (projectile.trailUpdate) {
-            projectile.trailUpdate.remove();
-            projectile.trailUpdate = null;
-        }
-        if (projectile.updateEvent) {
-            projectile.updateEvent.remove();
-            projectile.updateEvent = null;
-        }
-        
-        // Use Phaser's disableBody method when available
-        if (projectile.disableBody) {
-            // This is the recommended Phaser way - disables physics and hides sprite
-            projectile.disableBody(true, false); // Disable but don't hide yet
-        } else if (projectile.body) {
-            // Fallback for non-arcade sprites
-            projectile.active = false;
-            projectile.body.enable = false;
-        }
-        
-        // Remove from physics groups
-        if (this.projectiles && this.projectiles.contains(projectile)) {
-            this.projectiles.remove(projectile);
-        }
-        
-        if (this.enemyProjectiles && this.enemyProjectiles.contains(projectile)) {
-            this.enemyProjectiles.remove(projectile);
-        }
-        
-        // Destroy after a tiny delay to ensure physics update completes
-        this.time.delayedCall(0, () => {
-            if (projectile && projectile.destroy) {
-                projectile.destroy();
+        try {
+            // Mark as destroying to prevent double processing
+            projectile.isDestroying = true;
+            
+            // Clean up any associated timers
+            if (projectile.destroyTimer) {
+                projectile.destroyTimer.remove();
+                projectile.destroyTimer = null;
             }
-        });
+            if (projectile.returnTimer) {
+                projectile.returnTimer.remove();
+                projectile.returnTimer = null;
+            }
+            if (projectile.particleTimer) {
+                projectile.particleTimer.remove();
+                projectile.particleTimer = null;
+            }
+            if (projectile.trailInterval) {
+                projectile.trailInterval.remove();
+                projectile.trailInterval = null;
+            }
+            if (projectile.trailUpdate) {
+                projectile.trailUpdate.remove();
+                projectile.trailUpdate = null;
+            }
+            if (projectile.updateEvent) {
+                projectile.updateEvent.remove();
+                projectile.updateEvent = null;
+            }
+            
+            // Remove from physics groups BEFORE disabling body
+            if (this.projectiles && this.projectiles.contains(projectile)) {
+                this.projectiles.remove(projectile);
+            }
+            
+            if (this.enemyProjectiles && this.enemyProjectiles.contains(projectile)) {
+                this.enemyProjectiles.remove(projectile);
+            }
+            
+            // Use Phaser's disableBody method when available
+            if (projectile.disableBody) {
+                // This is the recommended Phaser way - disables physics and hides sprite
+                projectile.disableBody(true, true); // Disable and hide immediately
+            } else if (projectile.body) {
+                // Fallback for non-arcade sprites
+                projectile.active = false;
+                projectile.visible = false;
+                if (projectile.body.enable) {
+                    projectile.body.enable = false;
+                }
+            }
+            
+            // Destroy after next frame to ensure all physics processing is complete
+            this.time.delayedCall(16, () => {
+                try {
+                    if (projectile && projectile.destroy && !projectile._destroyed) {
+                        projectile.destroy();
+                    }
+                } catch (e) {
+                    // Ignore destruction errors
+                }
+            });
+        } catch (e) {
+            console.warn('Error in safeDestroyProjectile:', e);
+        }
     }
     
     safeDestroyEnemy(enemy) {
@@ -13893,7 +15983,6 @@ class GameScene extends Phaser.Scene {
         
         // Menu panel (smaller and positioned lower)
         const panel = this.add.rectangle(0, 0, 500, 300, 0x2a2a2a, 1);
-        panel.setStrokeStyle(3, 0x00ffff);
         
         // Title
         const title = this.add.text(0, -120, 'ANCIENT OBELISK', {
@@ -13910,10 +15999,10 @@ class GameScene extends Phaser.Scene {
         
         // Create requirement display slots
         const req1Bg = this.add.rectangle(-60, -20, 80, 80, 0x444444, 0.8);
-        req1Bg.setStrokeStyle(3, 0x00ffff);
+        req1Bg.setStrokeStyle(2, 0x666666);
         
         const req2Bg = this.add.rectangle(60, -20, 80, 80, 0x444444, 0.8);
-        req2Bg.setStrokeStyle(3, 0x00ffff);
+        req2Bg.setStrokeStyle(2, 0x666666);
         
         // Add requirement symbols
         const req1Config = this.elementConfig[obelisk.requirements[0]];
@@ -13949,7 +16038,7 @@ class GameScene extends Phaser.Scene {
         this.obeliskSlots.push(slot2);
         
         // Instructions
-        const instructions = this.add.text(0, -300, 'Drag elements from above • ESC or B to close', {
+        const instructions = this.add.text(0, -300, 'Navigate with ← → • Press A to select • ESC or B to close', {
             fontSize: '14px',
             color: '#888888'
         }).setOrigin(0.5);
@@ -13991,6 +16080,24 @@ class GameScene extends Phaser.Scene {
         
         // Make charge indicators draggable for obelisk
         this.enableObeliskDragAndDrop();
+        
+        // Initialize obelisk controller state
+        this.obeliskSelectedIndex = 0;
+        this.obeliskSelectedSlot = 0;
+        this.obeliskSelectionMode = 'element'; // 'element' or 'slot'
+        
+        // Find and highlight first available element
+        let firstAvailableIndex = -1;
+        for (let i = 0; i < 12; i++) {
+            if ((i < 8 && this.chargeSlots[i]) || (i >= 8 && this.elementPouch[i - 8])) {
+                firstAvailableIndex = i;
+                break;
+            }
+        }
+        
+        if (firstAvailableIndex >= 0) {
+            this.highlightObeliskElement(firstAvailableIndex);
+        }
         
         // Set up gamepad controls
         this.obeliskGamepadCheck = this.time.addEvent({
@@ -14431,13 +16538,21 @@ class GameScene extends Phaser.Scene {
             if (!enemy || !enemy.active || !enemy.body || enemy.isDying) {
                 return;
             }
+            
+            // Debug logging for Nekros
+            if (enemy.enemyType === 'nekros-boss') {
+                console.log(`Nekros hit! isDamageImmune: ${enemy.isDamageImmune}, currentMode: ${enemy.currentMode}, body.enable: ${enemy.body.enable}, isDying: ${enemy.isDying}, fromBoss: ${projectile.fromBoss}`);
+            }
         } catch (error) {
             console.error('Error in projectileHitEnemy validation:', error);
             return;
         }
         
-        // Skip if projectile is from boss hitting player
-        if (projectile.fromBoss) return;
+        // Player projectiles should never have fromBoss flag
+        if (projectile.fromBoss) {
+            console.error('Warning: Player projectile has fromBoss flag!', projectile);
+            return;
+        }
         
         // Skip if enemy is dying or doesn't have an active physics body
         if (enemy.isDying || !enemy.body || !enemy.body.enable) return;
@@ -14500,23 +16615,39 @@ class GameScene extends Phaser.Scene {
         }
         
         // Additional check: if enemy is already marked as hit but still processing, skip
-        const enemyId = enemy.x + ',' + enemy.y + ',' + Date.now();
-        if (projectile.hitEnemies.has(enemyId)) {
-            return;
+        // Use enemy object reference instead of position for bosses
+        if (enemy.isBoss) {
+            // For bosses, just track the enemy object itself
+            projectile.hitEnemies.add(enemy);
+        } else {
+            // For regular enemies, use position-based tracking
+            const enemyId = enemy.x + ',' + enemy.y + ',' + Date.now();
+            if (projectile.hitEnemies.has(enemyId)) {
+                return;
+            }
+            projectile.hitEnemies.add(enemy);
+            projectile.hitEnemies.add(enemyId);
         }
-
-        // Mark enemy as hit by this projectile
-        projectile.hitEnemies.add(enemy);
-        projectile.hitEnemies.add(enemyId);
 
         // Deal damage based on projectile type and charge count
         let damage;
+        let baseDamage;
         if (projectile.element === 'rock') {
             // Rock projectiles have their damage set directly (6 or 12)
             damage = projectile.damage;
+            baseDamage = projectile.damage; // For logging
         } else {
-            const baseDamage = projectile.isExplosive ? 4 : 2;
+            baseDamage = projectile.isExplosive ? 4 : 2;
             damage = baseDamage * (projectile.damage || 1);
+        }
+        
+        // Debug log for Nekros
+        if (enemy.enemyType === 'nekros-boss') {
+            console.log(`Nekros damage calculation: projectile.element=${projectile.element}, projectile.damage=${projectile.damage}, baseDamage=${baseDamage}, final damage=${damage}`);
+            // Check for invalid damage values
+            if (damage === 0 || isNaN(damage) || damage === undefined || damage === null) {
+                console.error(`WARNING: Invalid damage value for Nekros: ${damage}`);
+            }
         }
         
         // Double damage for lightning hitting wet enemies
@@ -14547,8 +16678,27 @@ class GameScene extends Phaser.Scene {
             return; // Exit early to prevent further damage processing
         }
         
+        // Check for damage immunity (Nekros in flight mode)
+        if (enemy.isDamageImmune) {
+            // Show immunity effect
+            this.showDamageNumber(enemy.x, enemy.y - 20, 'IMMUNE', '#8B00FF');
+            console.log(`Enemy ${enemy.enemyType} is damage immune, mode: ${enemy.currentMode}`);
+            return;
+        }
+        
+        // Debug: Log state before damage
+        if (enemy.enemyType === 'nekros-boss') {
+            console.log(`BEFORE damage - Nekros health: ${enemy.health}, damage to apply: ${damage}`);
+        }
+        
         enemy.health -= damage;
-        console.log(`Enemy hit! Type: ${enemy.enemyType}, Health: ${enemy.health}/${enemy.maxHealth}, Damage: ${damage}`);
+        
+        // Debug: Log state after damage
+        if (enemy.enemyType === 'nekros-boss') {
+            console.log(`AFTER damage - Nekros health: ${enemy.health}, damage applied: ${damage}`);
+        }
+        
+        console.log(`Enemy hit! Type: ${enemy.enemyType}, Health: ${enemy.health}/${enemy.maxHealth}, Damage: ${damage}, isBoss: ${enemy.isBoss}`);
 
         // Show damage number (with critical indicator for rock projectiles)
         if (projectile.element === 'rock' && projectile.isCritical) {
@@ -16581,7 +18731,18 @@ class GameScene extends Phaser.Scene {
 
         this.enemies.children.entries.forEach(enemy => {
             if (enemy.active && enemy.body && enemy.body.enable && !enemy.isDying) {
+                // Skip enemies that are spawning, immune, or hidden
+                if ((enemy.enemyType === 'skeletonseeker' && enemy.isSpawning) || 
+                    enemy.isDamageImmune || 
+                    enemy.isInvulnerable ||
+                    (enemy.immuneTime && enemy.immuneTime > 0)) {
+                    return;
+                }
+                
                 const distance = Phaser.Math.Distance.Between(this.wizard.x, this.wizard.y, enemy.x, enemy.y);
+                if (enemy.enemyType === 'nekros-boss') {
+                    console.log(`Lightning targeting check - Nekros: active=${enemy.active}, body=${!!enemy.body}, body.enable=${enemy.body?.enable}, isDying=${enemy.isDying}, distance=${distance}`);
+                }
                 if (distance < closestDistance) {
                     closestDistance = distance;
                     closestEnemy = enemy;
@@ -23275,6 +25436,9 @@ class GameScene extends Phaser.Scene {
             flash.destroy();
             continueButton.destroy();
             continueText.destroy();
+            if (controlHint) {
+                controlHint.destroy();
+            }
             
             // Apply the reward
             this.handleSlotMachineReward(finalReward, chest);
@@ -23297,6 +25461,22 @@ class GameScene extends Phaser.Scene {
         const spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         const enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
         
+        // Add visual feedback for controller
+        let controlHint = null;
+        if (this.gamepad) {
+            continueButton.setStrokeStyle(3, 0xffff00);
+            controlHint = this.add.text(400, 420, 'Press A to claim', {
+                fontSize: '16px',
+                color: '#aaaaaa'
+            });
+            controlHint.setOrigin(0.5);
+            controlHint.setScrollFactor(0);
+            controlHint.setDepth(20005);
+        }
+        
+        // Track button state to prevent held button from previous scene
+        let prevAPressed = this.gamepad ? this.gamepad.buttons[0].pressed : false;
+        
         const handleInput = () => {
             // Check keyboard
             if (Phaser.Input.Keyboard.JustDown(spaceKey) || Phaser.Input.Keyboard.JustDown(enterKey)) {
@@ -23304,9 +25484,18 @@ class GameScene extends Phaser.Scene {
                 return;
             }
             
-            // Check gamepad
-            if (this.gamepad && this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed) {
-                claimReward();
+            // Update gamepad reference if needed
+            if (!this.gamepad && this.input.gamepad.total > 0) {
+                this.gamepad = this.input.gamepad.getPad(0);
+            }
+            
+            // Check gamepad with proper state tracking
+            if (this.gamepad && this.gamepad.buttons[0]) {
+                const aPressed = this.gamepad.buttons[0].pressed;
+                if (aPressed && !prevAPressed) {
+                    claimReward();
+                }
+                prevAPressed = aPressed;
             }
         };
         
@@ -24035,7 +26224,7 @@ class GameScene extends Phaser.Scene {
         abandonButton.add([abandonBg, abandonText]);
         
         // Control hint
-        const controlHint = this.add.text(400, 450, 'LEFT/RIGHT to select • SPACE/ENTER to confirm', {
+        const controlHint = this.add.text(400, 450, 'LEFT/RIGHT or gamepad to select • SPACE/ENTER or A to confirm', {
             fontSize: '14px',
             color: '#aaaaaa'
         });
@@ -24087,9 +26276,12 @@ class GameScene extends Phaser.Scene {
         if (!this.fusionDiscardDialog) return;
         
         // Input detection
-        const leftPressed = this.cursors.left.isDown;
-        const rightPressed = this.cursors.right.isDown;
-        const confirmPressed = this.spaceKey.isDown || this.enterKey.isDown;
+        const leftPressed = this.cursors.left.isDown || 
+            (this.gamepad && ((this.gamepad.leftStick.x < -0.5) || (this.gamepad.buttons[14] && this.gamepad.buttons[14].pressed)));
+        const rightPressed = this.cursors.right.isDown || 
+            (this.gamepad && ((this.gamepad.leftStick.x > 0.5) || (this.gamepad.buttons[15] && this.gamepad.buttons[15].pressed)));
+        const confirmPressed = this.spaceKey.isDown || this.enterKey.isDown ||
+            (this.gamepad && this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed);
         
         // Initialize previous states if not set
         if (!this.prevFusionDialogLeftPressed) this.prevFusionDialogLeftPressed = false;
@@ -24711,6 +26903,7 @@ class GameScene extends Phaser.Scene {
             this.physics.resume();
             this.chestSelectionActive = false;
             this.chestOpening = false;
+            this.debugChestInputLogged = false; // Reset debug flag
             if (this.chestSkipKey) {
                 this.chestSkipKey.off('down');
                 this.chestSkipKey = null;
@@ -25550,6 +27743,10 @@ class GameScene extends Phaser.Scene {
 
         // Reset controller states to prevent input carry-over
         this.prevChestConfirmPressed = true; // Prevent immediate selection
+        this.prevElementConfirm = true; // Prevent immediate element selection with controller
+        
+        // Add delay before accepting input to prevent keyboard carry-over
+        this.elementSelectionInputDelay = this.time.now + 200; // 200ms delay
 
         this.setupElementSelection(selectionBg, title, choices);
     }
@@ -27106,35 +29303,34 @@ class GameScene extends Phaser.Scene {
 
     handleChestSelectionController() {
         if (!this.chestUI) return;
+        
+        // Handle gamepad - use this.gamepad for consistency
+        const pad = this.gamepad;
+        
+        // Check for input using the same pattern as StageSelectScene
+        const leftJustPressed = Phaser.Input.Keyboard.JustDown(this.cursors.left) ||
+            (pad && pad.leftStick.x < -0.5 && !this.prevChestLeftStick) ||
+            (pad && pad.buttons[14] && pad.buttons[14].pressed && !this.prevChestDpadLeft);
+        const rightJustPressed = Phaser.Input.Keyboard.JustDown(this.cursors.right) ||
+            (pad && pad.leftStick.x > 0.5 && !this.prevChestRightStick) ||
+            (pad && pad.buttons[15] && pad.buttons[15].pressed && !this.prevChestDpadRight);
+        const upJustPressed = Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
+            (pad && pad.leftStick.y < -0.5 && !this.prevChestUpStick) ||
+            (pad && pad.buttons[12] && pad.buttons[12].pressed && !this.prevChestDpadUp);
+        const downJustPressed = Phaser.Input.Keyboard.JustDown(this.cursors.down) ||
+            (pad && pad.leftStick.y > 0.5 && !this.prevChestDownStick) ||
+            (pad && pad.buttons[13] && pad.buttons[13].pressed && !this.prevChestDpadDown);
+        const confirmJustPressed = Phaser.Input.Keyboard.JustDown(this.spaceKey) ||
+            Phaser.Input.Keyboard.JustDown(this.enterKey) ||
+            (pad && pad.buttons[0] && pad.buttons[0].pressed && !this.prevChestConfirm);
+        const switchModeJustPressed = Phaser.Input.Keyboard.JustDown(this.tabKey) ||
+            (pad && pad.buttons[2] && pad.buttons[2].pressed && !this.prevChestSwitch);
 
-        // Check for left/right navigation (including D-pad)
-        const leftPressed = this.cursors.left.isDown ||
-            (this.gamepad && ((this.gamepad.leftStick.x < -0.5) || (this.gamepad.buttons[14] && this.gamepad.buttons[14].pressed)));
-        const rightPressed = this.cursors.right.isDown ||
-            (this.gamepad && ((this.gamepad.leftStick.x > 0.5) || (this.gamepad.buttons[15] && this.gamepad.buttons[15].pressed)));
-        const upPressed = this.cursors.up.isDown ||
-            (this.gamepad && ((this.gamepad.leftStick.y < -0.5) || (this.gamepad.buttons[12] && this.gamepad.buttons[12].pressed)));
-        const downPressed = this.cursors.down.isDown ||
-            (this.gamepad && ((this.gamepad.leftStick.y > 0.5) || (this.gamepad.buttons[13] && this.gamepad.buttons[13].pressed)));
-        const confirmPressed = this.spaceKey.isDown ||
-            (this.gamepad && this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed);
-        const switchModePressed = (this.gamepad && this.gamepad.buttons[2] && this.gamepad.buttons[2].pressed) || // Y button
-            this.tabKey.isDown; // Tab key for keyboard
-
-        // Initialize previous states if not set
-        if (!this.prevChestLeftPressed) this.prevChestLeftPressed = false;
-        if (!this.prevChestRightPressed) this.prevChestRightPressed = false;
-        if (!this.prevChestUpPressed) this.prevChestUpPressed = false;
-        if (!this.prevChestDownPressed) this.prevChestDownPressed = false;
-        if (!this.prevChestConfirmPressed) this.prevChestConfirmPressed = false;
-        if (!this.prevChestSwitchPressed) this.prevChestSwitchPressed = false;
-        if (!this.prevChestTabPressed) this.prevChestTabPressed = false;
 
         // Handle main menu selection for new chest system
         if (this.chestUI && this.chestUI.mainMenu) {
             // Navigate left
-            if (leftPressed && !this.prevChestLeftPressed) {
-                console.log('Left pressed, current index:', this.chestCursorIndex);
+            if (leftJustPressed) {
                 if (this.chestCursorIndex > 0) {
                     // Remove highlight from current
                     this.chestUI.buttons[this.chestCursorIndex].bg.setStrokeStyle(2, 0x333333);
@@ -27147,15 +29343,11 @@ class GameScene extends Phaser.Scene {
                     // Add highlight to new selection
                     this.chestUI.buttons[this.chestCursorIndex].bg.setStrokeStyle(3, 0xffff00);
                     this.chestUI.buttons[this.chestCursorIndex].container.setScale(1.05);
-                    console.log('Moved LEFT to chest option', this.chestCursorIndex);
-                } else {
-                    console.log('Already at leftmost option');
                 }
             }
 
             // Navigate right
-            if (rightPressed && !this.prevChestRightPressed) {
-                console.log('Right pressed, current index:', this.chestCursorIndex);
+            if (rightJustPressed) {
                 if (this.chestCursorIndex < 2) {
                     // Remove highlight from current
                     this.chestUI.buttons[this.chestCursorIndex].bg.setStrokeStyle(2, 0x333333);
@@ -27164,20 +29356,15 @@ class GameScene extends Phaser.Scene {
                     this.chestUI.buttons[this.chestCursorIndex].bg.setAlpha(1);
                     
                     this.chestCursorIndex++;
-                    console.log('Incremented cursor to:', this.chestCursorIndex);
                     
                     // Add highlight to new selection
                     this.chestUI.buttons[this.chestCursorIndex].bg.setStrokeStyle(3, 0xffff00);
                     this.chestUI.buttons[this.chestCursorIndex].container.setScale(1.05);
-                    console.log('Updated visual for index:', this.chestCursorIndex);
-                } else {
-                    console.log('Already at rightmost option');
                 }
             }
 
             // Confirm selection
-            if (confirmPressed && !this.prevChestConfirmPressed) {
-                console.log('Confirm pressed! Current cursor index:', this.chestCursorIndex);
+            if (confirmJustPressed) {
                 console.log('Available buttons:', this.chestUI.buttons.length);
                 console.log('Button types:', this.chestUI.buttons.map(b => b.type));
 
@@ -27196,8 +29383,7 @@ class GameScene extends Phaser.Scene {
                     console.log('No reward type found for button at index', this.chestCursorIndex);
                 }
             }
-        } else if (this.chestUI && this.chestUI.chargesFull && switchModePressed && 
-            !this.prevChestSwitchPressed && !this.prevChestTabPressed) {
+        } else if (this.chestUI && this.chestUI.chargesFull && switchModeJustPressed) {
             // Handle element selection sub-menu mode switching
             this.chestChargeSelectMode = !this.chestChargeSelectMode;
             // Update hint text
@@ -27222,7 +29408,7 @@ class GameScene extends Phaser.Scene {
 
         if (this.chestChargeSelectMode && this.chestUI && this.chestUI.chargesFull) {
             // Charge selection mode
-            if (upPressed && !this.prevChestUpPressed) {
+            if (upJustPressed) {
                 if (this.selectedChargeToReplace > 0) {
                     // Clear previous selection
                     this.highlightChargeIndicator(this.selectedChargeToReplace, false);
@@ -27246,7 +29432,7 @@ class GameScene extends Phaser.Scene {
                 }
             }
 
-            if (downPressed && !this.prevChestDownPressed) {
+            if (downJustPressed) {
                 // When charges are full, allow navigation through all 12 slots (8 charge + 4 pouch)
                 const maxSlots = this.charges.length >= this.maxCharges ? 11 : this.charges.length - 1;
                 if (this.selectedChargeToReplace < maxSlots) {
@@ -27274,7 +29460,7 @@ class GameScene extends Phaser.Scene {
         } else if (this.chestUI && !this.chestUI.mainMenu) {
             // Element selection mode (only when not in main menu)
             // Navigate left
-            if (leftPressed && !this.prevChestLeftPressed) {
+            if (leftJustPressed) {
                 if (this.chestCursorIndex > 0) {
                     // Update border colors
                     this.chestUI.buttons[this.chestCursorIndex].bg.setStrokeStyle(3, 0xffffff);
@@ -27284,7 +29470,7 @@ class GameScene extends Phaser.Scene {
             }
 
             // Navigate right
-            if (rightPressed && !this.prevChestRightPressed) {
+            if (rightJustPressed) {
                 if (this.chestCursorIndex < 2) {
                     // Update border colors
                     this.chestUI.buttons[this.chestCursorIndex].bg.setStrokeStyle(3, 0xffffff);
@@ -27295,7 +29481,7 @@ class GameScene extends Phaser.Scene {
         }
 
         // Confirm selection for element sub-menu
-        if (this.chestUI && !this.chestUI.mainMenu && confirmPressed && !this.prevChestConfirmPressed) {
+        if (this.chestUI && !this.chestUI.mainMenu && confirmJustPressed) {
             // Handle fusion element discard mode
             if (this.fusionElementDiscardMode && this.chestChargeSelectMode && this.selectedChargeToReplace >= 0) {
                 const selectedSlot = this.selectedChargeToReplace;
@@ -27387,13 +29573,284 @@ class GameScene extends Phaser.Scene {
         }
 
         // Store previous states
-        this.prevChestLeftPressed = leftPressed;
-        this.prevChestRightPressed = rightPressed;
-        this.prevChestUpPressed = upPressed;
-        this.prevChestDownPressed = downPressed;
-        this.prevChestConfirmPressed = confirmPressed;
-        this.prevChestSwitchPressed = (this.gamepad && this.gamepad.buttons[2] && this.gamepad.buttons[2].pressed);
-        this.prevChestTabPressed = this.tabKey.isDown;
+        this.prevChestLeftStick = pad && pad.leftStick.x < -0.5;
+        this.prevChestRightStick = pad && pad.leftStick.x > 0.5;
+        this.prevChestUpStick = pad && pad.leftStick.y < -0.5;
+        this.prevChestDownStick = pad && pad.leftStick.y > 0.5;
+        this.prevChestDpadLeft = pad && pad.buttons[14] && pad.buttons[14].pressed;
+        this.prevChestDpadRight = pad && pad.buttons[15] && pad.buttons[15].pressed;
+        this.prevChestDpadUp = pad && pad.buttons[12] && pad.buttons[12].pressed;
+        this.prevChestDpadDown = pad && pad.buttons[13] && pad.buttons[13].pressed;
+        this.prevChestConfirm = pad && pad.buttons[0] && pad.buttons[0].pressed;
+        this.prevChestSwitch = pad && pad.buttons[2] && pad.buttons[2].pressed;
+    }
+
+    handleElementSelectionController() {
+        if (!this.elementSelectionUI) return;
+        
+        // Check if we're still in input delay period
+        if (this.elementSelectionInputDelay && this.time.now < this.elementSelectionInputDelay) {
+            return; // Don't process input yet
+        }
+
+        // Handle gamepad - use this.gamepad for consistency
+        const pad = this.gamepad;
+
+        // Check for input using the same pattern as StageSelectScene
+        const leftJustPressed = Phaser.Input.Keyboard.JustDown(this.cursors.left) ||
+            (pad && pad.leftStick.x < -0.5 && !this.prevElementLeftStick) ||
+            (pad && pad.buttons[14] && pad.buttons[14].pressed && !this.prevElementDpadLeft);
+        const rightJustPressed = Phaser.Input.Keyboard.JustDown(this.cursors.right) ||
+            (pad && pad.leftStick.x > 0.5 && !this.prevElementRightStick) ||
+            (pad && pad.buttons[15] && pad.buttons[15].pressed && !this.prevElementDpadRight);
+        const confirmJustPressed = Phaser.Input.Keyboard.JustDown(this.spaceKey) ||
+            Phaser.Input.Keyboard.JustDown(this.enterKey) ||
+            (pad && pad.buttons[0] && pad.buttons[0].pressed && !this.prevElementConfirm);
+
+        // Navigate left
+        if (leftJustPressed) {
+            if (this.elementSelectionIndex > 0) {
+                // Remove highlight from current
+                this.elementSelectionUI.buttons[this.elementSelectionIndex].bg.setStrokeStyle(2, 0xffffff);
+                
+                this.elementSelectionIndex--;
+                
+                // Add highlight to new selection
+                this.elementSelectionUI.buttons[this.elementSelectionIndex].bg.setStrokeStyle(2, 0xffff00);
+            }
+        }
+
+        // Navigate right
+        if (rightJustPressed) {
+            if (this.elementSelectionIndex < this.elementSelectionUI.buttons.length - 1) {
+                // Remove highlight from current
+                this.elementSelectionUI.buttons[this.elementSelectionIndex].bg.setStrokeStyle(2, 0xffffff);
+                
+                this.elementSelectionIndex++;
+                
+                // Add highlight to new selection
+                this.elementSelectionUI.buttons[this.elementSelectionIndex].bg.setStrokeStyle(2, 0xffff00);
+            }
+        }
+
+        // Confirm selection
+        if (confirmJustPressed) {
+            this.elementSelectionUI.selectElement(this.elementSelectionIndex);
+        }
+
+        // Store previous states
+        this.prevElementLeftStick = pad && pad.leftStick.x < -0.5;
+        this.prevElementRightStick = pad && pad.leftStick.x > 0.5;
+        this.prevElementDpadLeft = pad && pad.buttons[14] && pad.buttons[14].pressed;
+        this.prevElementDpadRight = pad && pad.buttons[15] && pad.buttons[15].pressed;
+        this.prevElementConfirm = pad && pad.buttons[0] && pad.buttons[0].pressed;
+    }
+
+    handleObeliskMenuController() {
+        if (!this.obeliskMenu) return;
+
+        const leftPressed = this.cursors.left.isDown || 
+            (this.gamepad && ((this.gamepad.leftStick.x < -0.5) || (this.gamepad.buttons[14] && this.gamepad.buttons[14].pressed)));
+        const rightPressed = this.cursors.right.isDown || 
+            (this.gamepad && ((this.gamepad.leftStick.x > 0.5) || (this.gamepad.buttons[15] && this.gamepad.buttons[15].pressed)));
+        const upPressed = this.cursors.up.isDown || 
+            (this.gamepad && ((this.gamepad.leftStick.y < -0.5) || (this.gamepad.buttons[12] && this.gamepad.buttons[12].pressed)));
+        const downPressed = this.cursors.down.isDown || 
+            (this.gamepad && ((this.gamepad.leftStick.y > 0.5) || (this.gamepad.buttons[13] && this.gamepad.buttons[13].pressed)));
+        const confirmPressed = this.spaceKey.isDown || 
+            (this.gamepad && this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed);
+        const cancelPressed = this.input.keyboard.addKey('B').isDown || 
+            (this.gamepad && this.gamepad.buttons[1] && this.gamepad.buttons[1].pressed);
+
+        // Initialize previous states if not set
+        if (!this.prevObeliskLeftPressed) this.prevObeliskLeftPressed = false;
+        if (!this.prevObeliskRightPressed) this.prevObeliskRightPressed = false;
+        if (!this.prevObeliskUpPressed) this.prevObeliskUpPressed = false;
+        if (!this.prevObeliskDownPressed) this.prevObeliskDownPressed = false;
+        if (!this.prevObeliskConfirmPressed) this.prevObeliskConfirmPressed = false;
+        if (!this.prevObeliskCancelPressed) this.prevObeliskCancelPressed = false;
+
+        // Handle B button to close menu
+        if (cancelPressed && !this.prevObeliskCancelPressed) {
+            this.closeObeliskMenu();
+            return;
+        }
+
+        // Count available elements
+        let availableElements = [];
+        for (let i = 0; i < 12; i++) {
+            if (i < 8 && this.chargeSlots[i]) {
+                availableElements.push({ index: i, element: this.chargeSlots[i], type: 'charge' });
+            } else if (i >= 8 && this.elementPouch[i - 8]) {
+                availableElements.push({ index: i, element: this.elementPouch[i - 8], type: 'pouch' });
+            }
+        }
+
+        if (this.obeliskSelectionMode === 'element') {
+            // Navigate through available elements
+            if (leftPressed && !this.prevObeliskLeftPressed) {
+                if (this.obeliskSelectedIndex > 0) {
+                    // Clear previous highlight - use the actual slot index from availableElements
+                    if (availableElements[this.obeliskSelectedIndex]) {
+                        this.clearObeliskHighlight(availableElements[this.obeliskSelectedIndex].index);
+                    }
+                    this.obeliskSelectedIndex--;
+                    // Add new highlight - use the actual slot index from availableElements
+                    if (availableElements[this.obeliskSelectedIndex]) {
+                        this.highlightObeliskElement(availableElements[this.obeliskSelectedIndex].index);
+                    }
+                }
+            }
+
+            if (rightPressed && !this.prevObeliskRightPressed) {
+                if (this.obeliskSelectedIndex < availableElements.length - 1) {
+                    // Clear previous highlight - use the actual slot index from availableElements
+                    if (availableElements[this.obeliskSelectedIndex]) {
+                        this.clearObeliskHighlight(availableElements[this.obeliskSelectedIndex].index);
+                    }
+                    this.obeliskSelectedIndex++;
+                    // Add new highlight - use the actual slot index from availableElements
+                    if (availableElements[this.obeliskSelectedIndex]) {
+                        this.highlightObeliskElement(availableElements[this.obeliskSelectedIndex].index);
+                    }
+                }
+            }
+
+            // Switch to slot selection mode
+            if (downPressed && !this.prevObeliskDownPressed) {
+                this.obeliskSelectionMode = 'slot';
+                this.obeliskSelectedSlot = 0; // Reset to first slot
+                if (availableElements[this.obeliskSelectedIndex]) {
+                    this.clearObeliskHighlight(availableElements[this.obeliskSelectedIndex].index);
+                }
+                // Highlight first slot
+                this.obeliskSlots[0].setStrokeStyle(3, 0xffff00);
+            }
+
+            // Confirm element selection
+            if (confirmPressed && !this.prevObeliskConfirmPressed && availableElements[this.obeliskSelectedIndex]) {
+                // Switch to slot selection
+                this.obeliskSelectionMode = 'slot';
+                this.obeliskSelectedSlot = 0; // Reset to first slot
+                this.clearObeliskHighlight(availableElements[this.obeliskSelectedIndex].index);
+                this.obeliskSlots[0].setStrokeStyle(3, 0xffff00);
+            }
+        } else if (this.obeliskSelectionMode === 'slot') {
+            // Navigate between slots
+            if (leftPressed && !this.prevObeliskLeftPressed && this.obeliskSelectedSlot > 0) {
+                // Ensure slot exists before styling
+                if (this.obeliskSlots[this.obeliskSelectedSlot]) {
+                    this.obeliskSlots[this.obeliskSelectedSlot].setStrokeStyle(3, 0x666666);
+                }
+                this.obeliskSelectedSlot = 0;
+                if (this.obeliskSlots[this.obeliskSelectedSlot]) {
+                    this.obeliskSlots[this.obeliskSelectedSlot].setStrokeStyle(3, 0xffff00);
+                }
+            }
+
+            if (rightPressed && !this.prevObeliskRightPressed && this.obeliskSelectedSlot < 1) {
+                // Ensure slot exists before styling
+                if (this.obeliskSlots[this.obeliskSelectedSlot]) {
+                    this.obeliskSlots[this.obeliskSelectedSlot].setStrokeStyle(3, 0x666666);
+                }
+                this.obeliskSelectedSlot = 1;
+                if (this.obeliskSlots[this.obeliskSelectedSlot]) {
+                    this.obeliskSlots[this.obeliskSelectedSlot].setStrokeStyle(3, 0xffff00);
+                }
+            }
+
+            // Switch back to element selection
+            if (upPressed && !this.prevObeliskUpPressed) {
+                this.obeliskSelectionMode = 'element';
+                if (this.obeliskSlots[this.obeliskSelectedSlot]) {
+                    this.obeliskSlots[this.obeliskSelectedSlot].setStrokeStyle(3, 0x666666);
+                }
+                if (availableElements[this.obeliskSelectedIndex]) {
+                    this.highlightObeliskElement(availableElements[this.obeliskSelectedIndex].index);
+                }
+            }
+
+            // Place element in slot
+            if (confirmPressed && !this.prevObeliskConfirmPressed && availableElements[this.obeliskSelectedIndex]) {
+                const slot = this.obeliskSlots[this.obeliskSelectedSlot];
+                if (!slot) return; // Safety check
+                const elementData = availableElements[this.obeliskSelectedIndex];
+                
+                // Clear previous element in this slot
+                if (slot.elementSprite) {
+                    slot.elementSprite.destroy();
+                }
+                
+                // Add element to slot
+                slot.currentElement = elementData.element;
+                const elementConfig = this.elementConfig[slot.currentElement];
+                slot.elementSprite = this.add.image(slot.x, slot.y, elementConfig.sheet, elementConfig.frame);
+                slot.elementSprite.setScale(0.3);
+                slot.elementSprite.setScrollFactor(0);
+                slot.elementSprite.setDepth(951);
+                this.obeliskMenu.add(slot.elementSprite);
+                
+                // Check if both slots are filled correctly
+                this.checkObeliskCompletion();
+                
+                // Move back to element selection
+                this.obeliskSelectionMode = 'element';
+                if (this.obeliskSlots[this.obeliskSelectedSlot]) {
+                    this.obeliskSlots[this.obeliskSelectedSlot].setStrokeStyle(3, 0x666666);
+                }
+                if (availableElements[this.obeliskSelectedIndex]) {
+                    this.highlightObeliskElement(availableElements[this.obeliskSelectedIndex].index);
+                }
+            }
+        }
+
+        // Store button states
+        this.prevObeliskLeftPressed = leftPressed;
+        this.prevObeliskRightPressed = rightPressed;
+        this.prevObeliskUpPressed = upPressed;
+        this.prevObeliskDownPressed = downPressed;
+        this.prevObeliskConfirmPressed = confirmPressed;
+        this.prevObeliskCancelPressed = cancelPressed;
+    }
+
+    clearObeliskHighlight(index) {
+        if (index < 8 && this.chargeIndicators[index]) {
+            this.chargeIndicators[index].bg.setStrokeStyle(2, 0x666666);
+        } else if (index >= 8 && this.extraChargeIndicators && this.extraChargeIndicators[index - 8]) {
+            this.extraChargeIndicators[index - 8].bg.setStrokeStyle(2, 0x4a6a4a);
+        }
+    }
+
+    highlightObeliskElement(index) {
+        // Clear all highlights first
+        if (this.chargeIndicators) {
+            this.chargeIndicators.forEach(indicator => {
+                if (indicator && indicator.bg) {
+                    indicator.bg.setStrokeStyle(2, 0x666666);
+                }
+            });
+        }
+        if (this.extraChargeIndicators) {
+            this.extraChargeIndicators.forEach(indicator => {
+                if (indicator && indicator.bg) {
+                    indicator.bg.setStrokeStyle(2, 0x4a6a4a);
+                    // Make sure the background is visible
+                    indicator.bg.setVisible(true);
+                }
+            });
+        }
+        
+        // Apply bold yellow highlight to selected slot
+        if (index < 8 && this.chargeIndicators && this.chargeIndicators[index]) {
+            this.chargeIndicators[index].bg.setStrokeStyle(5, 0xffff00);
+        } else if (index >= 8 && this.extraChargeIndicators) {
+            const pouchIndex = index - 8;
+            if (pouchIndex < this.extraChargeIndicators.length && this.extraChargeIndicators[pouchIndex]) {
+                this.extraChargeIndicators[pouchIndex].bg.setStrokeStyle(5, 0xffff00);
+                // Ensure visibility
+                this.extraChargeIndicators[pouchIndex].bg.setVisible(true);
+            }
+        }
     }
 
     handleFusionController() {
@@ -27531,8 +29988,8 @@ class GameScene extends Phaser.Scene {
         // Only handle boss projectiles
         if (!projectile.fromBoss) return;
         
-        // Check if player is invulnerable or game is paused/in chest selection
-        if (this.invulnerable || this.isPaused || this.chestSelectionActive) return;
+        // Check if player is invulnerable, in god mode, or game is paused/in chest selection
+        if (this.invulnerable || this.godMode || this.isPaused || this.chestSelectionActive) return;
         
         // Check if this is an archer arrow that teleports
         if (projectile.teleportPlayer && projectile.angle !== undefined) {
@@ -27812,6 +30269,12 @@ class GameScene extends Phaser.Scene {
                 subtitle: 'Eternal Watcher of the Desert',
                 color: '#ffaa00'
             };
+        } else if (this.stage === 'grave') {
+            bossInfo = {
+                title: 'NEKROS',
+                subtitle: 'Death Knight of the Forsaken Graves',
+                color: '#8a2be2'
+            };
         } else {
             // Default to Obelisk boss for forest stage
             bossInfo = {
@@ -27873,7 +30336,9 @@ class GameScene extends Phaser.Scene {
                     if (this.stage === 'cave') {
                         this.createArcherBoss();
                     } else if (this.stage === 'sand') {
-                        this.createSandBoss(); // Sand boss (placeholder for now)
+                        this.createSandBoss();
+                    } else if (this.stage === 'grave') {
+                        this.createGraveBoss();
                     } else if (this.stage === 'lava') {
                         this.createDemonSlimeBoss();
                     } else {
@@ -27888,6 +30353,36 @@ class GameScene extends Phaser.Scene {
     }
     
     createBoss() {
+        // Fade out and stop stage music if in forest land
+        if (this.stage === 'forest' && this.bgMusic && this.bgMusic.isPlaying) {
+            this.tweens.add({
+                targets: this.bgMusic,
+                volume: 0,
+                duration: 1000,
+                ease: 'Power2',
+                onComplete: () => {
+                    if (this.bgMusic) {
+                        this.bgMusic.stop();
+                    }
+                    
+                    // Start boss music
+                    this.bossMusic = this.sound.add('boss1-bgm', {
+                        loop: true,
+                        volume: 0
+                    });
+                    this.bossMusic.play();
+                    
+                    // Fade in boss music
+                    this.tweens.add({
+                        targets: this.bossMusic,
+                        volume: 0.5,
+                        duration: 1000,
+                        ease: 'Power2'
+                    });
+                }
+            });
+        }
+        
         // Calculate boss spawn position (center of screen, slightly above player)
         const bossX = this.wizard.x;
         const bossY = this.wizard.y - 200;
@@ -27956,6 +30451,45 @@ class GameScene extends Phaser.Scene {
     }
     
     createArcherBoss() {
+        // Fade out and stop stage music if in cave land
+        if (this.stage === 'cave' && this.bgMusic && this.bgMusic.isPlaying) {
+            this.tweens.add({
+                targets: this.bgMusic,
+                volume: 0,
+                duration: 1000,
+                ease: 'Power2',
+                onComplete: () => {
+                    if (this.bgMusic) {
+                        this.bgMusic.stop();
+                    }
+                    
+                    // Start boss intro music
+                    this.bossIntroMusic = this.sound.add('boss2-intro-bgm', {
+                        loop: false,
+                        volume: 0
+                    });
+                    this.bossIntroMusic.play();
+                    
+                    // Fade in intro music
+                    this.tweens.add({
+                        targets: this.bossIntroMusic,
+                        volume: 0.5,
+                        duration: 1000,
+                        ease: 'Power2'
+                    });
+                    
+                    // When intro finishes, start the loop
+                    this.bossIntroMusic.once('complete', () => {
+                        this.bossMusic = this.sound.add('boss2-loop-bgm', {
+                            loop: true,
+                            volume: 0.5
+                        });
+                        this.bossMusic.play();
+                    });
+                }
+            });
+        }
+        
         // Calculate boss spawn position (center of screen, slightly above player)
         const bossX = this.wizard.x;
         const bossY = this.wizard.y - 200;
@@ -28053,6 +30587,36 @@ class GameScene extends Phaser.Scene {
     }
     
     createSandBoss() {
+        // Fade out and stop stage music if in sand land
+        if (this.stage === 'sand' && this.bgMusic && this.bgMusic.isPlaying) {
+            this.tweens.add({
+                targets: this.bgMusic,
+                volume: 0,
+                duration: 1000,
+                ease: 'Power2',
+                onComplete: () => {
+                    if (this.bgMusic) {
+                        this.bgMusic.stop();
+                    }
+                    
+                    // Start boss music
+                    this.bossMusic = this.sound.add('boss3-bgm', {
+                        loop: true,
+                        volume: 0
+                    });
+                    this.bossMusic.play();
+                    
+                    // Fade in boss music
+                    this.tweens.add({
+                        targets: this.bossMusic,
+                        volume: 0.5,
+                        duration: 1000,
+                        ease: 'Power2'
+                    });
+                }
+            });
+        }
+        
         // For now, create a stronger version of the Obelisk boss as placeholder
         // This can be replaced with a unique sand boss later
         const bossX = this.wizard.x;
@@ -28151,6 +30715,110 @@ class GameScene extends Phaser.Scene {
         this.bossNameText.setDepth(502);
     }
     
+    createGraveBoss() {
+        // Fade out and stop stage music if in grave land
+        if (this.stage === 'grave' && this.bgMusic && this.bgMusic.isPlaying) {
+            this.tweens.add({
+                targets: this.bgMusic,
+                volume: 0,
+                duration: 1000,
+                ease: 'Power2',
+                onComplete: () => {
+                    if (this.bgMusic) {
+                        this.bgMusic.stop();
+                    }
+                    
+                    // Start boss music
+                    this.bossMusic = this.sound.add('boss4-bgm', {
+                        loop: true,
+                        volume: 0
+                    });
+                    this.bossMusic.play();
+                    
+                    // Fade in boss music
+                    this.tweens.add({
+                        targets: this.bossMusic,
+                        volume: 0.5,
+                        duration: 1000,
+                        ease: 'Power2'
+                    });
+                }
+            });
+        }
+        
+        // Create Nekros boss
+        const bossX = this.wizard.x;
+        const bossY = this.wizard.y - 200;
+        
+        // Create Nekros sprite
+        const boss = this.physics.add.sprite(bossX, bossY, 'nekros-walk-1');
+        boss.enemyType = 'nekros-boss';
+        
+        // Apply saved scale or use default
+        if (!this.applySavedScale(boss, 'nekros-boss')) {
+            boss.setScale(1.8);
+        }
+        
+        // Adjust boss health for grave stage
+        const baseHealth = 5000;
+        const densityMultipliers = {
+            'sparse': 0.25,
+            'normal': 0.5,
+            'dense': 0.75,
+            'swarm': 1.0
+        };
+        const enemyDensity = localStorage.getItem('enemyDensity') || 'normal';
+        const healthMultiplier = densityMultipliers[enemyDensity] || 0.5;
+        
+        boss.health = Math.floor(baseHealth * healthMultiplier);
+        boss.maxHealth = boss.health;
+        boss.isBoss = true;
+        boss.moveSpeed = 30; // Base walking speed
+        boss.isNekros = true;
+        
+        // Apply hitbox configuration
+        this.applyHitboxConfig(boss, boss.enemyType);
+        
+        // Nekros specific properties
+        boss.attackCooldown = 0;
+        boss.currentMode = 'walk'; // 'walk' or 'fly'
+        boss.modeTimer = 0;
+        boss.walkModeTime = 12000; // 12 seconds in walk mode (vulnerable)
+        boss.flyModeTime = 6000; // 6 seconds in fly mode (immune)
+        boss.modeChangeTime = boss.walkModeTime; // Start with walk mode time
+        boss.lastModeChange = this.time.now; // Start timer from current time
+        boss.bombardmentCount = 0;
+        boss.barrageFiredCount = 0;
+        boss.isDamageImmune = false; // Immune during flight mode
+        
+        // Set up physics
+        boss.body.setSize(60, 80);
+        boss.body.setOffset(30, 20);
+        
+        // Play walk animation
+        boss.play('nekros-walk');
+        
+        // Add to enemies group
+        this.addEnemyToGroup(boss);
+        
+        // Store boss reference
+        this.boss = boss;
+        
+        // Initialize health threshold tracking
+        this.bossHealthThresholds = new Set([75, 50, 25]);
+        
+        // Create boss health bar
+        this.createNekrosBossHealthBar();
+        
+        // Start Nekros boss AI
+        this.nekrosAITimer = this.time.addEvent({
+            delay: 100 / this.speedMultiplier, // More frequent updates for complex behavior
+            callback: () => this.updateNekrosAI(),
+            loop: true,
+            paused: false
+        });
+    }
+    
     createArcherBossHealthBar() {
         // Boss health bar background
         const barWidth = 600;
@@ -28168,6 +30836,34 @@ class GameScene extends Phaser.Scene {
         
         // Boss name
         this.bossNameText = this.add.text(400, 25, 'ARCANE ARCHER', {
+            fontSize: '20px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        this.bossNameText.setOrigin(0.5);
+        this.bossNameText.setScrollFactor(0);
+        this.bossNameText.setDepth(102);
+    }
+    
+    createNekrosBossHealthBar() {
+        // Boss health bar background
+        const barWidth = 600;
+        const barHeight = 30;
+        
+        this.bossHealthBarBg = this.add.rectangle(400, 550, barWidth, barHeight, 0x000000);
+        this.bossHealthBarBg.setStrokeStyle(3, 0x8a2be2); // Purple border for Nekros
+        this.bossHealthBarBg.setScrollFactor(0);
+        this.bossHealthBarBg.setDepth(100);
+        
+        // Boss health bar fill
+        this.bossHealthBar = this.add.rectangle(400, 550, barWidth - 6, barHeight - 6, 0x8a2be2); // Purple fill
+        this.bossHealthBar.setScrollFactor(0);
+        this.bossHealthBar.setDepth(101);
+        
+        // Boss name
+        this.bossNameText = this.add.text(400, 520, 'NEKROS, FIST OF THE DEAD', {
             fontSize: '20px',
             color: '#ffffff',
             fontStyle: 'bold',
@@ -28599,6 +31295,8 @@ class GameScene extends Phaser.Scene {
         laserWarning.setDepth(9); // Below other objects
         
         // Aim at player with slight prediction
+        if (!this.wizard || !this.wizard.active) return;
+        
         const playerVelX = this.wizard.body ? this.wizard.body.velocity.x : 0;
         const playerVelY = this.wizard.body ? this.wizard.body.velocity.y : 0;
         const predictTime = 0.3; // Predict player position 0.3 seconds ahead
@@ -28654,8 +31352,15 @@ class GameScene extends Phaser.Scene {
                 
                 // Fire actual laser
                 const laser = this.physics.add.sprite(this.boss.x, this.boss.y, 'boss-laser', 0);
-                // Add laser to projectiles group for collision detection
-                this.projectiles.add(laser);
+                
+                // Configure physics body for laser
+                if (laser.body) {
+                    laser.body.setSize(300, 20);
+                    laser.body.enable = false; // Disable physics since we use manual collision
+                }
+                
+                // Don't add to projectiles group to avoid physics collision issues
+                // this.projectiles.add(laser);
                 // Calculate distance for laser length
                 const distance = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, predictedX, predictedY);
                 // Scale laser to reach far beyond predicted position
@@ -28705,6 +31410,8 @@ class GameScene extends Phaser.Scene {
                     if (!laser || !laser.active) return;
                     
                     // Check laser collision with player
+                    if (!this.wizard || !this.wizard.active || !this.boss || !this.boss.active) return;
+                    
                     const laserLine = new Phaser.Geom.Line(
                         this.boss.x, 
                         this.boss.y,
@@ -28719,6 +31426,21 @@ class GameScene extends Phaser.Scene {
                     // Only damage if not paused or in chest selection
                     if (laserDistance < 30 && !this.isPaused && !this.chestOpening && !this.chestSelectionActive) {
                         this.damagePlayer(50, this.boss);
+                    }
+                    
+                    // Check laser collision with runes manually
+                    if (this.runeGroup) {
+                        this.runeGroup.children.entries.forEach(rune => {
+                            if (rune && rune.active && rune.isRune) {
+                                const runePoint = new Phaser.Geom.Point(rune.x, rune.y);
+                                const runeDistance = Phaser.Geom.Line.GetShortestDistance(laserLine, runePoint);
+                                
+                                if (runeDistance < 30) {
+                                    // Call the same function that physics overlap would call
+                                    this.laserHitRune(laser, rune);
+                                }
+                            }
+                        });
                     }
                 });
             }
@@ -29007,6 +31729,366 @@ class GameScene extends Phaser.Scene {
             // After attack, roll to reposition
             this.archerBossRollAttack();
             this.boss.attackSequence = 0; // Reset sequence
+        }
+    }
+    
+    updateNekrosAI() {
+        if (!this.boss || !this.boss.active || this.boss.health <= 0 || this.boss.isDying || this.boss.isDead) return;
+        
+        // Don't update boss during pause or chest opening
+        if (this.isPaused || this.chestOpening || this.chestSelectionActive) return;
+        
+        // Always update boss health bar
+        const healthPercent = this.boss.health / this.boss.maxHealth;
+        if (this.bossHealthBar) {
+            this.bossHealthBar.width = (600 - 6) * healthPercent;
+        }
+        
+        // Check for health threshold enemy wave spawns
+        const currentHealthPercentage = Math.floor(healthPercent * 100);
+        if (this.bossHealthThresholds) {
+            for (let threshold of this.bossHealthThresholds) {
+                if (currentHealthPercentage <= threshold) {
+                    this.spawnBossHealthThresholdWave(threshold);
+                    this.bossHealthThresholds.delete(threshold);
+                    break;
+                }
+            }
+        }
+        
+        // Mode switching logic
+        const currentTime = this.time.now;
+        const timeSinceLastChange = currentTime - this.boss.lastModeChange;
+        
+        // Debug logging
+        if (this.boss.enemyType === 'nekros-boss' && Math.floor(timeSinceLastChange / 1000) % 2 === 0) {
+            console.log(`Nekros mode check: currentMode=${this.boss.currentMode}, timeSinceLastChange=${timeSinceLastChange}, modeChangeTime=${this.boss.modeChangeTime}, should switch=${timeSinceLastChange > this.boss.modeChangeTime}`);
+        }
+        
+        if (currentTime - this.boss.lastModeChange > this.boss.modeChangeTime) {
+            this.boss.lastModeChange = currentTime;
+            
+            if (this.boss.currentMode === 'walk') {
+                // Switch to fly mode
+                this.boss.currentMode = 'fly';
+                this.boss.isDamageImmune = true;
+                this.boss.modeChangeTime = this.boss.flyModeTime; // Set next change time
+                this.boss.bombardmentCount = 0;
+                this.boss.play('nekros-fly');
+                this.boss.moveSpeed = 100; // Faster in flight
+                
+                // Visual effect for mode change - use arcane spell as flash
+                const flash = this.add.sprite(this.boss.x, this.boss.y, 'arcane-spell');
+                flash.setScale(2);
+                flash.setDepth(this.boss.depth + 1);
+                flash.play('arcane-spell-fire');
+                flash.setAlpha(0.8);
+                
+                // Fade out effect
+                this.tweens.add({
+                    targets: flash,
+                    alpha: 0,
+                    scale: 3,
+                    duration: 500,
+                    onComplete: () => flash.destroy()
+                });
+                
+                // Remove tint - immunity is shown by flight mode itself
+                console.log('Nekros switched to FLY mode, isDamageImmune:', this.boss.isDamageImmune, 'Next change in:', this.boss.flyModeTime, 'ms');
+            } else {
+                // Switch to walk mode
+                this.boss.currentMode = 'walk';
+                this.boss.isDamageImmune = false;
+                this.boss.modeChangeTime = this.boss.walkModeTime; // Set next change time
+                this.boss.barrageFiredCount = 0;
+                this.boss.play('nekros-walk');
+                this.boss.moveSpeed = 30; // Normal walking speed
+                this.boss.clearTint();
+                
+                // Add "VULNERABLE" text above boss
+                const vulnerableText = this.add.text(this.boss.x, this.boss.y - 100, 'VULNERABLE!', {
+                    fontSize: '24px',
+                    color: '#00ff00',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 4
+                });
+                vulnerableText.setOrigin(0.5);
+                vulnerableText.setDepth(150);
+                
+                this.tweens.add({
+                    targets: vulnerableText,
+                    y: vulnerableText.y - 50,
+                    alpha: 0,
+                    duration: 3000,
+                    ease: 'Power2',
+                    onComplete: () => vulnerableText.destroy()
+                });
+                
+                console.log('Nekros switched to WALK mode, isDamageImmune:', this.boss.isDamageImmune, 'Next change in:', this.boss.walkModeTime, 'ms');
+            }
+        }
+        
+        // Execute behavior based on current mode
+        if (this.boss.currentMode === 'fly') {
+            this.updateNekrosFlyMode();
+        } else {
+            this.updateNekrosWalkMode();
+        }
+    }
+    
+    updateNekrosFlyMode() {
+        // Bombardment attack pattern
+        if (this.boss.bombardmentCount < 4) {
+            if (!this.boss.isBombarding) {
+                this.boss.isBombarding = true;
+                
+                // Calculate bombardment trajectory - aim past the player
+                const angle = Phaser.Math.Angle.Between(
+                    this.boss.x, this.boss.y,
+                    this.wizard.x, this.wizard.y
+                );
+                
+                // Calculate a point beyond the player
+                const flyDistance = 400; // Distance to fly past player
+                const targetX = this.wizard.x + Math.cos(angle) * flyDistance;
+                const targetY = this.wizard.y + Math.sin(angle) * flyDistance;
+                
+                // Set velocity for bombardment run
+                const speed = this.boss.moveSpeed * 2.5; // Faster speed for bombardment
+                this.boss.setVelocity(
+                    Math.cos(angle) * speed,
+                    Math.sin(angle) * speed
+                );
+                
+                // Keep flying animation during bombardment
+                this.boss.play('nekros-fly');
+                
+                // Create poison bomb trail with zigzag pattern
+                let bombCount = 0;
+                this.nekrosBombTrailTimer = this.time.addEvent({
+                    delay: 150,
+                    callback: () => {
+                        this.createPoisonBomb(this.boss.x, this.boss.y);
+                        
+                        // Add zigzag movement
+                        bombCount++;
+                        const zigzagAngle = angle + (Math.sin(bombCount * 0.5) * 0.8);
+                        this.boss.setVelocity(
+                            Math.cos(zigzagAngle) * speed,
+                            Math.sin(zigzagAngle) * speed
+                        );
+                    },
+                    repeat: 12, // More bombs for longer trail
+                    callbackScope: this
+                });
+                
+                // End bombardment run after longer distance
+                this.time.delayedCall(2500, () => {
+                    this.boss.isBombarding = false;
+                    this.boss.bombardmentCount++;
+                    this.boss.setVelocity(0, 0);
+                    
+                    if (this.nekrosBombTrailTimer) {
+                        this.nekrosBombTrailTimer.destroy();
+                    }
+                    
+                    // Return to flying animation
+                    this.boss.play('nekros-fly');
+                });
+            }
+        } else {
+            // Bombardment complete, just hover/move around until mode switches
+            // Simple movement pattern while waiting
+            const angle = Phaser.Math.Angle.Between(
+                this.boss.x, this.boss.y,
+                this.wizard.x, this.wizard.y
+            );
+            
+            // Circle around player at distance
+            const circleAngle = angle + Math.PI / 2;
+            const speed = this.boss.moveSpeed * 0.5;
+            this.boss.setVelocity(
+                Math.cos(circleAngle) * speed,
+                Math.sin(circleAngle) * speed
+            );
+        }
+    }
+    
+    updateNekrosWalkMode() {
+        // Circle around player while shooting orb barrages
+        const distance = Phaser.Math.Distance.Between(
+            this.boss.x, this.boss.y,
+            this.wizard.x, this.wizard.y
+        );
+        
+        const angle = Phaser.Math.Angle.Between(
+            this.boss.x, this.boss.y,
+            this.wizard.x, this.wizard.y
+        );
+        
+        // Maintain distance of 200-300 pixels
+        if (!this.boss.isFiringBarrage) {
+            let moveAngle = angle;
+            let shouldMove = true;
+            
+            if (distance < 200) {
+                // Too close - move away
+                moveAngle = angle + Math.PI;
+            } else if (distance > 300) {
+                // Too far - move closer
+                moveAngle = angle;
+            } else {
+                // Circle around player
+                moveAngle = angle + Math.PI / 2;
+            }
+            
+            if (shouldMove) {
+                const speed = this.boss.moveSpeed;
+                this.boss.setVelocity(
+                    Math.cos(moveAngle) * speed,
+                    Math.sin(moveAngle) * speed
+                );
+                
+                // Face the player
+                if (Math.cos(angle) < 0) {
+                    this.boss.setFlipX(true);
+                } else {
+                    this.boss.setFlipX(false);
+                }
+            }
+        } else {
+            // Stop while firing
+            this.boss.setVelocity(0, 0);
+        }
+        
+        // Fire orb barrage periodically
+        if (this.boss.barrageFiredCount < 4 && !this.boss.isFiringBarrage && this.boss.attackCooldown <= 0) {
+            this.boss.isFiringBarrage = true;
+            this.boss.attackCooldown = 3000;
+            this.boss.play('nekros-attack1');
+            
+            // Fire circular pattern of orbs
+            this.time.delayedCall(500, () => {
+                if (this.boss && this.boss.active) {
+                    this.createOrbBarrage();
+                    this.boss.barrageFiredCount++;
+                    
+                    this.time.delayedCall(1000, () => {
+                        if (this.boss && this.boss.active) {
+                            this.boss.isFiringBarrage = false;
+                            this.boss.play('nekros-walk');
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Reduce cooldown
+        if (this.boss.attackCooldown > 0) {
+            this.boss.attackCooldown -= 100;
+        }
+    }
+    
+    createPoisonBomb(x, y) {
+        const bomb = this.physics.add.sprite(x, y, 'poison-spell');
+        bomb.play('poison-spell-anim');
+        bomb.setScale(0.8);
+        bomb.setDepth(15);
+        bomb.setTint(0x8B00FF); // Purple tint instead of green
+        
+        // Bomb drops to ground then explodes after delay
+        this.time.delayedCall(2000, () => {
+            if (bomb.active) {
+                // Create poison cloud
+                const cloud = this.physics.add.sprite(bomb.x, bomb.y, 'poison-spell');
+                cloud.play('poison-spell-anim');
+                cloud.setScale(2);
+                cloud.setAlpha(0.6);
+                cloud.setDepth(10);
+                cloud.setTint(0x8B00FF); // Purple tint
+                
+                // Poison cloud damages and poisons player if touched
+                this.physics.add.overlap(this.wizard, cloud, () => {
+                    if (!this.wizard.isPoisoned) {
+                        this.wizard.isPoisoned = true;
+                        this.wizard.setTint(0x00FF00);
+                        
+                        // Apply poison damage over time
+                        let poisonTicks = 5;
+                        const poisonTimer = this.time.addEvent({
+                            delay: 1000,
+                            callback: () => {
+                                if (this.wizard.active && poisonTicks > 0) {
+                                    this.wizard.health -= 1;
+                                    this.updateHealthBar();
+                                    this.showDamageNumber(this.wizard.x, this.wizard.y - 30, 1, '#00FF00');
+                                    poisonTicks--;
+                                    
+                                    if (poisonTicks <= 0) {
+                                        this.wizard.isPoisoned = false;
+                                        this.wizard.clearTint();
+                                        poisonTimer.destroy();
+                                    }
+                                    
+                                    if (this.wizard.health <= 0) {
+                                        this.gameOver();
+                                    }
+                                }
+                            },
+                            repeat: 4
+                        });
+                    }
+                });
+                
+                // Cloud dissipates after 3 seconds
+                this.tweens.add({
+                    targets: cloud,
+                    alpha: 0,
+                    scale: 3,
+                    duration: 3000,
+                    onComplete: () => cloud.destroy()
+                });
+                
+                bomb.destroy();
+            }
+        });
+    }
+    
+    createOrbBarrage() {
+        const orbCount = 16; // Number of orbs in circular pattern
+        const baseSpeed = 150;
+        
+        for (let i = 0; i < orbCount; i++) {
+            const angle = (Math.PI * 2 / orbCount) * i;
+            
+            const orb = this.physics.add.sprite(this.boss.x, this.boss.y, 'arcane-spell');
+            orb.play('arcane-spell-fire');
+            orb.setScale(0.8);
+            orb.setDepth(20);
+            orb.setTint(0x8B00FF); // Purple orbs
+            
+            // Set damage
+            orb.damage = 10;
+            orb.isEnemyProjectile = true;
+            
+            // Add to enemy projectiles group first
+            this.enemyProjectiles.add(orb);
+            
+            // Ensure physics body is enabled
+            orb.body.enable = true;
+            orb.body.setSize(20, 20);
+            
+            // Set velocity after adding to group
+            orb.setVelocity(
+                Math.cos(angle) * baseSpeed,
+                Math.sin(angle) * baseSpeed
+            );
+            
+            // Destroy after 3 seconds
+            this.time.delayedCall(3000, () => {
+                if (orb.active) orb.destroy();
+            });
         }
     }
     
@@ -29568,9 +32650,63 @@ class GameScene extends Phaser.Scene {
     }
     
     handleBossDeath(boss) {
+        // Fade out and stop boss music
+        if (this.bossMusic && this.bossMusic.isPlaying) {
+            this.tweens.add({
+                targets: this.bossMusic,
+                volume: 0,
+                duration: 1000,
+                ease: 'Power2',
+                onComplete: () => {
+                    if (this.bossMusic) {
+                        this.bossMusic.stop();
+                        this.bossMusic.destroy();
+                        this.bossMusic = null;
+                    }
+                }
+            });
+        }
+        
+        // Also stop intro music if still playing (for archer boss)
+        if (this.bossIntroMusic && this.bossIntroMusic.isPlaying) {
+            this.bossIntroMusic.stop();
+            this.bossIntroMusic.destroy();
+            this.bossIntroMusic = null;
+        }
+        
+        // Restart stage music after boss death
+        if (this.bgMusic && !this.bgMusic.isPlaying) {
+            this.time.delayedCall(2000, () => {
+                if (this.bgMusic && !this.gameEnded) {
+                    this.bgMusic.play();
+                    // Fade in stage music
+                    this.tweens.add({
+                        targets: this.bgMusic,
+                        volume: 0.5,
+                        duration: 2000,
+                        ease: 'Power2'
+                    });
+                }
+            });
+        }
+        
         // Play appropriate death animation based on boss type
         if (boss.isArcherBoss) {
             boss.play('archer-boss-death');
+        } else if (boss.isNekros) {
+            // Stop Nekros AI timer to prevent animation changes
+            if (this.nekrosAITimer) {
+                this.nekrosAITimer.destroy();
+                this.nekrosAITimer = null;
+            }
+            if (this.nekrosBombTrailTimer) {
+                this.nekrosBombTrailTimer.destroy();
+                this.nekrosBombTrailTimer = null;
+            }
+            // Mark as dead to prevent any animation updates
+            boss.isDead = true;
+            boss.anims.stop();
+            boss.play('nekros-death');
         } else {
             boss.play('obelisk-death');
         }
@@ -29603,7 +32739,12 @@ class GameScene extends Phaser.Scene {
         this.cameras.main.shake(1000, 0.02);
         
         // Wait for death animation
-        boss.once('animationcomplete', () => {
+        boss.once('animationcomplete', (animation, frame) => {
+            // Only proceed if this was the death animation
+            if (animation.key !== 'nekros-death' && animation.key !== 'archer-boss-death' && animation.key !== 'obelisk-death') {
+                return;
+            }
+            
             // Drop massive rewards
             for (let i = 0; i < 10; i++) {
                 const angle = (Math.PI * 2 * i) / 10;
@@ -29632,9 +32773,19 @@ class GameScene extends Phaser.Scene {
         if (this.gameWonCalled) return;
         this.gameWonCalled = true;
         
-        // Stop background music
+        // Stop all music
         if (this.bgMusic) {
             this.bgMusic.stop();
+        }
+        if (this.bossMusic) {
+            this.bossMusic.stop();
+            this.bossMusic.destroy();
+            this.bossMusic = null;
+        }
+        if (this.bossIntroMusic) {
+            this.bossIntroMusic.stop();
+            this.bossIntroMusic.destroy();
+            this.bossIntroMusic = null;
         }
         
         // Stop the game
@@ -29685,6 +32836,52 @@ class GameScene extends Phaser.Scene {
                     });
                 });
             }
+        });
+    }
+
+    gameOver() {
+        // Stop background music
+        if (this.bgMusic) {
+            this.bgMusic.stop();
+        }
+        
+        // Stop boss music if playing
+        if (this.bossMusic && this.bossMusic.isPlaying) {
+            this.tweens.add({
+                targets: this.bossMusic,
+                volume: 0,
+                duration: 1000,
+                onComplete: () => {
+                    if (this.bossMusic) {
+                        this.bossMusic.stop();
+                        this.bossMusic.destroy();
+                        this.bossMusic = null;
+                    }
+                }
+            });
+        }
+        
+        // Play death animation
+        this.wizard.play('wizard-death');
+        this.wizard.setVelocity(0, 0); // Stop movement
+        
+        // Disable wizard physics to prevent further collisions
+        if (this.wizard.body) {
+            this.wizard.body.enable = false;
+        }
+
+        // Wait for death animation to complete
+        this.wizard.once('animationcomplete', () => {
+            // Clear any pending timers before changing scene
+            console.error('WIZARD DEATH: Killing all tweens!');
+            this.time.removeAllEvents();
+            this.tweens.killAll();
+            this.scene.start('GameOverScene', {
+                survivalTime: this.survivalTime,
+                enemiesKilled: this.enemiesKilled,
+                itemsCollected: this.itemsCollected,
+                won: false
+            });
         });
     }
 }
@@ -29748,7 +32945,7 @@ const config = {
         premultipliedAlpha: true,
         failIfMajorPerformanceCaveat: false
     },
-    scene: [LoadingScene, TitleScene, StageSelectScene, TalentTreeScene, GameScene, GameOverScene, UltraOptimizedGameScene]
+    scene: [LoadingScene, TitleScene, StageSelectScene, ArcadeScene, TalentTreeScene, GameScene, GameOverScene, UltraOptimizedGameScene]
 };
 
 const game = new Phaser.Game(config);

@@ -18,8 +18,8 @@ class ChunkManager {
         this.tilePatterns = {
             forest: {
                 base: 'grass-tile',
-                decorations: ['tree'], // Simplified - only use textures we know exist
-                decorationDensity: 0.1
+                decorations: [], // Remove tree decorations - handled by ObstacleManager
+                decorationDensity: 0
             },
             cave: {
                 base: 'stone-tile',
