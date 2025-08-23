@@ -1,6 +1,11 @@
 const { app, BrowserWindow, Menu, globalShortcut } = require('electron');
 const path = require('path');
 
+// Disable V-Sync for higher FPS but cap at reasonable rate
+app.commandLine.appendSwitch('disable-gpu-vsync');
+// Don't completely disable frame rate limit - that causes 700+ FPS
+// app.commandLine.appendSwitch('disable-frame-rate-limit');
+
 let mainWindow;
 
 function createWindow() {
@@ -11,7 +16,11 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      webSecurity: true
+      webSecurity: true,
+      // Disable V-Sync and throttling for higher FPS
+      backgroundThrottling: false,
+      webgl: true,
+      disableBlinkFeatures: 'RenderingPipelineThrottling'
     },
     icon: path.join(__dirname, 'zodiac.png'),
     backgroundColor: '#11130d',
