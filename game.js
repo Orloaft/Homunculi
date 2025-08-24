@@ -536,8 +536,34 @@ class LoadingScene extends Phaser.Scene {
         // Load kawaii muffin sprite
         this.load.image('muffin', 'Kawaii choco muffin.png');
         
-        // Load shield as a glowing circle/orb sprite (using element orb as placeholder)
-        this.load.image('shield', 'elements3.PNG');
+        // Load jar of butterflies sprite
+        this.load.image('butterflyjar', 'butterflyjar.PNG');
+        
+        // Load butterfly sprites
+        this.load.spritesheet('butterfly-blue', 'Butterfly/Blue.png', {
+            frameWidth: 16,
+            frameHeight: 16
+        });
+        this.load.spritesheet('butterfly-grey', 'Butterfly/Grey.png', {
+            frameWidth: 16,
+            frameHeight: 16
+        });
+        this.load.spritesheet('butterfly-pink', 'Butterfly/Pink.png', {
+            frameWidth: 16,
+            frameHeight: 16
+        });
+        this.load.spritesheet('butterfly-red', 'Butterfly/Red.png', {
+            frameWidth: 16,
+            frameHeight: 16
+        });
+        this.load.spritesheet('butterfly-white', 'Butterfly/White.png', {
+            frameWidth: 16,
+            frameHeight: 16
+        });
+        this.load.spritesheet('butterfly-yellow', 'Butterfly/Yellow.png', {
+            frameWidth: 16,
+            frameHeight: 16
+        });
         
         // Load flamethrower sprite (using fire spell sprite)
         this.load.image('flamethrower', 'spells/fire1.png');
@@ -765,15 +791,15 @@ class TitleScene extends Phaser.Scene {
         });
 
         // Start text appears after title
-        const startText = this.add.text(400, 400, 'Press SPACE or A to Start', {
+        this.startText = this.add.text(400, 400, 'Press SPACE or A to Start', {
             fontSize: '28px',
             color: '#aaffaa'
         }).setOrigin(0.5);
-        startText.setAlpha(0); // Start invisible
+        this.startText.setAlpha(0); // Start invisible
         
         // Fade in start text after title
         this.tweens.add({
-            targets: startText,
+            targets: this.startText,
             alpha: 1,
             duration: 1000,
             delay: 2500, // Appears after title is visible
@@ -782,7 +808,7 @@ class TitleScene extends Phaser.Scene {
 
         // Pulsing animation starts after text is visible
         this.tweens.add({
-            targets: startText,
+            targets: this.startText,
             alpha: 0.3,
             duration: 1000,
             delay: 3500, // Start pulsing after text has faded in
@@ -835,7 +861,7 @@ class TitleScene extends Phaser.Scene {
         // Store keyboard listener function so we can re-add it if needed
         this.spaceKeyHandler = () => {
             if (!this.optionsMenu && !this.isTransitioning) {
-                this.animateStartTextAndTransition(startText);
+                this.animateStartTextAndTransition(this.startText);
             }
         };
         
@@ -885,12 +911,9 @@ class TitleScene extends Phaser.Scene {
                 const selectJustPressed = pad.buttons[8].pressed && !this.prevButtonStates.select;
                 
                 if ((aJustPressed || startJustPressed) && !this.isTransitioning && !this.optionsMenu) {
-                    // Find the start text by its text content
-                    const startText = this.children.list.find(child => 
-                        child.text && child.text.includes('Press SPACE')
-                    );
-                    if (startText) {
-                        this.animateStartTextAndTransition(startText);
+                    // Use the stored startText reference
+                    if (this.startText) {
+                        this.animateStartTextAndTransition(this.startText);
                     }
                 }
                 
@@ -2578,6 +2601,9 @@ class StageSelectScene extends Phaser.Scene {
     }
 
     update() {
+        // Skip input during cooldown period
+        if (!this.inputEnabled) return;
+        
         // Handle gamepad
         const pad = this.input.gamepad ? this.input.gamepad.pad1 : null;
 
@@ -6090,6 +6116,9 @@ class GameScene extends Phaser.Scene {
         // Flag to prevent animation calls before they're created
         this.animationsReady = false;
         
+        // Create shadow for wizard
+        this.createShadowFor(this.wizard, 25, 12);
+        
         // Create player visibility indicators
         this.createPlayerIndicators();
 
@@ -6764,6 +6793,17 @@ class GameScene extends Phaser.Scene {
             ],
             frameRate: 10,
             repeat: 0
+        });
+        
+        // Create butterfly animations
+        const butterflyColors = ['blue', 'grey', 'pink', 'red', 'white', 'yellow'];
+        butterflyColors.forEach(color => {
+            createAnimIfNotExists({
+                key: `butterfly-${color}-fly`,
+                frames: this.anims.generateFrameNumbers(`butterfly-${color}`, { start: 0, end: 4 }),
+                frameRate: 10,
+                repeat: -1
+            });
         });
         
         // Create Club Imp animations
@@ -7545,7 +7585,7 @@ class GameScene extends Phaser.Scene {
             'snow': 'snowland-title'
         };
         
-        return stageImageKeys[this.currentStage] || 'forestland-title';
+        return stageImageKeys[this.stage] || 'forestland-title';
     }
     
     getStageName() {
@@ -8836,6 +8876,10 @@ class GameScene extends Phaser.Scene {
         // Update regular charge indicators (0-7)
         for (let i = 0; i < 8; i++) {
             if (i < this.chargeIndicators.length) {
+                // Reset background scale and tint in case it was changed by obelisk functions
+                this.chargeIndicators[i].bg.setScale(0.108);
+                this.chargeIndicators[i].bg.clearTint();
+                
                 const element = this.chargeSlots ? this.chargeSlots[i] : null;
                 if (element) {
                     const config = this.elementConfig[element];
@@ -8863,6 +8907,15 @@ class GameScene extends Phaser.Scene {
         // Update pouch indicators (8-11)
         if (this.extraChargeIndicators) {
             for (let i = 0; i < 4; i++) {
+                // Reset background scale and style in case it was changed by obelisk functions
+                if (this.extraChargeIndicators[i].bg.setScale) {
+                    this.extraChargeIndicators[i].bg.setScale(1);
+                }
+                if (this.extraChargeIndicators[i].bg.setFillStyle) {
+                    this.extraChargeIndicators[i].bg.setFillStyle(0x2a4a2a, 0.7);
+                    this.extraChargeIndicators[i].bg.setStrokeStyle(2, 0x4a6a4a);
+                }
+                
                 const element = this.elementPouch ? this.elementPouch[i] : null;
                 if (element) {
                     const config = this.elementConfig[element];
@@ -8881,29 +8934,75 @@ class GameScene extends Phaser.Scene {
     highlightChargeIndicator(index, highlight) {
         if (index < 8 && this.chargeIndicators && this.chargeIndicators[index]) {
             if (highlight) {
-                // Use tint and scale for image objects
+                // Apply glow effect instead of scaling
                 this.chargeIndicators[index].bg.setTint(0xffff00);
-                this.chargeIndicators[index].bg.setScale(0.13);
-                this.chargeIndicators[index].sprite.setScale(0.15);
+                this.chargeIndicators[index].sprite.setTint(0xffffaa);
+                
+                // Create glow effect if it doesn't exist
+                if (!this.chargeIndicators[index].glow) {
+                    const glow = this.add.image(this.chargeIndicators[index].bg.x, this.chargeIndicators[index].bg.y, 'grey-socket-select');
+                    glow.setScale(0.12);
+                    glow.setAlpha(0.8);
+                    glow.setDepth(this.chargeIndicators[index].bg.depth - 1);
+                    this.chargeIndicators[index].glow = glow;
+                    
+                    // Pulsing animation for glow
+                    this.tweens.add({
+                        targets: glow,
+                        alpha: { from: 0.4, to: 0.9 },
+                        scale: { from: 0.11, to: 0.13 },
+                        duration: 600,
+                        yoyo: true,
+                        repeat: -1,
+                        ease: 'Sine.easeInOut'
+                    });
+                }
             } else {
-                // Reset tint and scale
+                // Remove glow effect
                 this.chargeIndicators[index].bg.setTint(0xffffff);
-                this.chargeIndicators[index].bg.setScale(0.108);
-                this.chargeIndicators[index].sprite.setScale(0.1);
+                this.chargeIndicators[index].sprite.setTint(0xffffff);
+                
+                if (this.chargeIndicators[index].glow) {
+                    this.chargeIndicators[index].glow.destroy();
+                    this.chargeIndicators[index].glow = null;
+                }
             }
         } else if (index >= 8 && this.extraChargeIndicators) {
             const pouchIndex = index - 8;
             if (this.extraChargeIndicators[pouchIndex]) {
                 if (highlight) {
-                    // Use tint and scale for image objects
+                    // Apply glow effect instead of scaling
                     this.extraChargeIndicators[pouchIndex].bg.setTint(0xffff00);
-                    this.extraChargeIndicators[pouchIndex].bg.setScale(0.13);
-                    this.extraChargeIndicators[pouchIndex].sprite.setScale(0.15);
+                    this.extraChargeIndicators[pouchIndex].sprite.setTint(0xffffaa);
+                    
+                    // Create glow effect if it doesn't exist
+                    if (!this.extraChargeIndicators[pouchIndex].glow) {
+                        const glow = this.add.image(this.extraChargeIndicators[pouchIndex].bg.x, this.extraChargeIndicators[pouchIndex].bg.y, 'grey-socket-select');
+                        glow.setScale(0.12);
+                        glow.setAlpha(0.8);
+                        glow.setDepth(this.extraChargeIndicators[pouchIndex].bg.depth - 1);
+                        this.extraChargeIndicators[pouchIndex].glow = glow;
+                        
+                        // Pulsing animation for glow
+                        this.tweens.add({
+                            targets: glow,
+                            alpha: { from: 0.4, to: 0.9 },
+                            scale: { from: 0.11, to: 0.13 },
+                            duration: 600,
+                            yoyo: true,
+                            repeat: -1,
+                            ease: 'Sine.easeInOut'
+                        });
+                    }
                 } else {
-                    // Reset tint and scale
+                    // Remove glow effect
                     this.extraChargeIndicators[pouchIndex].bg.setTint(0xffffff);
-                    this.extraChargeIndicators[pouchIndex].bg.setScale(0.108);
-                    this.extraChargeIndicators[pouchIndex].sprite.setScale(0.1);
+                    this.extraChargeIndicators[pouchIndex].sprite.setTint(0xffffff);
+                    
+                    if (this.extraChargeIndicators[pouchIndex].glow) {
+                        this.extraChargeIndicators[pouchIndex].glow.destroy();
+                        this.extraChargeIndicators[pouchIndex].glow = null;
+                    }
                 }
             }
         }
@@ -9889,10 +9988,10 @@ class GameScene extends Phaser.Scene {
         // Start slower and ramp up more gradually
         this.spawnRateMultiplier = 1 + (currentMinute * 0.3); // 30% faster each minute instead of 50%
 
-        // Spawn elite enemy every 30 seconds, but start after 1 minute
-        const current30Seconds = Math.floor(this.survivalTime / 30000);
-        if (current30Seconds > this.lastEliteSpawn && this.survivalTime > 60000) {
-            this.lastEliteSpawn = current30Seconds;
+        // Spawn elite enemy every 60 seconds (reduced from 30), but start after 2 minutes
+        const current60Seconds = Math.floor(this.survivalTime / 60000);
+        if (current60Seconds > this.lastEliteSpawn && this.survivalTime > 120000) {
+            this.lastEliteSpawn = current60Seconds;
             this.spawnEliteEnemy();
         }
 
@@ -10360,6 +10459,12 @@ class GameScene extends Phaser.Scene {
 
         this.wizard.setVelocity(velocityX, velocityY);
 
+        // Update wizard shadow position
+        if (this.wizard.shadow) {
+            this.wizard.shadow.x = this.wizard.x;
+            this.wizard.shadow.y = this.wizard.y + 20;
+        }
+
         // Direction is preserved when not moving, no need to change it
 
         // Update debug directional line
@@ -10639,7 +10744,8 @@ class GameScene extends Phaser.Scene {
             if (enemy.x < camLeft || enemy.x > camRight || 
                 enemy.y < camTop || enemy.y > camBottom) {
                 // For off-screen enemies, still update movement toward player but skip expensive operations
-                if (enemy.body && !enemy.stunned && !enemy.frozen) {
+                // Skip bosses and obelisk boss which should not move
+                if (enemy.body && !enemy.stunned && !enemy.frozen && !enemy.isBoss && !enemy.isObeliskBoss) {
                     const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
                     // Use proper enemy speed with multipliers for off-screen enemies too
                     let moveSpeed = (enemy.moveSpeed || (enemy.enemyType === 'tree' ? 48 : 60)) * this.speedMultiplier;
@@ -10888,6 +10994,12 @@ class GameScene extends Phaser.Scene {
                     enemy.body.velocity.x * 0.85,
                     enemy.body.velocity.y * 0.85
                 );
+            }
+            
+            // Update enemy shadow position
+            if (enemy.shadow && enemy.shadow.active) {
+                enemy.shadow.x = enemy.x;
+                enemy.shadow.y = enemy.y + 20;
             }
         }
 
@@ -13934,8 +14046,8 @@ class GameScene extends Phaser.Scene {
             enemy.once('animationcomplete', () => {
                 // Only split if not already too small (max 2 splits)
                 if (generation < 2) {
-                    // Drop chest if this is an elite's first split
-                    if (enemy.isElite && generation === 0) {
+                    // Drop chest if this is an elite's first split (50% chance)
+                    if (enemy.isElite && generation === 0 && Math.random() < 0.5) {
                         this.dropChest(deathX, deathY);
                     }
 
@@ -13968,7 +14080,7 @@ class GameScene extends Phaser.Scene {
                         this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
                     } else if (dropRoll < 0.0175) {
                         // 0.5% chance to drop shield
-                        this.dropStandaloneItem(deathX, deathY + 20, 'shield');
+                        this.dropStandaloneItem(deathX, deathY + 20, 'butterflyjar');
                     } else if (dropRoll < 0.0225) {
                         // 0.5% chance to drop flamethrower
                         this.dropStandaloneItem(deathX, deathY + 20, 'flamethrower');
@@ -14072,7 +14184,7 @@ class GameScene extends Phaser.Scene {
                         this.dropStandaloneItem(deathX, deathY - 20, 'muffin');
                     } else if (dropRoll < 0.085) {
                         // 1% chance to drop shield
-                        this.dropStandaloneItem(deathX, deathY - 20, 'shield');
+                        this.dropStandaloneItem(deathX, deathY - 20, 'butterflyjar');
                     } else if (dropRoll < 0.095) {
                         // 1% chance to drop flamethrower
                         this.dropStandaloneItem(deathX, deathY - 20, 'flamethrower');
@@ -14122,7 +14234,7 @@ class GameScene extends Phaser.Scene {
                         this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
                     } else if (dropRoll < 0.0175) {
                         // 0.5% chance to drop shield
-                        this.dropStandaloneItem(deathX, deathY + 20, 'shield');
+                        this.dropStandaloneItem(deathX, deathY + 20, 'butterflyjar');
                     } else if (dropRoll < 0.0225) {
                         // 0.5% chance to drop flamethrower
                         this.dropStandaloneItem(deathX, deathY + 20, 'flamethrower');
@@ -14512,6 +14624,11 @@ class GameScene extends Phaser.Scene {
         // Add offset to handle negative Y coordinates
         const depth = Math.max(1, Math.floor((enemy.y + 1000) / 10));
         enemy.setDepth(depth);
+        
+        // Update shadow depth to be just below the enemy
+        if (enemy.shadow) {
+            enemy.shadow.setDepth(Math.max(0, depth - 1));
+        }
     }
     
     applyHexCurse(enemy, duration) {
@@ -15078,10 +15195,68 @@ class GameScene extends Phaser.Scene {
     addEnemyToGroup(enemy) {
         this.enemies.add(enemy);
         
+        // Create shadow for enemy
+        this.createShadowFor(enemy);
+        
         // Make enemy interactive for hitbox editor if enabled
         if (this.hitboxEditorEnabled) {
             this.makeEnemyInteractiveForEditor(enemy);
         }
+    }
+    
+    // Helper method to create shadow for sprites
+    createShadowFor(sprite, customWidth = null, customHeight = null) {
+        // Default shadow dimensions based on sprite type
+        let shadowWidth = customWidth || 30;
+        let shadowHeight = customHeight || 15;
+        
+        // Adjust shadow size based on enemy type or sprite scale
+        if (sprite.enemyType) {
+            // Enemy-specific shadow sizes
+            const shadowSizes = {
+                'tree': { width: 35, height: 18 },
+                'slime': { width: 25, height: 12 },
+                'bat': { width: 20, height: 10 },
+                'darkbat': { width: 20, height: 10 },
+                'mushroom': { width: 28, height: 14 },
+                'fireworm': { width: 32, height: 16 },
+                'kobold': { width: 35, height: 18 },
+                'flying-demon': { width: 30, height: 15 },
+                'summoner': { width: 30, height: 15 },
+                'soul': { width: 25, height: 12 },
+                'bloboid': { width: 25, height: 12 },
+                'golem-orange': { width: 40, height: 20 },
+                'golem-blue': { width: 40, height: 20 },
+                'skeleton-yellow': { width: 30, height: 15 },
+                'skeletonseeker': { width: 35, height: 18 },
+                'demon-slime-boss': { width: 60, height: 30 },
+                'obelisk-boss': { width: 50, height: 25 },
+                'sand-obelisk-boss': { width: 50, height: 25 },
+                'nekros-boss': { width: 45, height: 22 },
+                'archer-boss': { width: 40, height: 20 }
+            };
+            
+            if (shadowSizes[sprite.enemyType]) {
+                shadowWidth = shadowSizes[sprite.enemyType].width * (sprite.scaleX || 1);
+                shadowHeight = shadowSizes[sprite.enemyType].height * (sprite.scaleX || 1);
+            }
+        }
+        
+        // Create shadow as dark ellipse
+        const shadow = this.add.ellipse(sprite.x, sprite.y + 20, shadowWidth, shadowHeight, 0x000000, 0.3);
+        shadow.setDepth(0); // Shadows always at depth 0 (below everything)
+        
+        // Store shadow reference on sprite for easy access
+        sprite.shadow = shadow;
+        
+        // Update shadow in sprite's update loop
+        sprite.on('destroy', () => {
+            if (shadow && shadow.active) {
+                shadow.destroy();
+            }
+        });
+        
+        return shadow;
     }
     
     createEnemy(enemyType, x, y) {
@@ -15707,6 +15882,95 @@ class GameScene extends Phaser.Scene {
         });
     }
     
+    activateButterflyJar() {
+        // Reset or activate butterfly protection
+        if (!this.butterflyProtection) {
+            this.butterflyProtection = {
+                active: true,
+                charges: 6, // One charge per butterfly color
+                currentColorIndex: 0,
+                butterflies: [],
+                colors: ['blue', 'grey', 'pink', 'red', 'white', 'yellow']
+            };
+            
+            // Create 3 butterflies
+            for (let i = 0; i < 3; i++) {
+                const angle = (Math.PI * 2 / 3) * i;
+                const butterfly = this.add.sprite(this.wizard.x, this.wizard.y, 'butterfly-blue');
+                butterfly.play('butterfly-blue-fly');
+                butterfly.setScale(1.5);
+                butterfly.setDepth(this.wizard.depth + 1);
+                butterfly.angle = angle;
+                butterfly.orbitRadius = 50;
+                butterfly.orbitSpeed = 2;
+                this.butterflyProtection.butterflies.push(butterfly);
+            }
+            
+            // Update butterfly positions
+            this.butterflyUpdateEvent = this.time.addEvent({
+                delay: 16,
+                callback: () => {
+                    if (this.butterflyProtection && this.butterflyProtection.active) {
+                        this.butterflyProtection.butterflies.forEach((butterfly, index) => {
+                            if (butterfly && butterfly.active) {
+                                // Orbit around wizard
+                                butterfly.angle += butterfly.orbitSpeed * 0.02;
+                                butterfly.x = this.wizard.x + Math.cos(butterfly.angle) * butterfly.orbitRadius;
+                                butterfly.y = this.wizard.y + Math.sin(butterfly.angle) * butterfly.orbitRadius;
+                                
+                                // Face direction of movement
+                                const nextAngle = butterfly.angle + butterfly.orbitSpeed * 0.02;
+                                const dx = Math.cos(nextAngle) - Math.cos(butterfly.angle);
+                                butterfly.setFlipX(dx < 0);
+                            }
+                        });
+                    }
+                },
+                loop: true
+            });
+            
+            // Display butterfly protection indicator
+            this.butterflyIndicator = this.add.text(this.wizard.x, this.wizard.y - 70, '🦋 x6', {
+                fontSize: '20px',
+                color: '#44ffff',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 3
+            });
+            this.butterflyIndicator.setOrigin(0.5);
+            this.butterflyIndicator.setDepth(150);
+            
+        } else if (this.butterflyProtection.active) {
+            // Reset charges if already active
+            this.butterflyProtection.charges = 6;
+            this.butterflyProtection.currentColorIndex = 0;
+            
+            // Update all butterflies to first color
+            const firstColor = this.butterflyProtection.colors[0];
+            this.butterflyProtection.butterflies.forEach(butterfly => {
+                butterfly.stop();
+                butterfly.setTexture(`butterfly-${firstColor}`);
+                butterfly.play(`butterfly-${firstColor}-fly`);
+            });
+            
+            // Update indicator
+            if (this.butterflyIndicator) {
+                this.butterflyIndicator.setText('🦋 x6');
+            }
+            
+            // Flash effect to show reset
+            this.butterflyProtection.butterflies.forEach(butterfly => {
+                this.tweens.add({
+                    targets: butterfly,
+                    scale: { from: 2, to: 1.5 },
+                    alpha: { from: 0.5, to: 1 },
+                    duration: 300,
+                    ease: 'Power2'
+                });
+            });
+        }
+    }
+    
     activateFlamethrower() {
         // Prevent multiple flamethrowers
         if (this.flamethrowerActive) return;
@@ -16012,51 +16276,12 @@ class GameScene extends Phaser.Scene {
 
         // Don't destroy enemy on contact, just damage player
         const damage = enemy.damage || 10; // Use enemy's damage value or default to 10
-        console.log('Player taking damage:', damage, 'Current health:', this.playerHealth, '-> New health:', this.playerHealth - damage);
-        this.playerHealth -= damage;
-        this.updateHealthBar();
-        this.updateWizardHealthBar();
+        this.damagePlayer(damage, enemy);
         
-        // Check for metal element thorns effect
-        const hasMetalElement = this.charges.includes('metal') || 
-                               this.chargeSlots.includes('metal');
-        
-        if (hasMetalElement && enemy.active && !enemy.isDying) {
-            // Reflect 50% damage back to the enemy
-            const thornsDamage = Math.floor(damage * 0.5);
-            enemy.health -= thornsDamage;
-            
-            // Show thorns damage number
-            this.showDamageNumber(enemy.x, enemy.y - 20, thornsDamage, '#c0c0c0');
-            
-            // Visual effect for thorns damage
-            enemy.setTint(0xc0c0c0);
-            this.time.delayedCall(100, () => {
-                if (enemy.active) enemy.clearTint();
-            });
-            
-            // Check if enemy died from thorns
-            if (enemy.health <= 0) {
-                // Immediately disable physics body
-                if (enemy.body) {
-                    enemy.body.enable = false;
-                }
-                this.killEnemy(enemy);
-            }
-        }
-
         // Apply burn effect if enemy has burn damage
         if (enemy.burnDamage && !this.playerBurning) {
             this.applyPlayerBurn(enemy.burnDamage, enemy.burnDuration);
         }
-
-        // Visual feedback and knockback
-        wizard.setTint(0xff0000);
-        this.time.delayedCall(100, () => {
-            if (!this.playerBurning) {
-                wizard.clearTint();
-            }
-        });
         
         // Apply slight knockback to player (only if alive)
         if (this.playerHealth > 0) {
@@ -16072,42 +16297,6 @@ class GameScene extends Phaser.Scene {
                 if (wizard.body && this.playerHealth > 0) {
                     wizard.body.setVelocity(0, 0);
                 }
-            });
-        }
-
-        // Set invulnerability period - much shorter for more danger
-        this.invulnerable = true;
-        this.time.delayedCall(300, () => {
-            this.invulnerable = false;
-        });
-
-        if (this.playerHealth <= 0) {
-            // Stop background music
-            if (this.bgMusic) {
-                this.bgMusic.stop();
-            }
-            
-            // Play death animation
-            this.wizard.play('wizard-death');
-            this.wizard.setVelocity(0, 0); // Stop movement
-            
-            // Disable wizard physics to prevent further collisions
-            if (this.wizard.body) {
-                this.wizard.body.enable = false;
-            }
-
-            // Wait for death animation to complete
-            this.wizard.once('animationcomplete', () => {
-                // Clear any pending timers before changing scene
-                console.error('WIZARD DEATH: Killing all tweens!');
-                this.time.removeAllEvents();
-                this.tweens.killAll();
-                this.scene.start('GameOverScene', {
-                    survivalTime: this.survivalTime,
-                    enemiesKilled: this.enemiesKilled,
-                    itemsCollected: this.itemsCollected,
-                    won: false
-                });
             });
         }
     }
@@ -17119,7 +17308,7 @@ class GameScene extends Phaser.Scene {
         
         // Random special item drops (0-3)
         const numItemDrops = Math.floor(Math.random() * 4); // 0 to 3
-        const specialItems = ['muffin', 'shield', 'flamethrower'];
+        const specialItems = ['muffin', 'butterflyjar', 'flamethrower'];
         
         for (let i = 0; i < numItemDrops; i++) {
             const randomItem = specialItems[Math.floor(Math.random() * specialItems.length)];
@@ -17819,28 +18008,49 @@ class GameScene extends Phaser.Scene {
 
         // Apply stronger knockback from wave projectile
         if (projectile.knockbackForce && projectile.element === 'wave') {
-            // Check if enemy is immune to knockback
-            const currentTime = this.time.now;
-            if (!enemy.knockbackImmuneUntil || currentTime > enemy.knockbackImmuneUntil) {
-                // Apply knockback
-                const angle = Math.atan2(enemy.y - projectile.y, enemy.x - projectile.x);
-                enemy.setVelocity(
-                    Math.cos(angle) * projectile.knockbackForce,
-                    Math.sin(angle) * projectile.knockbackForce
-                );
-
-                // Set knockback immunity for 1.5 seconds
-                enemy.knockbackImmuneUntil = currentTime + 1500;
-
-                // Visual indicator of knockback immunity
-                enemy.knockbackImmune = true;
-
-                // Remove immunity after duration
-                this.time.delayedCall(1500, () => {
-                    if (enemy.active) {
-                        enemy.knockbackImmune = false;
-                    }
+            // Check if enemy is immune to knockback (bosses and immovable enemies)
+            if (enemy.isBoss || enemy.isObeliskBoss || (enemy.body && enemy.body.immovable)) {
+                // Visual feedback for knockback immunity
+                const immuneText = this.add.text(enemy.x, enemy.y - 40, 'IMMUNE', {
+                    fontSize: '16px',
+                    color: '#0088ff',
+                    fontStyle: 'bold'
                 });
+                immuneText.setOrigin(0.5);
+                immuneText.setDepth(150);
+                
+                this.tweens.add({
+                    targets: immuneText,
+                    y: enemy.y - 60,
+                    alpha: 0,
+                    duration: 1000,
+                    ease: 'Power2',
+                    onComplete: () => immuneText.destroy()
+                });
+            } else {
+                // Check if enemy has temporary knockback immunity
+                const currentTime = this.time.now;
+                if (!enemy.knockbackImmuneUntil || currentTime > enemy.knockbackImmuneUntil) {
+                    // Apply knockback
+                    const angle = Math.atan2(enemy.y - projectile.y, enemy.x - projectile.x);
+                    enemy.setVelocity(
+                        Math.cos(angle) * projectile.knockbackForce,
+                        Math.sin(angle) * projectile.knockbackForce
+                    );
+
+                    // Set knockback immunity for 1.5 seconds
+                    enemy.knockbackImmuneUntil = currentTime + 1500;
+
+                    // Visual indicator of knockback immunity
+                    enemy.knockbackImmune = true;
+
+                    // Remove immunity after duration
+                    this.time.delayedCall(1500, () => {
+                        if (enemy.active) {
+                            enemy.knockbackImmune = false;
+                        }
+                    });
+                }
             }
         }
 
@@ -25897,11 +26107,9 @@ class GameScene extends Phaser.Scene {
                 item = this.physics.add.sprite(x, y, 'muffin');
                 scale = 0.16; // 80% smaller than 0.8 = 0.16
                 break;
-            case 'shield':
-                item = this.physics.add.sprite(x, y, 'shield');
-                scale = 0.4;
-                // Add blue tint for shield
-                item.setTint(0x44ccff);
+            case 'butterflyjar':
+                item = this.physics.add.sprite(x, y, 'butterflyjar');
+                scale = 0.8;
                 break;
             case 'flamethrower':
                 item = this.physics.add.sprite(x, y, 'flamethrower');
@@ -25978,8 +26186,8 @@ class GameScene extends Phaser.Scene {
                 });
                 break;
                 
-            case 'shield':
-                this.activateShield();
+            case 'butterflyjar':
+                this.activateButterflyJar();
                 break;
                 
             case 'flamethrower':
@@ -27359,13 +27567,13 @@ class GameScene extends Phaser.Scene {
                 });
                 break;
                 
-            case 'shield':
-                itemText = '🛡️';
+            case 'butterflyjar':
+                itemText = '🦋';
                 itemColor = 0x44ffff;
-                itemName = 'MAGIC SHIELD';
-                itemDescription = 'Grants 5 seconds of invincibility!';
+                itemName = 'JAR OF BUTTERFLIES';
+                itemDescription = 'Magical butterflies protect you from damage!';
                 this.time.delayedCall(1500, () => {
-                    this.activateShield();
+                    this.activateButterflyJar();
                 });
                 break;
                 
@@ -27407,14 +27615,10 @@ class GameScene extends Phaser.Scene {
                 icon.setScale(0.6);
                 break;
                 
-            case 'shield':
-                // Create a shield icon using a container with graphics
-                const shieldGraphics = this.add.graphics();
-                shieldGraphics.fillStyle(0x44ffff, 1);
-                shieldGraphics.fillCircle(0, 0, 30);
-                shieldGraphics.lineStyle(3, 0xffffff, 1);
-                shieldGraphics.strokeCircle(0, 0, 30);
-                icon = this.add.container(0, -20, [shieldGraphics]);
+            case 'butterflyjar':
+                // Create a butterfly jar icon
+                icon = this.add.image(0, -20, 'butterflyjar');
+                icon.setScale(0.5);
                 break;
                 
             case 'flamethrower':
@@ -27696,8 +27900,8 @@ class GameScene extends Phaser.Scene {
                 return;
             }
 
-            // For regular chests, show the reward selection UI
-            this.showChestRewards(chest);
+            // For regular chests, show the level-up reward selection UI (same as level up)
+            this.showChestRewards(null);
         });
     }
 
@@ -31155,8 +31359,92 @@ class GameScene extends Phaser.Scene {
     damagePlayer(damage, source = null) {
         if (this.invulnerable || this.godMode || this.playerHealth <= 0 || this.isPaused || this.chestSelectionActive) return;
         
-        // Check for metal shield thorns effect
-        if (this.metalShieldActive && source && source.active) {
+        // Check for butterfly protection
+        if (this.butterflyProtection && this.butterflyProtection.active && this.butterflyProtection.charges > 0) {
+            // Consume one charge
+            this.butterflyProtection.charges--;
+            this.butterflyProtection.currentColorIndex++;
+            
+            // Update butterfly colors
+            if (this.butterflyProtection.currentColorIndex < this.butterflyProtection.colors.length) {
+                const newColor = this.butterflyProtection.colors[this.butterflyProtection.currentColorIndex];
+                this.butterflyProtection.butterflies.forEach(butterfly => {
+                    butterfly.stop();
+                    butterfly.setTexture(`butterfly-${newColor}`);
+                    butterfly.play(`butterfly-${newColor}-fly`);
+                    
+                    // Flash effect when blocking damage
+                    this.tweens.add({
+                        targets: butterfly,
+                        scale: { from: 2.5, to: 1.5 },
+                        alpha: { from: 0.3, to: 1 },
+                        duration: 300,
+                        ease: 'Power2'
+                    });
+                });
+            }
+            
+            // Update indicator
+            if (this.butterflyIndicator) {
+                this.butterflyIndicator.setText(`🦋 x${this.butterflyProtection.charges}`);
+                this.butterflyIndicator.x = this.wizard.x;
+                this.butterflyIndicator.y = this.wizard.y - 70;
+            }
+            
+            // Show damage blocked text
+            const blockedText = this.add.text(this.wizard.x, this.wizard.y - 30, 'BLOCKED!', {
+                fontSize: '20px',
+                color: '#44ffff',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 3
+            });
+            blockedText.setOrigin(0.5);
+            blockedText.setDepth(150);
+            
+            this.tweens.add({
+                targets: blockedText,
+                y: this.wizard.y - 60,
+                alpha: 0,
+                duration: 1000,
+                ease: 'Power2',
+                onComplete: () => blockedText.destroy()
+            });
+            
+            // Check if protection ended
+            if (this.butterflyProtection.charges <= 0) {
+                this.butterflyProtection.active = false;
+                
+                // Destroy butterflies
+                this.butterflyProtection.butterflies.forEach(butterfly => {
+                    this.tweens.add({
+                        targets: butterfly,
+                        scale: 0,
+                        alpha: 0,
+                        duration: 500,
+                        onComplete: () => butterfly.destroy()
+                    });
+                });
+                
+                // Destroy indicator
+                if (this.butterflyIndicator) {
+                    this.butterflyIndicator.destroy();
+                    this.butterflyIndicator = null;
+                }
+                
+                // Destroy update event
+                if (this.butterflyUpdateEvent) {
+                    this.butterflyUpdateEvent.destroy();
+                    this.butterflyUpdateEvent = null;
+                }
+            }
+            
+            return; // No damage taken
+        }
+        
+        // Check for metal shield thorns effect (metal element or metal shield item)
+        const hasMetalElement = this.charges.includes('metal') || this.chargeSlots.includes('metal');
+        if ((this.metalShieldActive || hasMetalElement) && source && source.active) {
             // Reflect 50% damage back to attacker
             const thornsDamage = Math.floor(damage * 0.5);
             if (source.health !== undefined && source.health > 0) {
@@ -31485,8 +31773,23 @@ class GameScene extends Phaser.Scene {
         boss.health = Math.floor(baseHealth * healthMultiplier);
         boss.maxHealth = boss.health;
         boss.isBoss = true;
-        boss.moveSpeed = 20; // Reduced from 45 - much slower movement
+        boss.moveSpeed = 25; // Slow movement speed for walk mode
         boss.isObeliskBoss = true; // Mark as obelisk boss for rune interaction
+        
+        // Mode switching properties (similar to Nekros)
+        boss.currentMode = 'stationary'; // 'stationary' or 'walk'
+        boss.stationaryModeTime = 8000; // 8 seconds in stationary mode (laser barrage)
+        boss.walkModeTime = 10000; // 10 seconds in walk mode
+        boss.modeChangeTime = boss.stationaryModeTime; // Start with stationary mode
+        boss.lastModeChange = this.time.now;
+        boss.laserBarrageCount = 0; // Track lasers fired in stationary mode
+        boss.maxLasersPerBarrage = 5; // Fire 5 lasers during stationary mode
+        boss.laserInterval = 1200; // Fire laser every 1.2 seconds in stationary mode
+        boss.lastLaserTime = 0;
+        
+        // Start in stationary mode - immovable
+        boss.body.setImmovable(true);
+        boss.body.moves = false; // Prevent all physics-based movement
         
         // Apply hitbox configuration (enemyType already set to 'obelisk-boss')
         this.applyHitboxConfig(boss, boss.enemyType);
@@ -31721,9 +32024,13 @@ class GameScene extends Phaser.Scene {
         boss.health = Math.floor(baseHealth * healthMultiplier);
         boss.maxHealth = boss.health;
         boss.isBoss = true;
-        boss.moveSpeed = 30; // Between forest (20) and cave (35)
+        boss.moveSpeed = 0; // Obelisk bosses should not move at all
         boss.isObeliskBoss = true; // Use obelisk AI for now
         boss.isSandBoss = true; // Mark as sand boss
+        
+        // Make boss immovable to prevent physics engine pushing
+        boss.body.setImmovable(true);
+        boss.body.moves = false; // Prevent all physics-based movement
         
         // Apply hitbox configuration (enemyType already set to 'sand-obelisk-boss')
         this.applyHitboxConfig(boss, boss.enemyType);
@@ -31733,6 +32040,7 @@ class GameScene extends Phaser.Scene {
         boss.currentPhase = 1;
         boss.shieldActive = false;
         boss.immuneTime = 0;
+        boss.inStationaryMode = true; // Track if in stationary mode
         
         // Set up physics
         boss.body.setSize(80, 90);
@@ -32197,6 +32505,113 @@ class GameScene extends Phaser.Scene {
             }
         }
         
+        // Mode switching logic for obelisk boss
+        if (this.boss.isObeliskBoss) {
+            const currentTime = this.time.now;
+            const timeSinceLastChange = currentTime - this.boss.lastModeChange;
+            
+            // Check if it's time to switch modes
+            if (timeSinceLastChange > this.boss.modeChangeTime) {
+                this.boss.lastModeChange = currentTime;
+                
+                if (this.boss.currentMode === 'stationary') {
+                    // Switch to walk mode
+                    this.boss.currentMode = 'walk';
+                    this.boss.inStationaryMode = false;
+                    this.boss.modeChangeTime = this.boss.walkModeTime;
+                    this.boss.laserBarrageCount = 0; // Reset laser count
+                    
+                    // Enable movement
+                    this.boss.body.setImmovable(false);
+                    this.boss.body.moves = true;
+                    
+                    // Visual feedback
+                    const modeText = this.add.text(this.boss.x, this.boss.y - 100, 'PURSUIT MODE', {
+                        fontSize: '24px',
+                        color: '#ff4444',
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 4
+                    });
+                    modeText.setOrigin(0.5);
+                    modeText.setDepth(151);
+                    
+                    this.tweens.add({
+                        targets: modeText,
+                        y: modeText.y - 30,
+                        alpha: 0,
+                        duration: 2000,
+                        ease: 'Power2',
+                        onComplete: () => modeText.destroy()
+                    });
+                    
+                    console.log('Obelisk switched to WALK mode');
+                } else {
+                    // Switch to stationary mode
+                    this.boss.currentMode = 'stationary';
+                    this.boss.inStationaryMode = true;
+                    this.boss.modeChangeTime = this.boss.stationaryModeTime;
+                    this.boss.lastLaserTime = 0; // Reset laser timing
+                    
+                    // Disable movement
+                    this.boss.setVelocity(0, 0);
+                    this.boss.body.setImmovable(true);
+                    this.boss.body.moves = false;
+                    
+                    // Visual feedback
+                    const modeText = this.add.text(this.boss.x, this.boss.y - 100, 'LASER BARRAGE', {
+                        fontSize: '24px',
+                        color: '#ffff00',
+                        fontStyle: 'bold',
+                        stroke: '#ff0000',
+                        strokeThickness: 4
+                    });
+                    modeText.setOrigin(0.5);
+                    modeText.setDepth(151);
+                    
+                    this.tweens.add({
+                        targets: modeText,
+                        scale: { from: 1, to: 1.2 },
+                        alpha: { from: 1, to: 0 },
+                        duration: 2000,
+                        ease: 'Power2',
+                        onComplete: () => modeText.destroy()
+                    });
+                    
+                    console.log('Obelisk switched to STATIONARY mode');
+                }
+            }
+            
+            // Handle stationary mode laser barrage
+            if (this.boss.currentMode === 'stationary' && !this.boss.isChargingLaser && !this.boss.isFiringLaser && !this.boss.postLaserCooldown) {
+                const timeSinceLastLaser = currentTime - this.boss.lastLaserTime;
+                if (timeSinceLastLaser > this.boss.laserInterval && this.boss.laserBarrageCount < this.boss.maxLasersPerBarrage) {
+                    this.boss.lastLaserTime = currentTime;
+                    this.boss.laserBarrageCount++;
+                    this.bossLaserAttack();
+                    return; // Skip normal attack logic during laser barrage
+                }
+            }
+            
+            // Handle walk mode movement
+            if (this.boss.currentMode === 'walk' && !this.boss.isChargingLaser && !this.boss.isFiringLaser && !this.boss.postLaserCooldown) {
+                // Move towards player
+                if (this.wizard && this.wizard.active) {
+                    const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, this.wizard.x, this.wizard.y);
+                    const distance = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, this.wizard.x, this.wizard.y);
+                    
+                    // Only move if not too close
+                    if (distance > 100) {
+                        const velocityX = Math.cos(angle) * this.boss.moveSpeed * this.speedMultiplier;
+                        const velocityY = Math.sin(angle) * this.boss.moveSpeed * this.speedMultiplier;
+                        this.boss.setVelocity(velocityX, velocityY);
+                    } else {
+                        this.boss.setVelocity(0, 0);
+                    }
+                }
+            }
+        }
+        
         // Check phase transitions
         if (healthPercent <= 0.66 && this.boss.currentPhase === 1) {
             this.boss.currentPhase = 2;
@@ -32219,38 +32634,67 @@ class GameScene extends Phaser.Scene {
             }
         }
         
-        // Skip attacks if on cooldown or immune
-        if (this.boss.attackCooldown > 0 || this.boss.immuneTime > 0) return;
+        // Skip attacks if on cooldown, immune, or post-laser cooldown
+        if (this.boss.attackCooldown > 0 || this.boss.immuneTime > 0 || this.boss.postLaserCooldown || this.boss.isChargingLaser || this.boss.isFiringLaser) return;
+        
+        // Skip normal attacks if in stationary mode (handled by laser barrage above)
+        if (this.boss.isObeliskBoss && this.boss.currentMode === 'stationary') return;
         
         // Choose attack based on phase and randomness
         const attackRoll = Math.random();
         
-        if (this.boss.currentPhase === 1) {
-            // Phase 1: Basic attacks with more lasers
-            if (attackRoll < 0.3) {
+        // Different attack patterns for walk mode vs normal boss behavior
+        if (this.boss.isObeliskBoss && this.boss.currentMode === 'walk') {
+            // Walk mode attacks - no lasers
+            if (this.boss.currentPhase === 1) {
+                // Phase 1: Basic projectiles
                 this.bossShootAttack();
+            } else if (this.boss.currentPhase === 2) {
+                // Phase 2: Projectiles and shields
+                if (attackRoll < 0.6) {
+                    this.bossShootAttack();
+                } else {
+                    this.bossShieldCast();
+                }
             } else {
-                this.bossLaserAttack(); // 70% laser in phase 1
-            }
-        } else if (this.boss.currentPhase === 2) {
-            // Phase 2: Add shield, heavy laser focus
-            if (attackRoll < 0.2) {
-                this.bossShootAttack();
-            } else if (attackRoll < 0.7) {
-                this.bossLaserAttack(); // 50% laser in phase 2
-            } else {
-                this.bossShieldCast();
+                // Phase 3: All non-laser attacks
+                if (attackRoll < 0.4) {
+                    this.bossShootAttack();
+                } else if (attackRoll < 0.7) {
+                    this.bossMeleeAttack();
+                } else {
+                    this.bossShieldCast();
+                }
             }
         } else {
-            // Phase 3: All attacks, laser dominant
-            if (attackRoll < 0.15) {
-                this.bossShootAttack();
-            } else if (attackRoll < 0.6) {
-                this.bossLaserAttack(); // 45% laser in phase 3
-            } else if (attackRoll < 0.8) {
-                this.bossMeleeAttack();
+            // Normal attack patterns (for non-obelisk bosses or other modes)
+            if (this.boss.currentPhase === 1) {
+                // Phase 1: Basic attacks with more lasers
+                if (attackRoll < 0.3) {
+                    this.bossShootAttack();
+                } else {
+                    this.bossLaserAttack(); // 70% laser in phase 1
+                }
+            } else if (this.boss.currentPhase === 2) {
+                // Phase 2: Add shield, heavy laser focus
+                if (attackRoll < 0.2) {
+                    this.bossShootAttack();
+                } else if (attackRoll < 0.7) {
+                    this.bossLaserAttack(); // 50% laser in phase 2
+                } else {
+                    this.bossShieldCast();
+                }
             } else {
-                this.bossShieldCast();
+                // Phase 3: All attacks, laser dominant
+                if (attackRoll < 0.15) {
+                    this.bossShootAttack();
+                } else if (attackRoll < 0.6) {
+                    this.bossLaserAttack(); // 45% laser in phase 3
+                } else if (attackRoll < 0.8) {
+                    this.bossMeleeAttack();
+                } else {
+                    this.bossShieldCast();
+                }
             }
         }
     }
@@ -32258,6 +32702,11 @@ class GameScene extends Phaser.Scene {
     bossShootAttack() {
         this.boss.play('obelisk-shoot');
         this.boss.attackCooldown = 3000;
+        
+        // Stop moving while attacking in walk mode
+        if (this.boss.isObeliskBoss && this.boss.currentMode === 'walk') {
+            this.boss.setVelocity(0, 0);
+        }
         
         // Fire projectiles in multiple directions
         const projectileCount = 3 + this.boss.currentPhase;
@@ -32274,7 +32723,7 @@ class GameScene extends Phaser.Scene {
             projectile.damage = 20;
             projectile.fromBoss = true;
             
-            this.projectiles.add(projectile);
+            this.enemyProjectiles.add(projectile);
         }
     }
     
@@ -32353,7 +32802,7 @@ class GameScene extends Phaser.Scene {
             }
         });
         
-        this.projectiles.add(arm);
+        this.enemyProjectiles.add(arm);
     }
     
     bossLaserAttack() {
@@ -32364,9 +32813,15 @@ class GameScene extends Phaser.Scene {
         this.boss.isChargingLaser = true;
         this.boss.setVelocity(0, 0);
         
+        // Ensure boss stays immovable during attack
+        if (this.boss.body) {
+            this.boss.body.setImmovable(true);
+            this.boss.body.moves = false;
+        }
+        
         // Telegraph laser (visual only, no physics)
         const laserWarning = this.add.rectangle(this.boss.x, this.boss.y, 15, 1200, 0xff0000, 0.4);
-        laserWarning.setOrigin(0.5, 1);
+        laserWarning.setOrigin(0.5, 1); // Origin at bottom-center so it extends outward from boss
         laserWarning.setDepth(9); // Below other objects
         
         // Aim at player with slight prediction
@@ -32379,7 +32834,7 @@ class GameScene extends Phaser.Scene {
         const predictedY = this.wizard.y + (playerVelY * predictTime);
         
         const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, predictedX, predictedY);
-        laserWarning.rotation = angle + Math.PI / 2;
+        laserWarning.rotation = angle - Math.PI / 2;
         
         // Warning flash with delay before damage
         const warningTween = this.tweens.add({
@@ -32431,11 +32886,11 @@ class GameScene extends Phaser.Scene {
                 // Configure physics body for laser
                 if (laser.body) {
                     laser.body.setSize(300, 20);
-                    laser.body.enable = false; // Disable physics since we use manual collision
+                    laser.body.enable = true; // Enable physics for rune collision
                 }
                 
-                // Don't add to projectiles group to avoid physics collision issues
-                // this.projectiles.add(laser);
+                // Add to projectiles group for rune collision detection
+                this.projectiles.add(laser);
                 // Calculate distance for laser length
                 const distance = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, predictedX, predictedY);
                 // Scale laser to reach far beyond predicted position
@@ -32474,6 +32929,15 @@ class GameScene extends Phaser.Scene {
                             this.boss.vulnerableIndicator.destroy();
                             this.boss.vulnerableIndicator = null;
                         }
+                        
+                        // Keep boss stationary for 1 second after laser
+                        this.boss.postLaserCooldown = true;
+                        this.boss.setVelocity(0, 0);
+                        this.time.delayedCall(1000, () => {
+                            if (this.boss) {
+                                this.boss.postLaserCooldown = false;
+                            }
+                        });
                     }
                 });
                 
@@ -32526,6 +32990,11 @@ class GameScene extends Phaser.Scene {
         this.boss.play('obelisk-melee');
         this.boss.attackCooldown = 3000;
         
+        // Stop moving while attacking in walk mode
+        if (this.boss.isObeliskBoss && this.boss.currentMode === 'walk') {
+            this.boss.setVelocity(0, 0);
+        }
+        
         // Create shockwave around boss
         const shockwave = this.add.circle(this.boss.x, this.boss.y, 50, 0xff6600, 0.5);
         shockwave.setDepth(10);
@@ -32555,6 +33024,11 @@ class GameScene extends Phaser.Scene {
         this.boss.play('obelisk-shield-cast');
         this.boss.attackCooldown = 6000;
         this.boss.shieldActive = true;
+        
+        // Stop moving while casting shield in walk mode
+        if (this.boss.isObeliskBoss && this.boss.currentMode === 'walk') {
+            this.boss.setVelocity(0, 0);
+        }
         
         // Create shield visual
         const shield = this.add.circle(this.boss.x, this.boss.y, 100, 0x00ffff, 0.3);
