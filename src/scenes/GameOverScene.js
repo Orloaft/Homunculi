@@ -102,7 +102,7 @@ export default class GameOverScene extends Phaser.Scene {
         const buttonY = 500;
         
         // Retry button
-        const retryButton = this.add.text(300, buttonY, 'RETRY', {
+        const retryButton = this.add.text(200, buttonY, 'RETRY', {
             fontSize: '24px',
             color: '#ffffff',
             backgroundColor: '#333333',
@@ -125,8 +125,32 @@ export default class GameOverScene extends Phaser.Scene {
             this.scene.start('GameScene');
         });
 
+        // Stage Select button
+        const stageSelectButton = this.add.text(400, buttonY, 'STAGE SELECT', {
+            fontSize: '24px',
+            color: '#ffffff',
+            backgroundColor: '#333333',
+            padding: { x: 20, y: 10 }
+        });
+        stageSelectButton.setOrigin(0.5);
+        stageSelectButton.setInteractive({ useHandCursor: true });
+
+        stageSelectButton.on('pointerover', () => {
+            stageSelectButton.setScale(1.1);
+            stageSelectButton.setBackgroundColor('#555555');
+        });
+
+        stageSelectButton.on('pointerout', () => {
+            stageSelectButton.setScale(1);
+            stageSelectButton.setBackgroundColor('#333333');
+        });
+
+        stageSelectButton.on('pointerdown', () => {
+            this.scene.start('StageSelectScene');
+        });
+
         // Main menu button
-        const menuButton = this.add.text(500, buttonY, 'MAIN MENU', {
+        const menuButton = this.add.text(600, buttonY, 'MAIN MENU', {
             fontSize: '24px',
             color: '#ffffff',
             backgroundColor: '#333333',
@@ -154,9 +178,21 @@ export default class GameOverScene extends Phaser.Scene {
             this.scene.start('GameScene');
         });
 
+        this.input.keyboard.on('keydown-S', () => {
+            this.scene.start('StageSelectScene');
+        });
+
         this.input.keyboard.on('keydown-ESC', () => {
             this.scene.start('TitleScene');
         });
+
+        // Add instruction text
+        const instructionText = this.add.text(400, 560, 'Press R to Retry | S for Stage Select | ESC for Main Menu', {
+            fontSize: '14px',
+            color: '#888888',
+            fontStyle: 'italic'
+        });
+        instructionText.setOrigin(0.5);
 
         // Animate score counting
         this.animateScore(totalValue, totalScore);

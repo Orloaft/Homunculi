@@ -71,6 +71,12 @@ export default class StageSelectScene extends Phaser.Scene {
         this.planetContainers = [];
     }
 
+    init() {
+        // Ensure keyboard input is enabled when entering this scene
+        this.input.keyboard.enabled = true;
+        this.selectedStage = 0; // Reset to first stage
+    }
+
     create() {
         // Set background color to dark space-like color
         this.cameras.main.setBackgroundColor('#0a0a1a');
@@ -266,6 +272,11 @@ export default class StageSelectScene extends Phaser.Scene {
     }
 
     update() {
+        // Skip all input if keyboard is disabled (e.g., when showing stage detail)
+        if (!this.input.keyboard.enabled) {
+            return;
+        }
+        
         // Handle gamepad
         const pad = this.input.gamepad ? this.input.gamepad.pad1 : null;
         
@@ -458,54 +469,15 @@ export default class StageSelectScene extends Phaser.Scene {
             7: 'snow'
         };
         
+        // Check if this is a valid stage index
+        if (index < 0 || index >= this.stages.length) {
+            console.warn('Invalid stage index:', index);
+            return;
+        }
+        
         if (index === 0 || index === 1) {
-            // Zoom into the selected planet
-            const btn = this.stageButtons[index];
-            
-            // First, zoom the planet
-            this.tweens.add({
-                targets: btn.planet,
-                scaleX: 3,
-                scaleY: 3,
-                duration: 800,
-                ease: 'Power2.easeIn'
-            });
-            
-            // Fade out other planets
-            this.stageButtons.forEach((otherBtn, i) => {
-                if (i !== index) {
-                    this.tweens.add({
-                        targets: otherBtn.container,
-                        alpha: 0,
-                        duration: 500,
-                        ease: 'Power2'
-                    });
-                }
-            });
-            
-            // Fade to white then black
-            const whiteOverlay = this.add.rectangle(400, 300, 800, 600, 0xffffff);
-            whiteOverlay.setAlpha(0);
-            whiteOverlay.setDepth(1000);
-            
-            this.tweens.add({
-                targets: whiteOverlay,
-                alpha: 1,
-                duration: 600,
-                delay: 200,
-                ease: 'Power2',
-                onComplete: () => {
-                    // Stop music before transitioning
-                    if (this.bgm) {
-                        this.bgm.stop();
-                    }
-                    // Start loading scene which will transition to the game
-                    this.scene.start('LoadingScene', { 
-                        nextScene: 'GameScene',
-                        data: { stage: stageMappings[index] }
-                    });
-                }
-            });
+            // Show stage detail view with co-op option
+            this.showStageDetail(stageMappings[index], this.stages[index]);
         } else {
             // Show coming soon message for other stages
             const message = this.add.text(400, 300, 'WORLD LOCKED', {
@@ -524,5 +496,368 @@ export default class StageSelectScene extends Phaser.Scene {
                 ease: 'Power2'
             });
         }
+    }
+    
+    showStageDetail(stageKey, stageInfo) {
+        // Disable stage selection
+        this.input.keyboard.enabled = false;
+        
+        // Create detail overlay
+        const overlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.8);
+        overlay.setInteractive();
+        
+        // Stage name
+        const title = this.add.text(400, 100, stageInfo.name.toUpperCase(), {
+            fontSize: '48px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        });
+        title.setOrigin(0.5);
+        
+        // Stage description
+        const description = this.add.text(400, 150, stageInfo.description, {
+            fontSize: '20px',
+            color: '#cccccc'
+        });
+        description.setOrigin(0.5);
+        
+        // Co-op toggle button
+        const coopButton = this.add.text(400, 240, '[ ] ENABLE CO-OP', {
+            fontSize: '24px',
+            color: '#888888',
+            backgroundColor: '#333333',
+            padding: { x: 15, y: 8 }
+        });
+        coopButton.setOrigin(0.5);
+        coopButton.setInteractive({ useHandCursor: true });
+        
+        // Co-op state
+        this.coopEnabled = false;
+        this.coopPlayers = [{
+            playerIndex: 0,
+            inputType: 'keyboard',
+            paletteIndex: 0
+        }];
+        this.playerSlots = [];
+        
+        // Co-op area (initially hidden)
+        const coopContainer = this.add.container(400, 340);
+        coopContainer.setVisible(false);
+        
+        const coopBg = this.add.rectangle(0, 0, 600, 120, 0x222222, 1);
+        coopBg.setStrokeStyle(2, 0x444444);
+        
+        // Player slots container
+        const slotsContainer = this.add.container(0, 0);
+        
+        // Instructions
+        const instructions = this.add.text(0, 45, 'Press button on controller to join', {
+            fontSize: '16px',
+            color: '#888888'
+        });
+        instructions.setOrigin(0.5);
+        
+        coopContainer.add([coopBg, slotsContainer, instructions]);
+        
+        // Co-op toggle functionality
+        coopButton.on('pointerdown', () => {
+            this.coopEnabled = !this.coopEnabled;
+            
+            if (this.coopEnabled) {
+                coopButton.setText('[X] ENABLE CO-OP');
+                coopButton.setColor('#00ff00');
+                coopContainer.setVisible(true);
+                
+                // Create player slots
+                if (this.playerSlots.length === 0) {
+                    // Player 1 (keyboard) - always present
+                    const p1Slot = this.createPlayerSlot(0, -150, 0, 'keyboard', true);
+                    p1Slot.container.setScale(0.8);
+                    slotsContainer.add(p1Slot.container);
+                    this.playerSlots.push(p1Slot);
+                    
+                    // Player 2-4 slots (gamepads)
+                    for (let i = 1; i < 4; i++) {
+                        const slot = this.createPlayerSlot(i, -150 + (i * 100), 0, 'gamepad', false);
+                        slot.container.setScale(0.8);
+                        slotsContainer.add(slot.container);
+                        this.playerSlots.push(slot);
+                    }
+                }
+                
+                // Start gamepad detection
+                this.setupCoopJoining();
+            } else {
+                coopButton.setText('[ ] ENABLE CO-OP');
+                coopButton.setColor('#888888');
+                coopContainer.setVisible(false);
+                
+                // Stop gamepad detection
+                if (this.coopCheckTimer) {
+                    this.coopCheckTimer.remove();
+                    this.coopCheckTimer = null;
+                }
+                
+                // Reset to single player
+                this.coopPlayers = [{
+                    playerIndex: 0,
+                    inputType: 'keyboard',
+                    paletteIndex: 0
+                }];
+                
+                // Reset slots
+                for (let i = 1; i < this.playerSlots.length; i++) {
+                    const slot = this.playerSlots[i];
+                    slot.joined = false;
+                    slot.bg.setFillStyle(0x222222);
+                    slot.bg.setStrokeStyle(2, 0x444444);
+                    slot.number.setColor('#666666');
+                    slot.inputText.setText('--');
+                    slot.inputText.setColor('#666666');
+                    slot.palette.setVisible(false);
+                }
+            }
+        });
+        
+        coopButton.on('pointerover', () => {
+            coopButton.setScale(1.05);
+        });
+        
+        coopButton.on('pointerout', () => {
+            coopButton.setScale(1);
+        });
+        
+        // Start button
+        const startButton = this.add.text(400, 450, 'START GAME', {
+            fontSize: '32px',
+            color: '#ffffff',
+            backgroundColor: '#444444',
+            padding: { x: 20, y: 10 }
+        });
+        startButton.setOrigin(0.5);
+        startButton.setInteractive({ useHandCursor: true });
+        
+        startButton.on('pointerdown', () => {
+            this.startWithCoopSettings(stageKey);
+        });
+        
+        startButton.on('pointerover', () => {
+            startButton.setBackgroundColor('#666666');
+        });
+        
+        startButton.on('pointerout', () => {
+            startButton.setBackgroundColor('#444444');
+        });
+        
+        // Cancel button
+        const cancelButton = this.add.text(400, 520, 'CANCEL', {
+            fontSize: '20px',
+            color: '#ff4444'
+        });
+        cancelButton.setOrigin(0.5);
+        cancelButton.setInteractive({ useHandCursor: true });
+        
+        cancelButton.on('pointerdown', () => {
+            this.closeStageDetail();
+        });
+        
+        // Store UI elements
+        this.detailUI = {
+            overlay, title, description, coopButton, coopContainer,
+            startButton, cancelButton,
+            slots: this.playerSlots
+        };
+        
+        // Keyboard controls
+        const spaceKey = this.input.keyboard.addKey('SPACE');
+        const escKey = this.input.keyboard.addKey('ESC');
+        
+        spaceKey.once('down', () => {
+            this.startWithCoopSettings(stageKey);
+        });
+        
+        escKey.once('down', () => {
+            this.closeStageDetail();
+        });
+    }
+    
+    createPlayerSlot(index, x, y, inputType, joined) {
+        const container = this.add.container(x, y);
+        
+        // Slot background
+        const bg = this.add.rectangle(0, 0, 80, 80, joined ? 0x444444 : 0x222222);
+        bg.setStrokeStyle(2, joined ? 0x00ff00 : 0x444444);
+        
+        // Player number
+        const number = this.add.text(0, -20, `P${index + 1}`, {
+            fontSize: '20px',
+            color: joined ? '#ffffff' : '#666666'
+        });
+        number.setOrigin(0.5);
+        
+        // Input type
+        const inputText = this.add.text(0, 0, inputType === 'keyboard' ? 'KB' : '--', {
+            fontSize: '16px',
+            color: joined ? '#00ff00' : '#666666'
+        });
+        inputText.setOrigin(0.5);
+        
+        // Palette indicator
+        const paletteColors = [0xffffff, 0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff];
+        const palette = this.add.circle(0, 25, 8, paletteColors[0]);
+        palette.setVisible(joined);
+        
+        container.add([bg, number, inputText, palette]);
+        
+        return {
+            container,
+            bg,
+            number,
+            inputText,
+            palette,
+            joined,
+            paletteIndex: 0,
+            inputType
+        };
+    }
+    
+    setupCoopJoining() {
+        // Only setup if co-op is enabled
+        if (!this.coopEnabled) return;
+        
+        // Check for gamepad button presses
+        this.coopCheckTimer = this.time.addEvent({
+            delay: 100,
+            callback: () => {
+                if (!this.coopEnabled) return;
+                
+                const pads = this.input.gamepad.gamepads;
+                
+                for (let i = 0; i < pads.length; i++) {
+                    const pad = pads[i];
+                    if (!pad) continue;
+                    
+                    // Check if any button is pressed
+                    for (let b = 0; b < pad.buttons.length; b++) {
+                        if (pad.buttons[b].pressed) {
+                            // Check if this gamepad is already assigned
+                            let alreadyAssigned = false;
+                            for (const player of this.coopPlayers) {
+                                if (player.inputType === 'gamepad' && player.gamepadIndex === i) {
+                                    alreadyAssigned = true;
+                                    break;
+                                }
+                            }
+                            
+                            if (!alreadyAssigned && this.coopPlayers.length < 4) {
+                                this.addCoopPlayer(i);
+                            }
+                        }
+                    }
+                }
+            },
+            loop: true
+        });
+    }
+    
+    addCoopPlayer(gamepadIndex) {
+        const playerIndex = this.coopPlayers.length;
+        const slot = this.playerSlots[playerIndex];
+        
+        if (!slot || slot.joined) return;
+        
+        // Update slot appearance
+        slot.joined = true;
+        slot.bg.setFillStyle(0x444444);
+        slot.bg.setStrokeStyle(2, 0x00ff00);
+        slot.number.setColor('#ffffff');
+        slot.inputText.setText(`GP${gamepadIndex + 1}`);
+        slot.inputText.setColor('#00ff00');
+        slot.palette.setVisible(true);
+        
+        // Add to players list
+        this.coopPlayers.push({
+            playerIndex,
+            inputType: 'gamepad',
+            gamepadIndex,
+            paletteIndex: playerIndex % 6
+        });
+        
+        // Update palette color
+        const paletteColors = [0xffffff, 0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff];
+        slot.palette.setFillStyle(paletteColors[playerIndex % 6]);
+        
+        // Flash effect
+        this.tweens.add({
+            targets: slot.container,
+            scaleX: 1.2,
+            scaleY: 1.2,
+            duration: 200,
+            yoyo: true,
+            ease: 'Power2'
+        });
+        
+        // Sound effect
+        this.sound.play('select', { volume: 0.5 });
+    }
+    
+    startWithCoopSettings(stageKey) {
+        // Stop co-op detection
+        if (this.coopCheckTimer) {
+            this.coopCheckTimer.remove();
+        }
+        
+        // Store co-op data
+        this.registry.set('coopData', {
+            enabled: this.coopEnabled && this.coopPlayers.length > 1,
+            players: this.coopPlayers
+        });
+        
+        // Stop music before transitioning
+        if (this.bgm) {
+            this.bgm.stop();
+        }
+        
+        // Start game
+        this.scene.start('LoadingScene', { 
+            nextScene: 'GameScene',
+            data: { stage: stageKey }
+        });
+    }
+    
+    closeStageDetail() {
+        // Stop co-op detection
+        if (this.coopCheckTimer) {
+            this.coopCheckTimer.remove();
+            this.coopCheckTimer = null;
+        }
+        
+        // Remove UI
+        if (this.detailUI) {
+            Object.values(this.detailUI).forEach(element => {
+                if (element && element.destroy) {
+                    element.destroy();
+                } else if (Array.isArray(element)) {
+                    element.forEach(e => {
+                        if (e && e.container && e.container.destroy) {
+                            e.container.destroy();
+                        }
+                    });
+                }
+            });
+            this.detailUI = null;
+        }
+        
+        // Reset co-op state
+        this.coopEnabled = false;
+        this.coopPlayers = [{
+            playerIndex: 0,
+            inputType: 'keyboard',
+            paletteIndex: 0
+        }];
+        this.playerSlots = [];
+        
+        // Re-enable input
+        this.input.keyboard.enabled = true;
     }
 }

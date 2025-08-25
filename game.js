@@ -565,8 +565,8 @@ class LoadingScene extends Phaser.Scene {
             frameHeight: 16
         });
         
-        // Load flamethrower sprite (using fire spell sprite)
-        this.load.image('flamethrower', 'spells/fire1.png');
+        // Load flamethrower sprite
+        this.load.image('flamethrower', 'firebreath.png');
         
         // Load weakspot rune sprite
         this.load.image('weakspot-rune', 'weakspotrune.png');
@@ -1984,6 +1984,11 @@ class StageSelectScene extends Phaser.Scene {
         this.selectedStage = 8; // Start with Nexus selected
     }
 
+    init() {
+        // Always enable keyboard input when entering this scene
+        this.input.keyboard.enabled = true;
+    }
+
     preload() {
         // Load island sprites
         this.load.image('island-forest', 'islands/forest.png');
@@ -2038,7 +2043,7 @@ class StageSelectScene extends Phaser.Scene {
         this.input.keyboard.enabled = true;
         
         // Add input cooldown to prevent button press carryover
-        this.inputCooldown = 500; // 500ms cooldown
+        this.inputCooldown = 100; // Reduced from 500ms to 100ms for better responsiveness
         this.inputEnabled = false;
         this.time.delayedCall(this.inputCooldown, () => {
             this.inputEnabled = true;
@@ -2709,8 +2714,15 @@ class StageSelectScene extends Phaser.Scene {
                 // In detail view, pressing A starts the stage
                 this.selectStage(this.selectedStage);
             } else {
-                // Not in detail view, show detail view
-                this.showDetailedView(this.selectedStage);
+                // Not in detail view, check if it's arcade or needs detail view
+                const stage = this.stages[this.selectedStage];
+                if (stage.isArcade) {
+                    // Arcade goes directly to game
+                    this.selectStage(this.selectedStage);
+                } else {
+                    // Other stages show detail view
+                    this.showDetailedView(this.selectedStage);
+                }
             }
         }
 
@@ -4925,6 +4937,8 @@ class GameOverScene extends Phaser.Scene {
         });
 
         this.input.keyboard.once('keydown-ESC', () => {
+            // Stop all sounds including boss music
+            this.sound.stopAll();
             this.scene.start('TitleScene');
         });
 
@@ -7904,43 +7918,8 @@ class GameScene extends Phaser.Scene {
             // Make interactive
             btnBg.setInteractive({ useHandCursor: true });
             btnBg.on('pointerdown', () => {
-                // Add element to first available slot
-                let added = false;
-                for (let i = 0; i < 8; i++) {
-                    if (!this.chargeSlots[i]) {
-                        this.chargeSlots[i] = element;
-                        added = true;
-                        break;
-                    }
-                }
-                
-                if (!added) {
-                    // All slots full, add to pouch
-                    for (let i = 0; i < 4; i++) {
-                        if (!this.elementPouch[i]) {
-                            this.elementPouch[i] = element;
-                            added = true;
-                            break;
-                        }
-                    }
-                }
-                
-                // Update UI
-                this.updateChargeUI();
-                
-                // Clean up
-                bg.destroy();
-                title.destroy();
-                controlHint.destroy();
-                buttons.forEach(btn => btn.container.destroy());
-                
-                // Clear element selection state
-                this.elementSelectionActive = false;
-                this.elementSelectionUI = null;
-                
-                // Resume game
-                this.resumeGame('chest');
-                this.chestOpening = false;
+                // Use selectChestElement to handle duplicate checking and auto-fusion
+                this.selectChestElement(element, null, bg, title, controlHint, buttons);
             });
         });
         
@@ -7961,43 +7940,8 @@ class GameScene extends Phaser.Scene {
             buttons,
             selectElement: (index) => {
                 const element = selectedElements[index];
-                // Add element to first available slot
-                let added = false;
-                for (let i = 0; i < 8; i++) {
-                    if (!this.chargeSlots[i]) {
-                        this.chargeSlots[i] = element;
-                        added = true;
-                        break;
-                    }
-                }
-                
-                if (!added) {
-                    // All slots full, add to pouch
-                    for (let i = 0; i < 4; i++) {
-                        if (!this.elementPouch[i]) {
-                            this.elementPouch[i] = element;
-                            added = true;
-                            break;
-                        }
-                    }
-                }
-                
-                // Update UI
-                this.updateChargeUI();
-                
-                // Clean up
-                bg.destroy();
-                title.destroy();
-                controlHint.destroy();
-                buttons.forEach(btn => btn.container.destroy());
-                
-                // Clear element selection state
-                this.elementSelectionActive = false;
-                this.elementSelectionUI = null;
-                
-                // Resume game
-                this.resumeGame('chest');
-                this.chestOpening = false;
+                // Use selectChestElement to handle duplicate checking and auto-fusion
+                this.selectChestElement(element, null, bg, title, controlHint, buttons);
             }
         };
     }
@@ -8376,6 +8320,18 @@ class GameScene extends Phaser.Scene {
             ease: 'Sine.easeInOut'
         });
         
+        // Create a directional arrow that shows where projectiles will fire
+        this.directionArrow = this.add.triangle(0, 0,
+            0, -15,   // tip of arrow
+            -6, 0,    // left base
+            6, 0,     // right base
+            0x00ff00
+        );
+        this.directionArrow.setOrigin(0.5, 0.5);
+        this.directionArrow.setDepth(11); // Above wizard
+        this.directionArrow.setStrokeStyle(2, 0x004400); // Darker green outline
+        this.directionArrow.setAlpha(0.8);
+        
         // Option to toggle indicators with a key
         this.toggleIndicatorsKey = this.input.keyboard.addKey('I');
         this.indicatorsVisible = true;
@@ -8498,6 +8454,7 @@ class GameScene extends Phaser.Scene {
             this.playerOutline.clear();
             this.playerLabel.setVisible(false);
             this.playerArrow.setVisible(false);
+            this.directionArrow.setVisible(false);
             return;
         }
         
@@ -8515,11 +8472,31 @@ class GameScene extends Phaser.Scene {
         // Draw circle outline around wizard
         this.playerOutline.strokeCircle(this.wizard.x, this.wizard.y, 35);
         
-        // Add glow effect with multiple circles
-        this.playerOutline.lineStyle(2, 0x00ff00, 0.4);
-        this.playerOutline.strokeCircle(this.wizard.x, this.wizard.y, 38);
-        this.playerOutline.lineStyle(1, 0x00ff00, 0.2);
-        this.playerOutline.strokeCircle(this.wizard.x, this.wizard.y, 41);
+        // Get wizard's facing direction for the directional arrow
+        const direction = this.wizard.lastDirection || 'down';
+        
+        // Define arrow offset distance from wizard center
+        const offsetDistance = 40;
+        
+        // Calculate arrow position and rotation based on direction
+        const directionData = {
+            'up': { angle: 0, x: 0, y: -offsetDistance },
+            'down': { angle: Math.PI, x: 0, y: offsetDistance },
+            'left': { angle: -Math.PI / 2, x: -offsetDistance, y: 0 },
+            'right': { angle: Math.PI / 2, x: offsetDistance, y: 0 },
+            'up-left': { angle: -Math.PI / 4, x: -offsetDistance * 0.707, y: -offsetDistance * 0.707 },
+            'up-right': { angle: Math.PI / 4, x: offsetDistance * 0.707, y: -offsetDistance * 0.707 },
+            'down-left': { angle: -3 * Math.PI / 4, x: -offsetDistance * 0.707, y: offsetDistance * 0.707 },
+            'down-right': { angle: 3 * Math.PI / 4, x: offsetDistance * 0.707, y: offsetDistance * 0.707 }
+        };
+        
+        const data = directionData[direction] || directionData['down'];
+        
+        // Update directional arrow position and rotation
+        this.directionArrow.x = this.wizard.x + data.x;
+        this.directionArrow.y = this.wizard.y + data.y;
+        this.directionArrow.rotation = data.angle;
+        this.directionArrow.setVisible(true);
     }
 
     createChargeUI() {
@@ -8661,7 +8638,7 @@ class GameScene extends Phaser.Scene {
             indicator.setScrollFactor(0);
             indicator.setDepth(1000); // Very high depth to ensure visibility
             indicator.setVisible(false);
-            indicator.setScale(0.064); // Scaled down 20% more (0.08 * 0.8)
+            indicator.setScale(0.15); // Consistent scale with updateChargeUI
             indicator.setTint(0xffffff); // Ensure no tint
             indicator.setAlpha(1); // Ensure full opacity
             
@@ -15242,8 +15219,8 @@ class GameScene extends Phaser.Scene {
             }
         }
         
-        // Create shadow as dark ellipse
-        const shadow = this.add.ellipse(sprite.x, sprite.y + 20, shadowWidth, shadowHeight, 0x000000, 0.3);
+        // Create shadow as dark ellipse (darker and thinner like Vampire Survivors)
+        const shadow = this.add.ellipse(sprite.x, sprite.y + 20, shadowWidth * 0.8, shadowHeight * 0.6, 0x000000, 0.5);
         shadow.setDepth(0); // Shadows always at depth 0 (below everything)
         
         // Store shadow reference on sprite for easy access
@@ -15892,6 +15869,29 @@ class GameScene extends Phaser.Scene {
                 butterflies: [],
                 colors: ['blue', 'grey', 'pink', 'red', 'white', 'yellow']
             };
+        } else {
+            // Reactivate and reset existing protection
+            this.butterflyProtection.active = true;
+            this.butterflyProtection.charges = 6;
+            this.butterflyProtection.currentColorIndex = 0;
+            
+            // Clear any existing butterflies that might be partially destroyed
+            this.butterflyProtection.butterflies = this.butterflyProtection.butterflies.filter(butterfly => {
+                if (butterfly && butterfly.active) {
+                    return true;
+                } else if (butterfly) {
+                    butterfly.destroy();
+                    return false;
+                }
+                return false;
+            });
+        }
+        
+        // Create butterflies if needed (either first time or if they were destroyed)
+        if (this.butterflyProtection.butterflies.length < 3) {
+            // Clear any remaining butterflies to start fresh
+            this.butterflyProtection.butterflies.forEach(butterfly => butterfly.destroy());
+            this.butterflyProtection.butterflies = [];
             
             // Create 3 butterflies
             for (let i = 0; i < 3; i++) {
@@ -15905,31 +15905,47 @@ class GameScene extends Phaser.Scene {
                 butterfly.orbitSpeed = 2;
                 this.butterflyProtection.butterflies.push(butterfly);
             }
-            
-            // Update butterfly positions
-            this.butterflyUpdateEvent = this.time.addEvent({
-                delay: 16,
-                callback: () => {
-                    if (this.butterflyProtection && this.butterflyProtection.active) {
-                        this.butterflyProtection.butterflies.forEach((butterfly, index) => {
-                            if (butterfly && butterfly.active) {
-                                // Orbit around wizard
-                                butterfly.angle += butterfly.orbitSpeed * 0.02;
-                                butterfly.x = this.wizard.x + Math.cos(butterfly.angle) * butterfly.orbitRadius;
-                                butterfly.y = this.wizard.y + Math.sin(butterfly.angle) * butterfly.orbitRadius;
-                                
-                                // Face direction of movement
-                                const nextAngle = butterfly.angle + butterfly.orbitSpeed * 0.02;
-                                const dx = Math.cos(nextAngle) - Math.cos(butterfly.angle);
-                                butterfly.setFlipX(dx < 0);
-                            }
-                        });
-                    }
-                },
-                loop: true
+        } else {
+            // Reset existing butterflies to first color
+            const firstColor = this.butterflyProtection.colors[0];
+            this.butterflyProtection.butterflies.forEach(butterfly => {
+                butterfly.stop();
+                butterfly.setTexture(`butterfly-${firstColor}`);
+                butterfly.play(`butterfly-${firstColor}-fly`);
+                butterfly.setAlpha(1);
+                butterfly.setScale(1.5);
             });
-            
-            // Display butterfly protection indicator
+        }
+        
+        // Create or update butterfly update event
+        if (this.butterflyUpdateEvent) {
+            this.butterflyUpdateEvent.remove();
+        }
+        
+        this.butterflyUpdateEvent = this.time.addEvent({
+            delay: 16,
+            callback: () => {
+                if (this.butterflyProtection && this.butterflyProtection.active) {
+                    this.butterflyProtection.butterflies.forEach((butterfly, index) => {
+                        if (butterfly && butterfly.active) {
+                            // Orbit around wizard
+                            butterfly.angle += butterfly.orbitSpeed * 0.02;
+                            butterfly.x = this.wizard.x + Math.cos(butterfly.angle) * butterfly.orbitRadius;
+                            butterfly.y = this.wizard.y + Math.sin(butterfly.angle) * butterfly.orbitRadius;
+                            
+                            // Face direction of movement
+                            const nextAngle = butterfly.angle + butterfly.orbitSpeed * 0.02;
+                            const dx = Math.cos(nextAngle) - Math.cos(butterfly.angle);
+                            butterfly.setFlipX(dx < 0);
+                        }
+                    });
+                }
+            },
+            loop: true
+        });
+        
+        // Create or update butterfly protection indicator
+        if (!this.butterflyIndicator) {
             this.butterflyIndicator = this.add.text(this.wizard.x, this.wizard.y - 70, '🦋 x6', {
                 fontSize: '20px',
                 color: '#44ffff',
@@ -15939,36 +15955,21 @@ class GameScene extends Phaser.Scene {
             });
             this.butterflyIndicator.setOrigin(0.5);
             this.butterflyIndicator.setDepth(150);
-            
-        } else if (this.butterflyProtection.active) {
-            // Reset charges if already active
-            this.butterflyProtection.charges = 6;
-            this.butterflyProtection.currentColorIndex = 0;
-            
-            // Update all butterflies to first color
-            const firstColor = this.butterflyProtection.colors[0];
-            this.butterflyProtection.butterflies.forEach(butterfly => {
-                butterfly.stop();
-                butterfly.setTexture(`butterfly-${firstColor}`);
-                butterfly.play(`butterfly-${firstColor}-fly`);
-            });
-            
-            // Update indicator
-            if (this.butterflyIndicator) {
-                this.butterflyIndicator.setText('🦋 x6');
-            }
-            
-            // Flash effect to show reset
-            this.butterflyProtection.butterflies.forEach(butterfly => {
-                this.tweens.add({
-                    targets: butterfly,
-                    scale: { from: 2, to: 1.5 },
-                    alpha: { from: 0.5, to: 1 },
-                    duration: 300,
-                    ease: 'Power2'
-                });
-            });
+        } else {
+            this.butterflyIndicator.setText('🦋 x6');
+            this.butterflyIndicator.setVisible(true);
         }
+        
+        // Flash effect to show activation/reset
+        this.butterflyProtection.butterflies.forEach(butterfly => {
+            this.tweens.add({
+                targets: butterfly,
+                scale: { from: 2, to: 1.5 },
+                alpha: { from: 0.5, to: 1 },
+                duration: 300,
+                ease: 'Power2'
+            });
+        });
     }
     
     activateFlamethrower() {
@@ -25679,7 +25680,7 @@ class GameScene extends Phaser.Scene {
             }
             
             // Create shadow at target position
-            const shadow = this.add.ellipse(targetX, targetY, 30, 20, 0x000000, 0.3);
+            const shadow = this.add.ellipse(targetX, targetY, 24, 12, 0x000000, 0.5);
             shadow.setDepth(1);
             meteor.shadow = shadow; // Store reference for cleanup
             
@@ -26109,11 +26110,11 @@ class GameScene extends Phaser.Scene {
                 break;
             case 'butterflyjar':
                 item = this.physics.add.sprite(x, y, 'butterflyjar');
-                scale = 0.8;
+                scale = 0.028; // Reduced by another 30% from 0.04
                 break;
             case 'flamethrower':
                 item = this.physics.add.sprite(x, y, 'flamethrower');
-                scale = 1.5;
+                scale = 0.375; // Reduced by another 50% from 0.75
                 // Add orange tint for flamethrower
                 item.setTint(0xff6600);
                 break;
@@ -26266,162 +26267,14 @@ class GameScene extends Phaser.Scene {
             rewards.push({ type: 'element', icon: '✨', name: 'PRIMARY ELEMENT', color: 0x4444ff });
         }
         
-        // Randomly determine the reward immediately
-        const finalReward = rewards[Math.floor(Math.random() * rewards.length)];
+        // Always give level up reward (no random selection)
+        const finalReward = { type: 'levelup', icon: '⬆️', name: 'LEVEL UP', color: 0x44ff44 };
         
-        // Create simple reward display UI - minimalistic style
-        const bg = this.add.rectangle(400, 300, 400, 300, 0x000000, 0.95);
-        bg.setScrollFactor(0);
-        bg.setDepth(20000);
+        // Immediately apply the reward without showing UI
+        this.handleSlotMachineReward(finalReward, chest);
         
-        // Title
-        const title = this.add.text(400, 200, 'REWARD CHEST', {
-            fontSize: '36px',
-            color: '#ffdd44',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 4
-        });
-        title.setOrigin(0.5);
-        title.setScrollFactor(0);
-        title.setDepth(20001);
-        
-        // Reward display
-        const rewardBg = this.add.rectangle(400, 280, 300, 100, finalReward.color, 0.3);
-        rewardBg.setStrokeStyle(3, finalReward.color);
-        rewardBg.setScrollFactor(0);
-        rewardBg.setDepth(20001);
-        
-        const icon = this.add.text(400, 255, finalReward.icon, {
-            fontSize: '48px'
-        });
-        icon.setOrigin(0.5);
-        icon.setScrollFactor(0);
-        icon.setDepth(20002);
-        
-        const name = this.add.text(400, 305, finalReward.name, {
-            fontSize: '24px',
-            color: '#ffffff',
-            fontStyle: 'bold'
-        });
-        name.setOrigin(0.5);
-        name.setScrollFactor(0);
-        name.setDepth(20002);
-        
-        // Flash effect on reward
-        const flash = this.add.rectangle(400, 280, 300, 100, 0xffffff, 0);
-        flash.setScrollFactor(0);
-        flash.setDepth(20003);
-        
-        this.tweens.add({
-            targets: flash,
-            alpha: { from: 0.8, to: 0 },
-            duration: 300,
-            repeat: 2,
-            yoyo: true
-        });
-        
-        // Continue button
-        const continueButton = this.add.rectangle(400, 380, 200, 50, 0x44ff44, 1);
-        continueButton.setInteractive({ useHandCursor: true });
-        continueButton.setScrollFactor(0);
-        continueButton.setDepth(20004);
-        
-        const continueText = this.add.text(400, 380, 'CLAIM', {
-            fontSize: '24px',
-            color: '#ffffff',
-            fontStyle: 'bold'
-        });
-        continueText.setOrigin(0.5);
-        continueText.setScrollFactor(0);
-        continueText.setDepth(20005);
-        
-        // Handle claim button
-        const claimReward = () => {
-            // Clean up input handler
-            if (this.rewardChestInputHandler) {
-                this.rewardChestInputHandler.destroy();
-                this.rewardChestInputHandler = null;
-            }
-            
-            // Clean up UI
-            bg.destroy();
-            title.destroy();
-            rewardBg.destroy();
-            icon.destroy();
-            name.destroy();
-            flash.destroy();
-            continueButton.destroy();
-            continueText.destroy();
-            if (controlHint) {
-                controlHint.destroy();
-            }
-            
-            // Apply the reward
-            this.handleSlotMachineReward(finalReward, chest);
-            
-            // Destroy chest
-            chest.destroy();
-        };
-        
-        continueButton.on('pointerdown', claimReward);
-        
-        continueButton.on('pointerover', () => {
-            continueButton.setScale(1.1);
-        });
-        
-        continueButton.on('pointerout', () => {
-            continueButton.setScale(1);
-        });
-        
-        // Add keyboard/gamepad support
-        const spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-        const enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
-        
-        // Add visual feedback for controller
-        let controlHint = null;
-        if (this.gamepad) {
-            continueButton.setStrokeStyle(3, 0xffff00);
-            controlHint = this.add.text(400, 420, 'Press A to claim', {
-                fontSize: '16px',
-                color: '#aaaaaa'
-            });
-            controlHint.setOrigin(0.5);
-            controlHint.setScrollFactor(0);
-            controlHint.setDepth(20005);
-        }
-        
-        // Track button state to prevent held button from previous scene
-        let prevAPressed = this.gamepad ? this.gamepad.buttons[0].pressed : false;
-        
-        const handleInput = () => {
-            // Check keyboard
-            if (Phaser.Input.Keyboard.JustDown(spaceKey) || Phaser.Input.Keyboard.JustDown(enterKey)) {
-                claimReward();
-                return;
-            }
-            
-            // Update gamepad reference if needed
-            if (!this.gamepad && this.input.gamepad.total > 0) {
-                this.gamepad = this.input.gamepad.getPad(0);
-            }
-            
-            // Check gamepad with proper state tracking
-            if (this.gamepad && this.gamepad.buttons[0]) {
-                const aPressed = this.gamepad.buttons[0].pressed;
-                if (aPressed && !prevAPressed) {
-                    claimReward();
-                }
-                prevAPressed = aPressed;
-            }
-        };
-        
-        // Store the input handler so we can remove it later
-        this.rewardChestInputHandler = this.time.addEvent({
-            delay: 16,
-            callback: handleInput,
-            loop: true
-        });
+        // Destroy chest
+        chest.destroy();
     }
     
     handleSlotMachineReward(reward, chest) {
@@ -26501,14 +26354,13 @@ class GameScene extends Phaser.Scene {
                 this.resumeGame('chest');
                 this.chestOpening = false;
                 
-                // Show level up chest after a short delay
-                this.time.delayedCall(1000, () => {
-                    if (levelUpText && levelUpText.active) {
-                        levelUpText.destroy();
-                    }
-                    // Open a new chest for the level up reward
-                    this.openChest(this.wizard, null);
-                });
+                // Destroy level up text if it exists
+                if (levelUpText && levelUpText.active) {
+                    levelUpText.destroy();
+                }
+                
+                // Open a new chest for the level up reward immediately
+                this.openChest(this.wizard, null);
                 break;
                 
             case 'element_upgrade':
@@ -27618,7 +27470,7 @@ class GameScene extends Phaser.Scene {
             case 'butterflyjar':
                 // Create a butterfly jar icon
                 icon = this.add.image(0, -20, 'butterflyjar');
-                icon.setScale(0.5);
+                icon.setScale(0.025); // Reduced by another 50% from 0.05
                 break;
                 
             case 'flamethrower':
@@ -27866,21 +27718,24 @@ class GameScene extends Phaser.Scene {
             return;
         }
         this.chestOpening = true;
-        
-        // Use centralized pause system
-        this.pauseGame('chest');
-        
-        // Pause boss AI timer if it exists
-        if (this.bossAITimer) {
-            this.bossAITimer.paused = true;
-        }
 
         // Handle level-up rewards (when chest is null)
         if (!chest) {
             // Show reward selection UI directly for level-ups
+            this.pauseGame('chest');
+            
+            // Pause boss AI timer if it exists
+            if (this.bossAITimer) {
+                this.bossAITimer.paused = true;
+            }
+            
             this.showChestRewards(null);
             return;
         }
+        
+        // For actual chests, directly level up the player instead of showing rewards
+        // Mark chest as opened
+        chest.opened = true;
 
         // Stop the chest's floating animations
         this.tweens.killTweensOf(chest);
@@ -27900,7 +27755,105 @@ class GameScene extends Phaser.Scene {
                 return;
             }
 
-            // For regular chests, show the level-up reward selection UI (same as level up)
+            // For regular chests, show level up rewards
+            this.pauseGame('chest');
+            
+            // Pause boss AI timer if it exists
+            if (this.bossAITimer) {
+                this.bossAITimer.paused = true;
+            }
+            
+            // Level up the player
+            this.playerLevel++;
+            
+            // Calculate XP needed for next level using same logic as collectJewel
+            if (this.playerLevel <= 2) {
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.10);
+            } else if (this.playerLevel <= 5) {
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 2.00);
+            } else if (this.playerLevel <= 10) {
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.60);
+            } else if (this.playerLevel <= 20) {
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.70);
+            } else {
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.80);
+            }
+            
+            // Reset current XP to 0
+            this.playerXP = 0;
+            
+            // Unlock charge slot every 10 levels
+            if (this.playerLevel % 10 === 0 && this.maxCharges < 8) {
+                this.maxCharges++;
+                this.updateChargeUI();
+                
+                // Visual feedback for slot unlock
+                const slotText = this.add.text(wizard.x, wizard.y - 60, 'CHARGE SLOT UNLOCKED!', {
+                    fontSize: '28px',
+                    color: '#ff00ff',
+                    fontStyle: 'bold'
+                });
+                slotText.setOrigin(0.5);
+                slotText.setDepth(150);
+                
+                this.tweens.add({
+                    targets: slotText,
+                    y: wizard.y - 100,
+                    alpha: 0,
+                    duration: 2000,
+                    onComplete: () => slotText.destroy()
+                });
+            }
+            
+            // Spawn a sorcerer every 2 levels
+            if (this.playerLevel % 2 === 0) {
+                this.spawnLevelUpGolem();
+            }
+            
+            this.updateChargeUI();
+            this.updateXPBar();
+            
+            // Level up effect
+            const levelUpText = this.add.text(wizard.x, wizard.y - 50, 'LEVEL UP!', {
+                fontSize: '48px',
+                color: '#00ff00',
+                fontStyle: 'bold'
+            });
+            levelUpText.setOrigin(0.5);
+            
+            this.tweens.add({
+                targets: levelUpText,
+                y: wizard.y - 80,
+                scale: { from: 0.5, to: 1.5 },
+                alpha: { from: 1, to: 0 },
+                duration: 1500,
+                onComplete: () => levelUpText.destroy()
+            });
+            
+            // Gold burst effect
+            const burstCount = 20;
+            for (let i = 0; i < burstCount; i++) {
+                const angle = (Math.PI * 2 / burstCount) * i;
+                const particle = this.add.circle(wizard.x, wizard.y, 4, 0xffd700);
+                particle.setDepth(100);
+                
+                this.tweens.add({
+                    targets: particle,
+                    x: wizard.x + Math.cos(angle) * 100,
+                    y: wizard.y + Math.sin(angle) * 100,
+                    scale: { from: 1, to: 0 },
+                    alpha: { from: 1, to: 0 },
+                    duration: 800,
+                    ease: 'Power2',
+                    onComplete: () => particle.destroy()
+                });
+            }
+            
+            // Heal wizard to full health
+            this.health = this.maxHealth;
+            this.updateHealthBar();
+            
+            // Show reward selection UI
             this.showChestRewards(null);
         });
     }
@@ -28303,8 +28256,13 @@ class GameScene extends Phaser.Scene {
             
             if (this.gamePaused || this.time.timeScale === 0) {
                 console.log('Using setTimeout for element reward (game paused)');
-                setTimeout(() => {
+                this.pendingElementRewardTimer = setTimeout(() => {
                     console.log('Timer fired - calling showElementReward');
+                    // Check if auto-fusion cancelled this
+                    if (this.pendingElementRewardTimer === null) {
+                        console.log('Element reward timer was cancelled');
+                        return;
+                    }
                     try {
                         this.showElementReward();
                     } catch (error) {
@@ -28315,7 +28273,7 @@ class GameScene extends Phaser.Scene {
                 }, 100);
             } else {
                 console.log('Using Phaser timer for element reward');
-                const elementTimer = this.time.delayedCall(100, () => {
+                this.pendingElementRewardTimer = this.time.delayedCall(100, () => {
                     console.log('Timer fired - calling showElementReward');
                     try {
                         this.showElementReward();
@@ -28789,6 +28747,15 @@ class GameScene extends Phaser.Scene {
     showElementReward() {
         console.log('=== showElementReward called ===');
         debugLog('=== showElementReward called ===');
+        
+        // Clear the pending timer reference
+        this.pendingElementRewardTimer = null;
+        
+        // Check if we're in auto-fusion mode - if so, don't show element selection
+        if (this.isAutoFusion) {
+            console.log('Auto-fusion in progress, skipping element reward UI');
+            return;
+        }
         
         // Clean up hidden UI elements now
         if (this.chestUIBackup) {
@@ -29434,27 +29401,33 @@ class GameScene extends Phaser.Scene {
             const removedIndices = [];
             console.log('Fusion removal - Elements:', elements, 'Indices:', elementIndices);
             console.log('Current chargeSlots:', [...this.chargeSlots]);
+            console.log('Is auto-fusion:', this.isAutoFusion);
             
-            // Ensure we have valid indices for both elements
-            if (elementIndices.length === 2 && elementIndices[0] !== -1 && elementIndices[1] !== -1) {
-                elementIndices.forEach((slotIndex, idx) => {
-                    if (slotIndex !== -1 && slotIndex < this.chargeSlots.length) {
-                        // Verify the slot contains the expected element
+            // Handle fusion removal
+            elementIndices.forEach((slotIndex, idx) => {
+                if (slotIndex !== -1) {
+                    if (slotIndex < 8) {
+                        // Regular charge slot
                         if (this.chargeSlots[slotIndex] === elements[idx]) {
-                            console.log(`Removing ${this.chargeSlots[slotIndex]} from slot ${slotIndex}`);
+                            console.log(`Removing ${this.chargeSlots[slotIndex]} from charge slot ${slotIndex}`);
                             // Clear tier info for the removed element
                             this.elementTiers.delete(`${this.chargeSlots[slotIndex]}_${slotIndex}`);
                             // Clear the slot
                             this.chargeSlots[slotIndex] = null;
                             removedIndices.push(slotIndex);
-                        } else {
-                            console.warn(`Slot ${slotIndex} contains ${this.chargeSlots[slotIndex]}, expected ${elements[idx]}`);
+                        }
+                    } else {
+                        // Pouch slot (index 8-11 maps to pouch 0-3)
+                        const pouchIndex = slotIndex - 8;
+                        if (this.elementPouch[pouchIndex] === elements[idx]) {
+                            console.log(`Removing ${this.elementPouch[pouchIndex]} from pouch slot ${pouchIndex}`);
+                            this.elementPouch[pouchIndex] = null;
+                            removedIndices.push(slotIndex);
                         }
                     }
-                });
-            } else {
-                console.warn('Invalid element indices for fusion removal:', elementIndices);
-            }
+                }
+                // If slotIndex is -1, this is the new element from auto-fusion, don't need to remove anything
+            });
             
             // Place the result in the first removed slot
             let newSlotIndex = removedIndices[0];
@@ -29471,9 +29444,9 @@ class GameScene extends Phaser.Scene {
                 }
             }
             
-            // Rebuild charges array from chargeSlots
+            // Rebuild charges array from first 4 chargeSlots only
             this.charges = [];
-            for (let i = 0; i < this.chargeSlots.length; i++) {
+            for (let i = 0; i < 4 && i < this.chargeSlots.length; i++) {
                 if (this.chargeSlots[i] !== null) {
                     this.charges.push(this.chargeSlots[i]);
                 }
@@ -29509,8 +29482,24 @@ class GameScene extends Phaser.Scene {
                     bonusText.destroy();
                 }
                 
-                console.log('Fusion animation complete, calling closeChestUI');
-                this.closeChestUI();
+                console.log('Fusion animation complete');
+                
+                // Check if this was auto-fusion from chest reward
+                if (this.isAutoFusion) {
+                    // For auto-fusion, directly resume the game without showing upgrade UI
+                    this.isAutoFusion = false; // Reset flag
+                    this.chestSelectionActive = false;
+                    this.chestOpening = false;
+                    this.resumeGame('chest');
+                    
+                    // Resume boss AI timer if it exists
+                    if (this.bossAITimer) {
+                        this.bossAITimer.paused = false;
+                    }
+                } else {
+                    // Normal fusion - call closeChestUI which may show upgrade rewards
+                    this.closeChestUI();
+                }
             }, 3000);
         }, 1000);
     }
@@ -29548,316 +29537,14 @@ class GameScene extends Phaser.Scene {
             console.error('Error creating control hint:', error);
         }
 
-        // Always show current charges and pouch
-        let chargeDisplay = null;
-        console.log('Creating charge display container...');
-        try {
-            chargeDisplay = this.add.container(400, 360);
-            chargeDisplay.setScrollFactor(0);
-            chargeDisplay.setDepth(921);
-            console.log('Charge display container created');
-        } catch (error) {
-            console.error('Error creating charge display container:', error);
-        }
 
-        console.log('Creating charge label...');
-        try {
-            const chargeLabel = this.add.text(0, -50, chargesFull ? 'Current elements (select one to replace):' : 'Current elements:', {
-                fontSize: '12px',
-                color: '#ffaa44'
-            });
-            chargeLabel.setOrigin(0.5);
-            chargeDisplay.add(chargeLabel);
-            console.log('Charge label created and added');
-        } catch (error) {
-            console.error('Error creating charge label:', error);
-        }
-        
-        // Add row labels when showing all slots
-        if (chargesFull) {
-            const activeLabel = this.add.text(-100, -30, 'Active:', {
-                fontSize: '10px',
-                color: '#888888'
-            });
-            activeLabel.setOrigin(1, 0.5);
-            chargeDisplay.add(activeLabel);
-            
-            const passiveLabel = this.add.text(-100, 10, 'Passive:', {
-                fontSize: '10px',
-                color: '#666666'
-            });
-            passiveLabel.setOrigin(1, 0.5);
-            chargeDisplay.add(passiveLabel);
-            
-            const pouchLabel = this.add.text(-100, 50, 'Pouch:', {
-                fontSize: '10px',
-                color: '#4a6a4a'
-            });
-            pouchLabel.setOrigin(1, 0.5);
-            chargeDisplay.add(pouchLabel);
-        }
-
-        // Show current charges
+        // Initialize arrays for charge management (old charge display logic removed)
         const chargeButtons = [];
-        // When charges are full, show all 12 slots (8 charge + 4 pouch) to allow replacement selection
-        const slotsToShow = chargesFull ? 12 : 4;
-        const slotColumns = 4; // Always 4 columns per row
-        const slotYBase = chargesFull ? -30 : 0; // Adjust Y position if showing 3 rows
+        const chargeDisplay = null; // No longer needed
         
-        for (let i = 0; i < slotsToShow; i++) {
-            const row = Math.floor(i / slotColumns);
-            const col = i % slotColumns;
-            const xPos = -60 + col * 40;
-            const yPos = slotYBase + row * 40; // Space rows 40 pixels apart
-            
-            // Different colors for different slot types
-            let slotColor = 0x333333;
-            let strokeColor = 0x666666;
-            if (chargesFull) {
-                if (i < 4) {
-                    // Active slots - brighter
-                    slotColor = 0x444444;
-                    strokeColor = 0x888888;
-                } else if (i < 8) {
-                    // Passive slots - darker
-                    slotColor = 0x2a2a2a;
-                    strokeColor = 0x555555;
-                } else {
-                    // Pouch slots - green tint
-                    slotColor = 0x2a4a2a;
-                    strokeColor = 0x4a6a4a;
-                }
-            }
-            
-            const slotBg = this.add.circle(xPos, yPos, 18, slotColor, 0.5);
-            slotBg.setStrokeStyle(2, strokeColor);
-            chargeDisplay.add(slotBg);
-            
-            // Check chargeSlots array for element at this position
-            let charge = null;
-            if (i < 8) {
-                // Charge slots
-                charge = this.chargeSlots ? this.chargeSlots[i] : (i < this.charges.length ? this.charges[i] : null);
-            } else {
-                // Pouch slots (indices 8-11)
-                charge = this.elementPouch ? this.elementPouch[i - 8] : null;
-            }
-            if (charge) {
-                const chargeConfig = this.elementConfig[charge];
-                const chargeSprite = this.add.sprite(xPos, yPos, chargeConfig.sheet, chargeConfig.frame);
-                chargeSprite.setScale(0.15);
-                chargeSprite.setInteractive({ draggable: true });
-                chargeSprite.elementType = charge;
-                chargeSprite.slotType = 'charge';
-                chargeSprite.slotIndex = i;
-
-                // Add selection ring
-                const selectionRing = this.add.graphics();
-                selectionRing.lineStyle(3, 0xff0000, 1);
-                selectionRing.strokeCircle(xPos, yPos, 25);
-                selectionRing.setVisible(false);
-                chargeDisplay.add(selectionRing);
-
-                this.setupElementDragDrop(chargeSprite, chargeDisplay, xPos, yPos);
-                
-                chargeSprite.on('pointerover', () => {
-                    if (!this.draggedElement) {
-                        chargeSprite.setScale(0.2);
-                        chargeSprite.setTint(0xffaaaa);
-                    }
-                });
-
-                chargeSprite.on('pointerout', () => {
-                    if (!this.draggedElement && this.selectedChargeToReplace !== i) {
-                        chargeSprite.setScale(0.15);
-                        chargeSprite.clearTint();
-                    }
-                });
-
-                chargeSprite.on('pointerdown', () => {
-                    if (!this.draggedElement) {
-                        // Handle fusion element discard mode
-                        if (this.fusionElementDiscardMode) {
-                            const selectedSlot = i;
-                            let discardedElement = null;
-                            
-                            if (selectedSlot < 8) {
-                                // Discarding from charge slots
-                                discardedElement = this.chargeSlots[selectedSlot];
-                                this.chargeSlots[selectedSlot] = this.pendingFusionElement;
-                            } else {
-                                // Discarding from pouch
-                                const pouchIndex = selectedSlot - 8;
-                                discardedElement = this.elementPouch[pouchIndex];
-                                this.elementPouch[pouchIndex] = this.pendingFusionElement;
-                                // Don't save pouch to localStorage
-                            }
-                            
-                            // Rebuild charges array
-                            this.charges = [];
-                            for (let j = 0; j < 4 && j < this.chargeSlots.length; j++) {
-                                if (this.chargeSlots[j] !== null) {
-                                    this.charges.push(this.chargeSlots[j]);
-                                }
-                            }
-                            
-                            // Update UI
-                            this.updateChargeUI();
-                            this.updateChargeGroups();
-                            
-                            // Clean up UI
-                            if (selectionBg) selectionBg.destroy();
-                            if (title) title.destroy();
-                            if (controlHint) controlHint.destroy();
-                            if (chargeDisplay) chargeDisplay.destroy();
-                            
-                            // Reset states
-                            this.chestSelectionActive = false;
-                            this.fusionElementDiscardMode = false;
-                            this.chestUI = null;
-                            
-                            // Show success message
-                            const successText = this.add.text(400, 300, `${discardedElement.toUpperCase()} discarded!\n${this.pendingFusionElement.toUpperCase()} acquired!`, {
-                                fontSize: '24px',
-                                color: '#44ff44',
-                                fontStyle: 'bold',
-                                align: 'center'
-                            });
-                            successText.setOrigin(0.5);
-                            successText.setScrollFactor(0);
-                            successText.setDepth(922);
-                            
-                            this.tweens.add({
-                                targets: successText,
-                                y: 250,
-                                alpha: 0,
-                                duration: 2000,
-                                onComplete: () => {
-                                    successText.destroy();
-                                    // Use centralized resume system to properly restore timeScale
-                                    this.resumeGame('chest');
-                                    this.chestOpening = false;
-                                    this.pendingFusionElement = null;
-                                    
-                                    // Resume boss AI timer if it exists
-                                    if (this.bossAITimer) {
-                                        this.bossAITimer.paused = false;
-                                    }
-                                }
-                            });
-                            
-                            return;
-                        }
-                        
-                        // Normal charge selection for replacement
-                        if (chargesFull) {
-                            this.selectedChargeToReplace = i;
-                            chargeButtons.forEach((btn, idx) => {
-                                const ring = this.chestSelectionRings[idx];
-                                if (idx === i) {
-                                    btn.sprite.setScale(0.2);
-                                    btn.sprite.setTint(0xff0000);
-                                    if (ring) ring.setVisible(true);
-                                } else {
-                                    btn.sprite.setScale(0.15);
-                                    btn.sprite.clearTint();
-                                    if (ring) ring.setVisible(false);
-                                }
-                            });
-                        }
-                    }
-                });
-
-                chargeButtons.push({ sprite: chargeSprite, slotBg: slotBg });
-                chargeDisplay.add(chargeSprite);
-            } else {
-                // Add empty slot placeholder for controller navigation
-                chargeButtons.push({ sprite: null, slotBg: slotBg });
-            }
-        }
-
-        // Add pouch label - only show if not showing all slots
-        if (!chargesFull) {
-            const pouchLabel = this.add.text(0, 50, 'Inventory Pouch:', {
-                fontSize: '12px',
-                color: '#88cc88'
-            });
-            pouchLabel.setOrigin(0.5);
-            chargeDisplay.add(pouchLabel);
-
-            // Show pouch slots separately only when not showing all slots
-            const pouchButtons = [];
-            for (let i = 0; i < 4; i++) {
-                const xPos = -60 + i * 40;
-                const yPos = 80;
-            const slotBg = this.add.circle(xPos, yPos, 18, 0x2a4a2a, 0.5);
-            slotBg.setStrokeStyle(2, 0x4a6a4a);
-            chargeDisplay.add(slotBg);
-            
-            if (this.elementPouch[i]) {
-                const element = this.elementPouch[i];
-                const elementConfig = this.elementConfig[element];
-                const pouchSprite = this.add.sprite(xPos, yPos, elementConfig.sheet, elementConfig.frame);
-                pouchSprite.setScale(0.15);
-                pouchSprite.setInteractive({ draggable: true });
-                pouchSprite.elementType = element;
-                pouchSprite.slotType = 'pouch';
-                pouchSprite.slotIndex = i;
-                
-                this.setupElementDragDrop(pouchSprite, chargeDisplay, xPos, yPos);
-                
-                pouchSprite.on('pointerover', () => {
-                    if (!this.draggedElement) {
-                        pouchSprite.setScale(0.2);
-                        const descText = this.add.text(400, 440, this.elementDescriptions[element], {
-                            fontSize: '12px',
-                            color: '#ffffff',
-                            align: 'center',
-                            wordWrap: { width: 300 },
-                            backgroundColor: '#000000',
-                            padding: { x: 10, y: 5 }
-                        });
-                        descText.setOrigin(0.5);
-                        descText.setScrollFactor(0);
-                        descText.setDepth(925);
-                        pouchSprite.descText = descText;
-                    }
-                });
-                
-                pouchSprite.on('pointerout', () => {
-                    if (!this.draggedElement) {
-                        pouchSprite.setScale(0.15);
-                        if (pouchSprite.descText) {
-                            pouchSprite.descText.destroy();
-                            pouchSprite.descText = null;
-                        }
-                    }
-                });
-                
-                pouchButtons.push({ sprite: pouchSprite, slotBg: slotBg });
-                chargeDisplay.add(pouchSprite);
-            } else {
-                // Add empty slot to pouchButtons so it can be a drop target
-                pouchButtons.push({ sprite: null, slotBg: slotBg });
-            }
-            }
-            
-            this.chestPouchButtons = pouchButtons;
-        } else {
-            // When showing all slots, pouch buttons are already included in chargeButtons
-            this.chestPouchButtons = [];
-        }
-
-        this.chestChargeButtons = chargeButtons;
+        this.chestChargeButtons = [];
+        this.chestPouchButtons = [];
         this.chestSelectionRings = [];
-        
-        // Collect selection rings
-        chargeButtons.forEach((btn, i) => {
-            const ringIndex = chargeDisplay.list.indexOf(btn.sprite) + 1;
-            if (chargeDisplay.list[ringIndex] && chargeDisplay.list[ringIndex].type === 'Graphics') {
-                this.chestSelectionRings.push(chargeDisplay.list[ringIndex]);
-            }
-        });
 
         // Create element buttons (only if we have choices - not in discard mode)
         const buttons = [];
@@ -29937,7 +29624,7 @@ class GameScene extends Phaser.Scene {
             controlHint: controlHint,
             buttons: buttons,
             choices: choices,
-            chargeDisplay: chargeDisplay,
+            chargeDisplay: null, // Removed old charge display
             chargesFull: chargesFull,
             mainMenu: false
         };
@@ -30177,7 +29864,7 @@ class GameScene extends Phaser.Scene {
             this.chargeIndicators.forEach((indicator) => {
                 // Reset scale for sprites (images don't have stroke)
                 if (indicator.sprite) {
-                    indicator.sprite.setScale(0.064); // Reset to normal scale
+                    indicator.sprite.setScale(0.15); // Reset to normal scale
                 }
                 // Clear any tint on the background
                 if (indicator.bg) {
@@ -30188,7 +29875,7 @@ class GameScene extends Phaser.Scene {
         if (this.extraChargeIndicators) {
             this.extraChargeIndicators.forEach((indicator) => {
                 if (indicator.sprite) {
-                    indicator.sprite.setScale(0.064); // Reset to normal scale
+                    indicator.sprite.setScale(0.15); // Reset to normal scale
                 }
                 if (indicator.bg) {
                     // Extra indicators use rectangles, reset their fill style
@@ -30251,6 +29938,99 @@ class GameScene extends Phaser.Scene {
         // Make sure we have config
         if (!config) {
             config = this.elementConfig[element];
+        }
+
+        // Check if this element already exists in any slot (for auto-fusion)
+        let existingElementIndex = -1;
+        let existingElementSlot = null;
+        
+        // Check charge slots
+        for (let i = 0; i < 8; i++) {
+            if (this.chargeSlots[i] === element) {
+                existingElementIndex = i;
+                existingElementSlot = 'charge';
+                break;
+            }
+        }
+        
+        // If not found in charge slots, check pouch
+        if (existingElementIndex === -1) {
+            for (let i = 0; i < 4; i++) {
+                if (this.elementPouch[i] === element) {
+                    existingElementIndex = i;
+                    existingElementSlot = 'pouch';
+                    break;
+                }
+            }
+        }
+        
+        // If duplicate found, automatically trigger fusion
+        if (existingElementIndex !== -1) {
+            console.log(`Found duplicate element ${element} at ${existingElementSlot} slot ${existingElementIndex}`);
+            
+            // Clear chest UI elements
+            if (selectionBg) selectionBg.destroy();
+            if (title) title.destroy();
+            if (controlHint) controlHint.destroy();
+            if (buttons) {
+                buttons.forEach(btn => {
+                    if (btn.container) btn.container.destroy();
+                });
+            }
+            
+            // Clear any existing chest UI
+            if (this.chestUI) {
+                if (this.chestUI.bg) this.chestUI.bg.destroy();
+                if (this.chestUI.title) this.chestUI.title.destroy();
+                if (this.chestUI.controlHint) this.chestUI.controlHint.destroy();
+                if (this.chestUI.buttons) {
+                    this.chestUI.buttons.forEach(btn => {
+                        if (btn.container) btn.container.destroy();
+                    });
+                }
+                this.chestUI = null;
+            }
+            
+            // Mark that we're in auto-fusion mode
+            this.isAutoFusion = true;
+            
+            // Clear chest opening flag to prevent further processing
+            this.chestOpening = false;
+            
+            // Clear any pending element selection
+            this.elementSelectionActive = false;
+            this.chestSelectionActive = false;
+            
+            // Cancel any pending element reward timer
+            if (this.pendingElementRewardTimer) {
+                if (typeof this.pendingElementRewardTimer === 'number') {
+                    // It's a setTimeout ID
+                    clearTimeout(this.pendingElementRewardTimer);
+                } else if (this.pendingElementRewardTimer.remove) {
+                    // It's a Phaser timer
+                    this.pendingElementRewardTimer.remove();
+                }
+                this.pendingElementRewardTimer = null;
+            }
+            
+            // Prepare selectedElements array for fusion
+            const selectedElements = [];
+            
+            // Add the existing element
+            if (existingElementSlot === 'charge') {
+                selectedElements.push({ element: element, slotIndex: existingElementIndex });
+            } else {
+                // For pouch elements, use index + 8
+                selectedElements.push({ element: element, slotIndex: existingElementIndex + 8 });
+            }
+            
+            // Add the new element (using a temporary slot index of -1)
+            selectedElements.push({ element: element, slotIndex: -1 });
+            
+            // Use the existing performFusion function
+            this.performFusion(selectedElements);
+            
+            return; // Exit early for auto-fusion
         }
 
         // Check if we need to replace a charge (check all 12 slots - 8 charge + 4 pouch)
@@ -30316,7 +30096,7 @@ class GameScene extends Phaser.Scene {
                         indicator.bg.clearTint();
                     }
                     if (indicator.sprite) {
-                        indicator.sprite.setScale(0.064); // Reset to normal scale
+                        indicator.sprite.setScale(0.15); // Reset to normal scale
                     }
                 });
             }
@@ -30326,7 +30106,7 @@ class GameScene extends Phaser.Scene {
                         indicator.bg.clearTint();
                     }
                     if (indicator.sprite) {
-                        indicator.sprite.setScale(0.064); // Reset to normal scale
+                        indicator.sprite.setScale(0.15); // Reset to normal scale
                     }
                 });
             }
@@ -30466,9 +30246,7 @@ class GameScene extends Phaser.Scene {
         if (title) title.destroy();
         if (controlHint) controlHint.destroy();
         buttons.forEach(btn => btn.container.destroy());
-        if (this.chestUI && this.chestUI.chargeDisplay) {
-            this.chestUI.chargeDisplay.destroy();
-        }
+        // Charge display removed - no longer needed
 
         // Clean up charge buttons references
         if (this.chestChargeButtons) {
@@ -30636,7 +30414,7 @@ class GameScene extends Phaser.Scene {
                             indicator.bg.clearTint();
                         }
                         if (indicator.sprite) {
-                            indicator.sprite.setScale(0.064); // Reset to normal scale
+                            indicator.sprite.setScale(0.15); // Reset to normal scale
                         }
                     });
                 }
@@ -30753,7 +30531,7 @@ class GameScene extends Phaser.Scene {
                     if (this.chestUI.bg) this.chestUI.bg.destroy();
                     if (this.chestUI.title) this.chestUI.title.destroy();
                     if (this.chestUI.controlHint) this.chestUI.controlHint.destroy();
-                    if (this.chestUI.chargeDisplay) this.chestUI.chargeDisplay.destroy();
+                    // Charge display removed - no longer needed
                     this.chestUI = null;
                 }
                 
@@ -31066,7 +30844,7 @@ class GameScene extends Phaser.Scene {
             }
             this.chargeIndicators[index].bg.setScale(0.108);
             if (this.chargeIndicators[index].sprite) {
-                this.chargeIndicators[index].sprite.setScale(0.064);
+                this.chargeIndicators[index].sprite.setScale(0.15);
             }
         } else if (index >= 8 && this.extraChargeIndicators && this.extraChargeIndicators[index - 8]) {
             // Reset fill style for rectangles
@@ -31077,7 +30855,7 @@ class GameScene extends Phaser.Scene {
             }
             indicator.bg.setScale(1); // Normal scale for rectangles
             if (indicator.sprite) {
-                indicator.sprite.setScale(0.064);
+                indicator.sprite.setScale(0.15);
             }
         }
     }
@@ -32582,6 +32360,12 @@ class GameScene extends Phaser.Scene {
                 }
             }
             
+            // Update boss shadow position regardless of mode
+            if (this.boss.shadow && this.boss.shadow.active) {
+                this.boss.shadow.x = this.boss.x;
+                this.boss.shadow.y = this.boss.y + 20;
+            }
+            
             // Handle stationary mode laser barrage
             if (this.boss.currentMode === 'stationary' && !this.boss.isChargingLaser && !this.boss.isFiringLaser && !this.boss.postLaserCooldown) {
                 const timeSinceLastLaser = currentTime - this.boss.lastLaserTime;
@@ -32607,6 +32391,12 @@ class GameScene extends Phaser.Scene {
                         this.boss.setVelocity(velocityX, velocityY);
                     } else {
                         this.boss.setVelocity(0, 0);
+                    }
+                    
+                    // Update boss shadow position
+                    if (this.boss.shadow && this.boss.shadow.active) {
+                        this.boss.shadow.x = this.boss.x;
+                        this.boss.shadow.y = this.boss.y + 20;
                     }
                 }
             }
@@ -34389,25 +34179,20 @@ class GameScene extends Phaser.Scene {
     }
 
     gameOver() {
+        // Stop all sounds immediately
+        this.sound.stopAll();
+        
         // Stop background music
         if (this.bgMusic) {
             this.bgMusic.stop();
+            this.bgMusic = null;
         }
         
-        // Stop boss music if playing
-        if (this.bossMusic && this.bossMusic.isPlaying) {
-            this.tweens.add({
-                targets: this.bossMusic,
-                volume: 0,
-                duration: 1000,
-                onComplete: () => {
-                    if (this.bossMusic) {
-                        this.bossMusic.stop();
-                        this.bossMusic.destroy();
-                        this.bossMusic = null;
-                    }
-                }
-            });
+        // Stop boss music immediately if playing
+        if (this.bossMusic) {
+            this.bossMusic.stop();
+            this.bossMusic.destroy();
+            this.bossMusic = null;
         }
         
         // Play death animation
