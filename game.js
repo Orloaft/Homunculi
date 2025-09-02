@@ -15534,7 +15534,8 @@ class GameScene extends Phaser.Scene {
         this.projectiles.add(projectile);
 
         const baseSpeed = 400;
-        const speed = baseSpeed - (chargeCount - 1) * 50; // Slightly slower for larger projectiles
+        // Scale projectile speed with speed multiplier so projectiles keep up with player
+        const speed = (baseSpeed - (chargeCount - 1) * 50) * this.speedMultiplier;
         const diagonalSpeed = speed / Math.sqrt(2); // Normalize diagonal speed
 
         const directions = {
@@ -20819,7 +20820,7 @@ class GameScene extends Phaser.Scene {
         lightningOrb.bounceCount = 3; // Will bounce to 3 more enemies after initial hit
         lightningOrb.hitEnemies = new Set();
         lightningOrb.currentTarget = closestEnemy;
-        lightningOrb.speed = 400 * slotBuff.speedMultiplier; // Apply speed buff
+        lightningOrb.speed = 400 * slotBuff.speedMultiplier * this.speedMultiplier; // Apply speed buff and speed mode
         lightningOrb.damage = 1.5 * slotBuff.damageMultiplier * tierDamageScale; // Apply damage buff and tier scaling
         lightningOrb.slotIndex = slotIndex; // Store slot index
 
@@ -21046,8 +21047,8 @@ class GameScene extends Phaser.Scene {
         // Add to projectiles group first
         this.projectiles.add(projectile);
 
-        // Directional firing with speed buff applied
-        const speed = 300 * slotBuff.speedMultiplier; // Apply speed buff
+        // Directional firing with speed buff and global speed multiplier applied
+        const speed = 300 * slotBuff.speedMultiplier * this.speedMultiplier; // Apply speed buff and speed mode
         const diagonalSpeed = speed / Math.sqrt(2);
 
         const directions = {
