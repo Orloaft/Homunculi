@@ -18496,8 +18496,9 @@ class GameScene extends Phaser.Scene {
         }
         
         // Player projectiles should never have fromBoss flag
+        // This can happen if boss projectiles accidentally get mixed with player projectiles
         if (projectile.fromBoss) {
-            console.error('Warning: Player projectile has fromBoss flag!', projectile);
+            // This is a boss projectile, it shouldn't hurt enemies
             return;
         }
         
@@ -36800,6 +36801,20 @@ class BossCutsceneSystem {
             duration: 1000
         });
         
+        // Ancient seal text
+        const ancientText = this.scene.add.text(400, 200, 'THE ANCIENT SEAL HAS BEEN BROKEN', {
+            fontSize: '28px',
+            color: '#ff6666',
+            fontFamily: 'serif',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        ancientText.setOrigin(0.5);
+        ancientText.setScrollFactor(0);
+        ancientText.setDepth(901);
+        ancientText.setAlpha(0);
+        this.currentElements.push(ancientText);
+        
         const title = this.scene.add.text(400, 300, 'AWAKENED OBELISK', {
             fontSize: '64px',
             color: '#ff0000',
@@ -36813,7 +36828,7 @@ class BossCutsceneSystem {
         title.setScale(0);
         this.currentElements.push(title);
         
-        const subtitle = this.scene.add.text(400, 370, 'Ancient Guardian Awakens', {
+        const subtitle = this.scene.add.text(400, 370, 'Guardian of Forbidden Knowledge', {
             fontSize: '24px',
             color: '#ffaaaa',
             fontStyle: 'italic',
@@ -36826,11 +36841,33 @@ class BossCutsceneSystem {
         subtitle.setAlpha(0);
         this.currentElements.push(subtitle);
         
+        // Boss dialogue
+        const dialogue = this.scene.add.text(400, 450, '"Your presence disturbs my eternal slumber..."', {
+            fontSize: '20px',
+            color: '#ffcccc',
+            fontStyle: 'italic',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+        dialogue.setOrigin(0.5);
+        dialogue.setScrollFactor(0);
+        dialogue.setDepth(901);
+        dialogue.setAlpha(0);
+        this.currentElements.push(dialogue);
+        
         // Animate
+        this.scene.tweens.add({
+            targets: ancientText,
+            alpha: 1,
+            duration: 500,
+            delay: 200
+        });
+        
         this.scene.tweens.add({
             targets: title,
             scale: 1,
             duration: 800,
+            delay: 700,
             ease: 'Back.easeOut'
         });
         
@@ -36838,10 +36875,17 @@ class BossCutsceneSystem {
             targets: subtitle,
             alpha: 1,
             duration: 500,
-            delay: 500
+            delay: 1200
         });
         
-        this.scene.time.delayedCall(3000, () => {
+        this.scene.tweens.add({
+            targets: dialogue,
+            alpha: 1,
+            duration: 500,
+            delay: 1700
+        });
+        
+        this.scene.time.delayedCall(4000, () => {
             this.scene.tweens.add({
                 targets: this.currentElements,
                 alpha: 0,
@@ -36877,7 +36921,7 @@ class BossCutsceneSystem {
         title.setAlpha(0);
         this.currentElements.push(title);
         
-        const subtitle = this.scene.add.text(400, 380, 'Death Knight Rises', {
+        const subtitle = this.scene.add.text(400, 380, 'Death Knight of the Forsaken', {
             fontSize: '26px',
             color: '#cc99ff',
             fontStyle: 'italic',
@@ -36890,6 +36934,20 @@ class BossCutsceneSystem {
         subtitle.setAlpha(0);
         this.currentElements.push(subtitle);
         
+        // Boss dialogue
+        const dialogue = this.scene.add.text(400, 450, '"Death comes for all... especially you."', {
+            fontSize: '20px',
+            color: '#e6ccff',
+            fontStyle: 'italic',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+        dialogue.setOrigin(0.5);
+        dialogue.setScrollFactor(0);
+        dialogue.setDepth(901);
+        dialogue.setAlpha(0);
+        this.currentElements.push(dialogue);
+        
         this.scene.tweens.add({
             targets: [title, subtitle],
             alpha: 1,
@@ -36897,7 +36955,14 @@ class BossCutsceneSystem {
             delay: 500
         });
         
-        this.scene.time.delayedCall(3000, () => {
+        this.scene.tweens.add({
+            targets: dialogue,
+            alpha: 1,
+            duration: 500,
+            delay: 1200
+        });
+        
+        this.scene.time.delayedCall(3500, () => {
             this.scene.tweens.add({
                 targets: this.currentElements,
                 alpha: 0,
@@ -36933,7 +36998,7 @@ class BossCutsceneSystem {
         title.setAlpha(0);
         this.currentElements.push(title);
         
-        const subtitle = this.scene.add.text(400, 370, 'The All-Seeing Eye', {
+        const subtitle = this.scene.add.text(400, 370, 'The Desert\'s Watchful Gaze', {
             fontSize: '24px',
             color: '#ffcc99',
             fontStyle: 'italic',
@@ -36946,6 +37011,20 @@ class BossCutsceneSystem {
         subtitle.setAlpha(0);
         this.currentElements.push(subtitle);
         
+        // Boss dialogue
+        const dialogue = this.scene.add.text(400, 440, '"I see all... including your demise."', {
+            fontSize: '20px',
+            color: '#ffe6cc',
+            fontStyle: 'italic',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+        dialogue.setOrigin(0.5);
+        dialogue.setScrollFactor(0);
+        dialogue.setDepth(901);
+        dialogue.setAlpha(0);
+        this.currentElements.push(dialogue);
+        
         this.scene.tweens.add({
             targets: [title, subtitle],
             alpha: 1,
@@ -36953,7 +37032,14 @@ class BossCutsceneSystem {
             delay: 500
         });
         
-        this.scene.time.delayedCall(3000, () => {
+        this.scene.tweens.add({
+            targets: dialogue,
+            alpha: 1,
+            duration: 500,
+            delay: 1200
+        });
+        
+        this.scene.time.delayedCall(3500, () => {
             this.scene.tweens.add({
                 targets: this.currentElements,
                 alpha: 0,
@@ -37002,6 +37088,20 @@ class BossCutsceneSystem {
         subtitle.y = 670;
         this.currentElements.push(subtitle);
         
+        // Boss dialogue
+        const dialogue = this.scene.add.text(400, 490, '"Burn in the eternal flames!"', {
+            fontSize: '20px',
+            color: '#ffccaa',
+            fontStyle: 'italic',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+        dialogue.setOrigin(0.5);
+        dialogue.setScrollFactor(0);
+        dialogue.setDepth(901);
+        dialogue.y = 740;
+        this.currentElements.push(dialogue);
+        
         // Rise from lava
         this.scene.tweens.add({
             targets: title,
@@ -37019,7 +37119,15 @@ class BossCutsceneSystem {
             ease: 'Power2.easeOut'
         });
         
-        this.scene.time.delayedCall(3500, () => {
+        this.scene.tweens.add({
+            targets: dialogue,
+            y: 490,
+            duration: 2000,
+            delay: 1100,
+            ease: 'Power2.easeOut'
+        });
+        
+        this.scene.time.delayedCall(4000, () => {
             this.scene.tweens.add({
                 targets: this.currentElements,
                 alpha: 0,
@@ -37068,6 +37176,20 @@ class BossCutsceneSystem {
         subtitle.setAlpha(0);
         this.currentElements.push(subtitle);
         
+        // Boss dialogue
+        const dialogue = this.scene.add.text(400, 430, '"My arrows never miss their mark!"', {
+            fontSize: '20px',
+            color: '#ffccff',
+            fontStyle: 'italic',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+        dialogue.setOrigin(0.5);
+        dialogue.setScrollFactor(0);
+        dialogue.setDepth(902);
+        dialogue.setAlpha(0);
+        this.currentElements.push(dialogue);
+        
         this.scene.tweens.add({
             targets: [title, subtitle],
             alpha: 1,
@@ -37075,7 +37197,14 @@ class BossCutsceneSystem {
             delay: 500
         });
         
-        this.scene.time.delayedCall(3000, () => {
+        this.scene.tweens.add({
+            targets: dialogue,
+            alpha: 1,
+            duration: 500,
+            delay: 1200
+        });
+        
+        this.scene.time.delayedCall(3500, () => {
             this.scene.tweens.add({
                 targets: this.currentElements,
                 alpha: 0,
