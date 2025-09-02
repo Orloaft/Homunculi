@@ -1,0 +1,42 @@
+{
+  "timestamp": "2025-08-28T09:32:27.320Z",
+  "totalTests": 1,
+  "passedTests": 0,
+  "failedTests": 1,
+  "results": [
+    {
+      "scenario": "stress",
+      "name": "Stress Test",
+      "success": false,
+      "exitCode": 1,
+      "signal": null,
+      "duration": 60870,
+      "timestamp": "2025-08-28T09:32:25.305Z",
+      "report": {
+        "passed": false,
+        "duration": 60184,
+        "errors": [
+          {
+            "type": "load-failure",
+            "timestamp": 1756373485108,
+            "errorCode": -6,
+            "errorDescription": "ERR_FILE_NOT_FOUND"
+          }
+        ],
+        "warnings": [],
+        "crashes": [],
+        "performance": {
+          "averageMemory": 1285056.1578947369,
+          "averageFPS": 60,
+          "samples": 57
+        },
+        "screenshots": [
+          "screenshot-1756373517548.png"
+        ]
+      },
+      "errors": 1,
+      "crashes": 0,
+      "warnings": 0
+    }
+  ]
+}

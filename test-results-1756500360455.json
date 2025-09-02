@@ -1,0 +1,85 @@
+{
+  "passed": [
+    {
+      "category": "SPEED",
+      "testName": "Speed multipliers match",
+      "passed": true,
+      "details": "All speed modes must have identical multipliers",
+      "timestamp": 194
+    },
+    {
+      "category": "ELEMENTS",
+      "testName": "All primary elements present",
+      "passed": true,
+      "details": "",
+      "timestamp": 347
+    },
+    {
+      "category": "ENEMIES",
+      "testName": "All enemy types implemented",
+      "passed": true,
+      "details": "",
+      "timestamp": 496
+    },
+    {
+      "category": "BOSSES",
+      "testName": "All boss classes imported",
+      "passed": true,
+      "details": "",
+      "timestamp": 640
+    },
+    {
+      "category": "WAVES",
+      "testName": "Wave timing system present",
+      "passed": true,
+      "details": "",
+      "timestamp": 787
+    },
+    {
+      "category": "XP",
+      "testName": "XP system fully implemented",
+      "passed": true,
+      "details": "",
+      "timestamp": 913
+    },
+    {
+      "category": "SAVE",
+      "testName": "Save system integrated",
+      "passed": true,
+      "details": "",
+      "timestamp": 1049
+    },
+    {
+      "category": "AUDIO",
+      "testName": "Audio system implemented",
+      "passed": true,
+      "details": "",
+      "timestamp": 1208
+    },
+    {
+      "category": "PARTICLES",
+      "testName": "Particle effects present",
+      "passed": true,
+      "details": "",
+      "timestamp": 1340
+    }
+  ],
+  "failed": [
+    {
+      "category": "MANAGERS",
+      "testName": "UIManager imported",
+      "passed": false,
+      "details": "",
+      "timestamp": 1504
+    },
+    {
+      "category": "MANAGERS",
+      "testName": "All managers imported",
+      "passed": false,
+      "details": "",
+      "timestamp": 1509
+    }
+  ],
+  "warnings": [],
+  "startTime": 1756500358946
+}

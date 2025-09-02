@@ -1,0 +1,33 @@
+{
+  "timestamp": "2025-08-28T09:54:19.004Z",
+  "totalTests": 1,
+  "passedTests": 1,
+  "failedTests": 0,
+  "results": [
+    {
+      "scenario": "modular",
+      "name": "Modular Version Test",
+      "success": true,
+      "exitCode": null,
+      "signal": "SIGTERM",
+      "duration": 28866,
+      "timestamp": "2025-08-28T09:54:16.771Z",
+      "report": {
+        "passed": true,
+        "duration": 20162,
+        "errors": [],
+        "warnings": [],
+        "crashes": [],
+        "performance": {
+          "averageMemory": 16100000,
+          "averageFPS": 59.02579986091393,
+          "samples": 15
+        },
+        "screenshots": []
+      },
+      "errors": 0,
+      "crashes": 0,
+      "warnings": 0
+    }
+  ]
+}

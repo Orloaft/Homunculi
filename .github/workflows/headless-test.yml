@@ -1,0 +1,141 @@
+name: Headless Testing
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run tests daily at 2 AM
+    - cron: '0 2 * * *'
+
+jobs:
+  test-linux:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: |
+        npm ci
+        npm install --save-dev electron
+        
+    - name: Run headless tests
+      run: |
+        chmod +x test/ci-test.sh
+        ./test/ci-test.sh
+      env:
+        CI: true
+        
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-linux
+        path: test/test-logs/
+        
+    - name: Upload crash dumps
+      uses: actions/upload-artifact@v3
+      if: failure()
+      with:
+        name: crash-dumps-linux
+        path: test/crash-dumps/
+
+  test-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: |
+        npm ci
+        npm install --save-dev electron
+        
+    - name: Run headless tests
+      run: test\ci-test.bat
+      shell: cmd
+      
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-windows
+        path: test/test-logs/
+        
+    - name: Upload crash dumps
+      uses: actions/upload-artifact@v3
+      if: failure()
+      with:
+        name: crash-dumps-windows
+        path: test/crash-dumps/
+
+  test-macos:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: |
+        npm ci
+        npm install --save-dev electron
+        
+    - name: Run headless tests
+      run: |
+        chmod +x test/ci-test.sh
+        ./test/ci-test.sh
+        
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-macos
+        path: test/test-logs/
+        
+    - name: Upload crash dumps
+      uses: actions/upload-artifact@v3
+      if: failure()
+      with:
+        name: crash-dumps-macos
+        path: test/crash-dumps/
+
+  analyze-results:
+    needs: [test-linux, test-windows, test-macos]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Download all test results
+      uses: actions/download-artifact@v3
+      
+    - name: Analyze test results
+      run: |
+        echo "=== Test Results Analysis ==="
+        find . -name "summary-*.json" -type f | while read file; do
+          echo "Results from: $file"
+          cat "$file" | jq '.results[] | {scenario: .scenario, success: .success, duration: .duration}'
+        done
+        
+    - name: Check for crashes
+      run: |
+        if find . -name "*.dmp" -o -name "*.crash" | grep -q .; then
+          echo "CRASH DUMPS FOUND!"
+          exit 1
+        fi

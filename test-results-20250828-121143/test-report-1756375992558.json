@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "duration": 60170,
+  "errors": [],
+  "warnings": [],
+  "crashes": [],
+  "performance": {
+    "averageMemory": 16100000,
+    "averageFPS": 60.976577732108204,
+    "samples": 54
+  },
+  "screenshots": [
+    "screenshot-1756376027596.png"
+  ]
+}

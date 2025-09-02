@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bundle Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #0f0; }
+        .error { color: #f00; }
+        .success { color: #0f0; }
+        .warning { color: #ff0; }
+    </style>
+</head>
+<body>
+    <h1>Testing Bundled Game...</h1>
+    <div id="results"></div>
+    <div id="game-container" style="display:none;"></div>
+    
+    <script src="phaser.min.js"></script>
+    <script src="dist/game-bundle.js"></script>
+    
+    <script>
+        const results = document.getElementById('results');
+        let errors = [];
+        let successes = [];
+        
+        // Test critical classes
+        const requiredClasses = [
+            'Enemy',
+            'BaseBoss',
+            'LoadingScene', 
+            'TitleScene',
+            'GameSceneModular',
+            'GameOverScene',
+            'AudioManager',
+            'SaveSystem',
+            'InputManager',
+            'ElementSystem',
+            'SpellSystem',
+            'ProjectileManager',
+            'EnemyManager'
+        ];
+        
+        // Check if classes are defined
+        requiredClasses.forEach(className => {
+            try {
+                if (typeof window[className] !== 'undefined') {
+                    successes.push(`✓ ${className} is defined`);
+                } else {
+                    // Try to find it in the global scope
+                    const found = eval(`typeof ${className} !== 'undefined'`);
+                    if (found) {
+                        successes.push(`✓ ${className} is available`);
+                    } else {
+                        errors.push(`✗ ${className} is NOT defined`);
+                    }
+                }
+            } catch (e) {
+                errors.push(`✗ ${className} check failed: ${e.message}`);
+            }
+        });
+        
+        // Check if game started
+        setTimeout(() => {
+            if (window.game && window.game.scene) {
+                successes.push('✓ Phaser game initialized successfully');
+                successes.push(`✓ Active scenes: ${window.game.scene.getScenes(true).map(s => s.sys.settings.key).join(', ')}`);
+            } else {
+                errors.push('✗ Phaser game did not initialize');
+            }
+            
+            // Display results
+            let html = '<h2>Test Results:</h2>';
+            
+            if (errors.length === 0) {
+                html += '<p class="success">🎮 All tests passed! Bundle is stable.</p>';
+            } else {
+                html += `<p class="error">⚠️ ${errors.length} errors found:</p>`;
+            }
+            
+            successes.forEach(s => {
+                html += `<p class="success">${s}</p>`;
+            });
+            
+            errors.forEach(e => {
+                html += `<p class="error">${e}</p>`;
+            });
+            
+            results.innerHTML = html;
+            
+            // Log to console
+            console.log('Bundle Test Results:');
+            console.log('Successes:', successes);
+            if (errors.length > 0) {
+                console.error('Errors:', errors);
+            }
+            
+            // Check for console errors
+            const originalError = window.onerror;
+            window.onerror = function(msg, url, line, col, error) {
+                results.innerHTML += `<p class="error">Runtime error: ${msg} at line ${line}</p>`;
+                if (originalError) originalError.apply(this, arguments);
+                return true;
+            };
+        }, 2000);
+    </script>
+</body>
+</html>

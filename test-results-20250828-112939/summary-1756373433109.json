@@ -1,0 +1,17 @@
+{
+  "timestamp": "2025-08-28T09:30:33.110Z",
+  "totalTests": 1,
+  "passedTests": 0,
+  "failedTests": 1,
+  "results": [
+    {
+      "scenario": "basic",
+      "name": "Basic Stability Test",
+      "success": false,
+      "exitCode": null,
+      "signal": "SIGTERM",
+      "duration": 40371,
+      "timestamp": "2025-08-28T09:30:31.101Z"
+    }
+  ]
+}

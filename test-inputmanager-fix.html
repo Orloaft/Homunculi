@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test InputManager Fix</title>
+    <script src="phaser.min.js"></script>
+</head>
+<body>
+    <div id="game-container"></div>
+    <div id="test-results"></div>
+    
+    <script type="module">
+        const results = document.getElementById('test-results');
+        
+        // Simple test scene
+        class TestScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'TestScene' });
+            }
+            
+            create() {
+                results.innerHTML += '<p>Scene created</p>';
+                
+                // Test if input.gamepad exists
+                if (this.input && this.input.gamepad) {
+                    results.innerHTML += '<p style="color: green">✓ input.gamepad exists</p>';
+                } else {
+                    results.innerHTML += '<p style="color: orange">⚠ input.gamepad not available (this is OK)</p>';
+                }
+                
+                // Try to import and create InputManager
+                import('../src/systems/InputManager.js').then(module => {
+                    const InputManager = module.default;
+                    try {
+                        const inputManager = new InputManager(this);
+                        results.innerHTML += '<p style="color: green">✓ InputManager created successfully</p>';
+                    } catch (error) {
+                        results.innerHTML += `<p style="color: red">✗ InputManager error: ${error.message}</p>`;
+                    }
+                }).catch(error => {
+                    results.innerHTML += `<p style="color: red">✗ Failed to import: ${error.message}</p>`;
+                });
+            }
+        }
+        
+        // Create game
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            parent: 'game-container',
+            scene: [TestScene]
+        };
+        
+        const game = new Phaser.Game(config);
+        results.innerHTML = '<h3>Test Results:</h3>';
+    </script>
+</body>
+</html>
