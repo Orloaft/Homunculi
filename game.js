@@ -6102,6 +6102,8 @@ class GameScene extends Phaser.Scene {
             bgmKey = 'lavaland-bgm';
         } else if (this.stage === 'grave') {
             bgmKey = 'graveland-bgm';
+        } else if (this.stage === 'castle') {
+            bgmKey = 'castleland-bgm';
         } else {
             // Use default music for other stages
             const selectedBGM = localStorage.getItem('selectedBGM') || 'BGM 1';
@@ -8479,6 +8481,8 @@ class GameScene extends Phaser.Scene {
             tileName = 'desert-tile';
         } else if (this.stage === 'grave') {
             tileName = 'skullfloor-tile';
+        } else if (this.stage === 'castle') {
+            tileName = 'stone-tile'; // Use stone tiles for castle
         }
         
         // Create a tilesprite that covers the entire screen
@@ -32773,6 +32777,8 @@ class GameScene extends Phaser.Scene {
             bossType = 'eyelor';
         } else if (this.stage === 'grave') {
             bossType = 'nekros';
+        } else if (this.stage === 'castle') {
+            bossType = 'kingnothing';
         } else {
             bossType = 'obelisk';
         }
@@ -32788,6 +32794,8 @@ class GameScene extends Phaser.Scene {
                 this.createGraveBoss();
             } else if (this.stage === 'lava') {
                 this.createDemonSlimeBoss();
+            } else if (this.stage === 'castle') {
+                this.createCastleBoss();
             } else {
                 this.createBoss(); // Default Obelisk boss
             }
@@ -36708,6 +36716,449 @@ class GameScene extends Phaser.Scene {
             });
         });
     }
+    
+    createCastleBoss() {
+        // Fade out and stop stage music if in castle land
+        if (this.stage === 'castle' && this.bgMusic && this.bgMusic.isPlaying) {
+            this.tweens.add({
+                targets: this.bgMusic,
+                volume: 0,
+                duration: 1000,
+                ease: 'Power2',
+                onComplete: () => {
+                    if (this.bgMusic) {
+                        this.bgMusic.stop();
+                    }
+                    
+                    // Start boss music
+                    this.bossMusic = this.sound.add('castleboss-bgm', {
+                        loop: true,
+                        volume: 0
+                    });
+                    this.bossMusic.play();
+                    
+                    // Fade in boss music
+                    this.tweens.add({
+                        targets: this.bossMusic,
+                        volume: 0.5,
+                        duration: 1000,
+                        ease: 'Power2'
+                    });
+                }
+            });
+        }
+        
+        // Create King Nothing boss
+        const centerX = 400;
+        const centerY = 250;
+        
+        // Create boss sprite with placeholder graphics (using voidkin as base)
+        this.boss = this.physics.add.sprite(centerX, centerY, 'voidkin', 0);
+        this.boss.setScale(4);
+        this.boss.setTint(0x000000); // Black tint for void theme
+        this.boss.isBoss = true;
+        this.boss.enemyType = 'king-nothing-boss';
+        this.boss.maxHealth = 8000;
+        this.boss.health = this.boss.maxHealth;
+        this.boss.phase = 1;
+        this.boss.isDying = false;
+        this.boss.isInvulnerable = false;
+        this.boss.attackCooldown = 0;
+        this.boss.moveSpeed = 50;
+        this.boss.voidZones = [];
+        
+        // Set up physics
+        this.boss.body.setSize(60, 80);
+        this.boss.setCollideWorldBounds(false);
+        
+        // Create crown above boss
+        this.bossCrown = this.add.text(centerX, centerY - 80, '👑', {
+            fontSize: '48px'
+        });
+        this.bossCrown.setOrigin(0.5);
+        this.bossCrown.setDepth(11);
+        
+        // Float animation for crown
+        this.tweens.add({
+            targets: this.bossCrown,
+            y: centerY - 90,
+            duration: 2000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Crown rotation
+        this.tweens.add({
+            targets: this.bossCrown,
+            rotation: Math.PI * 2,
+            duration: 8000,
+            repeat: -1
+        });
+        
+        // Play idle animation if it exists
+        if (this.anims.exists('voidkin-move')) {
+            this.boss.play('voidkin-move');
+        }
+        
+        // Create boss health bar UI
+        this.createBossHealthBar();
+        
+        // Boss behavior timer
+        this.time.addEvent({
+            delay: 3000,
+            callback: () => {
+                if (this.boss && this.boss.active && !this.boss.isDying) {
+                    this.updateKingNothingBoss();
+                }
+            },
+            loop: true
+        });
+        
+        // Add to enemies group for collision
+        this.enemies.add(this.boss);
+    }
+    
+    updateKingNothingBoss() {
+        if (!this.boss || this.boss.isDying) return;
+        
+        // Update crown position
+        if (this.bossCrown) {
+            this.bossCrown.x = this.boss.x;
+        }
+        
+        // Check phase transitions
+        const healthPercent = this.boss.health / this.boss.maxHealth;
+        
+        if (this.boss.phase === 1 && healthPercent <= 0.66) {
+            this.boss.phase = 2;
+            this.boss.moveSpeed = 75;
+            this.showBossPhaseText('PHASE II - THE VOID AWAKENS');
+        } else if (this.boss.phase === 2 && healthPercent <= 0.33) {
+            this.boss.phase = 3;
+            this.boss.moveSpeed = 100;
+            this.showBossPhaseText('PHASE III - EMBRACE NOTHINGNESS');
+        }
+        
+        // Execute attacks based on phase
+        if (this.boss.attackCooldown <= 0) {
+            this.executeKingNothingAttack();
+            this.boss.attackCooldown = 3000 - (this.boss.phase - 1) * 500;
+        } else {
+            this.boss.attackCooldown -= 100;
+        }
+        
+        // Movement pattern
+        const player = this.getNearestActiveWizard(this.boss.x, this.boss.y);
+        if (player) {
+            // Float towards player slowly
+            const angle = Phaser.Math.Angle.Between(
+                this.boss.x, this.boss.y,
+                player.x, player.y
+            );
+            
+            const speed = this.boss.moveSpeed * this.speedMultiplier;
+            this.boss.setVelocity(
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed
+            );
+        }
+    }
+    
+    executeKingNothingAttack() {
+        if (!this.boss || this.boss.isDying) return;
+        
+        const attackChoice = Phaser.Math.Between(1, 3 + this.boss.phase - 1);
+        
+        switch(attackChoice) {
+            case 1:
+                this.kingNothingVoidBarrage();
+                break;
+            case 2:
+                this.kingNothingVoidBeam();
+                break;
+            case 3:
+                this.kingNothingVoidPulse();
+                break;
+            case 4:
+                if (this.boss.phase >= 2) this.kingNothingVoidZones();
+                break;
+            case 5:
+                if (this.boss.phase >= 3) this.kingNothingUltimateVoid();
+                break;
+        }
+    }
+    
+    kingNothingVoidBarrage() {
+        // Fire void projectiles in spread pattern
+        const projectileCount = 5 + (this.boss.phase - 1) * 2;
+        const angleStep = Math.PI / (projectileCount + 1);
+        
+        for (let i = 0; i < projectileCount; i++) {
+            const angle = -Math.PI/2 - angleStep * (projectileCount/2) + angleStep * (i + 1);
+            
+            this.time.delayedCall(i * 100, () => {
+                if (!this.boss || this.boss.isDying) return;
+                
+                const projectile = this.physics.add.sprite(
+                    this.boss.x,
+                    this.boss.y,
+                    'void-orb'
+                );
+                
+                projectile.setScale(2);
+                projectile.setTint(0x9900ff);
+                projectile.damage = 25 + (this.boss.phase - 1) * 10;
+                projectile.fromBoss = true;
+                
+                const speed = (200 + (this.boss.phase - 1) * 50) * this.speedMultiplier;
+                projectile.setVelocity(
+                    Math.cos(angle) * speed,
+                    Math.sin(angle) * speed
+                );
+                
+                this.enemyProjectiles.add(projectile);
+                
+                // Auto-destroy
+                this.time.delayedCall(5000, () => {
+                    if (projectile.active) projectile.destroy();
+                });
+            });
+        }
+    }
+    
+    kingNothingVoidBeam() {
+        const player = this.getNearestActiveWizard(this.boss.x, this.boss.y);
+        if (!player) return;
+        
+        // Telegraph
+        const telegraph = this.add.rectangle(
+            this.boss.x,
+            this.boss.y,
+            20,
+            800,
+            0x9900ff,
+            0.3
+        );
+        
+        const angle = Phaser.Math.Angle.Between(
+            this.boss.x, this.boss.y,
+            player.x, player.y
+        );
+        telegraph.rotation = angle + Math.PI/2;
+        
+        // Fire beam after delay
+        this.time.delayedCall(1000, () => {
+            telegraph.destroy();
+            
+            const beam = this.add.rectangle(
+                this.boss.x,
+                this.boss.y,
+                40,
+                800,
+                0x9900ff
+            );
+            beam.rotation = angle + Math.PI/2;
+            
+            this.physics.add.existing(beam);
+            beam.damage = 40 + (this.boss.phase - 1) * 15;
+            beam.fromBoss = true;
+            
+            // Check collision
+            this.physics.add.overlap(beam, player, () => {
+                if (this.playerHit) {
+                    this.playerHit(beam.damage);
+                }
+            });
+            
+            // Destroy beam
+            this.time.delayedCall(200, () => {
+                beam.destroy();
+            });
+        });
+    }
+    
+    kingNothingVoidPulse() {
+        // Expanding void pulse
+        const pulse = this.add.circle(this.boss.x, this.boss.y, 10, 0x9900ff, 0.8);
+        pulse.setDepth(8);
+        
+        this.tweens.add({
+            targets: pulse,
+            scaleX: 40,
+            scaleY: 40,
+            alpha: 0,
+            duration: 1500,
+            onUpdate: () => {
+                if (this.wizard) {
+                    const distance = Phaser.Math.Distance.Between(
+                        pulse.x, pulse.y,
+                        this.wizard.x, this.wizard.y
+                    );
+                    
+                    const pulseRadius = pulse.scaleX * 10;
+                    if (distance < pulseRadius && distance > pulseRadius - 20) {
+                        if (this.playerHit && !pulse.hasHit) {
+                            this.playerHit(30 + (this.boss.phase - 1) * 10);
+                            pulse.hasHit = true;
+                        }
+                    }
+                }
+            },
+            onComplete: () => pulse.destroy()
+        });
+    }
+    
+    kingNothingVoidZones() {
+        const zoneCount = 3 + (this.boss.phase - 2);
+        
+        for (let i = 0; i < zoneCount; i++) {
+            const x = Phaser.Math.Between(100, 700);
+            const y = Phaser.Math.Between(100, 500);
+            
+            // Telegraph
+            const telegraph = this.add.circle(x, y, 60, 0x9900ff, 0.2);
+            
+            this.time.delayedCall(1000, () => {
+                telegraph.destroy();
+                
+                const voidZone = this.add.circle(x, y, 60, 0x9900ff, 0.5);
+                this.physics.add.existing(voidZone);
+                voidZone.damage = 15;
+                voidZone.fromBoss = true;
+                
+                this.boss.voidZones.push(voidZone);
+                
+                // Pulse effect
+                this.tweens.add({
+                    targets: voidZone,
+                    scaleX: 1.2,
+                    scaleY: 1.2,
+                    alpha: 0.7,
+                    duration: 500,
+                    yoyo: true,
+                    repeat: 10,
+                    onComplete: () => {
+                        voidZone.destroy();
+                        const index = this.boss.voidZones.indexOf(voidZone);
+                        if (index > -1) this.boss.voidZones.splice(index, 1);
+                    }
+                });
+                
+                // Damage check
+                if (this.wizard) {
+                    const damageTimer = this.time.addEvent({
+                        delay: 500,
+                        callback: () => {
+                            if (!voidZone.active) {
+                                damageTimer.remove();
+                                return;
+                            }
+                            
+                            const distance = Phaser.Math.Distance.Between(
+                                voidZone.x, voidZone.y,
+                                this.wizard.x, this.wizard.y
+                            );
+                            
+                            if (distance < 60 && this.playerHit) {
+                                this.playerHit(voidZone.damage);
+                            }
+                        },
+                        loop: true
+                    });
+                }
+            });
+        }
+    }
+    
+    kingNothingUltimateVoid() {
+        if (this.boss.phase !== 3) return;
+        
+        // Screen darkens
+        const darkness = this.add.rectangle(400, 300, 800, 600, 0x000000, 0);
+        darkness.setScrollFactor(0);
+        darkness.setDepth(50);
+        
+        this.tweens.add({
+            targets: darkness,
+            alpha: 0.8,
+            duration: 1000
+        });
+        
+        // Warning
+        const warningText = this.add.text(400, 300, 'THE VOID CONSUMES ALL', {
+            fontSize: '48px',
+            color: '#9900ff',
+            stroke: '#000000',
+            strokeThickness: 6
+        });
+        warningText.setOrigin(0.5);
+        warningText.setScrollFactor(0);
+        warningText.setDepth(51);
+        
+        // Create singularity
+        this.time.delayedCall(2000, () => {
+            warningText.destroy();
+            
+            if (this.wizard) {
+                const singularity = this.add.circle(
+                    this.wizard.x,
+                    this.wizard.y,
+                    10,
+                    0x9900ff
+                );
+                singularity.setDepth(52);
+                
+                this.tweens.add({
+                    targets: singularity,
+                    scaleX: 20,
+                    scaleY: 20,
+                    duration: 500,
+                    onComplete: () => {
+                        const distance = Phaser.Math.Distance.Between(
+                            singularity.x, singularity.y,
+                            this.wizard.x, this.wizard.y
+                        );
+                        
+                        if (distance < 200 && this.playerHit) {
+                            this.playerHit(60);
+                        }
+                        
+                        this.tweens.add({
+                            targets: singularity,
+                            scaleX: 0,
+                            scaleY: 0,
+                            duration: 300,
+                            onComplete: () => {
+                                singularity.destroy();
+                                darkness.destroy();
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    }
+    
+    showBossPhaseText(text) {
+        const phaseText = this.add.text(400, 200, text, {
+            fontSize: '32px',
+            color: '#9900ff',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        phaseText.setOrigin(0.5);
+        phaseText.setScrollFactor(0);
+        phaseText.setDepth(100);
+        
+        this.tweens.add({
+            targets: phaseText,
+            alpha: 0,
+            duration: 2000,
+            delay: 1000,
+            onComplete: () => phaseText.destroy()
+        });
+    }
 }
 
 // Enhanced Boss Cutscene System
@@ -36780,6 +37231,9 @@ class BossCutsceneSystem {
                 break;
             case 'archer':
                 this.playArcherCutscene();
+                break;
+            case 'kingnothing':
+                this.playKingNothingCutscene();
                 break;
             default:
                 this.playSimpleCutscene(bossType);
@@ -37205,6 +37659,118 @@ class BossCutsceneSystem {
         });
         
         this.scene.time.delayedCall(3500, () => {
+            this.scene.tweens.add({
+                targets: this.currentElements,
+                alpha: 0,
+                duration: 1000,
+                onComplete: () => this.endCutscene()
+            });
+        });
+    }
+
+    playKingNothingCutscene() {
+        // Void expansion theme
+        const voidCenter = this.scene.add.circle(400, 300, 10, 0x000000);
+        voidCenter.setScrollFactor(0);
+        voidCenter.setDepth(900);
+        this.currentElements.push(voidCenter);
+        
+        // Expand void
+        this.scene.tweens.add({
+            targets: voidCenter,
+            scaleX: 80,
+            scaleY: 80,
+            duration: 2000,
+            ease: 'Power2.easeOut'
+        });
+        
+        // Crown appears floating
+        const crown = this.scene.add.text(400, 150, '👑', {
+            fontSize: '64px'
+        });
+        crown.setOrigin(0.5);
+        crown.setScrollFactor(0);
+        crown.setDepth(902);
+        crown.setAlpha(0);
+        this.currentElements.push(crown);
+        
+        // Title
+        const title = this.scene.add.text(400, 300, 'KING NOTHING', {
+            fontSize: '72px',
+            color: '#000000',
+            fontStyle: 'bold',
+            stroke: '#9900ff',
+            strokeThickness: 8
+        });
+        title.setOrigin(0.5);
+        title.setScrollFactor(0);
+        title.setDepth(901);
+        title.setAlpha(0);
+        this.currentElements.push(title);
+        
+        // Subtitle
+        const subtitle = this.scene.add.text(400, 380, 'Ruler of the Void', {
+            fontSize: '28px',
+            color: '#666666',
+            fontStyle: 'italic',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        subtitle.setOrigin(0.5);
+        subtitle.setScrollFactor(0);
+        subtitle.setDepth(901);
+        subtitle.setAlpha(0);
+        this.currentElements.push(subtitle);
+        
+        // Boss dialogue
+        const dialogue = this.scene.add.text(400, 450, '"From nothing you came, to nothing you shall return..."', {
+            fontSize: '20px',
+            color: '#9999ff',
+            fontStyle: 'italic',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+        dialogue.setOrigin(0.5);
+        dialogue.setScrollFactor(0);
+        dialogue.setDepth(901);
+        dialogue.setAlpha(0);
+        this.currentElements.push(dialogue);
+        
+        // Animate crown floating
+        this.scene.tweens.add({
+            targets: crown,
+            alpha: 1,
+            y: 180,
+            duration: 1000,
+            delay: 500,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Crown rotation
+        this.scene.tweens.add({
+            targets: crown,
+            rotation: Math.PI * 2,
+            duration: 4000,
+            repeat: -1
+        });
+        
+        // Show text
+        this.scene.tweens.add({
+            targets: [title, subtitle],
+            alpha: 1,
+            duration: 1000,
+            delay: 1000
+        });
+        
+        this.scene.tweens.add({
+            targets: dialogue,
+            alpha: 1,
+            duration: 500,
+            delay: 1700
+        });
+        
+        // End cutscene
+        this.scene.time.delayedCall(4000, () => {
             this.scene.tweens.add({
                 targets: this.currentElements,
                 alpha: 0,
