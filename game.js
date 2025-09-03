@@ -188,6 +188,9 @@ class LoadingScene extends Phaser.Scene {
         this.load.audio('desertland-bgm', 'Sketchbook 2024-06-19(desertland).ogg');
         this.load.audio('lavaland-bgm', 'Retro_ Spooky Soundscape_ The Whispering Shadows Dungeon _Clement Panchout 2016(lavaland).wav');
         this.load.audio('graveland-bgm', 'Ludum Dare 32 03\'9graveland).ogg');
+        this.load.audio('castleland-intro-bgm', 'Battle-Dawn_intro(castlelandintro).ogg');
+        this.load.audio('castleland-bgm', 'Battle-Dawn_loop(castlelandloop).ogg');
+        this.load.audio('castleboss-bgm', 'Battle-Vampire(castlebossloop).mp3');
         this.load.audio('boss1-bgm', 'Sketchbook 2024-12-05(bossloop4).ogg');
         this.load.audio('boss2-intro-bgm', 'Sketchbook 2024-09-04_IN(bossloop3pt1).ogg');
         this.load.audio('boss2-loop-bgm', 'Sketchbook 2024-09-04_LOOP(bossloop3pt2).ogg');
@@ -15796,6 +15799,19 @@ class GameScene extends Phaser.Scene {
             } else {
                 enemyType = 'orangegolem'; // 30% (increased from 15%)
             }
+        } else if (this.stage === 'sand') {
+            // Sand/Desert enemies: mix of heat and sand themed
+            if (rand < 0.25) {
+                enemyType = 'bat'; // 25% - desert bats
+            } else if (rand < 0.45) {
+                enemyType = 'soul'; // 20% - desert spirits
+            } else if (rand < 0.60) {
+                enemyType = 'golem'; // 15% - sandstone golems
+            } else if (rand < 0.75) {
+                enemyType = 'sorcerer'; // 15% - desert mystics
+            } else {
+                enemyType = 'mushroom'; // 25% - cactus/desert plants
+            }
         } else if (this.stage === 'grave') {
             // Grave enemies: yellow skeletons, skeleton seekers, lost souls, club imps and axe imps
             if (rand < 0.30) {
@@ -15806,6 +15822,19 @@ class GameScene extends Phaser.Scene {
                 enemyType = 'soul'; // 20% - lost souls
             } else {
                 enemyType = Math.random() < 0.5 ? 'clubimp' : 'axeimp'; // 25% imps (increased from 20%)
+            }
+        } else if (this.stage === 'castle') {
+            // Castle enemies: armored enemies, void-themed enemies
+            if (rand < 0.25) {
+                enemyType = 'voidkin'; // 25% - void creatures
+            } else if (rand < 0.45) {
+                enemyType = 'sorcerer'; // 20% - dark sorcerers
+            } else if (rand < 0.65) {
+                enemyType = 'golem'; // 20% - stone golems (castle guards)
+            } else if (rand < 0.80) {
+                enemyType = 'flyingdemon'; // 15% - flying demons
+            } else {
+                enemyType = 'soul'; // 20% - lost souls
             }
         } else {
             // Forest enemies: trees, mushrooms, bats, bloboids, summoners, sorcerer (rare)
@@ -27082,6 +27111,12 @@ class GameScene extends Phaser.Scene {
             types = ['fireslime', 'bat', 'fireworm', 'orangegolem'];
         } else if (this.stage === 'cave') {
             types = ['slime', 'soul', 'darkbat', 'golem'];
+        } else if (this.stage === 'sand') {
+            types = ['bat', 'soul', 'golem', 'sorcerer'];
+        } else if (this.stage === 'grave') {
+            types = ['yellowskeleton', 'skeletonseeker', 'soul', 'clubimp'];
+        } else if (this.stage === 'castle') {
+            types = ['voidkin', 'sorcerer', 'golem', 'flyingdemon'];
         } else { // forest stage
             types = ['tree', 'mushroom', 'bat', 'bloboid'];
         }
