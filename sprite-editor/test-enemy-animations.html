@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enemy Animation Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #222;
+            color: #fff;
+        }
+        #game-container {
+            width: 800px;
+            height: 600px;
+            margin: 0 auto;
+            border: 2px solid #444;
+        }
+        #controls {
+            text-align: center;
+            margin: 20px;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            background: #444;
+            color: #fff;
+            border: 1px solid #666;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #555;
+        }
+        #status {
+            text-align: center;
+            padding: 10px;
+            background: #333;
+            border-radius: 4px;
+            margin: 10px auto;
+            max-width: 800px;
+        }
+        .success {
+            color: #4f4;
+        }
+        .error {
+            color: #f44;
+        }
+        #enemy-list {
+            column-count: 3;
+            margin: 20px auto;
+            max-width: 800px;
+        }
+        .enemy-item {
+            break-inside: avoid;
+            padding: 5px;
+            margin: 5px;
+            background: #333;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .enemy-item:hover {
+            background: #444;
+        }
+        .tested {
+            background: #234523;
+        }
+        .failed {
+            background: #452323;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center;">Enemy Animation Test Suite</h1>
+    
+    <div id="status">Click on an enemy type to spawn and test its animations</div>
+    
+    <div id="controls">
+        <button onclick="testAllEnemies()">Test All Enemies</button>
+        <button onclick="clearScene()">Clear Scene</button>
+        <button onclick="togglePause()">Pause/Resume</button>
+    </div>
+    
+    <div id="enemy-list">
+        <div class="enemy-item" onclick="testEnemy('mushroom')">Mushroom</div>
+        <div class="enemy-item" onclick="testEnemy('tree')">Tree</div>
+        <div class="enemy-item" onclick="testEnemy('giantfly')">Giant Fly</div>
+        <div class="enemy-item" onclick="testEnemy('squirrel')">Squirrel</div>
+        <div class="enemy-item" onclick="testEnemy('redpanda')">Red Panda</div>
+        <div class="enemy-item" onclick="testEnemy('brainmole')">Brain Mole</div>
+        <div class="enemy-item" onclick="testEnemy('intellectdevourer')">Intellect Devourer</div>
+        <div class="enemy-item" onclick="testEnemy('wraith')">Wraith</div>
+        <div class="enemy-item" onclick="testEnemy('golem')">Golem</div>
+        <div class="enemy-item" onclick="testEnemy('slime')">Slime</div>
+        <div class="enemy-item" onclick="testEnemy('soul')">Lost Soul</div>
+        <div class="enemy-item" onclick="testEnemy('kobold')">Kobold</div>
+        <div class="enemy-item" onclick="testEnemy('bat')">Bat</div>
+        <div class="enemy-item" onclick="testEnemy('fireworm')">Fire Worm</div>
+        <div class="enemy-item" onclick="testEnemy('summoner')">Summoner</div>
+        <div class="enemy-item" onclick="testEnemy('darkbat')">Dark Bat</div>
+        <div class="enemy-item" onclick="testEnemy('flyingdemon')">Flying Demon</div>
+        <div class="enemy-item" onclick="testEnemy('sorcerer')">Sorcerer</div>
+        <div class="enemy-item" onclick="testEnemy('axeimp')">Axe Imp</div>
+        <div class="enemy-item" onclick="testEnemy('clubimp')">Club Imp</div>
+        <div class="enemy-item" onclick="testEnemy('skelefury')">Skelefury</div>
+        <div class="enemy-item" onclick="testEnemy('skeletonseeker')">Skeleton Seeker</div>
+        <div class="enemy-item" onclick="testEnemy('yellowskeleton')">Yellow Skeleton</div>
+    </div>
+    
+    <div id="game-container"></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script>
+        let game;
+        let testScene;
+        let currentEnemies = [];
+        let testedEnemies = {};
+        
+        class TestScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'TestScene' });
+                this.enemies = [];
+            }
+            
+            preload() {
+                // Load all enemy sprites
+                this.load.spritesheet('mushroom-run', 'mushroom/Run.png', {
+                    frameWidth: 150,
+                    frameHeight: 46
+                });
+                this.load.spritesheet('tree-walk', 'tree/walk.png', {
+                    frameWidth: 64,
+                    frameHeight: 64
+                });
+                this.load.spritesheet('giantfly-walk', 'forestlandfoes/giantflywalk4frames.png', {
+                    frameWidth: 32,
+                    frameHeight: 32
+                });
+                this.load.spritesheet('giantfly-death', 'forestlandfoes/giantflydeath6frames.png', {
+                    frameWidth: 32,
+                    frameHeight: 32
+                });
+                this.load.spritesheet('squirrel-walk', 'forestlandfoes/squirrelwalk8frames.png', {
+                    frameWidth: 32,
+                    frameHeight: 32
+                });
+                this.load.spritesheet('squirrel-death', 'forestlandfoes/squirreldeath4frames.png', {
+                    frameWidth: 32,
+                    frameHeight: 32
+                });
+                this.load.spritesheet('redpanda-walk', 'forestlandfoes/redpandawalk8frames.png', {
+                    frameWidth: 32,
+                    frameHeight: 32
+                });
+                this.load.spritesheet('redpanda-death', 'forestlandfoes/redpandadeath4frames.png', {
+                    frameWidth: 32,
+                    frameHeight: 32
+                });
+                this.load.spritesheet('brainmole-walk', 'cavelandfoes/brainmole4frames.png', {
+                    frameWidth: 32,
+                    frameHeight: 32
+                });
+                this.load.spritesheet('brainmole-death', 'cavelandfoes/brainmoledeath7frames.png', {
+                    frameWidth: 32,
+                    frameHeight: 32
+                });
+                this.load.spritesheet('intellectdevourer-walk', 'cavelandfoes/intellectdevourer8frames.png', {
+                    frameWidth: 32,
+                    frameHeight: 32
+                });
+                this.load.spritesheet('intellectdevourer-death', 'cavelandfoes/intellectdevourerdeath4frames.png', {
+                    frameWidth: 32,
+                    frameHeight: 32
+                });
+                this.load.spritesheet('wraith-walk', 'scythewraith/scythewraithwalk8frames.png', {
+                    frameWidth: 64,
+                    frameHeight: 64
+                });
+                this.load.spritesheet('wraith-death', 'scythewraith/scythewraithdeath8frames.png', {
+                    frameWidth: 64,
+                    frameHeight: 64
+                });
+                
+                // Load other enemy sprites as needed
+                this.load.spritesheet('golem-walk', 'rockgolem/walk.png', {
+                    frameWidth: 64,
+                    frameHeight: 64
+                });
+                this.load.spritesheet('slime-move', 'bloboid/move.png', {
+                    frameWidth: 32,
+                    frameHeight: 32
+                });
+                this.load.spritesheet('bat-fly', 'bateye/Flight.png', {
+                    frameWidth: 150,
+                    frameHeight: 150
+                });
+                this.load.spritesheet('lost-soul-idle', 'desertland/lost_soul_idle.png', {
+                    frameWidth: 64,
+                    frameHeight: 64
+                });
+                this.load.spritesheet('kobold-walk', 'cavekobold/walk.png', {
+                    frameWidth: 64,
+                    frameHeight: 64
+                });
+                this.load.spritesheet('fireworm-walk', 'fireworm/Walk.png', {
+                    frameWidth: 90,
+                    frameHeight: 90
+                });
+                // Add more as needed
+            }
+            
+            create() {
+                // Create animations
+                this.createAnimations();
+                
+                // Simple background
+                this.add.rectangle(400, 300, 800, 600, 0x1a1a1a);
+                
+                // Status text
+                this.statusText = this.add.text(400, 30, 'Test Scene Ready', {
+                    fontSize: '20px',
+                    color: '#ffffff'
+                }).setOrigin(0.5);
+            }
+            
+            createAnimations() {
+                // Forest enemies
+                this.createAnim('mushroom-running', 'mushroom-run', 0, 7, 10, -1);
+                this.createAnim('tree-walking', 'tree-walk', 0, 5, 8, -1);
+                this.createAnim('giantfly-walking', 'giantfly-walk', 0, 3, 8, -1);
+                this.createAnim('giantfly-dying', 'giantfly-death', 0, 5, 10, 0);
+                this.createAnim('squirrel-walking', 'squirrel-walk', 0, 7, 10, -1);
+                this.createAnim('squirrel-dying', 'squirrel-death', 0, 3, 8, 0);
+                this.createAnim('redpanda-walking', 'redpanda-walk', 0, 7, 8, -1);
+                this.createAnim('redpanda-dying', 'redpanda-death', 0, 3, 8, 0);
+                
+                // Cave enemies
+                this.createAnim('brainmole-walking', 'brainmole-walk', 0, 3, 8, -1);
+                this.createAnim('brainmole-dying', 'brainmole-death', 0, 6, 12, 0);
+                this.createAnim('intellectdevourer-walking', 'intellectdevourer-walk', 0, 7, 10, -1);
+                this.createAnim('intellectdevourer-dying', 'intellectdevourer-death', 0, 3, 10, 0);
+                
+                // Wraith
+                this.createAnim('wraith-walking', 'wraith-walk', 0, 7, 10, -1);
+                this.createAnim('wraith-dying', 'wraith-death', 0, 7, 10, 0);
+                
+                // Other enemies
+                this.createAnim('golem-walking', 'golem-walk', 0, 5, 8, -1);
+                this.createAnim('slime-moving', 'slime-move', 0, 5, 10, -1);
+                this.createAnim('bat-flying', 'bat-fly', 0, 7, 10, -1);
+                this.createAnim('soul-idle', 'lost-soul-idle', 0, 3, 8, -1);
+                this.createAnim('kobold-walking', 'kobold-walk', 0, 7, 10, -1);
+                this.createAnim('fireworm-walking', 'fireworm-walk', 0, 8, 10, -1);
+            }
+            
+            createAnim(key, texture, start, end, rate, repeat) {
+                if (!this.anims.exists(key)) {
+                    try {
+                        this.anims.create({
+                            key: key,
+                            frames: this.anims.generateFrameNumbers(texture, { start: start, end: end }),
+                            frameRate: rate,
+                            repeat: repeat
+                        });
+                    } catch (e) {
+                        console.error('Failed to create animation:', key, e);
+                    }
+                }
+            }
+            
+            spawnEnemy(type) {
+                // Clear previous enemies
+                this.enemies.forEach(e => e.destroy());
+                this.enemies = [];
+                
+                const x = 400;
+                const y = 300;
+                
+                try {
+                    let enemy;
+                    let animKey;
+                    let deathAnimKey;
+                    
+                    switch(type) {
+                        case 'mushroom':
+                            enemy = this.add.sprite(x, y, 'mushroom-run');
+                            enemy.setScale(0.7);
+                            animKey = 'mushroom-running';
+                            break;
+                        case 'tree':
+                            enemy = this.add.sprite(x, y, 'tree-walk');
+                            enemy.setScale(1.5);
+                            animKey = 'tree-walking';
+                            break;
+                        case 'giantfly':
+                            enemy = this.add.sprite(x, y, 'giantfly-walk');
+                            enemy.setScale(2.0);
+                            animKey = 'giantfly-walking';
+                            deathAnimKey = 'giantfly-dying';
+                            break;
+                        case 'squirrel':
+                            enemy = this.add.sprite(x, y, 'squirrel-walk');
+                            enemy.setScale(2.0);
+                            animKey = 'squirrel-walking';
+                            deathAnimKey = 'squirrel-dying';
+                            break;
+                        case 'redpanda':
+                            enemy = this.add.sprite(x, y, 'redpanda-walk');
+                            enemy.setScale(2.0);
+                            animKey = 'redpanda-walking';
+                            deathAnimKey = 'redpanda-dying';
+                            break;
+                        case 'brainmole':
+                            enemy = this.add.sprite(x, y, 'brainmole-walk');
+                            enemy.setScale(2.0);
+                            animKey = 'brainmole-walking';
+                            deathAnimKey = 'brainmole-dying';
+                            break;
+                        case 'intellectdevourer':
+                            enemy = this.add.sprite(x, y, 'intellectdevourer-walk');
+                            enemy.setScale(1.8);
+                            animKey = 'intellectdevourer-walking';
+                            deathAnimKey = 'intellectdevourer-dying';
+                            break;
+                        case 'wraith':
+                            enemy = this.add.sprite(x, y, 'wraith-walk');
+                            enemy.setScale(1.5);
+                            animKey = 'wraith-walking';
+                            deathAnimKey = 'wraith-dying';
+                            break;
+                        case 'golem':
+                            enemy = this.add.sprite(x, y, 'golem-walk');
+                            enemy.setScale(1.5);
+                            animKey = 'golem-walking';
+                            break;
+                        case 'slime':
+                            enemy = this.add.sprite(x, y, 'slime-move');
+                            enemy.setScale(1.5);
+                            animKey = 'slime-moving';
+                            break;
+                        case 'bat':
+                            enemy = this.add.sprite(x, y, 'bat-fly');
+                            enemy.setScale(0.5);
+                            animKey = 'bat-flying';
+                            break;
+                        case 'soul':
+                            enemy = this.add.sprite(x, y, 'lost-soul-idle');
+                            enemy.setScale(1.0);
+                            animKey = 'soul-idle';
+                            break;
+                        case 'kobold':
+                            enemy = this.add.sprite(x, y, 'kobold-walk');
+                            enemy.setScale(1.0);
+                            animKey = 'kobold-walking';
+                            break;
+                        case 'fireworm':
+                            enemy = this.add.sprite(x, y, 'fireworm-walk');
+                            enemy.setScale(1.2);
+                            animKey = 'fireworm-walking';
+                            break;
+                        default:
+                            throw new Error('Unknown enemy type: ' + type);
+                    }
+                    
+                    if (enemy && animKey) {
+                        enemy.play(animKey);
+                        this.enemies.push(enemy);
+                        
+                        // Test death animation after 2 seconds if it exists
+                        if (deathAnimKey) {
+                            this.time.delayedCall(2000, () => {
+                                if (enemy && enemy.active) {
+                                    enemy.play(deathAnimKey);
+                                    enemy.once('animationcomplete', () => {
+                                        this.statusText.setText(type + ' death animation completed');
+                                        enemy.setAlpha(0.3);
+                                    });
+                                }
+                            });
+                        }
+                        
+                        this.statusText.setText('Testing: ' + type);
+                        this.statusText.setColor('#4f4');
+                        
+                        // Mark as tested
+                        testedEnemies[type] = true;
+                        updateEnemyListUI(type, true);
+                        
+                        return true;
+                    }
+                } catch (e) {
+                    console.error('Error spawning enemy:', type, e);
+                    this.statusText.setText('Error: ' + type + ' - ' + e.message);
+                    this.statusText.setColor('#f44');
+                    
+                    // Mark as failed
+                    testedEnemies[type] = false;
+                    updateEnemyListUI(type, false);
+                    
+                    return false;
+                }
+            }
+            
+            clearEnemies() {
+                this.enemies.forEach(e => e.destroy());
+                this.enemies = [];
+                this.statusText.setText('Scene Cleared');
+            }
+        }
+        
+        // Initialize Phaser
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            parent: 'game-container',
+            backgroundColor: '#1a1a1a',
+            scene: TestScene
+        };
+        
+        game = new Phaser.Game(config);
+        
+        // Helper functions
+        function testEnemy(type) {
+            if (testScene) {
+                testScene.spawnEnemy(type);
+            } else {
+                // Wait for scene to be ready
+                setTimeout(() => {
+                    testScene = game.scene.scenes[0];
+                    testScene.spawnEnemy(type);
+                }, 100);
+            }
+        }
+        
+        function testAllEnemies() {
+            const enemies = [
+                'mushroom', 'tree', 'giantfly', 'squirrel', 'redpanda',
+                'brainmole', 'intellectdevourer', 'wraith', 'golem', 'slime',
+                'bat', 'soul', 'kobold', 'fireworm'
+            ];
+            
+            let index = 0;
+            const testNext = () => {
+                if (index < enemies.length) {
+                    testEnemy(enemies[index]);
+                    index++;
+                    setTimeout(testNext, 3000);
+                } else {
+                    document.getElementById('status').innerHTML = '<span class="success">All enemies tested!</span>';
+                }
+            };
+            testNext();
+        }
+        
+        function clearScene() {
+            if (testScene) {
+                testScene.clearEnemies();
+            }
+        }
+        
+        function togglePause() {
+            if (game.scene.isPaused('TestScene')) {
+                game.scene.resume('TestScene');
+            } else {
+                game.scene.pause('TestScene');
+            }
+        }
+        
+        function updateEnemyListUI(type, success) {
+            const items = document.querySelectorAll('.enemy-item');
+            items.forEach(item => {
+                if (item.textContent.toLowerCase().replace(' ', '') === type) {
+                    item.classList.add(success ? 'tested' : 'failed');
+                }
+            });
+        }
+        
+        // Wait for scene to be ready
+        setTimeout(() => {
+            testScene = game.scene.scenes[0];
+            document.getElementById('status').innerHTML = '<span class="success">Test Suite Ready - Click an enemy to test</span>';
+        }, 500);
+    </script>
+</body>
+</html>

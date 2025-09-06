@@ -55,11 +55,14 @@ class LoadingScene extends Phaser.Scene {
     }
 
     preload() {
+        console.log('LoadingScene preload() called');
+        
         // Load the loading screen image
         this.load.image('loading-bg', 'art1.png');
         
-        // Only load other assets if this is the first time (initial load)
-        if (this.nextScene === 'TitleScene' && !this.textures.exists('title-bg')) {
+        // Always load game assets (sprites are needed for gameplay)
+        if (!this.textures.exists('title-bg')) {
+            console.log('Loading assets inside conditional');
 
         // Load all game assets here
         this.load.image('title-bg', 'magustitle.png');
@@ -286,43 +289,6 @@ class LoadingScene extends Phaser.Scene {
             frameHeight: 96
         });
         
-        // Load Wraith sprites
-        this.load.spritesheet('wraith-walk', 'scythewraith/scythewraithwalk8frames.png', {
-            frameWidth: 64,
-            frameHeight: 64
-        });
-        this.load.spritesheet('wraith-attack', 'scythewraith/scythewraithattack8frames.png', {
-            frameWidth: 64,
-            frameHeight: 64
-        });
-        this.load.spritesheet('wraith-death', 'scythewraith/scythewraithdeath8frames.png', {
-            frameWidth: 64,
-            frameHeight: 64
-        });
-        this.load.spritesheet('wraith-projectile', 'scythewraith/projectile3frames.png', {
-            frameWidth: 32,
-            frameHeight: 32
-        });
-        
-        // Load Brain Mole sprites
-        this.load.spritesheet('brainmole-walk', 'cavelandfoes/brainmole4frames.png', {
-            frameWidth: 32,
-            frameHeight: 32
-        });
-        this.load.spritesheet('brainmole-death', 'cavelandfoes/brainmoledeath7frames.png', {
-            frameWidth: 32,
-            frameHeight: 32
-        });
-        
-        // Load Intellect Devourer sprites
-        this.load.spritesheet('intellectdevourer-walk', 'cavelandfoes/intellectdevourer8frames.png', {
-            frameWidth: 32,
-            frameHeight: 32
-        });
-        this.load.spritesheet('intellectdevourer-death', 'cavelandfoes/intellectdevourerdeath4frames.png', {
-            frameWidth: 32,
-            frameHeight: 32
-        });
         
         // Load Flying Demon sprites
         this.load.spritesheet('flying-demon', 'flyingdemon/flamedemon4frames.png', {
@@ -800,33 +766,66 @@ class LoadingScene extends Phaser.Scene {
             this.load.image(`nekros-hurt-${i}`, `Nekros/hurt/hurt_${i}.png`);
         }
         
-        // Load forest enemy sprites  
+        // Load forest enemy sprites
         this.load.spritesheet('giantfly-walk', 'forestlandfoes/giantflywalk4frames.png', {
             frameWidth: 32,
-            frameHeight: 32
+            frameHeight: 29  // Actual height: 128x29 / 4 frames
         });
         this.load.spritesheet('giantfly-death', 'forestlandfoes/giantflydeath6frames.png', {
             frameWidth: 32,
-            frameHeight: 32
+            frameHeight: 30  // Actual height: 192x30 / 6 frames
         });
         
         this.load.spritesheet('squirrel-walk', 'forestlandfoes/squirrelwalk8frames.png', {
             frameWidth: 32,
-            frameHeight: 32
+            frameHeight: 21  // Actual height: 256x21 / 8 frames
         });
         this.load.spritesheet('squirrel-death', 'forestlandfoes/squirreldeath4frames.png', {
             frameWidth: 32,
-            frameHeight: 32
+            frameHeight: 16  // Actual height: 128x16 / 4 frames
         });
         
         this.load.spritesheet('redpanda-walk', 'forestlandfoes/redpandawalk8frames.png', {
             frameWidth: 32,
-            frameHeight: 32
+            frameHeight: 18  // Actual height: 256x18 / 8 frames
         });
-        // Red panda doesn't have a death animation, use walk sprite as placeholder
-        this.load.spritesheet('redpanda-death', 'forestlandfoes/redpandawalk8frames.png', {
+        // Red panda death animation - now using the correct 8-frame version
+        this.load.spritesheet('redpanda-death', 'forestlandfoes/redpandadeath8frames.png', {
+            frameWidth: 32,
+            frameHeight: 18  // Actual height: 256x18 / 8 frames
+        });
+        
+        // Load cave enemy sprites
+        this.load.spritesheet('brainmole-walk', 'cavelandfoes/brainmole4frames.png', {
             frameWidth: 32,
             frameHeight: 32
+        });
+        this.load.spritesheet('brainmole-death', 'cavelandfoes/brainmoledeath7frames.png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+        
+        this.load.spritesheet('intellectdevourer-walk', 'cavelandfoes/intellectdevourer8frames.png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+        this.load.spritesheet('intellectdevourer-death', 'cavelandfoes/intellectdevourerdeath4frames.png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+        
+        // Load wraith sprites
+        this.load.spritesheet('wraith-walk', 'scythewraith/scythewraithwalk8frames.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
+        this.load.spritesheet('wraith-attack', 'scythewraith/scythewraithattack8frames.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
+        this.load.spritesheet('wraith-death', 'scythewraith/scythewraithdeath8frames.png', {
+            frameWidth: 64,
+            frameHeight: 64
         });
         
         } // End of conditional block
@@ -7442,7 +7441,12 @@ class GameScene extends Phaser.Scene {
         // Helper function to safely create animations
         const createAnimIfNotExists = (config) => {
             if (!this.anims.exists(config.key)) {
-                this.anims.create(config);
+                try {
+                    this.anims.create(config);
+                    console.log(`Animation ${config.key} created successfully`);
+                } catch (error) {
+                    console.error(`Failed to create animation ${config.key}:`, error);
+                }
             }
         };
 
@@ -8162,6 +8166,50 @@ class GameScene extends Phaser.Scene {
             repeat: -1
         });
 
+        // Forest enemy animations
+        console.log('Creating forest enemy animations. giantfly-walk texture exists:', this.textures.exists('giantfly-walk'));
+        createAnimIfNotExists({
+            key: 'giantfly-walking',
+            frames: this.anims.generateFrameNumbers('giantfly-walk', { start: 0, end: 3 }),
+            frameRate: 8,
+            repeat: -1
+        });
+        
+        createAnimIfNotExists({
+            key: 'giantfly-dying',
+            frames: this.anims.generateFrameNumbers('giantfly-death', { start: 0, end: 5 }),
+            frameRate: 10,
+            repeat: 0
+        });
+        
+        createAnimIfNotExists({
+            key: 'squirrel-walking',
+            frames: this.anims.generateFrameNumbers('squirrel-walk', { start: 0, end: 7 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        
+        createAnimIfNotExists({
+            key: 'squirrel-dying',
+            frames: this.anims.generateFrameNumbers('squirrel-death', { start: 0, end: 3 }),
+            frameRate: 8,
+            repeat: 0
+        });
+        
+        createAnimIfNotExists({
+            key: 'redpanda-walking',
+            frames: this.anims.generateFrameNumbers('redpanda-walk', { start: 0, end: 7 }),
+            frameRate: 8,
+            repeat: -1
+        });
+        
+        createAnimIfNotExists({
+            key: 'redpanda-dying',
+            frames: this.anims.generateFrameNumbers('redpanda-death', { start: 0, end: 7 }),
+            frameRate: 8,
+            repeat: 0
+        });
+
         // Fire worm animation
         createAnimIfNotExists({
             key: 'fireworm-walking',
@@ -8305,49 +8353,6 @@ class GameScene extends Phaser.Scene {
             key: 'wraith-dying',
             frames: this.anims.generateFrameNumbers('wraith-death', { start: 0, end: 7 }),
             frameRate: 10,
-            repeat: 0
-        });
-        
-        // Create Forest Enemy animations
-        // Giant Fly animations (4 frames walk, 6 frames death)
-        createAnimIfNotExists({
-            key: 'giantfly-walking',
-            frames: this.anims.generateFrameNumbers('giantfly-walk', { start: 0, end: 3 }),
-            frameRate: 8,
-            repeat: -1
-        });
-        createAnimIfNotExists({
-            key: 'giantfly-dying',
-            frames: this.anims.generateFrameNumbers('giantfly-death', { start: 0, end: 5 }),
-            frameRate: 10,
-            repeat: 0
-        });
-        
-        // Squirrel animations (8 frames walk, 4 frames death)
-        createAnimIfNotExists({
-            key: 'squirrel-walking',
-            frames: this.anims.generateFrameNumbers('squirrel-walk', { start: 0, end: 7 }),
-            frameRate: 10,
-            repeat: -1
-        });
-        createAnimIfNotExists({
-            key: 'squirrel-dying',
-            frames: this.anims.generateFrameNumbers('squirrel-death', { start: 0, end: 3 }),
-            frameRate: 8,
-            repeat: 0
-        });
-        
-        // Red Panda animations (8 frames walk, using walk sprite for death)
-        createAnimIfNotExists({
-            key: 'redpanda-walking',
-            frames: this.anims.generateFrameNumbers('redpanda-walk', { start: 0, end: 7 }),
-            frameRate: 8,
-            repeat: -1
-        });
-        createAnimIfNotExists({
-            key: 'redpanda-dying',
-            frames: this.anims.generateFrameNumbers('redpanda-death', { start: 0, end: 2 }),
-            frameRate: 6,
             repeat: 0
         });
         createAnimIfNotExists({
@@ -11476,15 +11481,80 @@ class GameScene extends Phaser.Scene {
             }
         }
         // Wizard animations are already created elsewhere in the game
+        
+        // Create forest enemy animations if they weren't created in constructor
+        // COMMENTED OUT - These are already created earlier with createAnimIfNotExists
+        /*console.log('Checking forest animations in create()');
+        if (!this.anims.exists('giantfly-walking')) {
+            console.log('Creating giantfly-walking in create()');
+            try {
+                this.anims.create({
+                    key: 'giantfly-walking',
+                    frames: this.anims.generateFrameNumbers('giantfly-walk', { start: 0, end: 3 }),
+                    frameRate: 8,
+                    repeat: -1
+                });
+            } catch (e) {
+                console.error('Failed to create giantfly-walking in create():', e);
+            }
+        }*/
+        
+        /* COMMENTED OUT - Already created earlier with createAnimIfNotExists
+        if (!this.anims.exists('giantfly-dying')) {
+            this.anims.create({
+                key: 'giantfly-dying',
+                frames: this.anims.generateFrameNumbers('giantfly-death', { start: 0, end: 5 }),
+                frameRate: 10,
+                repeat: 0
+            });
+        }
+        
+        if (!this.anims.exists('squirrel-walking')) {
+            console.log('Creating squirrel-walking in create(). Texture exists:', this.textures.exists('squirrel-walk'));
+            try {
+                this.anims.create({
+                    key: 'squirrel-walking',
+                    frames: this.anims.generateFrameNumbers('squirrel-walk', { start: 0, end: 7 }),
+                    frameRate: 10,
+                    repeat: -1
+                });
+                console.log('Successfully created squirrel-walking');
+            } catch (e) {
+                console.error('Failed to create squirrel-walking in create():', e);
+            }
+        }
+        
+        if (!this.anims.exists('squirrel-dying')) {
+            this.anims.create({
+                key: 'squirrel-dying',
+                frames: this.anims.generateFrameNumbers('squirrel-death', { start: 0, end: 3 }),
+                frameRate: 8,
+                repeat: 0
+            });
+        }
+        
+        if (!this.anims.exists('redpanda-walking')) {
+            this.anims.create({
+                key: 'redpanda-walking',
+                frames: this.anims.generateFrameNumbers('redpanda-walk', { start: 0, end: 7 }),
+                frameRate: 8,
+                repeat: -1
+            });
+        }
+        
+        if (!this.anims.exists('redpanda-dying')) {
+            this.anims.create({
+                key: 'redpanda-dying',
+                frames: this.anims.generateFrameNumbers('redpanda-death', { start: 0, end: 7 }),
+                frameRate: 8,
+                repeat: 0
+            });
+        }*/
+        
+        console.log('GameScene create() finished');
     }
 
     update(time, delta) {
-        // DEBUG: Check if update is being called
-        if (!this.updateLogShown) {
-            console.log('GameScene update is being called!');
-            this.updateLogShown = true;
-        }
-        
         // Stop all updates if game has ended
         if (this.gameEnded) return;
         
@@ -16427,7 +16497,7 @@ class GameScene extends Phaser.Scene {
                 }
                 enemy.destroy();
             });
-        } else if (enemy.enemyType === 'brainmole' && this.anims.exists('brainmole-dying')) {
+        } else if (enemy.enemyType === 'brainmole') {
             // Brain mole has custom death animation
             enemy.isDying = true;
             enemy.setVelocity(0, 0);
@@ -16456,7 +16526,7 @@ class GameScene extends Phaser.Scene {
                 
                 enemy.destroy();
             });
-        } else if (enemy.enemyType === 'intellectdevourer' && this.anims.exists('intellectdevourer-dying')) {
+        } else if (enemy.enemyType === 'intellectdevourer') {
             // Intellect devourer has custom death animation
             enemy.isDying = true;
             enemy.setVelocity(0, 0);
@@ -16487,7 +16557,7 @@ class GameScene extends Phaser.Scene {
                 
                 enemy.destroy();
             });
-        } else if (enemy.enemyType === 'giantfly' && this.anims.exists('giantfly-dying')) {
+        } else if (enemy.enemyType === 'giantfly') {
             // Giant fly has custom death animation
             enemy.isDying = true;
             enemy.setVelocity(0, 0);
@@ -16519,7 +16589,7 @@ class GameScene extends Phaser.Scene {
                 }
                 enemy.destroy();
             });
-        } else if (enemy.enemyType === 'squirrel' && this.anims.exists('squirrel-dying')) {
+        } else if (enemy.enemyType === 'squirrel') {
             // Squirrel has custom death animation
             enemy.isDying = true;
             enemy.setVelocity(0, 0);
@@ -16543,6 +16613,38 @@ class GameScene extends Phaser.Scene {
                 // Item drop chances
                 const dropRoll = Math.random();
                 if (dropRoll < 0.015) {
+                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
+                }
+                
+                if (enemy.body) {
+                    enemy.body.enable = false;
+                }
+                enemy.destroy();
+            });
+        } else if (enemy.enemyType === 'redpanda') {
+            // Redpanda has custom death animation
+            enemy.isDying = true;
+            enemy.setVelocity(0, 0);
+            
+            // Store position for drops
+            const deathX = enemyX;
+            const deathY = enemyY;
+            
+            // Play death animation
+            enemy.play('redpanda-dying');
+            
+            enemy.once('animationcomplete', () => {
+                if (!enemy || !enemy.active) return;
+                
+                // Drop jewel - XP scales with wave
+                const baseXP = 3;
+                const waveBonus = Math.floor(this.currentWave / 2);
+                const xpValue = baseXP + waveBonus;
+                this.dropJewel(deathX, deathY, xpValue, 0.075);
+                
+                // Item drop chances
+                const dropRoll = Math.random();
+                if (dropRoll < 0.02) {
                     this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
                 }
                 
@@ -17823,19 +17925,7 @@ class GameScene extends Phaser.Scene {
             bat.moveSpeed = 92; // Reduced to match spawnEnemy
             bat.isFlying = true;
             this.addEnemyToGroup(bat);
-            
-            // Play animation with safety check after all properties are set
-            this.time.delayedCall(10, () => {
-                try {
-                    if (bat && bat.active && bat.anims && this.anims.exists('bat-flying')) {
-                        bat.play('bat-flying');
-                    } else if (!this.anims.exists('bat-flying')) {
-                        console.warn('bat-flying animation does not exist');
-                    }
-                } catch (e) {
-                    console.warn('Failed to play bat flying animation:', e);
-                }
-            });
+            bat.play('bat-flying');
         } else if (enemyType === 'mushroom') {
             const mushroom = this.physics.add.sprite(x, y, 'mushroom-run', 0);
             mushroom.setScale(0.7);
@@ -17850,20 +17940,13 @@ class GameScene extends Phaser.Scene {
                 mushroom.body.setOffset(35, 8);  // Adjusted offset for smaller sprite
             }
             this.addEnemyToGroup(mushroom);
-            
-            // Play animation with safety check after all properties are set
-            this.time.delayedCall(10, () => {
-                try {
-                    if (mushroom && mushroom.active && mushroom.anims && this.anims.exists('mushroom-running')) {
-                        mushroom.play('mushroom-running');
-                    } else if (!this.anims.exists('mushroom-running')) {
-                        console.warn('mushroom-running animation does not exist');
-                    }
-                } catch (e) {
-                    console.warn('Failed to play mushroom running animation:', e);
-                }
-            });
+            mushroom.play('mushroom-running');
         } else if (enemyType === 'giantfly') {
+            // Check if texture exists before creating sprite
+            if (!this.textures.exists('giantfly-walk')) {
+                console.error('giantfly-walk texture not found!');
+                return null;
+            }
             const giantfly = this.physics.add.sprite(x, y, 'giantfly-walk', 0);
             giantfly.setScale(2.0); // Scale up the 32x32 sprite
             giantfly.health = 4; // Low-medium health, flies are fragile
@@ -17872,7 +17955,13 @@ class GameScene extends Phaser.Scene {
             giantfly.moveSpeed = 70; // Fast flying enemy
             giantfly.damage = 15; // Medium damage
             giantfly.isFlying = true; // Flies can go over obstacles
-            giantfly.play('giantfly-walking');
+            // Play animation if it exists
+            if (this.anims.exists('giantfly-walking')) {
+                giantfly.play('giantfly-walking');
+            } else {
+                console.warn('giantfly-walking animation not found');
+            }
+            
             // Apply hitbox from config or use defaults
             if (!this.applyHitboxConfig(giantfly, 'giantfly')) {
                 giantfly.body.setSize(28, 28);
@@ -17880,6 +17969,11 @@ class GameScene extends Phaser.Scene {
             }
             this.addEnemyToGroup(giantfly);
         } else if (enemyType === 'squirrel') {
+            // Check if texture exists before creating sprite
+            if (!this.textures.exists('squirrel-walk')) {
+                console.error('squirrel-walk texture not found!');
+                return null;
+            }
             const squirrel = this.physics.add.sprite(x, y, 'squirrel-walk', 0);
             squirrel.setScale(2.0); // Scale up the 32x32 sprite
             squirrel.health = 5; // Medium health
@@ -17887,7 +17981,12 @@ class GameScene extends Phaser.Scene {
             squirrel.enemyType = 'squirrel';
             squirrel.moveSpeed = 65; // Fast and nimble
             squirrel.damage = 12; // Lower damage but quick
-            squirrel.play('squirrel-walking');
+            // Play animation if it exists
+            if (this.anims.exists('squirrel-walking')) {
+                squirrel.play('squirrel-walking');
+            } else {
+                console.warn('squirrel-walking animation not found');
+            }
             // Apply hitbox from config or use defaults
             if (!this.applyHitboxConfig(squirrel, 'squirrel')) {
                 squirrel.body.setSize(28, 28);
@@ -17895,6 +17994,11 @@ class GameScene extends Phaser.Scene {
             }
             this.addEnemyToGroup(squirrel);
         } else if (enemyType === 'redpanda') {
+            // Check if texture exists before creating sprite
+            if (!this.textures.exists('redpanda-walk')) {
+                console.error('redpanda-walk texture not found!');
+                return null;
+            }
             const redpanda = this.physics.add.sprite(x, y, 'redpanda-walk', 0);
             redpanda.setScale(2.0); // Scale up the 32x32 sprite
             redpanda.health = 7; // Medium-high health
@@ -17902,7 +18006,12 @@ class GameScene extends Phaser.Scene {
             redpanda.enemyType = 'redpanda';
             redpanda.moveSpeed = 50; // Slower but tankier
             redpanda.damage = 18; // Higher damage
-            redpanda.play('redpanda-walking');
+            // Play animation if it exists
+            if (this.anims.exists('redpanda-walking')) {
+                redpanda.play('redpanda-walking');
+            } else {
+                console.warn('redpanda-walking animation not found');
+            }
             // Apply hitbox from config or use defaults
             if (!this.applyHitboxConfig(redpanda, 'redpanda')) {
                 redpanda.body.setSize(28, 28);
@@ -17923,19 +18032,7 @@ class GameScene extends Phaser.Scene {
             }
             fireworm.element = 'fire';
             this.addEnemyToGroup(fireworm);
-            
-            // Play animation with safety check after all properties are set
-            this.time.delayedCall(10, () => {
-                try {
-                    if (fireworm && fireworm.active && fireworm.anims && this.anims.exists('fireworm-walking')) {
-                        fireworm.play('fireworm-walking');
-                    } else if (!this.anims.exists('fireworm-walking')) {
-                        console.warn('fireworm-walking animation does not exist');
-                    }
-                } catch (e) {
-                    console.warn('Failed to play fireworm walking animation:', e);
-                }
-            });
+            fireworm.play('fireworm-walking');
         } else if (enemyType === 'summoner') {
             const summoner = this.physics.add.sprite(x, y, 'summoner-walk', 0);
             summoner.setScale(0.8);
@@ -18206,12 +18303,7 @@ class GameScene extends Phaser.Scene {
             wraith.enemyType = 'wraith';
             wraith.moveSpeed = 40; // Slow but menacing
             wraith.damage = 30; // High damage
-            // Play animation with safety check
-            if (this.anims.exists('wraith-walking')) {
-                wraith.play('wraith-walking');
-            } else {
-                console.warn('wraith-walking animation does not exist yet');
-            }
+            wraith.play('wraith-walking');
             // Apply hitbox from config or use defaults
             if (!this.applyHitboxConfig(wraith, 'wraith')) {
                 wraith.body.setSize(40, 50);

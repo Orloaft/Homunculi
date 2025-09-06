@@ -24,3 +24,14 @@ Thumbs.db
 # Electron specific
 out/
 electron-builder.yml
+electron/
+*.exe
+*.dmg
+*.AppImage
+*.snap
+*.deb
+*.rpm
+*.pacman
+release/
+dist-electron/
+unpacked/

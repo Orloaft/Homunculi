@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enemy Sprite & Hitbox Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e1e2e 0%, #151515 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px 30px;
+            border-bottom: 2px solid #333;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            font-size: 24px;
+            background: linear-gradient(45deg, #00ff88, #00bbff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .container {
+            display: flex;
+            flex: 1;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        .sidebar {
+            width: 300px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #333;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+        
+        .sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .sidebar::-webkit-scrollbar-track {
+            background: #1a1a1a;
+            border-radius: 4px;
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 4px;
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .canvas-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            border: 1px solid #333;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 600px;
+            position: relative;
+        }
+        
+        #game-canvas {
+            border: 2px solid #444;
+            border-radius: 5px;
+            background: #1a1a1a;
+        }
+        
+        .controls-panel {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            border: 1px solid #333;
+            padding: 20px;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            color: #888;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+        
+        .enemy-dropdown {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #2a2a3e 0%, #1a1a2e 100%);
+            border: 1px solid #444;
+            border-radius: 5px;
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .enemy-dropdown:focus {
+            outline: none;
+            border-color: #00ff88;
+        }
+        
+        .enemy-dropdown option {
+            background: #1a1a2e;
+            color: #fff;
+        }
+        
+        .enemy-dropdown optgroup {
+            font-weight: bold;
+            color: #00ff88;
+        }
+        
+        .enemy-btn {
+            padding: 10px;
+            background: linear-gradient(135deg, #2a2a3e 0%, #1a1a2e 100%);
+            border: 1px solid #444;
+            border-radius: 5px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        .enemy-btn:hover {
+            background: linear-gradient(135deg, #3a3a4e 0%, #2a2a3e 100%);
+            border-color: #666;
+            transform: translateY(-2px);
+        }
+        
+        .enemy-btn.active {
+            background: linear-gradient(135deg, #00ff88 0%, #00bbff 100%);
+            color: #000;
+            border-color: #00ff88;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 13px;
+            color: #aaa;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: linear-gradient(135deg, #00ff88 0%, #00bbff 100%);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: linear-gradient(135deg, #00ff88 0%, #00bbff 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .value-display {
+            min-width: 50px;
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            color: #00ff88;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #00ff88 0%, #00bbff 100%);
+            border: none;
+            border-radius: 5px;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.3);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #666 0%, #444 100%);
+            color: #fff;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+            color: #fff;
+        }
+        
+        .info-panel {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.8;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            border-bottom: 1px solid #222;
+        }
+        
+        .info-label {
+            color: #888;
+        }
+        
+        .info-value {
+            color: #00ff88;
+        }
+        
+        .export-textarea {
+            width: 100%;
+            height: 150px;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 5px;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 10px;
+            resize: vertical;
+            margin-top: 10px;
+        }
+        
+        .status-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: linear-gradient(135deg, #00ff88 0%, #00bbff 100%);
+            color: #000;
+            border-radius: 5px;
+            font-weight: bold;
+            display: none;
+            animation: slideIn 0.3s ease;
+            z-index: 1000;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .animation-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .anim-btn {
+            flex: 1;
+            padding: 8px;
+            background: #2a2a3e;
+            border: 1px solid #444;
+            border-radius: 3px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .anim-btn:hover {
+            background: #3a3a4e;
+        }
+        
+        .anim-btn.active {
+            background: #00ff88;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🎮 Enemy Sprite & Hitbox Editor</h1>
+    </header>
+    
+    <div class="container">
+        <div class="sidebar">
+            <div class="section">
+                <h3 class="section-title">Enemy Selection</h3>
+                <select id="enemy-select" class="enemy-dropdown" onchange="selectEnemyFromDropdown()">
+                    <option value="">-- Select Enemy --</option>
+                </select>
+            </div>
+            
+            <div class="section">
+                <h3 class="section-title">Quick Actions</h3>
+                <div class="button-group">
+                    <button class="btn btn-secondary" onclick="resetAll()">Reset All</button>
+                    <button class="btn" onclick="exportData()">Export Data</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="canvas-container">
+                <div id="game-canvas"></div>
+            </div>
+            
+            <div class="controls-panel">
+                <div class="section">
+                    <h3 class="section-title">Display Options</h3>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="show-hitbox" checked onchange="toggleHitbox()">
+                        <label for="show-hitbox">Show Hitbox</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="show-grid" onchange="toggleGrid()">
+                        <label for="show-grid">Show Grid</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="dark-background" checked onchange="toggleBackground()">
+                        <label for="dark-background">Dark Background</label>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3 class="section-title">Sprite Scale</h3>
+                    <div class="control-group">
+                        <label class="control-label">Scale</label>
+                        <div class="slider-container">
+                            <input type="range" id="scale-slider" min="0.1" max="5" step="0.1" value="1" onchange="updateScale()">
+                            <span class="value-display" id="scale-value">1.0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3 class="section-title">Hitbox Adjustment</h3>
+                    <div class="control-group">
+                        <label class="control-label">Width</label>
+                        <div class="slider-container">
+                            <input type="range" id="hitbox-width" min="5" max="200" value="30" onchange="updateHitbox()">
+                            <span class="value-display" id="width-value">30</span>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Height</label>
+                        <div class="slider-container">
+                            <input type="range" id="hitbox-height" min="5" max="200" value="30" onchange="updateHitbox()">
+                            <span class="value-display" id="height-value">30</span>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Offset X</label>
+                        <div class="slider-container">
+                            <input type="range" id="hitbox-offsetx" min="-100" max="100" value="0" onchange="updateHitbox()">
+                            <span class="value-display" id="offsetx-value">0</span>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Offset Y</label>
+                        <div class="slider-container">
+                            <input type="range" id="hitbox-offsety" min="-100" max="100" value="0" onchange="updateHitbox()">
+                            <span class="value-display" id="offsety-value">0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3 class="section-title">Animation Controls</h3>
+                    <div class="animation-controls">
+                        <button class="anim-btn" id="walk-btn" onclick="playAnimation('walk')">Walk</button>
+                        <button class="anim-btn" id="death-btn" onclick="playAnimation('death')">Death</button>
+                        <button class="anim-btn" id="attack-btn" onclick="playAnimation('attack')">Attack</button>
+                    </div>
+                    <div class="control-group" style="margin-top: 10px;">
+                        <label class="control-label">Animation Speed</label>
+                        <div class="slider-container">
+                            <input type="range" id="anim-speed" min="1" max="20" value="10" onchange="updateAnimSpeed()">
+                            <span class="value-display" id="speed-value">10</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3 class="section-title">Current Sprite Info</h3>
+                    <div class="info-panel">
+                        <div class="info-row">
+                            <span class="info-label">Enemy Type:</span>
+                            <span class="info-value" id="info-type">None</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Texture:</span>
+                            <span class="info-value" id="info-texture">None</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Frame Size:</span>
+                            <span class="info-value" id="info-framesize">0x0</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Display Size:</span>
+                            <span class="info-value" id="info-displaysize">0x0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3 class="section-title">Export Configuration</h3>
+                    <button class="btn" onclick="copyToClipboard()">Copy to Clipboard</button>
+                    <textarea class="export-textarea" id="export-data" readonly></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-message" id="status-message"></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script>
+        // Enemy configurations
+        const enemyConfigs = {
+            // Forest enemies
+            mushroom: {
+                texture: 'mushroom-run',
+                path: 'mushroom/Run.png',
+                frameWidth: 150,
+                frameHeight: 46,
+                animations: {
+                    walk: { start: 0, end: 7, rate: 10 }
+                },
+                defaultScale: 0.7
+            },
+            tree: {
+                texture: 'enemy-walk',
+                path: 'tree/tronchungo3/walking-sheet.png',
+                frameWidth: 48,
+                frameHeight: 60,
+                animations: {
+                    walk: { start: 0, end: 5, rate: 8 }
+                },
+                defaultScale: 1.5
+            },
+            giantfly: {
+                texture: 'giantfly-walk',
+                path: 'forestlandfoes/giantflywalk4frames.png',
+                frameWidth: 32,
+                frameHeight: 29,  // Actual height from file
+                animations: {
+                    walk: { start: 0, end: 3, rate: 8 },
+                    death: { 
+                        texture: 'giantfly-death',
+                        path: 'forestlandfoes/giantflydeath6frames.png',
+                        frameWidth: 32,
+                        frameHeight: 30,  // Actual height (192x30 / 6)
+                        start: 0, end: 5, rate: 10 
+                    }
+                },
+                defaultScale: 2.0
+            },
+            squirrel: {
+                texture: 'squirrel-walk',
+                path: 'forestlandfoes/squirrelwalk8frames.png',
+                frameWidth: 32,
+                frameHeight: 21,  // Actual height from file
+                animations: {
+                    walk: { start: 0, end: 7, rate: 10 },
+                    death: {
+                        texture: 'squirrel-death',
+                        path: 'forestlandfoes/squirreldeath4frames.png',
+                        frameWidth: 32,
+                        frameHeight: 16,  // Actual height (128x16 / 4)
+                        start: 0, end: 3, rate: 8
+                    }
+                },
+                defaultScale: 2.0
+            },
+            redpanda: {
+                texture: 'redpanda-walk',
+                path: 'forestlandfoes/redpandawalk8frames.png',
+                frameWidth: 32,
+                frameHeight: 18,  // Actual height from file (256x18 / 8 frames)
+                animations: {
+                    walk: { start: 0, end: 7, rate: 8 },
+                    death: {
+                        texture: 'redpanda-death',
+                        path: 'forestlandfoes/redpandadeath8frames.png',
+                        frameWidth: 32,
+                        frameHeight: 18,
+                        start: 0, end: 7, rate: 10
+                    }
+                },
+                defaultScale: 2.0
+            },
+            // Cave enemies
+            golem: {
+                texture: 'golem-orange-walk',
+                path: 'Golem_1/Orange/No_Swoosh_VFX/Golem_1_walk.png',
+                frameWidth: 90,  // Actual dimensions from game.js
+                frameHeight: 64,
+                animations: {
+                    walk: { start: 0, end: 9, rate: 8 },  // 10 frames (900/90)
+                    death: {
+                        texture: 'golem-orange-die',
+                        path: 'Golem_1/Orange/No_Swoosh_VFX/Golem_1_die.png',
+                        frameWidth: 90,
+                        frameHeight: 64,
+                        start: 0, end: 12, rate: 10  // 13 frames (1170/90)
+                    }
+                },
+                defaultScale: 1.5
+            },
+            slime: {
+                texture: 'bloboid-walk',
+                path: 'newenemies/blob/blob minion walk.png',
+                frameWidth: 80,
+                frameHeight: 35,
+                animations: {
+                    walk: { start: 0, end: 7, rate: 10 }
+                },
+                defaultScale: 1.5
+            },
+            kobold: {
+                texture: 'kobold-walk',
+                path: 'kobold/kobold8frames.png',
+                frameWidth: 148,
+                frameHeight: 96,
+                animations: {
+                    walk: { start: 0, end: 7, rate: 10 }
+                },
+                defaultScale: 1.0
+            },
+            brainmole: {
+                texture: 'brainmole-walk',
+                path: 'cavelandfoes/brainmole4frames.png',
+                frameWidth: 32,
+                frameHeight: 32,  // This one is actually correct (128x32 / 4 = 32x32)
+                animations: {
+                    walk: { start: 0, end: 3, rate: 8 },
+                    death: {
+                        texture: 'brainmole-death',
+                        path: 'cavelandfoes/brainmoledeath7frames.png',
+                        frameWidth: 32,
+                        frameHeight: 32,
+                        start: 0, end: 6, rate: 12
+                    }
+                },
+                defaultScale: 2.0
+            },
+            intellectdevourer: {
+                texture: 'intellectdevourer-walk',
+                path: 'cavelandfoes/intellectdevourer8frames.png',
+                frameWidth: 32,
+                frameHeight: 20,  // Actual height (256x20 / 8 frames)
+                animations: {
+                    walk: { start: 0, end: 7, rate: 10 },
+                    death: {
+                        texture: 'intellectdevourer-death',
+                        path: 'cavelandfoes/intellectdevourerdeath4frames.png',
+                        frameWidth: 32,
+                        frameHeight: 16,  // Actual height (128x16 / 4 frames)
+                        start: 0, end: 3, rate: 10
+                    }
+                },
+                defaultScale: 1.8
+            },
+            // Desert enemies
+            bat: {
+                texture: 'bat-fly',
+                path: 'bateye/Flight.png',
+                frameWidth: 150,
+                frameHeight: 150,
+                animations: {
+                    walk: { start: 0, end: 7, rate: 10 }
+                },
+                defaultScale: 0.5
+            },
+            darkbat: {
+                texture: 'dark-bat-fly',
+                path: 'Bat-IdleFly9frames.png',
+                frameWidth: 16,
+                frameHeight: 16,
+                animations: {
+                    walk: { start: 0, end: 8, rate: 10 }
+                },
+                defaultScale: 3.0
+            },
+            soul: {
+                texture: 'soul-move',
+                path: 'newenemies/Soul/Soul/move/Soul_move.png',
+                frameWidth: 96,
+                frameHeight: 96,
+                animations: {
+                    walk: { start: 0, end: 7, rate: 8 }
+                },
+                defaultScale: 1.0
+            },
+            fireworm: {
+                texture: 'fireworm-walk',
+                path: 'fireworm/Walk.png',
+                frameWidth: 90,
+                frameHeight: 90,
+                animations: {
+                    walk: { start: 0, end: 8, rate: 10 }
+                },
+                defaultScale: 1.2
+            },
+            summoner: {
+                texture: 'summoner-idle',
+                path: 'newenemies/summoner/The Summoner idle animation-export.png',
+                frameWidth: 80,
+                frameHeight: 80,
+                animations: {
+                    walk: { start: 0, end: 11, rate: 8 }
+                },
+                defaultScale: 1.0
+            },
+            // Bosses
+            archerBoss: {
+                texture: 'archer-boss-walk',
+                path: 'archerboss/boss2archerwalk8frames.png',
+                frameWidth: 64,
+                frameHeight: 54,
+                animations: {
+                    walk: { start: 0, end: 7, rate: 10 },
+                    attack: {
+                        texture: 'archer-boss-shoot',
+                        path: 'archerboss/boss2archershoot7frames.png',
+                        start: 0, end: 6, rate: 10
+                    },
+                    death: {
+                        texture: 'archer-boss-death',
+                        path: 'archerboss/boss2archerdeath8frames.png',
+                        start: 0, end: 7, rate: 10
+                    }
+                },
+                defaultScale: 2.0
+            },
+            obeliskBoss: {
+                texture: 'obelisk-boss',
+                path: 'obeliskBoss.png',
+                frameWidth: 100,
+                frameHeight: 100,
+                animations: {
+                    walk: { start: 0, end: 0, rate: 1 }
+                },
+                defaultScale: 1.5
+            },
+            // Removed obeliskIdle - it's not a boss
+            voidkin: {
+                texture: 'voidkin',
+                path: 'voidkin15frames.png',
+                frameWidth: 224,
+                frameHeight: 240,
+                animations: {
+                    walk: { start: 0, end: 14, rate: 10 }
+                },
+                defaultScale: 1.0
+            },
+            kingNothing: {
+                texture: 'king-nothing-run',
+                path: 'castlelandfoes/kingnothingboss/Run.png',
+                frameWidth: 160,  // 1280 / 8 frames
+                frameHeight: 111,  // Actual height
+                animations: {
+                    walk: { start: 0, end: 7, rate: 10 },
+                    attack: {
+                        texture: 'king-nothing-attack1',
+                        path: 'castlelandfoes/kingnothingboss/Attack1.png',
+                        frameWidth: 160,
+                        frameHeight: 111,
+                        start: 0, end: 3, rate: 10
+                    },
+                    death: {
+                        texture: 'king-nothing-death',
+                        path: 'castlelandfoes/kingnothingboss/Death.png',
+                        frameWidth: 160,
+                        frameHeight: 111,
+                        start: 0, end: 5, rate: 10
+                    }
+                },
+                defaultScale: 1.5
+            },
+            eyelor: {
+                texture: 'eyelor-move-1',
+                path: 'Eyelor/Movement/Eye Beast Moving1.png',
+                frameWidth: 200,
+                frameHeight: 200,
+                animations: {
+                    walk: { start: 0, end: 12, rate: 10 }
+                },
+                defaultScale: 1.5,
+                individualFrames: true,
+                framePattern: 'eyelor-move-'
+            },
+            nekros: {
+                texture: 'nekros-walk-1',
+                path: 'Nekros/walk/walk_1.png',
+                frameWidth: 200,
+                frameHeight: 200,
+                animations: {
+                    walk: { start: 0, end: 11, rate: 10 }
+                },
+                defaultScale: 1.5,
+                individualFrames: true,
+                framePattern: 'nekros-walk-'
+            },
+            // Special enemies
+            wraith: {
+                texture: 'wraith-walk',
+                path: 'scythewraith/scythewraithwalk8frames.png',
+                frameWidth: 79,  // 631/8 ≈ 79
+                frameHeight: 68,  // Actual height
+                animations: {
+                    walk: { start: 0, end: 7, rate: 10 },
+                    attack: {
+                        texture: 'wraith-attack',
+                        path: 'scythewraith/scythewraithattack8frames.png',
+                        frameWidth: 79,
+                        frameHeight: 68,
+                        start: 0, end: 7, rate: 12
+                    },
+                    death: {
+                        texture: 'wraith-death',
+                        path: 'scythewraith/scythewraithdeath8frames.png',
+                        frameWidth: 110,  // 880/8
+                        frameHeight: 80,   // Actual height
+                        start: 0, end: 7, rate: 10
+                    }
+                },
+                defaultScale: 1.5
+            }
+        };
+        
+        // Global variables
+        let game;
+        let editorScene;
+        let currentEnemy = null;
+        let currentSprite = null;
+        let hitboxGraphics = null;
+        let gridGraphics = null;
+        let savedData = {};
+        
+        // Load saved data from localStorage
+        function loadSavedData() {
+            const saved = localStorage.getItem('enemySpriteData');
+            if (saved) {
+                try {
+                    savedData = JSON.parse(saved);
+                } catch (e) {
+                    savedData = {};
+                }
+            }
+        }
+        
+        // Save data to localStorage
+        function saveData() {
+            localStorage.setItem('enemySpriteData', JSON.stringify(savedData));
+            updateExportData();
+        }
+        
+        // Editor Scene
+        class EditorScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'EditorScene' });
+            }
+            
+            preload() {
+                // Add loading text
+                const loadingText = this.add.text(400, 300, 'Loading sprites...', {
+                    fontSize: '20px',
+                    color: '#ffffff'
+                });
+                loadingText.setOrigin(0.5);
+                
+                // Track loaded assets
+                let assetsToLoad = 0;
+                let assetsLoaded = 0;
+                let failedAssets = [];
+                
+                // Load all enemy sprites
+                for (const [key, config] of Object.entries(enemyConfigs)) {
+                    // Handle bosses with individual frame images
+                    if (config.individualFrames) {
+                        // Load individual frames for bosses like Eyelor and Nekros
+                        const frameCount = config.animations.walk.end + 1;
+                        for (let i = 1; i <= frameCount; i++) {
+                            assetsToLoad++;
+                            const framePath = config.path.replace('1.png', `${i}.png`);
+                            this.load.image(`${config.framePattern}${i}`, framePath);
+                        }
+                    } else if (config.isStaticImage) {
+                        // Load as single image for static bosses
+                        assetsToLoad++;
+                        this.load.image(config.texture, config.path);
+                    } else {
+                        // Load as spritesheet for animated enemies
+                        assetsToLoad++;
+                        this.load.spritesheet(config.texture, config.path, {
+                            frameWidth: config.frameWidth,
+                            frameHeight: config.frameHeight
+                        });
+                    }
+                    
+                    // Load additional textures for animations
+                    if (config.animations.death && config.animations.death.texture) {
+                        assetsToLoad++;
+                        const deathWidth = config.animations.death.frameWidth || config.frameWidth;
+                        const deathHeight = config.animations.death.frameHeight || config.frameHeight;
+                        this.load.spritesheet(config.animations.death.texture, config.animations.death.path, {
+                            frameWidth: deathWidth,
+                            frameHeight: deathHeight
+                        });
+                    }
+                    if (config.animations.attack && config.animations.attack.texture) {
+                        assetsToLoad++;
+                        const attackWidth = config.animations.attack.frameWidth || config.frameWidth;
+                        const attackHeight = config.animations.attack.frameHeight || config.frameHeight;
+                        this.load.spritesheet(config.animations.attack.texture, config.animations.attack.path, {
+                            frameWidth: attackWidth,
+                            frameHeight: attackHeight
+                        });
+                    }
+                }
+                
+                // Track successful loads
+                this.load.on('filecomplete', (key, type, data) => {
+                    assetsLoaded++;
+                    loadingText.setText(`Loading sprites... ${assetsLoaded}/${assetsToLoad}`);
+                    console.log('Loaded:', key);
+                });
+                
+                // Track failed loads
+                this.load.on('loaderror', (file) => {
+                    failedAssets.push(file.key);
+                    console.error('Failed to load:', file.key, file.url);
+                });
+                
+                // Handle completion
+                this.load.on('complete', () => {
+                    loadingText.destroy();
+                    if (failedAssets.length > 0) {
+                        console.warn('Some assets failed to load:', failedAssets);
+                        // Mark failed enemies in the UI
+                        for (const [key, config] of Object.entries(enemyConfigs)) {
+                            if (failedAssets.includes(config.texture)) {
+                                const btn = document.getElementById('enemy-btn-' + key);
+                                if (btn) {
+                                    btn.style.opacity = '0.5';
+                                    btn.title = 'Sprite file not found';
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            create() {
+                // Set background
+                this.cameras.main.setBackgroundColor('#1a1a1a');
+                
+                // Create grid graphics
+                gridGraphics = this.add.graphics();
+                gridGraphics.setVisible(false);
+                drawGrid();
+                
+                // Create hitbox graphics
+                hitboxGraphics = this.add.graphics();
+                
+                // Create animations (with error handling for missing textures)
+                for (const [key, config] of Object.entries(enemyConfigs)) {
+                    // Walk animation
+                    if (config.animations.walk && !this.anims.exists(key + '-walk')) {
+                        try {
+                            if (config.individualFrames) {
+                                // For bosses with individual frames like Eyelor and Nekros
+                                const frames = [];
+                                for (let i = 1; i <= config.animations.walk.end + 1; i++) {
+                                    frames.push({ key: `${config.framePattern}${i}` });
+                                }
+                                this.anims.create({
+                                    key: key + '-walk',
+                                    frames: frames,
+                                    frameRate: config.animations.walk.rate,
+                                    repeat: -1
+                                });
+                            } else if (this.textures.exists(config.texture)) {
+                                this.anims.create({
+                                    key: key + '-walk',
+                                    frames: this.anims.generateFrameNumbers(config.texture, {
+                                        start: config.animations.walk.start,
+                                        end: config.animations.walk.end
+                                    }),
+                                    frameRate: config.animations.walk.rate,
+                                    repeat: -1
+                                });
+                            }
+                        } catch (e) {
+                            console.warn('Failed to create walk animation for', key, e);
+                        }
+                    }
+                    
+                    // Death animation
+                    if (config.animations.death && !this.anims.exists(key + '-death')) {
+                        try {
+                            const texture = config.animations.death.texture || config.texture;
+                            if (this.textures.exists(texture)) {
+                                this.anims.create({
+                                    key: key + '-death',
+                                    frames: this.anims.generateFrameNumbers(texture, {
+                                        start: config.animations.death.start,
+                                        end: config.animations.death.end
+                                    }),
+                                    frameRate: config.animations.death.rate,
+                                    repeat: 0
+                                });
+                            }
+                        } catch (e) {
+                            console.warn('Failed to create death animation for', key, e);
+                        }
+                    }
+                    
+                    // Attack animation
+                    if (config.animations.attack && !this.anims.exists(key + '-attack')) {
+                        try {
+                            const texture = config.animations.attack.texture || config.texture;
+                            if (this.textures.exists(texture)) {
+                                this.anims.create({
+                                    key: key + '-attack',
+                                    frames: this.anims.generateFrameNumbers(texture, {
+                                        start: config.animations.attack.start,
+                                        end: config.animations.attack.end
+                                    }),
+                                    frameRate: config.animations.attack.rate,
+                                    repeat: -1
+                                });
+                            }
+                        } catch (e) {
+                            console.warn('Failed to create attack animation for', key, e);
+                        }
+                    }
+                }
+                
+                // Enable physics
+                this.physics.world.setBounds(0, 0, 800, 600);
+            }
+            
+            update() {
+                if (currentSprite && hitboxGraphics) {
+                    updateHitboxDisplay();
+                }
+            }
+        }
+        
+        // Initialize Phaser
+        function initGame() {
+            const config = {
+                type: Phaser.AUTO,
+                width: 800,
+                height: 600,
+                parent: 'game-canvas',
+                backgroundColor: '#1a1a1a',
+                physics: {
+                    default: 'arcade',
+                    arcade: {
+                        debug: false
+                    }
+                },
+                scene: EditorScene
+            };
+            
+            game = new Phaser.Game(config);
+            
+            // Wait for scene to be ready
+            setTimeout(() => {
+                editorScene = game.scene.scenes[0];
+            }, 500);
+        }
+        
+        // Populate enemy dropdown
+        function populateEnemyList() {
+            const enemySelect = document.getElementById('enemy-select');
+            
+            // Group enemies by category
+            const categories = {
+                'Forest': ['mushroom', 'tree', 'giantfly', 'squirrel', 'redpanda'],
+                'Cave': ['golem', 'slime', 'kobold', 'brainmole', 'intellectdevourer'],
+                'Desert': ['bat', 'darkbat', 'soul', 'fireworm', 'summoner'],
+                'Bosses': ['archerBoss', 'obeliskBoss', 'voidkin', 'kingNothing', 'eyelor', 'nekros'],
+                'Special': ['wraith']
+            };
+            
+            for (const [category, enemies] of Object.entries(categories)) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = category;
+                
+                for (const enemyKey of enemies) {
+                    if (enemyConfigs[enemyKey]) {
+                        const option = document.createElement('option');
+                        option.value = enemyKey;
+                        option.textContent = enemyKey.replace(/([A-Z])/g, ' $1').trim()
+                            .replace(/^\w/, c => c.toUpperCase());
+                        optgroup.appendChild(option);
+                    }
+                }
+                
+                enemySelect.appendChild(optgroup);
+            }
+        }
+        
+        // Handle dropdown selection
+        function selectEnemyFromDropdown() {
+            const select = document.getElementById('enemy-select');
+            if (select.value) {
+                selectEnemy(select.value);
+            }
+        }
+        
+        // Select enemy
+        function selectEnemy(enemyType) {
+            if (!editorScene) {
+                console.warn('Scene not ready yet');
+                return;
+            }
+            
+            // Clear current sprite
+            if (currentSprite) {
+                currentSprite.destroy();
+                currentSprite = null;
+            }
+            
+            currentEnemy = enemyType;
+            const config = enemyConfigs[enemyType];
+            
+            // Check if texture exists
+            if (!editorScene.textures.exists(config.texture)) {
+                console.error('Texture not found:', config.texture);
+                showStatus('Error: Sprite file not found for ' + enemyType);
+                return;
+            }
+            
+            try {
+                // Create new sprite based on type
+                if (config.individualFrames) {
+                    // For bosses with individual frames, create sprite with first frame
+                    currentSprite = editorScene.physics.add.sprite(400, 300, `${config.framePattern}1`);
+                } else if (config.isStaticImage) {
+                    // For static images
+                    currentSprite = editorScene.physics.add.sprite(400, 300, config.texture);
+                } else {
+                    // For spritesheets
+                    currentSprite = editorScene.physics.add.sprite(400, 300, config.texture, 0);
+                }
+                
+                // Load saved data or use defaults
+                const saved = savedData[enemyType] || {};
+                const scale = saved.scale || config.defaultScale || 1;
+                const hitbox = saved.hitbox || { width: 30, height: 30, offsetX: 0, offsetY: 0 };
+                
+                // Apply scale
+                currentSprite.setScale(scale);
+                document.getElementById('scale-slider').value = scale;
+                document.getElementById('scale-value').textContent = scale.toFixed(1);
+                
+                // Apply hitbox
+                currentSprite.body.setSize(hitbox.width, hitbox.height);
+                currentSprite.body.setOffset(hitbox.offsetX, hitbox.offsetY);
+                
+                // Update sliders
+                document.getElementById('hitbox-width').value = hitbox.width;
+                document.getElementById('width-value').textContent = hitbox.width;
+                document.getElementById('hitbox-height').value = hitbox.height;
+                document.getElementById('height-value').textContent = hitbox.height;
+                document.getElementById('hitbox-offsetx').value = hitbox.offsetX;
+                document.getElementById('offsetx-value').textContent = hitbox.offsetX;
+                document.getElementById('hitbox-offsety').value = hitbox.offsetY;
+                document.getElementById('offsety-value').textContent = hitbox.offsetY;
+                
+                // Try to create and play animation
+                const animKey = enemyType + '-walk';
+                if (!editorScene.anims.exists(animKey)) {
+                    // Try to create animation on demand
+                    try {
+                        if (config.animations && config.animations.walk) {
+                            if (config.individualFrames) {
+                                // Create animation from individual frames
+                                const frames = [];
+                                for (let i = 1; i <= config.animations.walk.end + 1; i++) {
+                                    frames.push({ key: `${config.framePattern}${i}` });
+                                }
+                                editorScene.anims.create({
+                                    key: animKey,
+                                    frames: frames,
+                                    frameRate: config.animations.walk.rate || 10,
+                                    repeat: -1
+                                });
+                            } else if (!config.isStaticImage) {
+                                // Create animation from spritesheet
+                                editorScene.anims.create({
+                                    key: animKey,
+                                    frames: editorScene.anims.generateFrameNumbers(config.texture, {
+                                        start: config.animations.walk.start,
+                                        end: config.animations.walk.end
+                                    }),
+                                    frameRate: config.animations.walk.rate || 10,
+                                    repeat: -1
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Could not create animation:', e);
+                    }
+                }
+                
+                // Play animation if it exists
+                if (editorScene.anims.exists(animKey)) {
+                    currentSprite.play(animKey);
+                }
+                
+                // Update info panel
+                updateInfoPanel();
+                
+                // Update animation buttons
+                updateAnimationButtons();
+                
+            } catch (e) {
+                console.error('Error creating sprite:', e);
+                showStatus('Error loading ' + enemyType);
+            }
+        }
+        
+        // Update scale
+        function updateScale() {
+            if (!currentSprite) return;
+            
+            const scale = parseFloat(document.getElementById('scale-slider').value);
+            currentSprite.setScale(scale);
+            document.getElementById('scale-value').textContent = scale.toFixed(1);
+            
+            // Save data
+            if (!savedData[currentEnemy]) savedData[currentEnemy] = {};
+            savedData[currentEnemy].scale = scale;
+            saveData();
+            
+            updateInfoPanel();
+        }
+        
+        // Update hitbox
+        function updateHitbox() {
+            if (!currentSprite) return;
+            
+            const width = parseInt(document.getElementById('hitbox-width').value);
+            const height = parseInt(document.getElementById('hitbox-height').value);
+            const offsetX = parseInt(document.getElementById('hitbox-offsetx').value);
+            const offsetY = parseInt(document.getElementById('hitbox-offsety').value);
+            
+            currentSprite.body.setSize(width, height);
+            currentSprite.body.setOffset(offsetX, offsetY);
+            
+            // Update displays
+            document.getElementById('width-value').textContent = width;
+            document.getElementById('height-value').textContent = height;
+            document.getElementById('offsetx-value').textContent = offsetX;
+            document.getElementById('offsety-value').textContent = offsetY;
+            
+            // Save data
+            if (!savedData[currentEnemy]) savedData[currentEnemy] = {};
+            savedData[currentEnemy].hitbox = { width, height, offsetX, offsetY };
+            saveData();
+        }
+        
+        // Update hitbox display
+        function updateHitboxDisplay() {
+            hitboxGraphics.clear();
+            
+            if (!document.getElementById('show-hitbox').checked || !currentSprite) return;
+            
+            const body = currentSprite.body;
+            
+            // Draw hitbox
+            hitboxGraphics.lineStyle(2, 0x00ff00, 1);
+            const bodyX = currentSprite.x - currentSprite.displayOriginX + body.offset.x;
+            const bodyY = currentSprite.y - currentSprite.displayOriginY + body.offset.y;
+            hitboxGraphics.strokeRect(bodyX, bodyY, body.width, body.height);
+            
+            // Draw sprite bounds
+            hitboxGraphics.lineStyle(1, 0xffffff, 0.5);
+            hitboxGraphics.strokeRect(
+                currentSprite.x - currentSprite.displayOriginX,
+                currentSprite.y - currentSprite.displayOriginY,
+                currentSprite.displayWidth,
+                currentSprite.displayHeight
+            );
+            
+            // Draw center cross
+            hitboxGraphics.lineStyle(1, 0xffff00, 0.5);
+            hitboxGraphics.moveTo(currentSprite.x - 10, currentSprite.y);
+            hitboxGraphics.lineTo(currentSprite.x + 10, currentSprite.y);
+            hitboxGraphics.moveTo(currentSprite.x, currentSprite.y - 10);
+            hitboxGraphics.lineTo(currentSprite.x, currentSprite.y + 10);
+        }
+        
+        // Draw grid
+        function drawGrid() {
+            if (!gridGraphics) return;
+            
+            gridGraphics.clear();
+            gridGraphics.lineStyle(1, 0x333333, 0.3);
+            
+            // Vertical lines
+            for (let x = 0; x <= 800; x += 20) {
+                gridGraphics.moveTo(x, 0);
+                gridGraphics.lineTo(x, 600);
+            }
+            
+            // Horizontal lines
+            for (let y = 0; y <= 600; y += 20) {
+                gridGraphics.moveTo(0, y);
+                gridGraphics.lineTo(800, y);
+            }
+        }
+        
+        // Toggle functions
+        function toggleHitbox() {
+            updateHitboxDisplay();
+        }
+        
+        function toggleGrid() {
+            if (gridGraphics) {
+                gridGraphics.setVisible(document.getElementById('show-grid').checked);
+            }
+        }
+        
+        function toggleBackground() {
+            if (editorScene) {
+                const isDark = document.getElementById('dark-background').checked;
+                editorScene.cameras.main.setBackgroundColor(isDark ? '#1a1a1a' : '#f0f0f0');
+            }
+        }
+        
+        // Play animation
+        function playAnimation(type) {
+            if (!currentSprite || !currentEnemy) return;
+            
+            const animKey = currentEnemy + '-' + type;
+            
+            // Reset animation buttons
+            document.querySelectorAll('.anim-btn').forEach(btn => btn.classList.remove('active'));
+            
+            if (editorScene.anims.exists(animKey)) {
+                currentSprite.play(animKey);
+                document.getElementById(type + '-btn').classList.add('active');
+                
+                // For death animation, replay after completion
+                if (type === 'death') {
+                    currentSprite.once('animationcomplete', () => {
+                        setTimeout(() => {
+                            if (currentSprite && currentSprite.anims.currentAnim.key === animKey) {
+                                currentSprite.play(animKey);
+                            }
+                        }, 1000);
+                    });
+                }
+            }
+        }
+        
+        // Update animation speed
+        function updateAnimSpeed() {
+            if (!currentSprite || !currentSprite.anims.currentAnim) return;
+            
+            const speed = parseInt(document.getElementById('anim-speed').value);
+            currentSprite.anims.currentAnim.frameRate = speed;
+            document.getElementById('speed-value').textContent = speed;
+            
+            // Restart animation with new speed
+            const currentAnim = currentSprite.anims.currentAnim.key;
+            currentSprite.play(currentAnim);
+        }
+        
+        // Update animation buttons availability
+        function updateAnimationButtons() {
+            if (!currentEnemy) return;
+            
+            const config = enemyConfigs[currentEnemy];
+            
+            document.getElementById('walk-btn').disabled = !config.animations.walk;
+            document.getElementById('death-btn').disabled = !config.animations.death;
+            document.getElementById('attack-btn').disabled = !config.animations.attack;
+            
+            // Reset active state
+            document.querySelectorAll('.anim-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('walk-btn').classList.add('active');
+        }
+        
+        // Update info panel
+        function updateInfoPanel() {
+            if (!currentSprite || !currentEnemy) {
+                document.getElementById('info-type').textContent = 'None';
+                document.getElementById('info-texture').textContent = 'None';
+                document.getElementById('info-framesize').textContent = '0x0';
+                document.getElementById('info-displaysize').textContent = '0x0';
+                return;
+            }
+            
+            const config = enemyConfigs[currentEnemy];
+            document.getElementById('info-type').textContent = currentEnemy;
+            document.getElementById('info-texture').textContent = config.texture;
+            document.getElementById('info-framesize').textContent = `${config.frameWidth}x${config.frameHeight}`;
+            document.getElementById('info-displaysize').textContent = 
+                `${Math.round(currentSprite.displayWidth)}x${Math.round(currentSprite.displayHeight)}`;
+        }
+        
+        // Update export data
+        function updateExportData() {
+            const exportData = {
+                hitboxes: {},
+                scales: {}
+            };
+            
+            for (const [enemy, data] of Object.entries(savedData)) {
+                if (data.hitbox) {
+                    exportData.hitboxes[enemy] = data.hitbox;
+                }
+                if (data.scale) {
+                    exportData.scales[enemy] = data.scale;
+                }
+            }
+            
+            document.getElementById('export-data').value = JSON.stringify(exportData, null, 2);
+        }
+        
+        // Export data
+        function exportData() {
+            updateExportData();
+            showStatus('Data exported to text area below');
+        }
+        
+        // Copy to clipboard
+        function copyToClipboard() {
+            const textarea = document.getElementById('export-data');
+            textarea.select();
+            document.execCommand('copy');
+            showStatus('Configuration copied to clipboard!');
+        }
+        
+        // Reset all
+        function resetAll() {
+            if (confirm('This will reset all saved configurations. Are you sure?')) {
+                savedData = {};
+                localStorage.removeItem('enemySpriteData');
+                
+                if (currentEnemy) {
+                    selectEnemy(currentEnemy);
+                }
+                
+                showStatus('All configurations reset');
+            }
+        }
+        
+        // Show status message
+        function showStatus(message) {
+            const statusEl = document.getElementById('status-message');
+            statusEl.textContent = message;
+            statusEl.style.display = 'block';
+            
+            setTimeout(() => {
+                statusEl.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Initialize
+        window.onload = () => {
+            loadSavedData();
+            populateEnemyList();
+            initGame();
+            updateExportData();
+        };
+    </script>
+</body>
+</html>
