@@ -202,6 +202,50 @@ class ObstacleManager {
                     [0, 0, 0, 0],
                     [0, 0, 0, 0]
                 ]
+            ],
+            castle: [
+                // Single bookshelf corner
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 1],
+                    [0, 0, 0, 0]
+                ],
+                // Two crates diagonal
+                [
+                    [0, 0, 0, 0],
+                    [0, 1, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 1, 0]
+                ],
+                // Empty pattern 1
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0]
+                ],
+                // Weapon rack and table
+                [
+                    [0, 0, 0, 0],
+                    [1, 0, 0, 0],
+                    [0, 0, 1, 0],
+                    [0, 0, 0, 0]
+                ],
+                // Empty pattern 2
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0]
+                ],
+                // Single table center
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 1, 0, 0],
+                    [0, 0, 0, 0]
+                ]
             ]
         };
         
@@ -211,13 +255,17 @@ class ObstacleManager {
             cave: 'rock',
             lava: 'lava-rock',
             sand: 'cactus',
-            grave: 'tombstone'
+            grave: 'tombstone',
+            castle: 'castle', // Castle uses mixed obstacles
+            spire: 'forest' // Spire starts with forest obstacles
         };
     }
     
     initialize(stage) {
         this.stage = stage;
-        this.currentPatterns = this.patterns[stage] || this.patterns.forest;
+        // For spire, use forest patterns initially (will change with biomes)
+        const patternStage = stage === 'spire' ? 'forest' : stage;
+        this.currentPatterns = this.patterns[patternStage] || this.patterns.forest;
         this.obstacleType = this.obstacleTypes[stage] || 'tree';
         
         console.log(`ObstacleManager initialized for stage: ${stage}`);
@@ -338,7 +386,7 @@ class ObstacleManager {
         let scale;
         
         // Select texture based on stage
-        if (this.stage === 'forest') {
+        if (this.stage === 'forest' || this.stage === 'spire') {
             texture = 'tree';
             scale = 0.8;
         } else if (this.stage === 'cave') {
@@ -357,6 +405,30 @@ class ObstacleManager {
         } else if (this.stage === 'grave') {
             texture = 'tombstone';
             scale = 0.105; // Scaled down another 30% from 0.15
+        } else if (this.stage === 'castle') {
+            // Castle stage uses multiple obstacle types with weights (scaled up 200%)
+            const castleObstacles = [
+                { texture: 'castle-bookshelf', weight: 25, scale: 1.0 },
+                { texture: 'castle-crate', weight: 40, scale: 0.8 },
+                { texture: 'castle-table', weight: 20, scale: 0.9 },
+                { texture: 'castle-weapon-rack', weight: 15, scale: 1.0 }
+            ];
+            
+            // Calculate total weight
+            const totalWeight = castleObstacles.reduce((sum, obs) => sum + obs.weight, 0);
+            
+            // Choose random obstacle based on weights
+            const random = this.seededRandom(x, y, 1, 1) * totalWeight;
+            let cumulativeWeight = 0;
+            
+            for (const obs of castleObstacles) {
+                cumulativeWeight += obs.weight;
+                if (random < cumulativeWeight) {
+                    texture = obs.texture;
+                    scale = obs.scale;
+                    break;
+                }
+            }
         }
         
         // Check if texture exists
@@ -375,7 +447,7 @@ class ObstacleManager {
         }
         
         // Configure physics body based on stage
-        if (this.stage === 'forest') {
+        if (this.stage === 'forest' || this.stage === 'spire') {
             obstacle.body.setSize(30, 30);
             obstacle.body.setOffset(15, 45);
         } else if (this.stage === 'cave') {
@@ -393,6 +465,21 @@ class ObstacleManager {
             // Tombstone collision box (scaled down further)
             obstacle.body.setSize(7, 8);
             obstacle.body.setOffset(3, 6);
+        } else if (this.stage === 'castle') {
+            // Castle obstacle collision boxes (scaled up 200%)
+            if (texture === 'castle-bookshelf') {
+                obstacle.body.setSize(60, 50);
+                obstacle.body.setOffset(30, 40);
+            } else if (texture === 'castle-crate') {
+                obstacle.body.setSize(50, 50);
+                obstacle.body.setOffset(24, 24);
+            } else if (texture === 'castle-table') {
+                obstacle.body.setSize(70, 40);
+                obstacle.body.setOffset(34, 30);
+            } else if (texture === 'castle-weapon-rack') {
+                obstacle.body.setSize(60, 50);
+                obstacle.body.setOffset(30, 40);
+            }
         }
         
         // Refresh the physics body after scaling

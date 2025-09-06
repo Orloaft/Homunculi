@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spell System Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #222;
+            color: #fff;
+            font-family: monospace;
+        }
+        #output {
+            white-space: pre;
+            background: #111;
+            padding: 10px;
+            border: 1px solid #444;
+            margin: 20px 0;
+            min-height: 400px;
+        }
+        button {
+            margin: 5px;
+            padding: 10px;
+            background: #444;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>Spell System Test</h1>
+    <div>
+        <button onclick="testSpellRegistry()">Test Spell Registry</button>
+        <button onclick="testElementConfig()">Test Element Config</button>
+        <button onclick="testFusionDetection()">Test Fusion Detection</button>
+        <button onclick="testProjectileProps()">Test Projectile Properties</button>
+        <button onclick="testAllSpells()">Test All Registered Spells</button>
+    </div>
+    <div id="output"></div>
+
+    <script type="module">
+        import { spellRegistry } from './src/systems/SpellRegistry.js';
+        
+        window.spellRegistry = spellRegistry;
+        
+        window.log = function(msg) {
+            const output = document.getElementById('output');
+            output.textContent += msg + '\n';
+        }
+        
+        window.clearLog = function() {
+            document.getElementById('output').textContent = '';
+        }
+        
+        window.testSpellRegistry = function() {
+            clearLog();
+            log('=== Testing Spell Registry ===\n');
+            
+            // Test getting registered spells
+            const spells = [
+                'water-water-lightning',
+                'fire-lightning-fire', 
+                'water-lightning-water',
+                'lightning-water-earth',
+                'fire-fire-fire' // Not registered
+            ];
+            
+            spells.forEach(combo => {
+                const spell = spellRegistry.getSpell(combo);
+                if (spell) {
+                    log(`✓ ${combo}: ${spell.name}`);
+                    log(`  Handler: ${spell.handler}`);
+                    log(`  Description: ${spell.description}`);
+                } else {
+                    log(`✗ ${combo}: Not a special spell`);
+                }
+                log('');
+            });
+        }
+        
+        window.testElementConfig = function() {
+            clearLog();
+            log('=== Testing Element Configurations ===\n');
+            
+            const elements = ['fire', 'lightning', 'water', 'earth', 'arcane', 'ice'];
+            
+            elements.forEach(element => {
+                const config = spellRegistry.getElementConfig(element);
+                log(`${element.toUpperCase()}:`);
+                log(`  Animation: ${config.animation}`);
+                log(`  Sprite: ${config.sprite}`);
+                log(`  Color: 0x${config.color.toString(16)}`);
+                log(`  Scale: ${config.scale}`);
+                log(`  Damage: ${config.damage}`);
+                log(`  Speed: ${config.speed}`);
+                if (config.effect) {
+                    log(`  Special Effect: ${config.effect}`);
+                }
+                log('');
+            });
+        }
+        
+        window.testFusionDetection = function() {
+            clearLog();
+            log('=== Testing Fusion Detection ===\n');
+            
+            const tests = [
+                ['fire', 'earth'],      // Should be lava
+                ['water', 'fire'],       // Should be steam
+                ['water', 'earth'],      // Should be mud
+                ['earth', 'air'],        // Should be dust
+                ['water', 'air'],        // Should be ice
+                ['lightning', 'air'],    // Should be storm
+                ['fire', 'air'],         // Should be smoke
+                ['fire', 'water', 'earth'], // No fusion
+                ['fire', 'fire']        // No fusion (same element)
+            ];
+            
+            tests.forEach(elements => {
+                const fusion = spellRegistry.checkFusion(elements);
+                if (fusion) {
+                    const config = spellRegistry.getFusionConfig(fusion);
+                    log(`✓ [${elements.join(' + ')}] = ${fusion.toUpperCase()}`);
+                    log(`  ${config.description}`);
+                } else {
+                    log(`✗ [${elements.join(' + ')}] = No fusion`);
+                }
+                log('');
+            });
+        }
+        
+        window.testProjectileProps = function() {
+            clearLog();
+            log('=== Testing Projectile Property Calculation ===\n');
+            
+            const tests = [
+                ['fire'],                    // Single fire
+                ['fire', 'fire'],            // Double fire (pure)
+                ['fire', 'fire', 'fire'],    // Triple fire (pure)
+                ['fire', 'lightning'],       // Mixed
+                ['water', 'water', 'lightning'], // Special spell combo
+                ['fire', 'earth'],          // Fusion (lava)
+                ['water', 'air']            // Fusion (ice)
+            ];
+            
+            tests.forEach(charges => {
+                log(`Charges: [${charges.join(', ')}]`);
+                const props = spellRegistry.calculateProjectileProperties(charges);
+                
+                if (props.isFusion) {
+                    log(`  Type: FUSION - ${props.fusionType}`);
+                } else {
+                    log(`  Element: ${props.element}${props.isPure ? ' (PURE)' : ''}`);
+                }
+                
+                log(`  Damage: ${props.damage}`);
+                log(`  Speed: ${props.speed}`);
+                log(`  Scale: ${props.scale}`);
+                log(`  Animation: ${props.animation}`);
+                
+                if (props.effect) {
+                    log(`  Effect: ${props.effect}`);
+                }
+                
+                log('');
+            });
+        }
+        
+        window.testAllSpells = function() {
+            clearLog();
+            log('=== All Registered Spells ===\n');
+            
+            log('SPECIAL COMBINATION SPELLS:');
+            log('---------------------------');
+            Object.entries(spellRegistry.spells).forEach(([combo, spell]) => {
+                log(`${spell.name}:`);
+                log(`  Combo: ${combo}`);
+                log(`  Handler: ${spell.handler}`);
+                log(`  ${spell.description}`);
+                log('');
+            });
+            
+            log('\nFUSION ELEMENTS:');
+            log('----------------');
+            Object.entries(spellRegistry.fusionConfig).forEach(([name, config]) => {
+                log(`${name.toUpperCase()}:`);
+                log(`  Recipe: ${config.elements.join(' + ')}`);
+                log(`  ${config.description}`);
+                log(`  Damage: ${config.damage}x`);
+                log(`  Speed: ${config.speed}`);
+                if (config.effect) {
+                    log(`  Effect: ${config.effect}`);
+                }
+                log('');
+            });
+        }
+        
+        // Run initial test
+        testSpellRegistry();
+    </script>
+</body>
+</html>

@@ -1,7 +1,15 @@
+import { CHARACTER_CONFIG } from '../data/CharacterConfig.js';
+import { characterManager } from '../systems/CharacterManager.js';
+
 export default class StageSelectScene extends Phaser.Scene {
     constructor() {
         super({ key: 'StageSelectScene' });
         this.selectedStage = 0;
+        this.characterSelectionMode = true;
+        this.currentPlayer = 'p1';
+        this.selectedCard = null;
+        this.tarotCards = [];
+        this.p2Joined = false;
         this.stages = [
             { 
                 name: 'Forestland', 
@@ -46,7 +54,7 @@ export default class StageSelectScene extends Phaser.Scene {
             { 
                 name: 'Castleland', 
                 planetKey: 'planet-castle',
-                unlocked: false, 
+                unlocked: true, // Unlocked for testing
                 description: 'An ancient fortress of evil',
                 scale: 0.95,
                 rotation: -0.0011
@@ -71,19 +79,330 @@ export default class StageSelectScene extends Phaser.Scene {
         this.planetContainers = [];
     }
 
-    init() {
+    init(data) {
+        console.log('StageSelectScene init called with data:', data);
+        
         // Ensure keyboard input is enabled when entering this scene
         this.input.keyboard.enabled = true;
         this.selectedStage = 0; // Reset to first stage
+        
+        // Force character selection mode when coming from title or when P2 joins
+        const fromTitle = data?.fromTitle || !data?.fromCharacterSelect;
+        this.characterSelectionMode = fromTitle || data?.showCharacterSelect;
+        
+        this.currentPlayer = data?.currentPlayer || 'p1';
+        this.selectedCard = null;
+        this.p2Joined = data?.p2Joined || false;
+        
+        console.log('Character selection mode:', this.characterSelectionMode);
+        console.log('Current player:', this.currentPlayer);
+        
+        // Reset character manager if starting fresh
+        if (!this.p2Joined && this.currentPlayer === 'p1') {
+            characterManager.reset();
+        }
     }
 
     create() {
+        console.log('StageSelectScene create called, characterSelectionMode:', this.characterSelectionMode);
+        
         // Set background color to dark space-like color
         this.cameras.main.setBackgroundColor('#0a0a1a');
         
         // Add some stars in the background
         this.createStarfield();
+        
+        // Create UI containers
+        this.characterSelectionContainer = this.add.container(0, 0);
+        this.stageSelectionContainer = this.add.container(0, 0);
+        
+        // Setup keyboard controls
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+        this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+        
+        // Play stage select music
+        if (!this.sound.get('stageselect-bgm')) {
+            this.bgm = this.sound.add('stageselect-bgm', { loop: true, volume: 0.5 });
+            this.bgm.play();
+        }
+        
+        // Start with character selection
+        if (this.characterSelectionMode) {
+            console.log('Showing character selection');
+            try {
+                this.createCharacterSelection();
+                this.stageSelectionContainer.setVisible(false);
+            } catch (error) {
+                console.error('Error creating character selection:', error);
+                // Fallback to stage selection if character selection fails
+                this.characterSelectionMode = false;
+                this.characterSelectionContainer.setVisible(false);
+                this.createStageSelection();
+            }
+        } else {
+            console.log('Showing stage selection');
+            this.characterSelectionContainer.setVisible(false);
+            this.createStageSelection();
+        }
+    }
+    
+    createCharacterSelection() {
+        console.log('Creating character selection for', this.currentPlayer);
+        
+        // Title
+        const title = this.currentPlayer === 'p1' ? 
+            'PLAYER 1 - SELECT YOUR HOMUNCULUS' : 
+            'PLAYER 2 - SELECT YOUR HOMUNCULUS';
+            
+        const titleText = this.add.text(400, 80, title, {
+            fontSize: '32px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            stroke: '#4444ff',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+        titleText.setShadow(0, 0, '#6666ff', 8, true, true);
+        this.characterSelectionContainer.add(titleText);
+        
+        // Get available characters for current player
+        const availableChars = this.currentPlayer === 'p1' ? 
+            characterManager.getAvailableCharacters() :
+            characterManager.getAvailableForPlayer('p2');
+        
+        console.log('Available characters:', availableChars);
+        
+        // Create tarot cards
+        this.tarotCards = [];
+        const cardWidth = 150;
+        const cardHeight = 200;
+        const spacing = 50;
+        const startX = 400 - ((availableChars.length - 1) * (cardWidth + spacing)) / 2;
+        const cardY = 280;
+        
+        availableChars.forEach((charKey, index) => {
+            const x = startX + index * (cardWidth + spacing);
+            const config = CHARACTER_CONFIG[charKey];
+            
+            if (!config) {
+                console.error(`Missing config for character: ${charKey}`);
+                return;
+            }
+            
+            console.log(`Creating card for ${charKey}:`, config.tarot);
+            
+            // Card container
+            const cardContainer = this.add.container(x, cardY);
+            
+            try {
+                // Card back (default visible)
+                const cardBack = this.add.image(0, 0, config.tarot.back);
+                cardBack.setScale(0.8);
+            
+            // Card front (hidden by default)
+            const cardFront = this.add.image(0, 0, config.tarot.front);
+            cardFront.setScale(0.8);
+            cardFront.setVisible(false);
+            
+            // Character name (shown when flipped)
+            const nameText = this.add.text(0, 120, config.displayName, {
+                fontSize: '16px',
+                color: '#ffffff',
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+            nameText.setVisible(false);
+            
+            // Description (shown when flipped)
+            const descText = this.add.text(0, 145, config.description, {
+                fontSize: '12px',
+                color: '#aaaaaa',
+                align: 'center',
+                wordWrap: { width: 140 }
+            }).setOrigin(0.5);
+            descText.setVisible(false);
+            
+            cardContainer.add([cardBack, cardFront, nameText, descText]);
+            
+            // Make interactive
+            cardBack.setInteractive({ useHandCursor: true });
+            cardFront.setInteractive({ useHandCursor: true });
+            
+            // Add floating animation
+            this.tweens.add({
+                targets: cardContainer,
+                y: cardY - 10,
+                duration: 2000 + index * 200,
+                ease: 'Sine.easeInOut',
+                yoyo: true,
+                repeat: -1
+            });
+            
+            // Card click handler
+            const handleCardClick = () => {
+                this.selectCard(index);
+            };
+            
+            cardBack.on('pointerdown', handleCardClick);
+            cardFront.on('pointerdown', handleCardClick);
+            
+            // Hover effects
+            cardBack.on('pointerover', () => {
+                cardContainer.setScale(1.05);
+            });
+            cardBack.on('pointerout', () => {
+                if (this.selectedCard !== index) {
+                    cardContainer.setScale(1);
+                }
+            });
+            cardFront.on('pointerover', () => {
+                cardContainer.setScale(1.05);
+            });
+            cardFront.on('pointerout', () => {
+                if (this.selectedCard !== index) {
+                    cardContainer.setScale(1);
+                }
+            });
+            
+            this.characterSelectionContainer.add(cardContainer);
+            this.tarotCards.push({
+                container: cardContainer,
+                cardBack,
+                cardFront,
+                nameText,
+                descText,
+                charKey,
+                index
+            });
+            } catch (error) {
+                console.error(`Error creating card for ${charKey}:`, error);
+                // Create a fallback text card if images fail
+                const fallbackCard = this.add.text(0, 0, charKey.toUpperCase(), {
+                    fontSize: '24px',
+                    color: '#ffffff',
+                    backgroundColor: '#333333',
+                    padding: { x: 20, y: 40 }
+                }).setOrigin(0.5);
+                cardContainer.add(fallbackCard);
+                this.characterSelectionContainer.add(cardContainer);
+            }
+        });
+        
+        // Select button (hidden by default)
+        this.selectButton = this.add.text(400, 450, 'SELECT HOMUNCULUS', {
+            fontSize: '24px',
+            color: '#ffffff',
+            backgroundColor: '#444488',
+            padding: { x: 20, y: 10 }
+        }).setOrigin(0.5);
+        this.selectButton.setVisible(false);
+        this.selectButton.setInteractive({ useHandCursor: true });
+        
+        this.selectButton.on('pointerover', () => {
+            this.selectButton.setBackgroundColor('#6666aa');
+        });
+        
+        this.selectButton.on('pointerout', () => {
+            this.selectButton.setBackgroundColor('#444488');
+        });
+        
+        this.selectButton.on('pointerdown', () => {
+            this.confirmCharacterSelection();
+        });
+        
+        this.characterSelectionContainer.add(this.selectButton);
+        
+        // Instructions
+        const instructText = this.add.text(400, 520, 'Click a card to reveal your homunculus', {
+            fontSize: '14px',
+            color: '#aaaaaa',
+            fontStyle: 'italic'
+        }).setOrigin(0.5);
+        this.characterSelectionContainer.add(instructText);
+        
+        // Back button
+        const backButton = this.add.text(50, 550, '< BACK', {
+            fontSize: '24px',
+            color: '#ffffff'
+        }).setOrigin(0, 0.5);
+        backButton.setInteractive({ useHandCursor: true });
+        
+        backButton.on('pointerover', () => {
+            backButton.setColor('#ffd700');
+        });
 
+        backButton.on('pointerout', () => {
+            backButton.setColor('#ffffff');
+        });
+
+        backButton.on('pointerdown', () => {
+            this.scene.start('TitleScene');
+        });
+        
+        this.characterSelectionContainer.add(backButton);
+    }
+    
+    selectCard(index) {
+        // Flip the selected card face up
+        const card = this.tarotCards[index];
+        
+        // If clicking the same card that's already selected, do nothing
+        if (this.selectedCard === index && card.cardFront.visible) {
+            return;
+        }
+        
+        // Flip all other cards face down
+        this.tarotCards.forEach((c, i) => {
+            if (i !== index) {
+                c.cardBack.setVisible(true);
+                c.cardFront.setVisible(false);
+                c.nameText.setVisible(false);
+                c.descText.setVisible(false);
+                c.container.setScale(1);
+            }
+        });
+        
+        // Flip selected card face up
+        card.cardBack.setVisible(false);
+        card.cardFront.setVisible(true);
+        card.nameText.setVisible(true);
+        card.descText.setVisible(true);
+        card.container.setScale(1.05);
+        
+        // Show select button
+        this.selectButton.setVisible(true);
+        
+        // Store selection
+        this.selectedCard = index;
+    }
+    
+    confirmCharacterSelection() {
+        if (this.selectedCard === null) return;
+        
+        const selectedChar = this.tarotCards[this.selectedCard].charKey;
+        console.log(`${this.currentPlayer} selected character:`, selectedChar);
+        characterManager.selectCharacter(this.currentPlayer, selectedChar);
+        
+        // Check if P2 needs to select
+        if (this.currentPlayer === 'p1' && this.p2Joined) {
+            console.log('Moving to P2 character selection');
+            // Move to P2 selection
+            this.currentPlayer = 'p2';
+            this.selectedCard = null;
+            this.characterSelectionContainer.removeAll(true);
+            this.createCharacterSelection();
+        } else {
+            console.log('Moving to stage selection');
+            // Move to stage selection
+            this.characterSelectionMode = false;
+            this.characterSelectionContainer.setVisible(false);
+            this.stageSelectionContainer.removeAll(true);
+            this.stageSelectionContainer.setVisible(true);
+            this.createStageSelection();
+        }
+    }
+    
+    createStageSelection() {
         // Title with glow effect
         const titleText = this.add.text(400, 50, 'SELECT WORLD', {
             fontSize: '48px',
@@ -95,6 +414,7 @@ export default class StageSelectScene extends Phaser.Scene {
         
         // Add glow effect to title
         titleText.setShadow(0, 0, '#6666ff', 10, true, true);
+        this.stageSelectionContainer.add(titleText);
 
         // Create planet layout in a circular/scattered pattern
         const centerX = 400;
@@ -227,6 +547,7 @@ export default class StageSelectScene extends Phaser.Scene {
                 index 
             });
             this.planetContainers.push(container);
+            this.stageSelectionContainer.add(container);
         });
 
         // Back button
@@ -245,23 +566,20 @@ export default class StageSelectScene extends Phaser.Scene {
         });
 
         backButton.on('pointerdown', () => {
-            this.scene.start('TitleScene');
+            // Go back to character selection
+            this.characterSelectionMode = true;
+            this.currentPlayer = 'p1';
+            this.selectedCard = null;
+            characterManager.reset();
+            this.stageSelectionContainer.setVisible(false);
+            this.characterSelectionContainer.removeAll(true);
+            this.createCharacterSelection();
+            this.characterSelectionContainer.setVisible(true);
         });
-
-        // Keyboard/gamepad controls
-        this.cursors = this.input.keyboard.createCursorKeys();
-        this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-        this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
-        this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+        this.stageSelectionContainer.add(backButton);
 
         // Highlight first unlocked stage
         this.highlightStage(0);
-        
-        // Play stage select music
-        if (!this.sound.get('stageselect-bgm')) {
-            this.bgm = this.sound.add('stageselect-bgm', { loop: true, volume: 0.5 });
-            this.bgm.play();
-        }
         
         // Add instruction text
         const instructionText = this.add.text(400, 560, 'Use Arrow Keys or Click to Select', {
@@ -269,11 +587,84 @@ export default class StageSelectScene extends Phaser.Scene {
             color: '#aaaaaa',
             fontStyle: 'italic'
         }).setOrigin(0.5);
+        this.stageSelectionContainer.add(instructionText);
+        
+        // Add P2 join button if not joined
+        if (!this.p2Joined) {
+            const p2JoinButton = this.add.text(700, 560, 'P2 JOIN', {
+                fontSize: '16px',
+                color: '#ffff00',
+                backgroundColor: '#444444',
+                padding: { x: 10, y: 5 }
+            }).setOrigin(0.5);
+            p2JoinButton.setInteractive({ useHandCursor: true });
+            
+            p2JoinButton.on('pointerover', () => {
+                p2JoinButton.setBackgroundColor('#666666');
+            });
+            
+            p2JoinButton.on('pointerout', () => {
+                p2JoinButton.setBackgroundColor('#444444');
+            });
+            
+            p2JoinButton.on('pointerdown', () => {
+                console.log('P2 joining...');
+                this.p2Joined = true;
+                p2JoinButton.destroy();
+                
+                // Go back to character selection for P2
+                this.currentPlayer = 'p2';
+                this.selectedCard = null;
+                this.characterSelectionMode = true;
+                
+                // Hide stage selection and show character selection
+                this.stageSelectionContainer.setVisible(false);
+                this.characterSelectionContainer.removeAll(true);
+                
+                try {
+                    this.createCharacterSelection();
+                    this.characterSelectionContainer.setVisible(true);
+                } catch (error) {
+                    console.error('Error creating P2 character selection:', error);
+                    // If error, go back to stage selection
+                    this.characterSelectionMode = false;
+                    this.stageSelectionContainer.setVisible(true);
+                }
+            });
+            
+            this.stageSelectionContainer.add(p2JoinButton);
+        }
+    }
+
+    createStarfield() {
+        // Create a starfield background
+        for (let i = 0; i < 100; i++) {
+            const x = Phaser.Math.Between(0, 800);
+            const y = Phaser.Math.Between(0, 600);
+            const size = Phaser.Math.Between(1, 3);
+            const star = this.add.circle(x, y, size, 0xffffff, Phaser.Math.FloatBetween(0.3, 0.8));
+            
+            // Add twinkling effect
+            this.tweens.add({
+                targets: star,
+                alpha: Phaser.Math.FloatBetween(0.1, 0.3),
+                duration: Phaser.Math.Between(2000, 5000),
+                ease: 'Sine.easeInOut',
+                yoyo: true,
+                repeat: -1,
+                delay: Phaser.Math.Between(0, 5000)
+            });
+        }
     }
 
     update() {
         // Skip all input if keyboard is disabled (e.g., when showing stage detail)
         if (!this.input.keyboard.enabled) {
+            return;
+        }
+        
+        // Skip input in character selection mode (handled by UI)
+        if (this.characterSelectionMode) {
             return;
         }
         
@@ -298,48 +689,53 @@ export default class StageSelectScene extends Phaser.Scene {
         // Custom navigation for scattered planet layout
         // Define navigation connections between planets
         const navigationMap = {
-            0: { right: 6, down: 2 },         // Forest -> Spire (right), Desert (down)
-            1: { left: 6, down: 3 },          // Cave -> Spire (left), Lava (down)
-            2: { up: 0, right: 4, down: 7 },  // Desert -> Forest (up), Grave (right), Snow (down)
-            3: { up: 1, left: 5, down: 7 },   // Lava -> Cave (up), Castle (left), Snow (down)
-            4: { left: 2, right: 7, up: 6 },  // Grave -> Desert (left), Snow (right), Spire (up)
-            5: { right: 3, left: 7, up: 6 },  // Castle -> Lava (right), Snow (left), Spire (up)
-            6: { left: 0, right: 1, down: 7 }, // Spire -> Forest (left), Cave (right), Snow (down)
-            7: { up: 2, left: 4, right: 5 }   // Snow -> Desert (up), Grave (left), Castle (right)
+            0: { left: 4, right: 1, up: 6, down: 2 },  // Forest
+            1: { left: 0, right: 5, up: 6, down: 3 },  // Cave
+            2: { left: 4, right: 3, up: 0, down: 4 },  // Desert
+            3: { left: 2, right: 5, up: 1, down: 5 },  // Lava
+            4: { left: 2, right: 5, up: 0, down: 7 },  // Grave
+            5: { left: 4, right: 3, up: 1, down: 7 },  // Castle
+            6: { left: 0, right: 1, up: 7, down: 0 },  // Spire
+            7: { left: 4, right: 5, up: 6, down: 7 }   // Snow
         };
         
         const currentNav = navigationMap[this.selectedStage];
-        let nextStage = this.selectedStage;
         
+        // Navigate between stages
         if (leftJustPressed && currentNav.left !== undefined) {
-            nextStage = currentNav.left;
-        } else if (rightJustPressed && currentNav.right !== undefined) {
-            nextStage = currentNav.right;
-        } else if (upJustPressed && currentNav.up !== undefined) {
-            nextStage = currentNav.up;
-        } else if (downJustPressed && currentNav.down !== undefined) {
-            nextStage = currentNav.down;
+            this.highlightStage(currentNav.left);
         }
         
-        // Only highlight if we're moving to an unlocked stage or adjacent to current
-        if (nextStage !== this.selectedStage) {
-            this.highlightStage(nextStage);
+        if (rightJustPressed && currentNav.right !== undefined) {
+            this.highlightStage(currentNav.right);
         }
-
+        
+        if (upJustPressed && currentNav.up !== undefined) {
+            this.highlightStage(currentNav.up);
+        }
+        
+        if (downJustPressed && currentNav.down !== undefined) {
+            this.highlightStage(currentNav.down);
+        }
+        
         // Select stage
         if (confirmJustPressed && this.stages[this.selectedStage].unlocked) {
             this.selectStage(this.selectedStage);
         }
-
+        
         // Go back
         if (backJustPressed) {
-            // Stop music before going back
-            if (this.bgm) {
-                this.bgm.stop();
-            }
-            this.scene.start('TitleScene');
+            // Go back to character selection
+            this.characterSelectionMode = true;
+            this.currentPlayer = 'p1';
+            this.selectedCard = null;
+            characterManager.reset();
+            this.stageSelectionContainer.setVisible(false);
+            this.characterSelectionContainer.removeAll(true);
+            this.createCharacterSelection();
+            this.characterSelectionContainer.setVisible(true);
         }
-
+        
         // Store button states
         this.leftPressed = pad && pad.leftStick.x < -0.5;
         this.rightPressed = pad && pad.rightStick.x > 0.5;
@@ -347,28 +743,6 @@ export default class StageSelectScene extends Phaser.Scene {
         this.downPressed = pad && pad.leftStick.y > 0.5;
         this.confirmPressed = pad && pad.buttons[0].pressed;
         this.backPressed = pad && pad.buttons[1].pressed;
-    }
-
-    createStarfield() {
-        // Create a starfield background
-        for (let i = 0; i < 100; i++) {
-            const x = Phaser.Math.Between(0, 800);
-            const y = Phaser.Math.Between(0, 600);
-            const star = this.add.circle(x, y, Phaser.Math.Between(1, 2), 0xffffff);
-            star.setAlpha(Phaser.Math.FloatBetween(0.3, 0.8));
-            
-            // Add twinkling effect to some stars
-            if (Math.random() > 0.7) {
-                this.tweens.add({
-                    targets: star,
-                    alpha: 0.3,
-                    duration: Phaser.Math.Between(1000, 3000),
-                    ease: 'Sine.easeInOut',
-                    yoyo: true,
-                    repeat: -1
-                });
-            }
-        }
     }
     
     highlightStage(index) {
@@ -475,8 +849,10 @@ export default class StageSelectScene extends Phaser.Scene {
             return;
         }
         
-        if (index === 0 || index === 1) {
+        // Allow castle stage (index 5) for testing
+        if (index === 0 || index === 1 || index === 5) {
             // Show stage detail view with co-op option
+            console.log('Selected stage:', stageMappings[index], 'at index:', index);
             this.showStageDetail(stageMappings[index], this.stages[index]);
         } else {
             // Show coming soon message for other stages
@@ -515,349 +891,131 @@ export default class StageSelectScene extends Phaser.Scene {
         title.setOrigin(0.5);
         
         // Stage description
-        const description = this.add.text(400, 150, stageInfo.description, {
+        const description = this.add.text(400, 160, stageInfo.description, {
             fontSize: '20px',
             color: '#cccccc'
         });
         description.setOrigin(0.5);
         
-        // Co-op toggle button
-        const coopButton = this.add.text(400, 240, '[ ] ENABLE CO-OP', {
-            fontSize: '24px',
-            color: '#888888',
-            backgroundColor: '#333333',
-            padding: { x: 15, y: 8 }
-        });
-        coopButton.setOrigin(0.5);
-        coopButton.setInteractive({ useHandCursor: true });
-        
-        // Co-op state
-        this.coopEnabled = false;
-        this.coopPlayers = [{
-            playerIndex: 0,
-            inputType: 'keyboard',
-            paletteIndex: 0
-        }];
-        this.playerSlots = [];
-        
-        // Co-op area (initially hidden)
-        const coopContainer = this.add.container(400, 340);
-        coopContainer.setVisible(false);
-        
-        const coopBg = this.add.rectangle(0, 0, 600, 120, 0x222222, 1);
-        coopBg.setStrokeStyle(2, 0x444444);
-        
-        // Player slots container
-        const slotsContainer = this.add.container(0, 0);
-        
-        // Instructions
-        const instructions = this.add.text(0, 45, 'Press button on controller to join', {
-            fontSize: '16px',
-            color: '#888888'
-        });
-        instructions.setOrigin(0.5);
-        
-        coopContainer.add([coopBg, slotsContainer, instructions]);
-        
-        // Co-op toggle functionality
-        coopButton.on('pointerdown', () => {
-            this.coopEnabled = !this.coopEnabled;
-            
-            if (this.coopEnabled) {
-                coopButton.setText('[X] ENABLE CO-OP');
-                coopButton.setColor('#00ff00');
-                coopContainer.setVisible(true);
-                
-                // Create player slots
-                if (this.playerSlots.length === 0) {
-                    // Player 1 (keyboard) - always present
-                    const p1Slot = this.createPlayerSlot(0, -150, 0, 'keyboard', true);
-                    p1Slot.container.setScale(0.8);
-                    slotsContainer.add(p1Slot.container);
-                    this.playerSlots.push(p1Slot);
-                    
-                    // Player 2-4 slots (gamepads)
-                    for (let i = 1; i < 4; i++) {
-                        const slot = this.createPlayerSlot(i, -150 + (i * 100), 0, 'gamepad', false);
-                        slot.container.setScale(0.8);
-                        slotsContainer.add(slot.container);
-                        this.playerSlots.push(slot);
-                    }
-                }
-                
-                // Start gamepad detection
-                this.setupCoopJoining();
-            } else {
-                coopButton.setText('[ ] ENABLE CO-OP');
-                coopButton.setColor('#888888');
-                coopContainer.setVisible(false);
-                
-                // Stop gamepad detection
-                if (this.coopCheckTimer) {
-                    this.coopCheckTimer.remove();
-                    this.coopCheckTimer = null;
-                }
-                
-                // Reset to single player
-                this.coopPlayers = [{
-                    playerIndex: 0,
-                    inputType: 'keyboard',
-                    paletteIndex: 0
-                }];
-                
-                // Reset slots
-                for (let i = 1; i < this.playerSlots.length; i++) {
-                    const slot = this.playerSlots[i];
-                    slot.joined = false;
-                    slot.bg.setFillStyle(0x222222);
-                    slot.bg.setStrokeStyle(2, 0x444444);
-                    slot.number.setColor('#666666');
-                    slot.inputText.setText('--');
-                    slot.inputText.setColor('#666666');
-                    slot.palette.setVisible(false);
-                }
-            }
-        });
-        
-        coopButton.on('pointerover', () => {
-            coopButton.setScale(1.05);
-        });
-        
-        coopButton.on('pointerout', () => {
-            coopButton.setScale(1);
-        });
-        
-        // Start button
-        const startButton = this.add.text(400, 450, 'START GAME', {
+        // Single Player button
+        const singlePlayerBtn = this.add.text(300, 300, 'SOLO', {
             fontSize: '32px',
             color: '#ffffff',
-            backgroundColor: '#444444',
-            padding: { x: 20, y: 10 }
+            backgroundColor: '#333366',
+            padding: { x: 30, y: 15 }
         });
-        startButton.setOrigin(0.5);
-        startButton.setInteractive({ useHandCursor: true });
+        singlePlayerBtn.setOrigin(0.5);
+        singlePlayerBtn.setInteractive({ useHandCursor: true });
         
-        startButton.on('pointerdown', () => {
-            this.startWithCoopSettings(stageKey);
-        });
-        
-        startButton.on('pointerover', () => {
-            startButton.setBackgroundColor('#666666');
+        singlePlayerBtn.on('pointerover', () => {
+            singlePlayerBtn.setBackgroundColor('#4444aa');
+            singlePlayerBtn.setScale(1.1);
         });
         
-        startButton.on('pointerout', () => {
-            startButton.setBackgroundColor('#444444');
+        singlePlayerBtn.on('pointerout', () => {
+            singlePlayerBtn.setBackgroundColor('#333366');
+            singlePlayerBtn.setScale(1);
+        });
+        
+        singlePlayerBtn.on('pointerdown', () => {
+            // Stop music
+            if (this.bgm) {
+                this.bgm.stop();
+            }
+            
+            // Start game with selected characters
+            this.scene.start('GameScene', {
+                stage: stageKey,
+                p1Character: characterManager.getSelectedCharacter('p1') || 'wizard',
+                p2Character: characterManager.getSelectedCharacter('p2'),
+                coopMode: false,
+                p2Joined: false
+            });
+        });
+        
+        // Co-op button
+        const coopBtn = this.add.text(500, 300, 'CO-OP', {
+            fontSize: '32px',
+            color: '#ffffff',
+            backgroundColor: '#663333',
+            padding: { x: 30, y: 15 }
+        });
+        coopBtn.setOrigin(0.5);
+        coopBtn.setInteractive({ useHandCursor: true });
+        
+        coopBtn.on('pointerover', () => {
+            coopBtn.setBackgroundColor('#aa4444');
+            coopBtn.setScale(1.1);
+        });
+        
+        coopBtn.on('pointerout', () => {
+            coopBtn.setBackgroundColor('#663333');
+            coopBtn.setScale(1);
+        });
+        
+        coopBtn.on('pointerdown', () => {
+            // Check if P2 has selected a character
+            if (!this.p2Joined || !characterManager.getSelectedCharacter('p2')) {
+                // Need P2 to join first
+                const warningText = this.add.text(400, 400, 'Player 2 must join and select a character first!', {
+                    fontSize: '20px',
+                    color: '#ffff00'
+                }).setOrigin(0.5);
+                
+                this.tweens.add({
+                    targets: warningText,
+                    alpha: 0,
+                    duration: 2000,
+                    ease: 'Power2',
+                    onComplete: () => warningText.destroy()
+                });
+                return;
+            }
+            
+            // Stop music
+            if (this.bgm) {
+                this.bgm.stop();
+            }
+            
+            // Start game with co-op
+            this.scene.start('GameScene', {
+                stage: stageKey,
+                p1Character: characterManager.getSelectedCharacter('p1') || 'wizard',
+                p2Character: characterManager.getSelectedCharacter('p2'),
+                coopMode: true,
+                p2Joined: true
+            });
         });
         
         // Cancel button
-        const cancelButton = this.add.text(400, 520, 'CANCEL', {
-            fontSize: '20px',
-            color: '#ff4444'
+        const cancelBtn = this.add.text(400, 400, 'CANCEL', {
+            fontSize: '24px',
+            color: '#ffffff'
         });
-        cancelButton.setOrigin(0.5);
-        cancelButton.setInteractive({ useHandCursor: true });
+        cancelBtn.setOrigin(0.5);
+        cancelBtn.setInteractive({ useHandCursor: true });
         
-        cancelButton.on('pointerdown', () => {
-            this.closeStageDetail();
-        });
-        
-        // Store UI elements
-        this.detailUI = {
-            overlay, title, description, coopButton, coopContainer,
-            startButton, cancelButton,
-            slots: this.playerSlots
-        };
-        
-        // Keyboard controls
-        const spaceKey = this.input.keyboard.addKey('SPACE');
-        const escKey = this.input.keyboard.addKey('ESC');
-        
-        spaceKey.once('down', () => {
-            this.startWithCoopSettings(stageKey);
+        cancelBtn.on('pointerover', () => {
+            cancelBtn.setColor('#ff6666');
+            cancelBtn.setScale(1.1);
         });
         
-        escKey.once('down', () => {
-            this.closeStageDetail();
-        });
-    }
-    
-    createPlayerSlot(index, x, y, inputType, joined) {
-        const container = this.add.container(x, y);
-        
-        // Slot background
-        const bg = this.add.rectangle(0, 0, 80, 80, joined ? 0x444444 : 0x222222);
-        bg.setStrokeStyle(2, joined ? 0x00ff00 : 0x444444);
-        
-        // Player number
-        const number = this.add.text(0, -20, `P${index + 1}`, {
-            fontSize: '20px',
-            color: joined ? '#ffffff' : '#666666'
-        });
-        number.setOrigin(0.5);
-        
-        // Input type
-        const inputText = this.add.text(0, 0, inputType === 'keyboard' ? 'KB' : '--', {
-            fontSize: '16px',
-            color: joined ? '#00ff00' : '#666666'
-        });
-        inputText.setOrigin(0.5);
-        
-        // Palette indicator
-        const paletteColors = [0xffffff, 0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff];
-        const palette = this.add.circle(0, 25, 8, paletteColors[0]);
-        palette.setVisible(joined);
-        
-        container.add([bg, number, inputText, palette]);
-        
-        return {
-            container,
-            bg,
-            number,
-            inputText,
-            palette,
-            joined,
-            paletteIndex: 0,
-            inputType
-        };
-    }
-    
-    setupCoopJoining() {
-        // Only setup if co-op is enabled
-        if (!this.coopEnabled) return;
-        
-        // Check for gamepad button presses
-        this.coopCheckTimer = this.time.addEvent({
-            delay: 100,
-            callback: () => {
-                if (!this.coopEnabled) return;
-                
-                const pads = this.input.gamepad.gamepads;
-                
-                for (let i = 0; i < pads.length; i++) {
-                    const pad = pads[i];
-                    if (!pad) continue;
-                    
-                    // Check if any button is pressed
-                    for (let b = 0; b < pad.buttons.length; b++) {
-                        if (pad.buttons[b].pressed) {
-                            // Check if this gamepad is already assigned
-                            let alreadyAssigned = false;
-                            for (const player of this.coopPlayers) {
-                                if (player.inputType === 'gamepad' && player.gamepadIndex === i) {
-                                    alreadyAssigned = true;
-                                    break;
-                                }
-                            }
-                            
-                            if (!alreadyAssigned && this.coopPlayers.length < 4) {
-                                this.addCoopPlayer(i);
-                            }
-                        }
-                    }
-                }
-            },
-            loop: true
-        });
-    }
-    
-    addCoopPlayer(gamepadIndex) {
-        const playerIndex = this.coopPlayers.length;
-        const slot = this.playerSlots[playerIndex];
-        
-        if (!slot || slot.joined) return;
-        
-        // Update slot appearance
-        slot.joined = true;
-        slot.bg.setFillStyle(0x444444);
-        slot.bg.setStrokeStyle(2, 0x00ff00);
-        slot.number.setColor('#ffffff');
-        slot.inputText.setText(`GP${gamepadIndex + 1}`);
-        slot.inputText.setColor('#00ff00');
-        slot.palette.setVisible(true);
-        
-        // Add to players list
-        this.coopPlayers.push({
-            playerIndex,
-            inputType: 'gamepad',
-            gamepadIndex,
-            paletteIndex: playerIndex % 6
+        cancelBtn.on('pointerout', () => {
+            cancelBtn.setColor('#ffffff');
+            cancelBtn.setScale(1);
         });
         
-        // Update palette color
-        const paletteColors = [0xffffff, 0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff];
-        slot.palette.setFillStyle(paletteColors[playerIndex % 6]);
-        
-        // Flash effect
-        this.tweens.add({
-            targets: slot.container,
-            scaleX: 1.2,
-            scaleY: 1.2,
-            duration: 200,
-            yoyo: true,
-            ease: 'Power2'
+        cancelBtn.on('pointerdown', () => {
+            // Remove detail view
+            overlay.destroy();
+            title.destroy();
+            description.destroy();
+            singlePlayerBtn.destroy();
+            coopBtn.destroy();
+            cancelBtn.destroy();
+            
+            // Re-enable keyboard input
+            this.input.keyboard.enabled = true;
         });
-        
-        // Sound effect
-        this.sound.play('select', { volume: 0.5 });
-    }
-    
-    startWithCoopSettings(stageKey) {
-        // Stop co-op detection
-        if (this.coopCheckTimer) {
-            this.coopCheckTimer.remove();
-        }
-        
-        // Store co-op data
-        this.registry.set('coopData', {
-            enabled: this.coopEnabled && this.coopPlayers.length > 1,
-            players: this.coopPlayers
-        });
-        
-        // Stop music before transitioning
-        if (this.bgm) {
-            this.bgm.stop();
-        }
-        
-        // Start game
-        this.scene.start('LoadingScene', { 
-            nextScene: 'GameScene',
-            data: { stage: stageKey }
-        });
-    }
-    
-    closeStageDetail() {
-        // Stop co-op detection
-        if (this.coopCheckTimer) {
-            this.coopCheckTimer.remove();
-            this.coopCheckTimer = null;
-        }
-        
-        // Remove UI
-        if (this.detailUI) {
-            Object.values(this.detailUI).forEach(element => {
-                if (element && element.destroy) {
-                    element.destroy();
-                } else if (Array.isArray(element)) {
-                    element.forEach(e => {
-                        if (e && e.container && e.container.destroy) {
-                            e.container.destroy();
-                        }
-                    });
-                }
-            });
-            this.detailUI = null;
-        }
-        
-        // Reset co-op state
-        this.coopEnabled = false;
-        this.coopPlayers = [{
-            playerIndex: 0,
-            inputType: 'keyboard',
-            paletteIndex: 0
-        }];
-        this.playerSlots = [];
-        
-        // Re-enable input
-        this.input.keyboard.enabled = true;
     }
 }

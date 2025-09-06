@@ -8,6 +8,7 @@ import { WaveSystem } from '../systems/enemies/WaveSystem.js';
 import { ProjectileManager } from '../systems/combat/ProjectileManager.js';
 import { DamageSystem } from '../systems/combat/DamageSystem.js';
 import { UIManager } from '../systems/ui/UIManager.js';
+import { PlayerFactory } from '../entities/PlayerFactory.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -17,6 +18,10 @@ export default class GameScene extends Phaser.Scene {
     init(data) {
         this.debugMode = data?.debugMode || false;
         this.stage = data?.stage || 'forest'; // Default to forest stage
+        this.p1Character = data?.p1Character || 'wizard';
+        this.p2Character = data?.p2Character || null;
+        this.coopMode = data?.coopMode || false;
+        this.p2Joined = data?.p2Joined || false;
     }
 
     create() {
@@ -107,23 +112,25 @@ export default class GameScene extends Phaser.Scene {
     }
 
     createWizard() {
-        // Create wizard at center of world
+        // Create P1 character at center of world
         const centerX = GAME_CONFIG.worldWidth / 2;
         const centerY = GAME_CONFIG.worldHeight / 2;
-
-        this.wizard = this.physics.add.sprite(centerX, centerY, 'wizard-idle');
-        this.wizard.setDepth(50);
-
-        // Setup wizard animations
+        
+        // Create P1 player
+        this.wizard = PlayerFactory.createPlayer(this, centerX, centerY, this.p1Character, false);
+        
+        // Create P2 player if in co-op mode
+        if (this.coopMode && this.p2Joined && this.p2Character) {
+            const p2X = centerX + 100;
+            const p2Y = centerY;
+            this.wizard2 = PlayerFactory.createPlayer(this, p2X, p2Y, this.p2Character, true);
+            
+            // Initialize P2 controller
+            this.player2Controller = new PlayerController(this, this.wizard2);
+        }
+        
+        // Setup animations if they don't exist (for backwards compatibility)
         this.createWizardAnimations();
-
-        // Start with idle animation
-        this.wizard.play('wizard-idle-loop');
-
-        // Setup physics
-        this.wizard.setCollideWorldBounds(true);
-        this.wizard.body.setSize(30, 30);
-        this.wizard.body.setOffset(25, 35);
     }
 
     createWizardAnimations() {
@@ -219,43 +226,50 @@ export default class GameScene extends Phaser.Scene {
             }
         );
 
-        // Enemies vs Wizard
-        this.physics.add.overlap(
-            this.wizard,
-            this.enemyManager.enemies,
-            (wizard, enemy) => {
-                this.damageSystem.damagePlayer(enemy.damage || 1, enemy);
-            }
-        );
-
-        // Enemy projectiles vs Wizard
-        this.physics.add.overlap(
-            this.wizard,
-            this.enemyManager.enemyProjectiles,
-            (wizard, projectile) => {
-                this.damageSystem.damagePlayer(projectile.damage || 1, projectile);
-                projectile.destroy();
-            }
-        );
-
-        // Water orbs vs Wizard (healing)
-        this.physics.add.overlap(
-            this.wizard,
-            this.projectileManager.waterOrbs,
-            (wizard, orb) => {
-                const healed = this.playerStats.heal(orb.healAmount || 1);
-                if (healed > 0) {
-                    this.uiManager.showNotification(`+${healed} HP`, 1000);
-                    orb.destroy();
+        // Enemies vs Players
+        const players = [this.wizard];
+        if (this.wizard2) players.push(this.wizard2);
+        
+        players.forEach(player => {
+            this.physics.add.overlap(
+                player,
+                this.enemyManager.enemies,
+                (wizard, enemy) => {
+                    this.damageSystem.damagePlayer(enemy.damage || 1, enemy, player === this.wizard2);
                 }
-            }
-        );
+            );
+
+            // Enemy projectiles vs Players
+            this.physics.add.overlap(
+                player,
+                this.enemyManager.enemyProjectiles,
+                (wizard, projectile) => {
+                    this.damageSystem.damagePlayer(projectile.damage || 1, projectile, player === this.wizard2);
+                    projectile.destroy();
+                }
+            );
+            
+            // Water orbs vs Players (healing)
+            this.physics.add.overlap(
+                player,
+                this.projectileManager.waterOrbs,
+                (wizard, orb) => {
+                    const healed = this.playerStats.heal(orb.healAmount || 1);
+                    if (healed > 0) {
+                        this.uiManager.showNotification(`+${healed} HP`, 1000);
+                        orb.destroy();
+                    }
+                }
+            );
+        });
 
         // If in cave stage, add collisions with invisible barriers
         if (this.stage === 'cave' && this.barriers) {
             this.barriers.forEach(barrier => {
-                // Wizard collision with barriers
-                this.physics.add.collider(this.wizard, barrier);
+                // Player collisions with barriers
+                players.forEach(player => {
+                    this.physics.add.collider(player, barrier);
+                });
                 
                 // Enemy collision with barriers
                 this.physics.add.collider(this.enemyManager.enemies, barrier);
@@ -547,8 +561,20 @@ export default class GameScene extends Phaser.Scene {
         // Update input
         this.inputManager.update();
 
-        // Update player
+        // Update player movement and animations
+        const movement = this.inputManager.getMovement();
+        const isMoving = movement.x !== 0 || movement.y !== 0;
+        
+        // Update P1
         this.playerController.update(this.inputManager);
+        PlayerFactory.updatePlayerAnimation(this.wizard, isMoving, movement);
+        
+        // Update P2 if present
+        if (this.wizard2 && this.player2Controller) {
+            // For now, P2 uses same input (can be changed to different controller)
+            this.player2Controller.update(this.inputManager);
+            PlayerFactory.updatePlayerAnimation(this.wizard2, isMoving, movement);
+        }
 
         // Update systems
         this.enemyManager.update(time, delta);

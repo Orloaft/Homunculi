@@ -121,8 +121,13 @@ export default class TitleScene extends Phaser.Scene {
         this.cameras.main.fadeOut(500);
         
         this.cameras.main.once('camerafadeoutcomplete', () => {
-            // Go to stage select screen
-            this.scene.start('StageSelectScene', { debugMode: this.debugMode });
+            // Go to stage select screen with character selection
+            this.scene.start('StageSelectScene', { 
+                debugMode: this.debugMode,
+                fromTitle: true,
+                showCharacterSelect: true,
+                currentPlayer: 'p1'
+            });
         });
     }
 }

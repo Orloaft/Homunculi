@@ -1,5 +1,0 @@
-
-> wizbiz-game@1.0.1 start
-> electron .
-
-

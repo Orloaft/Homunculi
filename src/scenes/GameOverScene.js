@@ -146,7 +146,10 @@ export default class GameOverScene extends Phaser.Scene {
         });
 
         stageSelectButton.on('pointerdown', () => {
-            this.scene.start('StageSelectScene');
+            this.scene.start('StageSelectScene', {
+                fromCharacterSelect: true,
+                showCharacterSelect: false
+            });
         });
 
         // Main menu button
@@ -179,7 +182,10 @@ export default class GameOverScene extends Phaser.Scene {
         });
 
         this.input.keyboard.on('keydown-S', () => {
-            this.scene.start('StageSelectScene');
+            this.scene.start('StageSelectScene', {
+                fromCharacterSelect: true,
+                showCharacterSelect: false
+            });
         });
 
         this.input.keyboard.on('keydown-ESC', () => {

@@ -8,7 +8,7 @@ class KingNothingBoss {
         this.y = y;
         
         // Create the boss sprite
-        this.sprite = scene.physics.add.sprite(x, y, 'king-nothing-idle', 0);
+        this.sprite = scene.physics.add.sprite(x, y, 'king-nothing-run', 0);
         this.sprite.setScale(3);
         this.sprite.setDepth(10);
         
@@ -46,12 +46,17 @@ class KingNothingBoss {
         this.sprite.health = this.health;
         this.sprite.maxHealth = this.maxHealth;
         
-        // Play idle animation
-        this.sprite.play('king-nothing-idle');
+        // Play run animation as idle
+        this.sprite.play('king-nothing-run');
         
-        // Create crown that floats above
-        this.crown = scene.add.sprite(x, y - 60, 'king-crown');
-        this.crown.setScale(2);
+        // Create crown that floats above (use a circle as placeholder if sprite not loaded)
+        if (scene.textures.exists('king-crown')) {
+            this.crown = scene.add.sprite(x, y - 60, 'king-crown');
+            this.crown.setScale(2);
+        } else {
+            // Create a purple circle as crown placeholder
+            this.crown = scene.add.circle(x, y - 60, 15, 0x9900ff);
+        }
         this.crown.setDepth(11);
         
         // Phase transition effects
@@ -62,29 +67,39 @@ class KingNothingBoss {
         const scene = this.scene;
         
         // Create animations if they don't exist
-        if (!scene.anims.exists('king-nothing-idle')) {
+        if (!scene.anims.exists('king-nothing-run')) {
             scene.anims.create({
-                key: 'king-nothing-idle',
-                frames: scene.anims.generateFrameNumbers('king-nothing-idle', { start: 0, end: 7 }),
+                key: 'king-nothing-run',
+                frames: scene.anims.generateFrameNumbers('king-nothing-run', { start: 0, end: 7 }),
                 frameRate: 8,
                 repeat: -1
             });
         }
         
-        if (!scene.anims.exists('king-nothing-attack')) {
+        if (!scene.anims.exists('king-nothing-attack1')) {
+            // Use static frames for attack since we have individual images
             scene.anims.create({
-                key: 'king-nothing-attack',
-                frames: scene.anims.generateFrameNumbers('king-nothing-attack', { start: 0, end: 11 }),
-                frameRate: 12,
+                key: 'king-nothing-attack1',
+                frames: [{ key: 'king-nothing-attack1' }],
+                frameRate: 1,
                 repeat: 0
             });
         }
         
-        if (!scene.anims.exists('king-nothing-cast')) {
+        if (!scene.anims.exists('king-nothing-attack2')) {
             scene.anims.create({
-                key: 'king-nothing-cast',
-                frames: scene.anims.generateFrameNumbers('king-nothing-cast', { start: 0, end: 9 }),
-                frameRate: 10,
+                key: 'king-nothing-attack2',
+                frames: [{ key: 'king-nothing-attack2' }],
+                frameRate: 1,
+                repeat: 0
+            });
+        }
+        
+        if (!scene.anims.exists('king-nothing-attack3')) {
+            scene.anims.create({
+                key: 'king-nothing-attack3',
+                frames: [{ key: 'king-nothing-attack3' }],
+                frameRate: 1,
                 repeat: 0
             });
         }
@@ -92,7 +107,7 @@ class KingNothingBoss {
         if (!scene.anims.exists('king-nothing-death')) {
             scene.anims.create({
                 key: 'king-nothing-death',
-                frames: scene.anims.generateFrameNumbers('king-nothing-death', { start: 0, end: 14 }),
+                frames: scene.anims.generateFrameNumbers('king-nothing-death', { start: 0, end: 9 }),
                 frameRate: 8,
                 repeat: 0
             });
@@ -281,7 +296,9 @@ class KingNothingBoss {
     }
     
     voidProjectileBarrage() {
-        this.sprite.play('king-nothing-attack');
+        // Randomly choose one of the three attack animations
+        const attackNum = Phaser.Math.Between(1, 3);
+        this.sprite.play(`king-nothing-attack${attackNum}`);
         
         // Fire multiple void projectiles in a spread pattern
         const projectileCount = 5 + (this.phase - 1) * 2;
@@ -297,11 +314,14 @@ class KingNothingBoss {
     }
     
     fireVoidProjectile(angle) {
-        const projectile = this.scene.physics.add.sprite(
+        // Use a purple circle as void projectile
+        const projectile = this.scene.add.circle(
             this.sprite.x,
             this.sprite.y,
-            'void-projectile'
+            10,
+            0x9900ff
         );
+        this.scene.physics.add.existing(projectile);
         
         projectile.setScale(2);
         projectile.setDepth(9);
@@ -327,7 +347,8 @@ class KingNothingBoss {
     }
     
     voidBeam() {
-        this.sprite.play('king-nothing-cast');
+        // Use attack2 for casting
+        this.sprite.play('king-nothing-attack2');
         
         const player = this.scene.wizard;
         if (!player) return;
@@ -448,7 +469,8 @@ class KingNothingBoss {
     }
     
     voidPulse() {
-        this.sprite.play('king-nothing-cast');
+        // Use attack3 for pulse
+        this.sprite.play('king-nothing-attack3');
         
         // Create expanding void pulse
         const pulse = this.scene.add.circle(this.sprite.x, this.sprite.y, 10, 0x9900ff, 0.8);
@@ -482,7 +504,8 @@ class KingNothingBoss {
     }
     
     voidStorm() {
-        this.sprite.play('king-nothing-cast');
+        // Use attack2 for storm casting
+        this.sprite.play('king-nothing-attack2');
         
         // Create multiple void projectiles falling from above
         const stormDuration = 5000;
@@ -492,8 +515,9 @@ class KingNothingBoss {
             delay: projectileInterval,
             callback: () => {
                 const x = Phaser.Math.Between(50, 750);
-                const projectile = this.scene.physics.add.sprite(x, -50, 'void-projectile');
-                projectile.setScale(1.5);
+                // Use purple circle for void projectiles
+                const projectile = this.scene.add.circle(x, -50, 8, 0x9900ff);
+                this.scene.physics.add.existing(projectile);
                 projectile.setVelocityY(300);
                 projectile.damage = 20;
                 projectile.fromBoss = true;
@@ -515,7 +539,8 @@ class KingNothingBoss {
         // Only in phase 3
         if (this.phase !== 3) return;
         
-        this.sprite.play('king-nothing-cast');
+        // Use all attack animations in sequence for ultimate
+        this.sprite.play('king-nothing-attack3');
         
         // Screen goes dark
         const darkness = this.scene.add.rectangle(400, 300, 800, 600, 0x000000, 0);
@@ -600,21 +625,19 @@ class KingNothingBoss {
             this.scene.time.delayedCall(500, () => {
                 portal.destroy();
                 
-                // Spawn void minion (use existing enemy type)
-                if (this.scene.enemies) {
-                    const minion = this.scene.physics.add.sprite(x, y, 'voidkin', 0);
-                    minion.setScale(1.5);
-                    minion.enemyType = 'voidkin';
-                    minion.health = 50 * this.phase;
-                    minion.damage = 15;
-                    minion.speed = 100;
-                    minion.setTint(0x9900ff);
+                // Spawn castle enemy as void minion
+                if (this.scene.createEnemy) {
+                    // Use castle-squire as void minion
+                    this.scene.createEnemy('castle-squire', x, y);
                     
-                    this.scene.enemies.add(minion);
-                    
-                    // Play animation if it exists
-                    if (this.scene.anims.exists('voidkin-move')) {
-                        minion.play('voidkin-move');
+                    // Find the created enemy and modify it
+                    const enemies = this.scene.enemies.getChildren();
+                    const minion = enemies[enemies.length - 1];
+                    if (minion) {
+                        minion.setTint(0x9900ff);
+                        minion.health = 50 * this.phase;
+                        minion.damage = 15;
+                        minion.moveSpeed = 100;
                     }
                 }
             });
@@ -726,28 +749,30 @@ class KingNothingBoss {
     }
     
     dropRewards() {
-        // Drop void orbs
+        // Drop dark element orbs (similar to void)
         for (let i = 0; i < 5; i++) {
-            const orb = this.scene.physics.add.sprite(
-                this.sprite.x + Phaser.Math.Between(-50, 50),
-                this.sprite.y + Phaser.Math.Between(-50, 50),
-                'void-orb'
-            );
-            orb.setScale(1.5);
-            orb.orbType = 'void';
-            
-            if (this.scene.elementOrbs) {
+            if (this.scene.elementOrbs && this.scene.textures.exists('darkOrb')) {
+                const orb = this.scene.physics.add.sprite(
+                    this.sprite.x + Phaser.Math.Between(-50, 50),
+                    this.sprite.y + Phaser.Math.Between(-50, 50),
+                    'darkOrb'
+                );
+                orb.setScale(1.5);
+                orb.orbType = 'dark';
+                orb.element = 'dark';
+                
                 this.scene.elementOrbs.add(orb);
             }
         }
         
-        // Drop special crown item
-        const crown = this.scene.physics.add.sprite(
+        // Drop special crown item as purple circle
+        const crown = this.scene.add.circle(
             this.sprite.x,
             this.sprite.y,
-            'king-crown'
+            20,
+            0x9900ff
         );
-        crown.setScale(2);
+        this.scene.physics.add.existing(crown);
         crown.itemType = 'crown';
         
         // Add floating effect to crown
