@@ -10,6 +10,12 @@ export default class StageSelectScene extends Phaser.Scene {
         this.selectedCard = null;
         this.tarotCards = [];
         this.p2Joined = false;
+        // Initialize gamepad tracking
+        this.leftPressed = false;
+        this.rightPressed = false;
+        this.confirmPressed = false;
+        this.backPressed = false;
+        this.p2StartPressed = false;
         this.stages = [
             { 
                 name: 'Forestland', 
@@ -86,6 +92,9 @@ export default class StageSelectScene extends Phaser.Scene {
         this.input.keyboard.enabled = true;
         this.selectedStage = 0; // Reset to first stage
         
+        // Reset stage detail shown flag when returning to this scene
+        this.stageDetailShown = false;
+        
         // Force character selection mode when coming from title or when P2 joins
         const fromTitle = data?.fromTitle || !data?.fromCharacterSelect;
         this.characterSelectionMode = fromTitle || data?.showCharacterSelect;
@@ -121,6 +130,7 @@ export default class StageSelectScene extends Phaser.Scene {
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
         this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+        this.mKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
         
         // Play stage select music
         if (!this.sound.get('stageselect-bgm')) {
@@ -313,7 +323,7 @@ export default class StageSelectScene extends Phaser.Scene {
         this.characterSelectionContainer.add(this.selectButton);
         
         // Instructions
-        const instructText = this.add.text(400, 520, 'Click a card to reveal your homunculus', {
+        const instructText = this.add.text(400, 520, 'Use arrow keys or click to select • Press ENTER to confirm', {
             fontSize: '14px',
             color: '#aaaaaa',
             fontStyle: 'italic'
@@ -359,6 +369,10 @@ export default class StageSelectScene extends Phaser.Scene {
                 c.nameText.setVisible(false);
                 c.descText.setVisible(false);
                 c.container.setScale(1);
+                // Hide glow effect if it exists
+                if (c.glowEffect) {
+                    c.glowEffect.setVisible(false);
+                }
             }
         });
         
@@ -369,11 +383,97 @@ export default class StageSelectScene extends Phaser.Scene {
         card.descText.setVisible(true);
         card.container.setScale(1.05);
         
+        // Add a golden glow effect for selected card
+        if (!card.glowEffect) {
+            card.glowEffect = this.add.rectangle(0, 0, 140, 190, 0xffd700, 0);
+            card.glowEffect.setStrokeStyle(3, 0xffd700, 1);
+            card.container.addAt(card.glowEffect, 0); // Add behind card
+        }
+        card.glowEffect.setVisible(true);
+        
+        // Add pulsing animation to the glow
+        this.tweens.add({
+            targets: card.glowEffect,
+            alpha: { from: 0.8, to: 0.3 },
+            duration: 800,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+        
         // Show select button
         this.selectButton.setVisible(true);
         
         // Store selection
         this.selectedCard = index;
+    }
+    
+    handleCharacterSelectionInput() {
+        // Ensure keyboard controls are initialized
+        if (!this.cursors || !this.spaceKey || !this.enterKey) {
+            return;
+        }
+        
+        // Handle arrow keys for card navigation
+        const leftJustPressed = Phaser.Input.Keyboard.JustDown(this.cursors.left);
+        const rightJustPressed = Phaser.Input.Keyboard.JustDown(this.cursors.right);
+        const confirmJustPressed = Phaser.Input.Keyboard.JustDown(this.spaceKey) || 
+            Phaser.Input.Keyboard.JustDown(this.enterKey);
+        const backJustPressed = Phaser.Input.Keyboard.JustDown(this.escKey);
+        
+        // Handle gamepad input - use correct pad based on current player
+        const padIndex = this.currentPlayer === 'p2' ? 1 : 0;
+        const pad = this.input.gamepad && this.input.gamepad.pads[padIndex] ? 
+            this.input.gamepad.pads[padIndex] : null;
+        const padLeft = pad && pad.leftStick.x < -0.5 && !this.leftPressed;
+        const padRight = pad && pad.leftStick.x > 0.5 && !this.rightPressed;
+        const padConfirm = pad && pad.buttons[0].pressed && !this.confirmPressed;
+        const padBack = pad && pad.buttons[1].pressed && !this.backPressed;
+        
+        // Track gamepad state to prevent repeat
+        if (pad) {
+            this.leftPressed = pad.leftStick.x < -0.5;
+            this.rightPressed = pad.leftStick.x > 0.5;
+            this.confirmPressed = pad.buttons[0].pressed;
+            this.backPressed = pad.buttons[1].pressed;
+        }
+        
+        // Navigate between cards
+        if ((leftJustPressed || padLeft) && this.tarotCards.length > 0) {
+            if (this.selectedCard === null) {
+                // Select the last card if nothing selected
+                this.selectCard(this.tarotCards.length - 1);
+            } else if (this.selectedCard > 0) {
+                // Move to previous card
+                this.selectCard(this.selectedCard - 1);
+            } else {
+                // Wrap to last card
+                this.selectCard(this.tarotCards.length - 1);
+            }
+        }
+        
+        if ((rightJustPressed || padRight) && this.tarotCards.length > 0) {
+            if (this.selectedCard === null) {
+                // Select the first card if nothing selected
+                this.selectCard(0);
+            } else if (this.selectedCard < this.tarotCards.length - 1) {
+                // Move to next card
+                this.selectCard(this.selectedCard + 1);
+            } else {
+                // Wrap to first card
+                this.selectCard(0);
+            }
+        }
+        
+        // Confirm selection
+        if ((confirmJustPressed || padConfirm) && this.selectedCard !== null) {
+            this.confirmCharacterSelection();
+        }
+        
+        // Go back
+        if (backJustPressed || padBack) {
+            this.scene.start('TitleScene');
+        }
     }
     
     confirmCharacterSelection() {
@@ -400,6 +500,30 @@ export default class StageSelectScene extends Phaser.Scene {
             this.stageSelectionContainer.setVisible(true);
             this.createStageSelection();
         }
+    }
+    
+    handleP2Join() {
+        console.log('P2 joining mid-game!');
+        this.p2Joined = true;
+        
+        // Remove P2 join button if it exists
+        const p2JoinButton = this.stageSelectionContainer.getByName('p2JoinButton');
+        if (p2JoinButton) {
+            p2JoinButton.destroy();
+        }
+        
+        // Switch to P2 character selection
+        this.currentPlayer = 'p2';
+        this.selectedCard = null;
+        this.characterSelectionMode = true;
+        
+        // Hide stage selection and show character selection
+        this.stageSelectionContainer.setVisible(false);
+        this.characterSelectionContainer.removeAll(true);
+        this.characterSelectionContainer.setVisible(true);
+        
+        // Create character selection for P2
+        this.createCharacterSelection();
     }
     
     createStageSelection() {
@@ -591,12 +715,13 @@ export default class StageSelectScene extends Phaser.Scene {
         
         // Add P2 join button if not joined
         if (!this.p2Joined) {
-            const p2JoinButton = this.add.text(700, 560, 'P2 JOIN', {
+            const p2JoinButton = this.add.text(700, 560, 'P2 JOIN (Press M)', {
                 fontSize: '16px',
                 color: '#ffff00',
                 backgroundColor: '#444444',
                 padding: { x: 10, y: 5 }
             }).setOrigin(0.5);
+            p2JoinButton.setName('p2JoinButton');
             p2JoinButton.setInteractive({ useHandCursor: true });
             
             p2JoinButton.on('pointerover', () => {
@@ -663,8 +788,25 @@ export default class StageSelectScene extends Phaser.Scene {
             return;
         }
         
-        // Skip input in character selection mode (handled by UI)
+        // Check for P2 join (M key or gamepad Start button)
+        if (!this.p2Joined && !this.characterSelectionMode) {
+            const pad2 = this.input.gamepad ? this.input.gamepad.pad2 : null;
+            const mPressed = Phaser.Input.Keyboard.JustDown(this.mKey);
+            const startPressed = pad2 && pad2.buttons[9] && pad2.buttons[9].pressed && !this.p2StartPressed;
+            
+            if (pad2) {
+                this.p2StartPressed = pad2.buttons[9] ? pad2.buttons[9].pressed : false;
+            }
+            
+            if (mPressed || startPressed) {
+                this.handleP2Join();
+                return;
+            }
+        }
+        
+        // Handle character selection mode input
         if (this.characterSelectionMode) {
+            this.handleCharacterSelectionInput();
             return;
         }
         

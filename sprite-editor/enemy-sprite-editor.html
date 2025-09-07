@@ -380,6 +380,9 @@
                 <div class="button-group">
                     <button class="btn btn-secondary" onclick="resetAll()">Reset All</button>
                     <button class="btn" onclick="exportData()">Export Data</button>
+                    <button class="btn" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);" onclick="exportConfigFile()">📄 Export Config File</button>
+                    <button class="btn" style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);" onclick="saveToGame()">💾 Save to Game</button>
+                    <button class="btn btn-secondary" onclick="loadFromGame()">📂 Load from Game</button>
                 </div>
             </div>
         </div>
@@ -404,6 +407,30 @@
                         <input type="checkbox" id="dark-background" checked onchange="toggleBackground()">
                         <label for="dark-background">Dark Background</label>
                     </div>
+                    
+                    <div class="control-group" style="margin-top: 15px;">
+                        <label class="control-label">Background Tile</label>
+                        <select id="tile-select" onchange="changeTileBackground()" style="width: 100%; padding: 5px; margin-top: 5px;">
+                            <option value="grass-tile">Grass</option>
+                            <option value="stone-tile">Stone</option>
+                            <option value="desert-tile">Desert</option>
+                            <option value="lava-tile">Lava</option>
+                            <option value="skullfloor-tile">Skull Floor</option>
+                            <option value="none">None (Dark)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group" style="margin-top: 15px;">
+                        <label class="control-label">Zoom Level</label>
+                        <div class="slider-container">
+                            <input type="range" id="zoom-slider" min="0.5" max="3" step="0.1" value="1" onchange="updateZoom()">
+                            <span class="value-display" id="zoom-value">1.0x</span>
+                        </div>
+                        <button class="btn btn-secondary" onclick="resetZoom()" style="margin-top: 5px; width: 100%;">Reset Zoom</button>
+                        <div style="font-size: 11px; color: #888; margin-top: 5px;">
+                            Keyboard: +/- to zoom, 0 to reset
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="section">
@@ -411,7 +438,7 @@
                     <div class="control-group">
                         <label class="control-label">Scale</label>
                         <div class="slider-container">
-                            <input type="range" id="scale-slider" min="0.1" max="5" step="0.1" value="1" onchange="updateScale()">
+                            <input type="range" id="scale-slider" min="0.1" max="20" step="0.1" value="1" onchange="updateScale()">
                             <span class="value-display" id="scale-value">1.0</span>
                         </div>
                     </div>
@@ -447,14 +474,58 @@
                             <span class="value-display" id="offsety-value">0</span>
                         </div>
                     </div>
+                    <div class="control-group">
+                        <button class="btn btn-secondary" onclick="centerHitbox()" style="width: 100%; margin-top: 10px;">Center Hitbox</button>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3 class="section-title">Shadow Settings</h3>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="show-shadow" checked onchange="toggleShadow()">
+                        <label for="show-shadow">Show Shadow</label>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Shadow Width</label>
+                        <div class="slider-container">
+                            <input type="range" id="shadow-width" min="5" max="150" value="40" onchange="updateShadow()">
+                            <span class="value-display" id="shadow-width-value">40</span>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Shadow Height</label>
+                        <div class="slider-container">
+                            <input type="range" id="shadow-height" min="5" max="50" value="12" onchange="updateShadow()">
+                            <span class="value-display" id="shadow-height-value">12</span>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Shadow Offset X</label>
+                        <div class="slider-container">
+                            <input type="range" id="shadow-offsetx" min="-50" max="50" value="0" onchange="updateShadow()">
+                            <span class="value-display" id="shadow-offsetx-value">0</span>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Shadow Offset Y</label>
+                        <div class="slider-container">
+                            <input type="range" id="shadow-offsety" min="-50" max="100" value="30" onchange="updateShadow()">
+                            <span class="value-display" id="shadow-offsety-value">30</span>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Shadow Alpha</label>
+                        <div class="slider-container">
+                            <input type="range" id="shadow-alpha" min="0" max="1" step="0.1" value="0.5" onchange="updateShadow()">
+                            <span class="value-display" id="shadow-alpha-value">0.5</span>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="section">
                     <h3 class="section-title">Animation Controls</h3>
-                    <div class="animation-controls">
-                        <button class="anim-btn" id="walk-btn" onclick="playAnimation('walk')">Walk</button>
-                        <button class="anim-btn" id="death-btn" onclick="playAnimation('death')">Death</button>
-                        <button class="anim-btn" id="attack-btn" onclick="playAnimation('attack')">Attack</button>
+                    <div class="animation-controls" id="animation-controls">
+                        <!-- Animation buttons will be dynamically generated -->
                     </div>
                     <div class="control-group" style="margin-top: 10px;">
                         <label class="control-label">Animation Speed</label>
@@ -647,6 +718,64 @@
                 defaultScale: 1.8
             },
             // Desert enemies
+            cobra: {
+                texture: 'cobra-walk',
+                path: 'desertlandfoes/cobra8frames.png',
+                frameWidth: 32,
+                frameHeight: 20,
+                animations: {
+                    walk: { start: 0, end: 7, rate: 10 },
+                    death: {
+                        texture: 'cobra-death',
+                        path: 'desertlandfoes/cobradeath6frames.png',
+                        frameWidth: 32,
+                        frameHeight: 20,
+                        start: 0, end: 5, rate: 8
+                    }
+                },
+                defaultScale: 2.0
+            },
+            cactuse: {
+                texture: 'cactuse-walk',
+                path: 'desertlandfoes/cactuse8frames.png',
+                frameWidth: 32,
+                frameHeight: 26,
+                animations: {
+                    walk: { start: 0, end: 7, rate: 8 },
+                    death: {
+                        texture: 'cactuse-death',
+                        path: 'desertlandfoes/cactusedeath5frames.png',
+                        frameWidth: 32,
+                        frameHeight: 22,
+                        start: 0, end: 4, rate: 8
+                    }
+                },
+                defaultScale: 2.0
+            },
+            armadillo: {
+                texture: 'armadillo-walk',
+                path: 'desertlandfoes/armadillo8frames.png',
+                frameWidth: 32,
+                frameHeight: 18,
+                animations: {
+                    walk: { start: 0, end: 7, rate: 10 },
+                    roll: {
+                        texture: 'armadillo-ball',
+                        path: 'desertlandfoes/armadilloball8frames.png',
+                        frameWidth: 32,
+                        frameHeight: 18,
+                        start: 0, end: 7, rate: 12
+                    },
+                    death: {
+                        texture: 'armadillo-death',
+                        path: 'desertlandfoes/armadillodeath3frames.png',
+                        frameWidth: 32,
+                        frameHeight: 17,
+                        start: 0, end: 2, rate: 6
+                    }
+                },
+                defaultScale: 2.0
+            },
             bat: {
                 texture: 'bat-fly',
                 path: 'bateye/Flight.png',
@@ -701,18 +830,22 @@
             archerBoss: {
                 texture: 'archer-boss-walk',
                 path: 'archerboss/boss2archerwalk8frames.png',
-                frameWidth: 64,
+                frameWidth: 63,
                 frameHeight: 54,
                 animations: {
                     walk: { start: 0, end: 7, rate: 10 },
                     attack: {
                         texture: 'archer-boss-shoot',
                         path: 'archerboss/boss2archershoot7frames.png',
+                        frameWidth: 64,
+                        frameHeight: 54,
                         start: 0, end: 6, rate: 10
                     },
                     death: {
                         texture: 'archer-boss-death',
                         path: 'archerboss/boss2archerdeath8frames.png',
+                        frameWidth: 63,
+                        frameHeight: 54,
                         start: 0, end: 7, rate: 10
                     }
                 },
@@ -787,18 +920,183 @@
                 individualFrames: true,
                 framePattern: 'nekros-walk-'
             },
+            // Castle enemies
+            'castle-knight': {
+                texture: 'castle-knight',
+                path: 'castlelandfoes/knightrun8frames.png',
+                frameWidth: 180,
+                frameHeight: 180,
+                animations: {
+                    walk: { start: 0, end: 7, rate: 10 }
+                },
+                defaultScale: 0.45
+            },
+            'castle-rogue': {
+                texture: 'castle-rogue',
+                path: 'castlelandfoes/roguerun6frames.png',
+                frameWidth: 64,
+                frameHeight: 33,
+                animations: {
+                    walk: { start: 0, end: 5, rate: 10 }
+                },
+                defaultScale: 0.45
+            },
+            'castle-soldier': {
+                texture: 'castle-soldier',
+                path: 'castlelandfoes/soldier6frames.png',
+                frameWidth: 135,
+                frameHeight: 135,
+                animations: {
+                    walk: { start: 0, end: 5, rate: 8 }
+                },
+                defaultScale: 0.45
+            },
+            'castle-bladekeeper': {
+                individualFrames: true,
+                framePattern: 'castle-bladekeeper-',
+                path: 'castlelandfoes/bladekeeper/02_run_1.png', // Base path for individual frames
+                frameCount: 8,
+                frameWidth: 64,
+                frameHeight: 64,
+                animations: {
+                    walk: { start: 0, end: 7, rate: 10 }
+                },
+                defaultScale: 0.45
+            },
+            'castle-squire': {
+                texture: 'castle-squire',
+                path: 'castlelandfoes/squire8frames.png',
+                frameWidth: 150,
+                frameHeight: 150,
+                animations: {
+                    walk: { start: 0, end: 7, rate: 10 }
+                },
+                defaultScale: 0.45
+            },
+            // Grave enemies
+            yellowskeleton: {
+                texture: 'yellowskeleton',
+                path: 'skeleton/Skeleton_01_Yellow_Walk10frames.png',
+                frameWidth: 96,
+                frameHeight: 64,
+                animations: {
+                    walk: { start: 0, end: 9, rate: 10 }
+                },
+                defaultScale: 1.8
+            },
+            skeletonseeker: {
+                texture: 'skeleton-seeker-walk',
+                path: 'skeleton/skeleton_seeker_walk.png',
+                frameWidth: 120,
+                frameHeight: 120,
+                animations: {
+                    walk: { start: 0, end: 5, rate: 10 },
+                    spawn: {
+                        texture: 'skeleton-seeker-spawn',
+                        path: 'skeleton/skeleton_seeker_spawn.png',
+                        frameWidth: 120,
+                        frameHeight: 120,
+                        start: 0, end: 10, rate: 10
+                    }
+                },
+                defaultScale: 1.5
+            },
+            clubimp: {
+                individualFrames: true,
+                framePattern: 'club-imp-walk-',
+                path: 'impclub/walk_1.png',
+                frameCount: 6,
+                frameWidth: 32,
+                frameHeight: 32,
+                animations: {
+                    walk: { start: 0, end: 5, rate: 10 },
+                    fall: {
+                        individualFrames: true,
+                        framePattern: 'club-imp-fall-',
+                        path: 'impclub/fall_back_1.png',
+                        frameCount: 5,
+                        start: 0, end: 4, rate: 10
+                    },
+                    standup: {
+                        individualFrames: true,
+                        framePattern: 'club-imp-standup-',
+                        path: 'impclub/stand_up_1.png',
+                        frameCount: 5,
+                        start: 0, end: 4, rate: 10
+                    }
+                },
+                defaultScale: 3.0
+            },
+            axeimp: {
+                individualFrames: true,
+                framePattern: 'axe-imp-walk-',
+                path: 'impaxe/walk_1.png',
+                frameCount: 6,
+                frameWidth: 32,
+                frameHeight: 32,
+                animations: {
+                    walk: { start: 0, end: 5, rate: 10 },
+                    fall: {
+                        individualFrames: true,
+                        framePattern: 'axe-imp-fall-',
+                        path: 'impaxe/fall_back_1.png',
+                        frameCount: 4,
+                        start: 0, end: 3, rate: 10
+                    },
+                    standup: {
+                        individualFrames: true,
+                        framePattern: 'axe-imp-standup-',
+                        path: 'impaxe/stand_up_1.png',
+                        frameCount: 5,
+                        start: 0, end: 4, rate: 10
+                    }
+                },
+                defaultScale: 3.0
+            },
+            flyingdemon: {
+                texture: 'flyingdemon',
+                path: 'flyingdemon/flamedemon4frames.png',
+                frameWidth: 81,
+                frameHeight: 71,
+                animations: {
+                    walk: { start: 0, end: 3, rate: 10 }
+                },
+                defaultScale: 1.5
+            },
+            // Lava enemies
+            fireslime: {
+                texture: 'slime-idle',
+                path: 'newenemies/blob/blob minion idle.png',
+                frameWidth: 80,
+                frameHeight: 35,
+                animations: {
+                    walk: { start: 0, end: 11, rate: 8 }
+                },
+                defaultScale: 1.0,
+                tint: 0xff4444
+            },
+            orangegolem: {
+                texture: 'golem-orange-walk',
+                path: 'Golem_1/Orange/No_Swoosh_VFX/Golem_1_walk.png',
+                frameWidth: 90,
+                frameHeight: 64,
+                animations: {
+                    walk: { start: 0, end: 9, rate: 8 }
+                },
+                defaultScale: 1.5
+            },
             // Special enemies
             wraith: {
                 texture: 'wraith-walk',
                 path: 'scythewraith/scythewraithwalk8frames.png',
-                frameWidth: 79,  // 631/8 ≈ 79
+                frameWidth: 79.5,  // 636/8 = 79.5 - need exact value to prevent shifting
                 frameHeight: 68,  // Actual height
                 animations: {
                     walk: { start: 0, end: 7, rate: 10 },
                     attack: {
                         texture: 'wraith-attack',
                         path: 'scythewraith/scythewraithattack8frames.png',
-                        frameWidth: 79,
+                        frameWidth: 79.5,
                         frameHeight: 68,
                         start: 0, end: 7, rate: 12
                     },
@@ -811,6 +1109,106 @@
                     }
                 },
                 defaultScale: 1.5
+            },
+            // Homunculi (Player Characters)
+            wizard: {
+                texture: 'wizard-idle',
+                path: 'wizmove/newiz/wizard_idle.PNG',
+                frameWidth: 80,
+                frameHeight: 80,
+                animations: {
+                    idle: { start: 0, end: 7, rate: 8 },
+                    walk: {
+                        texture: 'wizard-fly',
+                        path: 'wizmove/newiz/wizard_fly_forward.png',
+                        frameWidth: 80,
+                        frameHeight: 80,
+                        start: 0, end: 7, rate: 10
+                    },
+                    death: {
+                        texture: 'wizard-death',
+                        path: 'wizmove/newiz/wizard_death.PNG',
+                        frameWidth: 80,
+                        frameHeight: 80,
+                        start: 0, end: 7, rate: 10
+                    }
+                },
+                defaultScale: 1.5
+            },
+            orb: {
+                texture: 'orb-idle',
+                path: 'homunculicharacters/orbidle10framesdims640x64.png',
+                frameWidth: 64,
+                frameHeight: 64,
+                animations: {
+                    idle: { start: 0, end: 9, rate: 10 },
+                    walk: {
+                        texture: 'orb-walk',
+                        path: 'homunculicharacters/orbwalk8framesdims512x64.png',
+                        frameWidth: 64,
+                        frameHeight: 64,
+                        start: 0, end: 7, rate: 12
+                    },
+                    spawn: {
+                        texture: 'orb-spawn',
+                        path: 'homunculicharacters/orbspawn8framesdims512x64.png',
+                        frameWidth: 64,
+                        frameHeight: 64,
+                        start: 0, end: 7, rate: 10
+                    }
+                },
+                defaultScale: 1.5
+            },
+            grim: {
+                texture: 'grim-idle',
+                path: 'homunculicharacters/grimidle8framesx2framesdims512x128.png',
+                frameWidth: 64,
+                frameHeight: 64,
+                animations: {
+                    idle: { start: 0, end: 8, rate: 8 },
+                    walk: {
+                        texture: 'grim-walk',
+                        path: 'homunculicharacters/grimwalk6framesdimsdims384x64.png',
+                        frameWidth: 64,
+                        frameHeight: 64,
+                        start: 0, end: 5, rate: 10
+                    },
+                    death: {
+                        texture: 'grim-death',
+                        path: 'homunculicharacters/grimdeath8framesx3framesdims512x192.png',
+                        frameWidth: 64,
+                        frameHeight: 64,
+                        start: 0, end: 23, rate: 10
+                    }
+                },
+                defaultScale: 1.5
+            },
+            blip: {
+                texture: 'blip-idle',
+                path: 'homunculicharacters/blipidle5framesvertical.png',
+                frameWidth: 64,
+                frameHeight: 39,
+                verticalSheet: true,
+                animations: {
+                    idle: { start: 0, end: 4, rate: 8 },
+                    walk: {
+                        texture: 'blip-walk',
+                        path: 'homunculicharacters/blipwalk8framesvertical.png',
+                        frameWidth: 64,
+                        frameHeight: 39,
+                        verticalSheet: true,
+                        start: 0, end: 7, rate: 10
+                    },
+                    death: {
+                        texture: 'blip-death',
+                        path: 'homunculicharacters/blipdeath5framesvertical.png',
+                        frameWidth: 64,
+                        frameHeight: 39,
+                        verticalSheet: true,
+                        start: 0, end: 4, rate: 10
+                    }
+                },
+                defaultScale: 2.4
             }
         };
         
@@ -819,7 +1217,9 @@
         let editorScene;
         let currentEnemy = null;
         let currentSprite = null;
+        let currentShadow = null;
         let hitboxGraphics = null;
+        let shadowGraphics = null;
         let gridGraphics = null;
         let savedData = {};
         
@@ -838,6 +1238,21 @@
         // Save data to localStorage
         function saveData() {
             localStorage.setItem('enemySpriteData', JSON.stringify(savedData));
+            
+            // Also save hitbox data separately for game compatibility
+            const hitboxData = {};
+            for (const [enemy, data] of Object.entries(savedData)) {
+                if (data.hitbox) {
+                    hitboxData[enemy] = {
+                        width: data.hitbox.width,
+                        height: data.hitbox.height,
+                        offsetX: data.hitbox.offsetX,
+                        offsetY: data.hitbox.offsetY
+                    };
+                }
+            }
+            localStorage.setItem('hitboxData', JSON.stringify(hitboxData));
+            
             updateExportData();
         }
         
@@ -860,15 +1275,39 @@
                 let assetsLoaded = 0;
                 let failedAssets = [];
                 
+                // Load tile backgrounds (with error handling)
+                const tileAssets = [
+                    { key: 'grass-tile', path: '/grass.PNG' },
+                    { key: 'stone-tile', path: '/stone.png' },
+                    { key: 'desert-tile', path: '/desert.png' },
+                    { key: 'lava-tile', path: '/lava.png' },
+                    { key: 'skullfloor-tile', path: '/skullfloor.png' }
+                ];
+                
+                tileAssets.forEach(tile => {
+                    this.load.image(tile.key, tile.path);
+                    assetsToLoad++;
+                });
+                
                 // Load all enemy sprites
                 for (const [key, config] of Object.entries(enemyConfigs)) {
                     // Handle bosses with individual frame images
                     if (config.individualFrames) {
                         // Load individual frames for bosses like Eyelor and Nekros
-                        const frameCount = config.animations.walk.end + 1;
+                        const frameCount = config.frameCount || (config.animations.walk.end + 1);
                         for (let i = 1; i <= frameCount; i++) {
                             assetsToLoad++;
-                            const framePath = config.path.replace('1.png', `${i}.png`);
+                            let framePath;
+                            // Special case for bladekeeper which uses 02_run_X.png pattern
+                            if (key === 'castle-bladekeeper') {
+                                framePath = `castlelandfoes/bladekeeper/02_run_${i}.png`;
+                            } else if (key === 'clubimp') {
+                                framePath = `impclub/walk_${i}.png`;
+                            } else if (key === 'axeimp') {
+                                framePath = `impaxe/walk_${i}.png`;
+                            } else {
+                                framePath = config.path.replace('1.png', `${i}.png`);
+                            }
                             this.load.image(`${config.framePattern}${i}`, framePath);
                         }
                     } else if (config.isStaticImage) {
@@ -878,10 +1317,20 @@
                     } else {
                         // Load as spritesheet for animated enemies
                         assetsToLoad++;
-                        this.load.spritesheet(config.texture, config.path, {
-                            frameWidth: config.frameWidth,
-                            frameHeight: config.frameHeight
-                        });
+                        if (config.verticalSheet) {
+                            // For vertical spritesheets, load each frame individually
+                            this.load.spritesheet(config.texture, config.path, {
+                                frameWidth: config.frameWidth,
+                                frameHeight: config.frameHeight,
+                                startFrame: 0,
+                                endFrame: (config.animations.walk.end || 7)
+                            });
+                        } else {
+                            this.load.spritesheet(config.texture, config.path, {
+                                frameWidth: config.frameWidth,
+                                frameHeight: config.frameHeight
+                            });
+                        }
                     }
                     
                     // Load additional textures for animations
@@ -889,19 +1338,82 @@
                         assetsToLoad++;
                         const deathWidth = config.animations.death.frameWidth || config.frameWidth;
                         const deathHeight = config.animations.death.frameHeight || config.frameHeight;
+                        const isVertical = config.animations.death.verticalSheet || config.verticalSheet;
                         this.load.spritesheet(config.animations.death.texture, config.animations.death.path, {
                             frameWidth: deathWidth,
-                            frameHeight: deathHeight
+                            frameHeight: deathHeight,
+                            startFrame: 0,
+                            endFrame: isVertical ? (config.animations.death.end || 4) : undefined
                         });
                     }
                     if (config.animations.attack && config.animations.attack.texture) {
                         assetsToLoad++;
                         const attackWidth = config.animations.attack.frameWidth || config.frameWidth;
                         const attackHeight = config.animations.attack.frameHeight || config.frameHeight;
+                        const isVertical = config.animations.attack.verticalSheet || config.verticalSheet;
                         this.load.spritesheet(config.animations.attack.texture, config.animations.attack.path, {
                             frameWidth: attackWidth,
-                            frameHeight: attackHeight
+                            frameHeight: attackHeight,
+                            startFrame: 0,
+                            endFrame: isVertical ? (config.animations.attack.end || 7) : undefined
                         });
+                    }
+                    if (config.animations.idle && config.animations.idle.texture) {
+                        assetsToLoad++;
+                        const idleWidth = config.animations.idle.frameWidth || config.frameWidth;
+                        const idleHeight = config.animations.idle.frameHeight || config.frameHeight;
+                        const isVertical = config.animations.idle.verticalSheet || config.verticalSheet;
+                        this.load.spritesheet(config.animations.idle.texture, config.animations.idle.path, {
+                            frameWidth: idleWidth,
+                            frameHeight: idleHeight,
+                            startFrame: 0,
+                            endFrame: isVertical ? (config.animations.idle.end || 4) : undefined
+                        });
+                    }
+                    if (config.animations.roll && config.animations.roll.texture) {
+                        assetsToLoad++;
+                        const rollWidth = config.animations.roll.frameWidth || config.frameWidth;
+                        const rollHeight = config.animations.roll.frameHeight || config.frameHeight;
+                        this.load.spritesheet(config.animations.roll.texture, config.animations.roll.path, {
+                            frameWidth: rollWidth,
+                            frameHeight: rollHeight
+                        });
+                    }
+                    if (config.animations.spawn && config.animations.spawn.texture) {
+                        assetsToLoad++;
+                        const spawnWidth = config.animations.spawn.frameWidth || config.frameWidth;
+                        const spawnHeight = config.animations.spawn.frameHeight || config.frameHeight;
+                        this.load.spritesheet(config.animations.spawn.texture, config.animations.spawn.path, {
+                            frameWidth: spawnWidth,
+                            frameHeight: spawnHeight
+                        });
+                    }
+                    
+                    // Load additional individual frame animations (like imp fall/standup)
+                    for (const [animName, animConfig] of Object.entries(config.animations || {})) {
+                        if (animName !== 'walk' && animConfig.individualFrames) {
+                            const frameCount = animConfig.frameCount || (animConfig.end + 1);
+                            for (let i = 1; i <= frameCount; i++) {
+                                assetsToLoad++;
+                                let framePath;
+                                if (key === 'clubimp') {
+                                    if (animName === 'fall') {
+                                        framePath = `impclub/fall_back_${i}.png`;
+                                    } else if (animName === 'standup') {
+                                        framePath = `impclub/stand_up_${i}.png`;
+                                    }
+                                } else if (key === 'axeimp') {
+                                    if (animName === 'fall') {
+                                        framePath = `impaxe/fall_back_${i}.png`;
+                                    } else if (animName === 'standup') {
+                                        framePath = `impaxe/stand_up_${i}.png`;
+                                    }
+                                }
+                                if (framePath) {
+                                    this.load.image(`${animConfig.framePattern}${i}`, framePath);
+                                }
+                            }
+                        }
                     }
                 }
                 
@@ -915,7 +1427,15 @@
                 // Track failed loads
                 this.load.on('loaderror', (file) => {
                     failedAssets.push(file.key);
-                    console.error('Failed to load:', file.key, file.url);
+                    console.error('Failed to load:', file.key, 'URL:', file.url, 'Type:', file.type);
+                    // Also log which enemy this belongs to
+                    for (const [key, config] of Object.entries(enemyConfigs)) {
+                        if (config.texture === file.key || 
+                            (config.framePattern && file.key.startsWith(config.framePattern))) {
+                            console.error('  -> This is for enemy:', key);
+                            break;
+                        }
+                    }
                 });
                 
                 // Handle completion
@@ -941,6 +1461,19 @@
                 // Set background
                 this.cameras.main.setBackgroundColor('#1a1a1a');
                 
+                // Create tile background (default to grass if it exists)
+                if (this.textures.exists('grass-tile')) {
+                    this.tileBackground = this.add.tileSprite(400, 300, 800, 600, 'grass-tile');
+                    this.tileBackground.setDepth(-5);
+                    this.currentTile = 'grass-tile';
+                } else {
+                    // Create a placeholder if tiles failed to load
+                    this.tileBackground = this.add.rectangle(400, 300, 800, 600, 0x2a2a2a);
+                    this.tileBackground.setDepth(-5);
+                    this.currentTile = 'none';
+                    console.warn('Tile backgrounds failed to load, using solid color');
+                }
+                
                 // Create grid graphics
                 gridGraphics = this.add.graphics();
                 gridGraphics.setVisible(false);
@@ -948,6 +1481,9 @@
                 
                 // Create hitbox graphics
                 hitboxGraphics = this.add.graphics();
+                
+                // Create shadow graphics
+                shadowGraphics = this.add.graphics();
                 
                 // Create animations (with error handling for missing textures)
                 for (const [key, config] of Object.entries(enemyConfigs)) {
@@ -1028,8 +1564,49 @@
             }
             
             update() {
+                // Handle keyboard shortcuts for zoom
+                const cursors = this.input.keyboard.createCursorKeys();
+                const plusKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.PLUS);
+                const minusKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.MINUS);
+                const equalKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.EQUALS);
+                const zeroKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ZERO);
+                
+                // Zoom controls
+                if (Phaser.Input.Keyboard.JustDown(plusKey) || Phaser.Input.Keyboard.JustDown(equalKey)) {
+                    const currentZoom = parseFloat(document.getElementById('zoom-slider').value);
+                    const newZoom = Math.min(3, currentZoom + 0.1);
+                    document.getElementById('zoom-slider').value = newZoom;
+                    updateZoom();
+                }
+                if (Phaser.Input.Keyboard.JustDown(minusKey)) {
+                    const currentZoom = parseFloat(document.getElementById('zoom-slider').value);
+                    const newZoom = Math.max(0.5, currentZoom - 0.1);
+                    document.getElementById('zoom-slider').value = newZoom;
+                    updateZoom();
+                }
+                if (Phaser.Input.Keyboard.JustDown(zeroKey)) {
+                    resetZoom();
+                }
+                
+                // Update tile background position to stay centered
+                if (this.tileBackground) {
+                    const zoom = this.cameras.main.zoom;
+                    this.tileBackground.setScale(1 / zoom);
+                    this.tileBackground.tilePositionX = this.cameras.main.scrollX;
+                    this.tileBackground.tilePositionY = this.cameras.main.scrollY;
+                }
+                
                 if (currentSprite && hitboxGraphics) {
                     updateHitboxDisplay();
+                }
+                if (currentSprite && currentShadow) {
+                    // Keep shadow positioned relative to sprite center
+                    const saved = savedData[currentEnemy]?.shadow || {
+                        width: 40, height: 12, offsetX: 0, offsetY: 30, alpha: 0.5
+                    };
+                    // Sprite origin is center, so shadow position is straightforward
+                    currentShadow.x = currentSprite.x + saved.offsetX;
+                    currentShadow.y = currentSprite.y + saved.offsetY;
                 }
             }
         }
@@ -1067,9 +1644,12 @@
             const categories = {
                 'Forest': ['mushroom', 'tree', 'giantfly', 'squirrel', 'redpanda'],
                 'Cave': ['golem', 'slime', 'kobold', 'brainmole', 'intellectdevourer'],
-                'Desert': ['bat', 'darkbat', 'soul', 'fireworm', 'summoner'],
+                'Desert': ['cobra', 'cactuse', 'armadillo', 'bat', 'darkbat', 'soul', 'fireworm', 'summoner'],
+                'Castle': ['castle-knight', 'castle-rogue', 'castle-soldier', 'castle-bladekeeper', 'castle-squire'],
+                'Grave': ['yellowskeleton', 'skeletonseeker', 'clubimp', 'axeimp', 'wraith', 'flyingdemon'],
+                'Lava': ['fireslime', 'orangegolem'],
                 'Bosses': ['archerBoss', 'obeliskBoss', 'voidkin', 'kingNothing', 'eyelor', 'nekros'],
-                'Special': ['wraith']
+                'Homunculi (Player Characters)': ['wizard', 'orb', 'grim', 'blip']
             };
             
             for (const [category, enemies] of Object.entries(categories)) {
@@ -1105,17 +1685,29 @@
                 return;
             }
             
-            // Clear current sprite
+            // Clear current sprite and shadow
             if (currentSprite) {
                 currentSprite.destroy();
                 currentSprite = null;
+            }
+            if (currentShadow) {
+                currentShadow.destroy();
+                currentShadow = null;
             }
             
             currentEnemy = enemyType;
             const config = enemyConfigs[enemyType];
             
-            // Check if texture exists
-            if (!editorScene.textures.exists(config.texture)) {
+            // Check if texture/frames exist
+            if (config.individualFrames) {
+                // For individual frames, check if first frame exists
+                const firstFrameKey = `${config.framePattern}1`;
+                if (!editorScene.textures.exists(firstFrameKey)) {
+                    console.error('First frame not found:', firstFrameKey);
+                    showStatus('Error: Sprite frames not found for ' + enemyType);
+                    return;
+                }
+            } else if (!config.isStaticImage && config.texture && !editorScene.textures.exists(config.texture)) {
                 console.error('Texture not found:', config.texture);
                 showStatus('Error: Sprite file not found for ' + enemyType);
                 return;
@@ -1134,13 +1726,26 @@
                     currentSprite = editorScene.physics.add.sprite(400, 300, config.texture, 0);
                 }
                 
+                // Set origin to center (0.5, 0.5) to match how enemies are created in the game
+                // The game uses center origin for enemies
+                currentSprite.setOrigin(0.5, 0.5);
+                
+                // Create shadow
+                currentShadow = editorScene.add.graphics();
+                currentShadow.setDepth(currentSprite.depth - 1);
+                
                 // Load saved data or use defaults
                 const saved = savedData[enemyType] || {};
                 const scale = saved.scale || config.defaultScale || 1;
                 const hitbox = saved.hitbox || { width: 30, height: 30, offsetX: 0, offsetY: 0 };
+                const shadow = saved.shadow || { width: 40, height: 12, offsetX: 0, offsetY: 30, alpha: 0.5 };
                 
                 // Apply scale
                 currentSprite.setScale(scale);
+                
+                // Position sprite at center of editor
+                currentSprite.x = 400;
+                currentSprite.y = 300;
                 document.getElementById('scale-slider').value = scale;
                 document.getElementById('scale-value').textContent = scale.toFixed(1);
                 
@@ -1158,45 +1763,78 @@
                 document.getElementById('hitbox-offsety').value = hitbox.offsetY;
                 document.getElementById('offsety-value').textContent = hitbox.offsetY;
                 
-                // Try to create and play animation
-                const animKey = enemyType + '-walk';
-                if (!editorScene.anims.exists(animKey)) {
-                    // Try to create animation on demand
-                    try {
-                        if (config.animations && config.animations.walk) {
-                            if (config.individualFrames) {
-                                // Create animation from individual frames
-                                const frames = [];
-                                for (let i = 1; i <= config.animations.walk.end + 1; i++) {
-                                    frames.push({ key: `${config.framePattern}${i}` });
+                // Update shadow sliders
+                document.getElementById('shadow-width').value = shadow.width;
+                document.getElementById('shadow-width-value').textContent = shadow.width;
+                document.getElementById('shadow-height').value = shadow.height;
+                document.getElementById('shadow-height-value').textContent = shadow.height;
+                document.getElementById('shadow-offsetx').value = shadow.offsetX;
+                document.getElementById('shadow-offsetx-value').textContent = shadow.offsetX;
+                document.getElementById('shadow-offsety').value = shadow.offsetY;
+                document.getElementById('shadow-offsety-value').textContent = shadow.offsetY;
+                document.getElementById('shadow-alpha').value = shadow.alpha;
+                document.getElementById('shadow-alpha-value').textContent = shadow.alpha.toFixed(1);
+                
+                // Draw shadow
+                updateShadowDisplay();
+                
+                // Create all animations for this enemy
+                if (config.animations) {
+                    for (const [animName, animConfig] of Object.entries(config.animations)) {
+                        const animKey = enemyType + '-' + animName;
+                        if (!editorScene.anims.exists(animKey)) {
+                            try {
+                                if (animConfig.individualFrames || (animName === 'walk' && config.individualFrames)) {
+                                    // Create animation from individual frames
+                                    const frames = [];
+                                    const frameCount = animConfig.frameCount || (animConfig.end - (animConfig.start || 0) + 1);
+                                    const framePattern = animConfig.framePattern || config.framePattern;
+                                    
+                                    for (let i = 1; i <= frameCount; i++) {
+                                        frames.push({ key: `${framePattern}${i}` });
+                                    }
+                                    editorScene.anims.create({
+                                        key: animKey,
+                                        frames: frames,
+                                        frameRate: animConfig.rate || 10,
+                                        repeat: animName === 'death' ? 0 : -1
+                                    });
+                                } else if (animConfig.texture) {
+                                    // Animation has its own texture (like death/attack animations)
+                                    if (editorScene.textures.exists(animConfig.texture)) {
+                                        editorScene.anims.create({
+                                            key: animKey,
+                                            frames: editorScene.anims.generateFrameNumbers(animConfig.texture, {
+                                                start: animConfig.start,
+                                                end: animConfig.end
+                                            }),
+                                            frameRate: animConfig.rate || 10,
+                                            repeat: animName === 'death' ? 0 : -1
+                                        });
+                                    }
+                                } else if (!config.isStaticImage) {
+                                    // Create animation from main spritesheet
+                                    editorScene.anims.create({
+                                        key: animKey,
+                                        frames: editorScene.anims.generateFrameNumbers(config.texture, {
+                                            start: animConfig.start,
+                                            end: animConfig.end
+                                        }),
+                                        frameRate: animConfig.rate || 10,
+                                        repeat: animName === 'death' ? 0 : -1
+                                    });
                                 }
-                                editorScene.anims.create({
-                                    key: animKey,
-                                    frames: frames,
-                                    frameRate: config.animations.walk.rate || 10,
-                                    repeat: -1
-                                });
-                            } else if (!config.isStaticImage) {
-                                // Create animation from spritesheet
-                                editorScene.anims.create({
-                                    key: animKey,
-                                    frames: editorScene.anims.generateFrameNumbers(config.texture, {
-                                        start: config.animations.walk.start,
-                                        end: config.animations.walk.end
-                                    }),
-                                    frameRate: config.animations.walk.rate || 10,
-                                    repeat: -1
-                                });
+                            } catch (e) {
+                                console.warn(`Could not create ${animName} animation:`, e);
                             }
                         }
-                    } catch (e) {
-                        console.warn('Could not create animation:', e);
                     }
                 }
                 
-                // Play animation if it exists
-                if (editorScene.anims.exists(animKey)) {
-                    currentSprite.play(animKey);
+                // Play walk animation if it exists
+                const walkKey = enemyType + '-walk';
+                if (editorScene.anims.exists(walkKey)) {
+                    currentSprite.play(walkKey);
                 }
                 
                 // Update info panel
@@ -1236,6 +1874,8 @@
             const offsetX = parseInt(document.getElementById('hitbox-offsetx').value);
             const offsetY = parseInt(document.getElementById('hitbox-offsety').value);
             
+            // Apply the hitbox size and offset
+            // Note: In Phaser, setOffset is from the sprite's top-left corner
             currentSprite.body.setSize(width, height);
             currentSprite.body.setOffset(offsetX, offsetY);
             
@@ -1251,6 +1891,32 @@
             saveData();
         }
         
+        // Center hitbox on sprite
+        function centerHitbox() {
+            if (!currentSprite) return;
+            
+            const width = parseInt(document.getElementById('hitbox-width').value);
+            const height = parseInt(document.getElementById('hitbox-height').value);
+            
+            // Get the sprite's frame dimensions (unscaled)
+            const frameWidth = currentSprite.frame.width;
+            const frameHeight = currentSprite.frame.height;
+            
+            // Calculate offset to center the hitbox
+            // The game uses origin (0,0) so we calculate offset from top-left corner
+            const offsetX = (frameWidth - width) / 2;
+            const offsetY = (frameHeight - height) / 2;
+            
+            // Apply the centered offset
+            document.getElementById('hitbox-offsetx').value = Math.round(offsetX);
+            document.getElementById('hitbox-offsety').value = Math.round(offsetY);
+            
+            // Update the hitbox
+            updateHitbox();
+            
+            showStatus('Hitbox centered on sprite');
+        }
+        
         // Update hitbox display
         function updateHitboxDisplay() {
             hitboxGraphics.clear();
@@ -1260,9 +1926,13 @@
             const body = currentSprite.body;
             
             // Draw hitbox
+            // The game uses center origin (0.5, 0.5) for enemies
+            // Phaser body offset is from the sprite's top-left corner regardless of origin
             hitboxGraphics.lineStyle(2, 0x00ff00, 1);
-            const bodyX = currentSprite.x - currentSprite.displayOriginX + body.offset.x;
-            const bodyY = currentSprite.y - currentSprite.displayOriginY + body.offset.y;
+            const spriteTopLeftX = currentSprite.x - (currentSprite.width * currentSprite.originX * currentSprite.scaleX);
+            const spriteTopLeftY = currentSprite.y - (currentSprite.height * currentSprite.originY * currentSprite.scaleY);
+            const bodyX = spriteTopLeftX + body.offset.x;
+            const bodyY = spriteTopLeftY + body.offset.y;
             hitboxGraphics.strokeRect(bodyX, bodyY, body.width, body.height);
             
             // Draw sprite bounds
@@ -1274,7 +1944,7 @@
                 currentSprite.displayHeight
             );
             
-            // Draw center cross
+            // Draw sprite origin cross (at center)
             hitboxGraphics.lineStyle(1, 0xffff00, 0.5);
             hitboxGraphics.moveTo(currentSprite.x - 10, currentSprite.y);
             hitboxGraphics.lineTo(currentSprite.x + 10, currentSprite.y);
@@ -1307,6 +1977,12 @@
             updateHitboxDisplay();
         }
         
+        function toggleShadow() {
+            if (currentShadow) {
+                currentShadow.setVisible(document.getElementById('show-shadow').checked);
+            }
+        }
+        
         function toggleGrid() {
             if (gridGraphics) {
                 gridGraphics.setVisible(document.getElementById('show-grid').checked);
@@ -1317,7 +1993,112 @@
             if (editorScene) {
                 const isDark = document.getElementById('dark-background').checked;
                 editorScene.cameras.main.setBackgroundColor(isDark ? '#1a1a1a' : '#f0f0f0');
+                // Also affect tile visibility
+                if (editorScene.tileBackground) {
+                    const tileSelect = document.getElementById('tile-select').value;
+                    editorScene.tileBackground.setVisible(isDark && tileSelect !== 'none');
+                }
             }
+        }
+        
+        // Change tile background
+        function changeTileBackground() {
+            if (!editorScene) return;
+            
+            const tileSelect = document.getElementById('tile-select').value;
+            const isDark = document.getElementById('dark-background').checked;
+            
+            if (tileSelect === 'none' || !isDark) {
+                editorScene.tileBackground.setVisible(false);
+            } else if (editorScene.textures.exists(tileSelect)) {
+                // Only set texture if it exists
+                if (editorScene.tileBackground.type === 'TileSprite') {
+                    editorScene.tileBackground.setTexture(tileSelect);
+                } else {
+                    // Replace rectangle with tile sprite if tile now exists
+                    editorScene.tileBackground.destroy();
+                    editorScene.tileBackground = editorScene.add.tileSprite(400, 300, 800, 600, tileSelect);
+                    editorScene.tileBackground.setDepth(-5);
+                }
+                editorScene.tileBackground.setVisible(true);
+            } else {
+                console.warn(`Tile texture '${tileSelect}' not found`);
+                editorScene.tileBackground.setVisible(false);
+            }
+        }
+        
+        // Update zoom level
+        function updateZoom() {
+            if (!editorScene) return;
+            
+            const zoom = parseFloat(document.getElementById('zoom-slider').value);
+            document.getElementById('zoom-value').textContent = zoom.toFixed(1) + 'x';
+            
+            editorScene.cameras.main.setZoom(zoom);
+        }
+        
+        // Reset zoom
+        function resetZoom() {
+            document.getElementById('zoom-slider').value = 1;
+            updateZoom();
+        }
+        
+        // Update shadow
+        function updateShadow() {
+            if (!currentSprite || !currentEnemy) return;
+            
+            const width = parseInt(document.getElementById('shadow-width').value);
+            const height = parseInt(document.getElementById('shadow-height').value);
+            const offsetX = parseInt(document.getElementById('shadow-offsetx').value);
+            const offsetY = parseInt(document.getElementById('shadow-offsety').value);
+            const alpha = parseFloat(document.getElementById('shadow-alpha').value);
+            
+            // Update value displays
+            document.getElementById('shadow-width-value').textContent = width;
+            document.getElementById('shadow-height-value').textContent = height;
+            document.getElementById('shadow-offsetx-value').textContent = offsetX;
+            document.getElementById('shadow-offsety-value').textContent = offsetY;
+            document.getElementById('shadow-alpha-value').textContent = alpha.toFixed(1);
+            
+            // Save shadow data
+            if (!savedData[currentEnemy]) savedData[currentEnemy] = {};
+            savedData[currentEnemy].shadow = { width, height, offsetX, offsetY, alpha };
+            saveData();
+            
+            // Update shadow display
+            updateShadowDisplay();
+        }
+        
+        function updateShadowDisplay() {
+            if (!currentShadow || !currentSprite) return;
+            
+            const saved = savedData[currentEnemy]?.shadow || {
+                width: 40, height: 12, offsetX: 0, offsetY: 30, alpha: 0.5
+            };
+            
+            currentShadow.clear();
+            currentShadow.fillStyle(0x000000, saved.alpha);
+            currentShadow.fillEllipse(0, 0, saved.width / 2, saved.height / 2);
+            
+            // Position shadow relative to sprite's feet (bottom)
+            // In the game, shadows are positioned based on sprite position + offsetY
+            // The offsetY in the config is the distance from sprite center to shadow center
+            currentShadow.x = currentSprite.x + saved.offsetX;
+            currentShadow.y = currentSprite.y + saved.offsetY;
+            
+            // Draw a reference line to show sprite bottom for easier editing
+            if (document.getElementById('show-hitbox').checked) {
+                const spriteHeight = currentSprite.height * currentSprite.scaleY;
+                const bottomY = currentSprite.y + (spriteHeight / 2);
+                
+                // Draw a thin line at sprite bottom
+                currentShadow.lineStyle(1, 0x00ff00, 0.3);
+                currentShadow.moveTo(-50, bottomY - currentShadow.y);
+                currentShadow.lineTo(50, bottomY - currentShadow.y);
+            }
+            
+            // Ensure shadow is behind sprite
+            currentShadow.setDepth(currentSprite.depth - 1);
         }
         
         // Play animation
@@ -1364,14 +2145,32 @@
             if (!currentEnemy) return;
             
             const config = enemyConfigs[currentEnemy];
+            const controlsDiv = document.getElementById('animation-controls');
             
-            document.getElementById('walk-btn').disabled = !config.animations.walk;
-            document.getElementById('death-btn').disabled = !config.animations.death;
-            document.getElementById('attack-btn').disabled = !config.animations.attack;
+            // Clear existing buttons
+            controlsDiv.innerHTML = '';
             
-            // Reset active state
-            document.querySelectorAll('.anim-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('walk-btn').classList.add('active');
+            // Always add walk button
+            const walkBtn = document.createElement('button');
+            walkBtn.className = 'anim-btn active';
+            walkBtn.id = 'walk-btn';
+            walkBtn.textContent = 'Walk';
+            walkBtn.onclick = () => playAnimation('walk');
+            controlsDiv.appendChild(walkBtn);
+            
+            // Add buttons for other animations
+            if (config.animations) {
+                for (const [animName, animConfig] of Object.entries(config.animations)) {
+                    if (animName === 'walk') continue;
+                    
+                    const btn = document.createElement('button');
+                    btn.className = 'anim-btn';
+                    btn.id = animName + '-btn';
+                    btn.textContent = animName.charAt(0).toUpperCase() + animName.slice(1);
+                    btn.onclick = () => playAnimation(animName);
+                    controlsDiv.appendChild(btn);
+                }
+            }
         }
         
         // Update info panel
@@ -1436,6 +2235,166 @@
                 }
                 
                 showStatus('All configurations reset');
+            }
+        }
+        
+        // Export configuration as JS file
+        function exportConfigFile() {
+            // Collect all configurations
+            const hitboxes = {};
+            const shadows = {};
+            
+            for (const [enemy, data] of Object.entries(savedData)) {
+                if (data.hitbox) {
+                    hitboxes[enemy] = {
+                        width: data.hitbox.width,
+                        height: data.hitbox.height,
+                        offsetX: data.hitbox.offsetX,
+                        offsetY: data.hitbox.offsetY
+                    };
+                }
+                if (data.shadow) {
+                    shadows[enemy] = {
+                        width: data.shadow.width,
+                        height: data.shadow.height,
+                        offsetX: data.shadow.offsetX,
+                        offsetY: data.shadow.offsetY,
+                        alpha: data.shadow.alpha
+                    };
+                }
+            }
+            
+            // Generate the JavaScript file content
+            const jsContent = `// Hitbox and Shadow Configuration for Enemies
+// Generated by Sprite Editor on ${new Date().toISOString()}
+// Copy this file to your game directory as hitbox-config.js
+
+const hitboxConfig = {
+    loaded: true,
+    
+    // Hitbox configurations
+    hitboxes: ${JSON.stringify(hitboxes, null, 8).replace(/^/gm, '    ').trim()},
+    
+    // Shadow configurations
+    shadows: ${JSON.stringify(shadows, null, 8).replace(/^/gm, '    ').trim()},
+    
+    // Helper function to apply hitbox configuration
+    applyHitbox: function(enemy, enemyType) {
+        const config = this.hitboxes[enemyType];
+        if (config) {
+            enemy.body.setSize(config.width, config.height);
+            enemy.body.setOffset(config.offsetX, config.offsetY);
+            return true;
+        }
+        return false;
+    },
+    
+    // Helper function to get shadow configuration
+    getShadow: function(enemyType) {
+        return this.shadows[enemyType] || this.shadows.default;
+    }
+};
+
+// Make available globally
+if (typeof window !== 'undefined') {
+    window.hitboxConfig = hitboxConfig;
+}
+
+// Export for Node.js/require
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = hitboxConfig;
+}`;
+            
+            // Create a blob and download link
+            const blob = new Blob([jsContent], { type: 'application/javascript' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'hitbox-config.js';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showStatus('✅ Configuration exported as hitbox-config.js - Copy to game directory!');
+        }
+        
+        // Save configuration to game
+        async function saveToGame() {
+            try {
+                // Collect all current configurations
+                const config = {
+                    sprites: enemyConfigs,
+                    hitboxes: {},
+                    shadows: {}
+                };
+                
+                // Extract hitbox and shadow data from saved configurations
+                for (const [enemy, data] of Object.entries(savedData)) {
+                    if (data.hitbox) {
+                        config.hitboxes[enemy] = {
+                            width: data.hitbox.width,
+                            height: data.hitbox.height,
+                            offsetX: data.hitbox.offsetX,
+                            offsetY: data.hitbox.offsetY
+                        };
+                    }
+                    if (data.shadow) {
+                        config.shadows[enemy] = {
+                            width: data.shadow.width,
+                            height: data.shadow.height,
+                            offsetX: data.shadow.offsetX,
+                            offsetY: data.shadow.offsetY,
+                            alpha: data.shadow.alpha
+                        };
+                    }
+                }
+                
+                // Send to server
+                const response = await fetch('/save-config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showStatus('✅ Configuration saved to game successfully!');
+                } else {
+                    showStatus('❌ Error saving configuration: ' + result.error);
+                }
+            } catch (error) {
+                showStatus('❌ Error saving configuration: ' + error.message);
+                console.error('Save error:', error);
+            }
+        }
+        
+        // Load configuration from game
+        async function loadFromGame() {
+            try {
+                const response = await fetch('/load-config');
+                if (response.ok) {
+                    const config = await response.json();
+                    
+                    // Update enemy configurations
+                    if (config) {
+                        Object.assign(enemyConfigs, config);
+                        
+                        // Reload current enemy if selected
+                        if (currentEnemy) {
+                            selectEnemy(currentEnemy);
+                        }
+                        
+                        showStatus('✅ Configuration loaded from game successfully!');
+                    }
+                } else {
+                    showStatus('ℹ️ No saved configuration found');
+                }
+            } catch (error) {
+                showStatus('❌ Error loading configuration: ' + error.message);
+                console.error('Load error:', error);
             }
         }
         
