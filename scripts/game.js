@@ -51,6 +51,7 @@ class LoadingScene extends Phaser.Scene {
         this.nextScene = data?.nextScene || 'TitleScene';
         this.sceneData = data?.data || {};
         console.log('LoadingScene init - Received data:', data);
+        console.log('LoadingScene init - Next scene will be:', this.nextScene);
         console.log('LoadingScene init - Scene data to pass:', this.sceneData);
     }
 
@@ -58,335 +59,346 @@ class LoadingScene extends Phaser.Scene {
         console.log('LoadingScene preload() called');
         
         // Load the loading screen image
-        this.load.image('loading-bg', 'art1.png');
+        this.load.image('loading-bg', 'assets/images/art1.png');
         
         // Always load game assets (sprites are needed for gameplay)
         if (!this.textures.exists('title-bg')) {
             console.log('Loading assets inside conditional');
 
         // Load all game assets here
-        this.load.image('title-bg', 'magustitle.png');
-        this.load.image('gameover-bg', 'gameover.png');
-        this.load.image('title-words', 'titlewords.PNG');
+        this.load.image('title-bg', 'assets/images/magustitle.png');
+        this.load.image('gameover-bg', 'assets/images/gameover.png');
+        this.load.image('title-words', 'assets/images/titlewords.PNG');
         
         // Load stage title images
-        this.load.image('fight-title', 'fighttitle.png');
-        this.load.image('forestland-title', 'stagetitles/forestlandtitle.png');
-        this.load.image('caveland-title', 'stagetitles/cavelandtitle.png');
-        this.load.image('desertland-title', 'stagetitles/desertlandtitle.png');
-        this.load.image('lavaland-title', 'stagetitles/lavalandtitle.png');
-        this.load.image('graveland-title', 'stagetitles/gravelandtitle.png');
-        this.load.image('castleland-title', 'stagetitles/castlelandtitle.png');
-        this.load.image('spireland-title', 'stagetitles/spirelandtitle.png');
-        this.load.image('voidland-title', 'stagetitles/voidtitle.PNG');
-        this.load.image('arcadeland-title', 'stagetitles/arcadelandtitle.png');
-        this.load.image('snowland-title', 'stagetitles/snowlandtitle.png');
-        this.load.image('nexus-title', 'stagetitles/nexustitle.png');
+        this.load.image('fight-title', 'assets/images/fighttitle.png');
+        this.load.image('forestland-title', 'assets/ui/stagetitles/forestlandtitle.png');
+        this.load.image('caveland-title', 'assets/ui/stagetitles/cavelandtitle.png');
+        this.load.image('desertland-title', 'assets/ui/stagetitles/desertlandtitle.png');
+        this.load.image('lavaland-title', 'assets/ui/stagetitles/lavalandtitle.png');
+        this.load.image('graveland-title', 'assets/ui/stagetitles/gravelandtitle.png');
+        this.load.image('castleland-title', 'assets/ui/stagetitles/castlelandtitle.png');
+        this.load.image('spireland-title', 'assets/ui/stagetitles/spirelandtitle.png');
+        this.load.image('voidland-title', 'assets/ui/stagetitles/voidtitle.PNG');
+        this.load.image('arcadeland-title', 'assets/ui/stagetitles/arcadelandtitle.png');
+        this.load.image('snowland-title', 'assets/ui/stagetitles/snowlandtitle.png');
+        this.load.image('swampland-title', 'assets/ui/stagetitles/swamplandtitle.PNG');
+        this.load.image('oceanland-title', 'assets/ui/stagetitles/oceanlandtitle.PNG');
+        this.load.image('nexus-title', 'assets/ui/stagetitles/nexustitle.png');
 
         // Load wizard sprites
-        this.load.spritesheet('wizard-idle', 'wizmove/newiz/wizard_idle.PNG', {
+        this.load.spritesheet('wizard-idle', 'assets/sprites/wizmove/newiz/wizard_idle.PNG', {
             frameWidth: 80,
             frameHeight: 80
         });
-        this.load.spritesheet('wizard-fly', 'wizmove/newiz/wizard_fly_forward.png', {
+        this.load.spritesheet('wizard-fly', 'assets/sprites/wizmove/newiz/wizard_fly_forward.png', {
             frameWidth: 80,
             frameHeight: 80
         });
-        this.load.spritesheet('wizard-death', 'wizmove/newiz/wizard_death.PNG', {
+        this.load.spritesheet('wizard-death', 'assets/sprites/wizmove/newiz/wizard_death.PNG', {
             frameWidth: 80,
             frameHeight: 80
         });
         
         // Load P2 wizard sprites (blue palette)
-        this.load.spritesheet('wizard-idle-p2', 'wizmove/newiz/wizard_idle2.PNG', {
+        this.load.spritesheet('wizard-idle-p2', 'assets/sprites/wizmove/newiz/wizard_idle2.PNG', {
             frameWidth: 80,
             frameHeight: 80
         });
-        this.load.spritesheet('wizard-fly-p2', 'wizmove/newiz/wizard_fly_forward2.png', {
+        this.load.spritesheet('wizard-fly-p2', 'assets/sprites/wizmove/newiz/wizard_fly_forward2.png', {
             frameWidth: 80,
             frameHeight: 80
         });
-        this.load.spritesheet('wizard-death-p2', 'wizmove/newiz/wizard_death2.png', {
+        this.load.spritesheet('wizard-death-p2', 'assets/sprites/wizmove/newiz/wizard_death2.png', {
             frameWidth: 80,
             frameHeight: 80
         });
 
         // Load enemy sprites
-        this.load.spritesheet('enemy-walk', 'tree/tronchungo3/walking-sheet.png', {
+        this.load.spritesheet('enemy-walk', 'assets/enemies/tree/tronchungo3/walking-sheet.png', {
             frameWidth: 48,
             frameHeight: 60
         });
 
         // Load tiles and environment
-        this.load.image('dirt-tiles', 'TopDownFantasy_Forest_v1/TopDownFantasy-Forest/Tiles/dirt.png');
+        this.load.image('dirt-tiles', 'assets/TopDownFantasy_Forest_v1/TopDownFantasy-Forest/Tiles/dirt.png');
         // Load grass tile with a specific frame to crop out transparent areas
         // Assuming the actual grass content is in the top-left corner
-        this.load.image('grass-tile', 'grass.PNG');
-        this.load.image('stone-tile', 'stone.png');
-        this.load.image('lava-tile', 'lava.png');
-        this.load.image('desert-tile', 'desert.png');
-        this.load.image('tree', 'foliage.png');
+        this.load.image('grass-tile', 'assets/images/grass.PNG');
+        this.load.image('stone-tile', 'assets/images/stone.png');
+        this.load.image('lava-tile', 'assets/images/lava.png');
+        this.load.image('desert-tile', 'assets/images/desert.png');
+        this.load.image('tree', 'assets/images/foliage.png');
         
         // Load additional stage assets
-        this.load.image('cactus', 'cactuse.png');
-        this.load.image('tombstone', 'tombstone.png');
-        this.load.image('skullfloor-tile', 'skullfloor.png');
+        this.load.image('cactus', 'assets/images/cactuse.png');
+        this.load.image('tombstone', 'assets/images/tombstone.png');
+        this.load.image('skullfloor-tile', 'assets/images/skullfloor.png');
         
         // Load castle obstacles
-        this.load.image('castle-bookshelf', 'castleobstacles/bookshelf_1.png');
-        this.load.image('castle-crate', 'castleobstacles/crate_1.png');
-        this.load.image('castle-table', 'castleobstacles/table_noshadow.png');
-        this.load.image('castle-weapon-rack', 'castleobstacles/weapon_rack.png');
+        this.load.image('castle-bookshelf', 'assets/obstacles/castleobstacles/bookshelf_1.png');
+        this.load.image('castle-crate', 'assets/obstacles/castleobstacles/crate_1.png');
+        this.load.image('castle-table', 'assets/obstacles/castleobstacles/table_noshadow.png');
+        this.load.image('castle-weapon-rack', 'assets/obstacles/castleobstacles/weapon_rack.png');
         
         // Load charge slot upgrade sprite
-        this.load.image('charge-slot', 'chargeslot.png');
+        this.load.image('charge-slot', 'assets/images/chargeslot.png');
         
         // Load level up reward icons
-        this.load.image('meditate-icon', 'meditate.png');
-        this.load.image('element-select-icon', 'elementsekect.png');
-        this.load.image('fusion-icon', 'holdflask.png');
+        this.load.image('meditate-icon', 'assets/images/meditate.png');
+        this.load.image('element-select-icon', 'assets/images/elementsekect.png');
+        this.load.image('fusion-icon', 'assets/images/holdflask.png');
         
         // Load socket sprites for charge slots
-        this.load.image('grey-socket', 'orbs/sockets/greysocket.png');
-        this.load.image('grey-socket-select', 'orbs/sockets/greysocketselect.png');
+        this.load.image('grey-socket', 'assets/effects/orbs/sockets/greysocket.png');
+        this.load.image('grey-socket-select', 'assets/effects/orbs/sockets/greysocketselect.png');
+        
+        // Load passive element orbs
+        this.load.image('joker-orb', 'assets/effects/orbs/joker.png');
+        this.load.image('rook-orb', 'assets/effects/orbs/rook.png');
+        this.load.image('bishop-orb', 'assets/effects/orbs/bishop.png');
+        this.load.image('queen-orb', 'assets/effects/orbs/queen.png');
+        this.load.image('knight-orb', 'assets/effects/orbs/knight.png');
+        this.load.image('king-orb', 'assets/effects/orbs/king.png');
+        this.load.image('saturn-orb', 'assets/effects/orbs/saturn.png');
         
         // Load hitbox editor and config
-        this.load.script('hitbox-editor', 'HitboxEditor.js');
+        this.load.script('hitbox-editor', 'scripts/HitboxEditor.js');
         // Only load the new hitbox-config.js, not the old HitboxConfig.js
-        this.load.script('hitbox-config', 'hitbox-config.js');
+        this.load.script('hitbox-config', 'scripts/hitbox-config.js');
         
         // Load wave element symbol
-        this.load.image('wave-symbol', 'wave.png');
+        this.load.image('wave-symbol', 'assets/images/wave.png');
         
         // Load sand element symbol
-        this.load.image('sand-symbol', 'sand.png');
+        this.load.image('sand-symbol', 'assets/images/sand.png');
         
         // Load gravity element symbol
-        this.load.image('gravity-symbol', 'gravity.png');
+        this.load.image('gravity-symbol', 'assets/images/gravity.png');
         
         // Load star element symbol
-        this.load.image('star-symbol', 'star.png');
+        this.load.image('star-symbol', 'assets/images/star.png');
         
         // Load life element symbol
-        this.load.image('life-symbol', 'life.png');
+        this.load.image('life-symbol', 'assets/images/life.png');
         
         // Load time element symbol
-        this.load.image('time-symbol', 'time.png');
+        this.load.image('time-symbol', 'assets/images/time.png');
         
         // Load moon element symbol
-        this.load.image('moon-symbol', 'moon.png');
+        this.load.image('moon-symbol', 'assets/images/moon.png');
         
         // Load sun element symbol
-        this.load.image('sun-symbol', 'sun.png');
+        this.load.image('sun-symbol', 'assets/images/sun.png');
         
         // Load metal element symbol
-        this.load.image('metal-symbol', 'metal.png');
+        this.load.image('metal-symbol', 'assets/images/metal.png');
         
         // Load additional element symbols
-        this.load.image('smoke-symbol', 'smoke.png');
+        this.load.image('smoke-symbol', 'assets/images/smoke.png');
         
         // Load smoke cloud animation frames
         for (let i = 1; i <= 9; i++) {
-            this.load.image(`smoke-cloud-${i}`, `elementanimations/smokecloud1/Smoke VFX A${i}.png`);
+            this.load.image(`smoke-cloud-${i}`, `assets/effects/elementanimations/smokecloud1/Smoke%20VFX%20A${i}.png`);
         }
         
-        this.load.image('mud-symbol', 'mud.png');
-        this.load.image('earth-symbol', 'earth.png');
-        this.load.image('zodiac-symbol', 'zodiac.png');
-        this.load.image('holy-symbol', 'holy.png');
-        this.load.image('philostone-symbol', 'philostone.png');
+        this.load.image('mud-symbol', 'assets/images/mud.png');
+        this.load.image('earth-symbol', 'assets/images/earth.png');
+        this.load.image('zodiac-symbol', 'assets/images/zodiac.png');
+        this.load.image('holy-symbol', 'assets/images/holy.png');
+        this.load.image('philostone-symbol', 'assets/images/philostone.png');
         
         // Load background music
-        this.load.audio('bgm', 'homonculibgm.mp3');
-        this.load.audio('bgm2', 'bgm2.mp3');
-        this.load.audio('stageselect-bgm', 'VGMA Challenge 08(stageselect).ogg');
-        this.load.audio('title-bgm', 'Ludum Dare 28 03(title).ogg');
-        this.load.audio('forestland-bgm', 'Sketchbook 2024-08-07(forestland).ogg');
-        this.load.audio('caveland-bgm', 'DavidKBD - Pink Bloom Pack - 01 - Pink Bloom(caveland).ogg');
-        this.load.audio('desertland-bgm', 'Sketchbook 2024-06-19(desertland).ogg');
-        this.load.audio('lavaland-bgm', 'Retro_ Spooky Soundscape_ The Whispering Shadows Dungeon _Clement Panchout 2016(lavaland).wav');
-        this.load.audio('graveland-bgm', 'Ludum Dare 32 03\'9graveland).ogg');
-        this.load.audio('castleland-intro-bgm', 'Battle-Dawn_intro(castlelandintro).ogg');
-        this.load.audio('castleland-bgm', 'Battle-Dawn_loop(castlelandloop).ogg');
-        this.load.audio('castleboss-bgm', 'Battle-Vampire(castlebossloop).mp3');
-        this.load.audio('boss1-bgm', 'Sketchbook 2024-12-05(bossloop4).ogg');
-        this.load.audio('boss2-intro-bgm', 'Sketchbook 2024-09-04_IN(bossloop3pt1).ogg');
-        this.load.audio('boss2-loop-bgm', 'Sketchbook 2024-09-04_LOOP(bossloop3pt2).ogg');
-        this.load.audio('boss3-bgm', 'Sketchbook 2024-02-07(bossloop2).ogg');
-        this.load.audio('boss4-bgm', 'DavidKBD - Pink Bloom Pack - 02 - Portal to Underworld(bossloop5).ogg');
-        this.load.audio('demonslime-boss-bgm', 'Clement Panchout _ MW FUP _ Chaotic Boss(demonslime).wav');
+        this.load.audio('bgm', 'assets/audio/homonculibgm.mp3');
+        this.load.audio('bgm2', 'assets/audio/bgm2.mp3');
+        this.load.audio('stageselect-bgm', 'assets/audio/VGMA%20Challenge%2008(stageselect).ogg');
+        this.load.audio('title-bgm', 'assets/audio/Ludum%20Dare%2028%2003(title).ogg');
+        this.load.audio('forestland-bgm', 'assets/audio/Sketchbook%202024-08-07(forestland).ogg');
+        this.load.audio('caveland-bgm', 'assets/audio/DavidKBD%20-%20Pink%20Bloom%20Pack%20-%2001%20-%20Pink%20Bloom(caveland).ogg');
+        this.load.audio('desertland-bgm', 'assets/audio/Sketchbook%202024-06-19(desertland).ogg');
+        this.load.audio('lavaland-bgm', 'assets/audio/Retro_%20Spooky%20Soundscape_%20The%20Whispering%20Shadows%20Dungeon%20_Clement%20Panchout%202016(lavaland).wav');
+        this.load.audio('graveland-bgm', 'assets/audio/Ludum%20Dare%2032%2003\'9graveland).ogg');
+        this.load.audio('castleland-intro-bgm', 'assets/audio/Battle-Dawn_intro(castlelandintro).ogg');
+        this.load.audio('castleland-bgm', 'assets/audio/Battle-Dawn_loop(castlelandloop).ogg');
+        this.load.audio('castleboss-bgm', 'assets/audio/Battle-Vampire(castlebossloop).mp3');
+        this.load.audio('boss1-bgm', 'assets/audio/Sketchbook%202024-12-05(bossloop4).ogg');
+        this.load.audio('boss2-intro-bgm', 'assets/audio/Sketchbook%202024-09-04_IN(bossloop3pt1).ogg');
+        this.load.audio('boss2-loop-bgm', 'assets/audio/Sketchbook%202024-09-04_LOOP(bossloop3pt2).ogg');
+        this.load.audio('boss3-bgm', 'assets/audio/Sketchbook%202024-02-07(bossloop2).ogg');
+        this.load.audio('boss4-bgm', 'assets/audio/DavidKBD%20-%20Pink%20Bloom%20Pack%20-%2002%20-%20Portal%20to%20Underworld(bossloop5).ogg');
+        this.load.audio('demonslime-boss-bgm', 'assets/audio/Clement%20Panchout%20_%20MW%20FUP%20_%20Chaotic%20Boss(demonslime).wav');
 
         // Load element symbols sprite sheets
-        this.load.spritesheet('element-symbols', 'elements.png', {
+        this.load.spritesheet('element-symbols', 'assets/images/elements.png', {
             frameWidth: 273,
             frameHeight: 273
         });
-        this.load.spritesheet('element-symbols2', 'elements2.PNG', {
+        this.load.spritesheet('element-symbols2', 'assets/images/elements2.PNG', {
             frameWidth: 341,
             frameHeight: 341
         });
-        this.load.spritesheet('element-symbols3', 'elements3.PNG', {
+        this.load.spritesheet('element-symbols3', 'assets/images/elements3.PNG', {
             frameWidth: 341,
             frameHeight: 341
         });
         
         // Load new orb images
-        this.load.image('fire-orb', 'orbs/fireorb.png');
-        this.load.image('water-orb', 'orbs/waterorb.png');
-        this.load.image('earth-orb', 'orbs/earthorb.png');
-        this.load.image('air-orb', 'orbs/airorb.png');
-        this.load.image('lightning-orb', 'orbs/lightiningorb.png');
-        this.load.image('arcane-orb', 'orbs/arcaneorb.png');
-        this.load.image('nature-orb', 'orbs/natureorb.png');
-        this.load.image('ice-orb', 'orbs/iceorb.png');
-        this.load.image('lava-orb', 'orbs/lavaorb.png');
-        this.load.image('steam-orb', 'orbs/steamorb.png');
-        this.load.image('poison-orb', 'orbs/poisonorb.png');
-        this.load.image('volcano-orb', 'orbs/volcanorb.png');
-        this.load.image('meteor-orb', 'orbs/meteororb.png');
-        this.load.image('mud-orb', 'orbs/mudorb.png');
-        this.load.image('storm-orb', 'orbs/stormorb.png');
-        this.load.image('crystal-orb', 'orbs/crystalorb.png');
-        this.load.image('death-orb', 'orbs/deathorb.png');
-        this.load.image('time-orb', 'orbs/timeorb.png');
-        this.load.image('sand-orb', 'orbs/sandorb.png');
-        this.load.image('gravity-orb', 'orbs/gravityorb.png');
-        this.load.image('sun-orb', 'orbs/sunorb.png');
-        this.load.image('smoke-orb', 'orbs/smokeorb.png');
-        this.load.image('wave-orb', 'orbs/waveorb.png');
-        this.load.image('star-orb', 'orbs/starorb.png');
-        this.load.image('zodiac-orb', 'orbs/zodiacorb.png');
-        this.load.image('hex-orb', 'orbs/hexorb.png');
-        this.load.image('moon-orb', 'orbs/moonorb.png');
-        this.load.image('metal-orb', 'orbs/metalorb.png');
-        this.load.image('rock-orb', 'orbs/rockorb.png');
-        this.load.image('catalyst-orb', 'orbs/catalystorb.png');
-        this.load.image('holy-orb', 'orbs/holyorb.png');
-        this.load.image('philosopher-orb', 'orbs/philosopherorb.png');
+        this.load.image('fire-orb', 'assets/effects/orbs/fireorb.png');
+        this.load.image('water-orb', 'assets/effects/orbs/waterorb.png');
+        this.load.image('earth-orb', 'assets/effects/orbs/earthorb.png');
+        this.load.image('air-orb', 'assets/effects/orbs/airorb.png');
+        this.load.image('lightning-orb', 'assets/effects/orbs/lightiningorb.png');
+        this.load.image('arcane-orb', 'assets/effects/orbs/arcaneorb.png');
+        this.load.image('nature-orb', 'assets/effects/orbs/natureorb.png');
+        this.load.image('ice-orb', 'assets/effects/orbs/iceorb.png');
+        this.load.image('lava-orb', 'assets/effects/orbs/lavaorb.png');
+        this.load.image('steam-orb', 'assets/effects/orbs/steamorb.png');
+        this.load.image('poison-orb', 'assets/effects/orbs/poisonorb.png');
+        this.load.image('volcano-orb', 'assets/effects/orbs/volcanorb.png');
+        this.load.image('meteor-orb', 'assets/effects/orbs/meteororb.png');
+        this.load.image('mud-orb', 'assets/effects/orbs/mudorb.png');
+        this.load.image('storm-orb', 'assets/effects/orbs/stormorb.png');
+        this.load.image('crystal-orb', 'assets/effects/orbs/crystalorb.png');
+        this.load.image('death-orb', 'assets/effects/orbs/deathorb.png');
+        this.load.image('time-orb', 'assets/effects/orbs/timeorb.png');
+        this.load.image('sand-orb', 'assets/effects/orbs/sandorb.png');
+        this.load.image('gravity-orb', 'assets/effects/orbs/gravityorb.png');
+        this.load.image('sun-orb', 'assets/effects/orbs/sunorb.png');
+        this.load.image('smoke-orb', 'assets/effects/orbs/smokeorb.png');
+        this.load.image('wave-orb', 'assets/effects/orbs/waveorb.png');
+        this.load.image('star-orb', 'assets/effects/orbs/starorb.png');
+        this.load.image('zodiac-orb', 'assets/effects/orbs/zodiacorb.png');
+        this.load.image('hex-orb', 'assets/effects/orbs/hexorb.png');
+        this.load.image('moon-orb', 'assets/effects/orbs/moonorb.png');
+        this.load.image('metal-orb', 'assets/effects/orbs/metalorb.png');
+        this.load.image('rock-orb', 'assets/effects/orbs/rockorb.png');
+        this.load.image('catalyst-orb', 'assets/effects/orbs/catalystorb.png');
+        this.load.image('holy-orb', 'assets/effects/orbs/holyorb.png');
+        this.load.image('philosopher-orb', 'assets/effects/orbs/philosopherorb.png');
 
         // Load slime sprites
         for (let i = 0; i < 4; i++) {
-            this.load.image(`slime-idle-${i}`, `Slime/Individual Sprites/slime-idle-${i}.png`);
-            this.load.image(`slime-die-${i}`, `Slime/Individual Sprites/slime-die-${i}.png`);
+            this.load.image(`slime-idle-${i}`, `assets/Slime/Individual Sprites/slime-idle-${i}.png`);
+            this.load.image(`slime-die-${i}`, `assets/Slime/Individual Sprites/slime-die-${i}.png`);
         }
         
         // Load Club Imp sprites
         for (let i = 1; i <= 6; i++) {
-            this.load.image(`club-imp-walk-${i}`, `impclub/walk_${i}.png`);
+            this.load.image(`club-imp-walk-${i}`, `assets/enemies/impclub/walk_${i}.png`);
         }
         for (let i = 1; i <= 5; i++) {
-            this.load.image(`club-imp-fall-${i}`, `impclub/fall_back_${i}.png`);
-            this.load.image(`club-imp-standup-${i}`, `impclub/stand_up_${i}.png`);
+            this.load.image(`club-imp-fall-${i}`, `assets/enemies/impclub/fall_back_${i}.png`);
+            this.load.image(`club-imp-standup-${i}`, `assets/enemies/impclub/stand_up_${i}.png`);
         }
         
         // Load Axe Imp sprites
         for (let i = 1; i <= 6; i++) {
-            this.load.image(`axe-imp-walk-${i}`, `impaxe/walk_${i}.png`);
+            this.load.image(`axe-imp-walk-${i}`, `assets/enemies/impaxe/walk_${i}.png`);
         }
         for (let i = 1; i <= 4; i++) {
-            this.load.image(`axe-imp-fall-${i}`, `impaxe/fall_back_${i}.png`);
+            this.load.image(`axe-imp-fall-${i}`, `assets/enemies/impaxe/fall_back_${i}.png`);
         }
         for (let i = 1; i <= 5; i++) {
-            this.load.image(`axe-imp-standup-${i}`, `impaxe/stand_up_${i}.png`);
+            this.load.image(`axe-imp-standup-${i}`, `assets/enemies/impaxe/stand_up_${i}.png`);
         }
         
         // Load Kobold sprites
-        this.load.spritesheet('kobold-walk', 'kobold/kobold8frames.png', {
+        this.load.spritesheet('kobold-walk', 'assets/enemies/kobold/kobold8frames.png', {
             frameWidth: 148,
             frameHeight: 96
         });
         
         
         // Load Flying Demon sprites
-        this.load.spritesheet('flying-demon', 'flyingdemon/flamedemon4frames.png', {
+        this.load.spritesheet('flying-demon', 'assets/bosses/flyingdemon/flamedemon4frames.png', {
             frameWidth: 81,
             frameHeight: 71
         });
         
         // Load Dark Bat sprites
-        this.load.spritesheet('dark-bat-fly', 'Bat-IdleFly9frames.png', {
+        this.load.spritesheet('dark-bat-fly', 'assets/images/Bat-IdleFly9frames.png', {
             frameWidth: 64,
             frameHeight: 64
         });
         
         // Load Demon Slime boss sprites
         for (let i = 1; i <= 6; i++) {
-            this.load.image(`demon-slime-idle-${i}`, `demonslime/boss_demon_slime_FREE_v1.0/boss_demon_slime_FREE_v1.0/individual sprites/01_demon_idle/demon_idle_${i}.png`);
+            this.load.image(`demon-slime-idle-${i}`, `assets/bosses/demonslime/boss_demon_slime_FREE_v1.0/boss_demon_slime_FREE_v1.0/individual sprites/01_demon_idle/demon_idle_${i}.png`);
         }
         for (let i = 1; i <= 12; i++) {
-            this.load.image(`demon-slime-walk-${i}`, `demonslime/boss_demon_slime_FREE_v1.0/boss_demon_slime_FREE_v1.0/individual sprites/02_demon_walk/demon_walk_${i}.png`);
+            this.load.image(`demon-slime-walk-${i}`, `assets/bosses/demonslime/boss_demon_slime_FREE_v1.0/boss_demon_slime_FREE_v1.0/individual sprites/02_demon_walk/demon_walk_${i}.png`);
         }
         for (let i = 1; i <= 15; i++) {
-            this.load.image(`demon-slime-cleave-${i}`, `demonslime/boss_demon_slime_FREE_v1.0/boss_demon_slime_FREE_v1.0/individual sprites/03_demon_cleave/demon_cleave_${i}.png`);
+            this.load.image(`demon-slime-cleave-${i}`, `assets/bosses/demonslime/boss_demon_slime_FREE_v1.0/boss_demon_slime_FREE_v1.0/individual sprites/03_demon_cleave/demon_cleave_${i}.png`);
         }
         for (let i = 1; i <= 22; i++) {
-            this.load.image(`demon-slime-death-${i}`, `demonslime/boss_demon_slime_FREE_v1.0/boss_demon_slime_FREE_v1.0/individual sprites/05_demon_death/demon_death_${i}.png`);
+            this.load.image(`demon-slime-death-${i}`, `assets/bosses/demonslime/boss_demon_slime_FREE_v1.0/boss_demon_slime_FREE_v1.0/individual sprites/05_demon_death/demon_death_${i}.png`);
         }
 
         // Load golem sprites - Orange
-        this.load.spritesheet('golem-orange-walk', 'Golem_1/Orange/No_Swoosh_VFX/Golem_1_walk.png', {
+        this.load.spritesheet('golem-orange-walk', 'assets/Golem_1/Orange/No_Swoosh_VFX/Golem_1_walk.png', {
             frameWidth: 90,
             frameHeight: 64
         });
-        this.load.spritesheet('golem-orange-hurt', 'Golem_1/Orange/No_Swoosh_VFX/Golem_1_hurt.png', {
+        this.load.spritesheet('golem-orange-hurt', 'assets/Golem_1/Orange/No_Swoosh_VFX/Golem_1_hurt.png', {
             frameWidth: 90,
             frameHeight: 64
         });
-        this.load.spritesheet('golem-orange-die', 'Golem_1/Orange/No_Swoosh_VFX/Golem_1_die.png', {
+        this.load.spritesheet('golem-orange-die', 'assets/Golem_1/Orange/No_Swoosh_VFX/Golem_1_die.png', {
             frameWidth: 90,
             frameHeight: 64
         });
 
         // Load golem sprites - Blue
-        this.load.spritesheet('golem-blue-walk', 'Golem_1/Blue/No_Swoosh_VFX/Golem_1_walk.png', {
+        this.load.spritesheet('golem-blue-walk', 'assets/Golem_1/Blue/No_Swoosh_VFX/Golem_1_walk.png', {
             frameWidth: 90,
             frameHeight: 64
         });
-        this.load.spritesheet('golem-blue-hurt', 'Golem_1/Blue/No_Swoosh_VFX/Golem_1_hurt.png', {
+        this.load.spritesheet('golem-blue-hurt', 'assets/Golem_1/Blue/No_Swoosh_VFX/Golem_1_hurt.png', {
             frameWidth: 90,
             frameHeight: 64
         });
-        this.load.spritesheet('golem-blue-die', 'Golem_1/Blue/No_Swoosh_VFX/Golem_1_die.png', {
+        this.load.spritesheet('golem-blue-die', 'assets/Golem_1/Blue/No_Swoosh_VFX/Golem_1_die.png', {
             frameWidth: 90,
             frameHeight: 64
         });
 
 
         // Load spell effect sprites
-        this.load.spritesheet('fire-spell', 'spells/fire1.png', {
+        this.load.spritesheet('fire-spell', 'assets/effects/spells/fire1.png', {
             frameWidth: 32,
             frameHeight: 32
         });
 
-        this.load.spritesheet('arcane-spell', 'spells/arcane1.png', {
+        this.load.spritesheet('arcane-spell', 'assets/effects/spells/arcane1.png', {
             frameWidth: 32,
             frameHeight: 32
         });
 
         // Old water spell - kept for compatibility
-        this.load.spritesheet('water-spell', 'spells/water1.png', {
+        this.load.spritesheet('water-spell', 'assets/effects/spells/water1.png', {
             frameWidth: 32,
             frameHeight: 32
         });
         
         // New water ball animations
-        this.load.spritesheet('waterball-projectile', 'elementanimations/waterball/WaterBall - Startup and Infinite.png', {
+        this.load.spritesheet('waterball-projectile', 'assets/effects/elementanimations/waterball/WaterBall%20-%20Startup%20and%20Infinite.png', {
             frameWidth: 64,  // 320 / 5 frames per row
             frameHeight: 64  // 320 / 5 frames per column
         });
         
-        this.load.spritesheet('waterball-impact', 'elementanimations/waterball/WaterBall - Impact.png', {
+        this.load.spritesheet('waterball-impact', 'assets/effects/elementanimations/waterball/WaterBall%20-%20Impact.png', {
             frameWidth: 64,  // 256 / 4 frames per row
             frameHeight: 64  // 256 / 4 frames per column
         });
         
         // Lightning projectile animations
-        this.load.spritesheet('lightning-projectile', 'elementanimations/Thunder Projectile 1/5framesdims160x32.png', {
+        this.load.spritesheet('lightning-projectile', 'assets/effects/elementanimations/Thunder%20Projectile%201/5framesdims160x32.png', {
             frameWidth: 32,  // 160 / 5 frames
             frameHeight: 32  
         });
         
-        this.load.spritesheet('lightning-impact', 'elementanimations/Thunder Hit/5framesdims192x32.png', {
+        this.load.spritesheet('lightning-impact', 'assets/effects/elementanimations/Thunder%20Hit/5framesdims192x32.png', {
             frameWidth: 38,  // 192 / 5 frames (38.4 rounded to 38)
             frameHeight: 32
         });
@@ -394,34 +406,34 @@ class LoadingScene extends Phaser.Scene {
         // Holy projectile animations
         // Load individual frames for holy missile animations
         for (let i = 1; i <= 2; i++) {
-            this.load.image(`holy-initial-${i}`, `elementanimations/holymissle/Holy VFX 01 Initial${i}.png`);
+            this.load.image(`holy-initial-${i}`, `assets/effects/elementanimations/holymissle/Holy%20VFX%2001%20Initial${i}.png`);
         }
         for (let i = 1; i <= 8; i++) {
-            this.load.image(`holy-repeatable-${i}`, `elementanimations/holymissle/Holy VFX 01 Repeatable${i}.png`);
+            this.load.image(`holy-repeatable-${i}`, `assets/effects/elementanimations/holymissle/Holy%20VFX%2001%20Repeatable${i}.png`);
         }
         for (let i = 1; i <= 7; i++) {
-            this.load.image(`holy-impact-${i}`, `elementanimations/holymissle/Holy VFX 01 Impact${i}.png`);
+            this.load.image(`holy-impact-${i}`, `assets/effects/elementanimations/holymissle/Holy%20VFX%2001%20Impact${i}.png`);
         }
         
         // Wind/Air projectile animations
-        this.load.spritesheet('wind-projectile', 'elementanimations/windprojectile/proj3framesx2framesdims96x64.png', {
+        this.load.spritesheet('wind-projectile', 'assets/effects/elementanimations/windprojectile/proj3framesx2framesdims96x64.png', {
             frameWidth: 32,  // 96 / 3 frames per row
             frameHeight: 32  // 64 / 2 rows
         });
         
-        this.load.spritesheet('wind-impact', 'elementanimations/windprojectile/hit3framesx2framesdims96x64.png', {
+        this.load.spritesheet('wind-impact', 'assets/effects/elementanimations/windprojectile/hit3framesx2framesdims96x64.png', {
             frameWidth: 32,  // 96 / 3 frames per row
             frameHeight: 32  // 64 / 2 rows
         });
         
         // Fire projectile animation (both travel and impact in one sheet)
-        this.load.spritesheet('firebolt', 'elementanimations/firebolt/11framesdims528x48.png', {
+        this.load.spritesheet('firebolt', 'assets/effects/elementanimations/firebolt/11framesdims528x48.png', {
             frameWidth: 48,  // 528 / 11 frames
             frameHeight: 48
         });
         
         // Earth projectile animation (6 travel frames + 6 impact frames)
-        this.load.spritesheet('earth-projectile', 'elementanimations/earthprojectile/6framesx2framesdims288x64.png', {
+        this.load.spritesheet('earth-projectile', 'assets/effects/elementanimations/earthprojectile/6framesx2framesdims288x64.png', {
             frameWidth: 48,  // 288 / 6 frames per row
             frameHeight: 32  // 64 / 2 rows
         });
@@ -429,183 +441,183 @@ class LoadingScene extends Phaser.Scene {
         // Ice spike projectile animations (individual frames)
         // Start animation (3 frames)
         for (let i = 1; i <= 3; i++) {
-            this.load.image(`ice-spike-start${i}`, `elementanimations/icespikemissle/VFX 1 Start${i}.png`);
+            this.load.image(`ice-spike-start${i}`, `assets/effects/elementanimations/icespikemissle/VFX%201%20Start${i}.png`);
         }
         // Repeatable/travel animation (10 frames)
         for (let i = 1; i <= 10; i++) {
-            this.load.image(`ice-spike-travel${i}`, `elementanimations/icespikemissle/VFX 1 Repeatable${i}.png`);
+            this.load.image(`ice-spike-travel${i}`, `assets/effects/elementanimations/icespikemissle/VFX%201%20Repeatable${i}.png`);
         }
         // Hit animation (8 frames)
         for (let i = 1; i <= 8; i++) {
-            this.load.image(`ice-spike-hit${i}`, `elementanimations/icespikemissle/VFX 1 Hit${i}.png`);
+            this.load.image(`ice-spike-hit${i}`, `assets/effects/elementanimations/icespikemissle/VFX%201%20Hit${i}.png`);
         }
         
-        this.load.spritesheet('ice-spell', 'spells/ice.PNG', {
+        this.load.spritesheet('ice-spell', 'assets/effects/spells/ice.PNG', {
             frameWidth: 32,
             frameHeight: 32
         });
         
-        this.load.spritesheet('volcano-spell', 'spells/volcano1.PNG', {
+        this.load.spritesheet('volcano-spell', 'assets/effects/spells/volcano1.PNG', {
             frameWidth: 64,
             frameHeight: 64
         });
         
-        this.load.spritesheet('wave-spell', 'spells/wave.PNG', {
+        this.load.spritesheet('wave-spell', 'assets/effects/spells/wave.PNG', {
             frameWidth: 64,
             frameHeight: 66
         });
         
         // Old poison sprite - keeping for compatibility
-        this.load.spritesheet('poison-spell-old', 'spells/poison.PNG', {
+        this.load.spritesheet('poison-spell-old', 'assets/effects/spells/poison.PNG', {
             frameWidth: 32,
             frameHeight: 32
         });
         
         // New poison sprite sheet with 9 frames
-        this.load.spritesheet('poison-spell', 'spells/poison-sheet.png', {
+        this.load.spritesheet('poison-spell', 'assets/effects/spells/poison-sheet.png', {
             frameWidth: 55,
             frameHeight: 41
         });
         
         // XP gem sprite sheet with 9 frames
-        this.load.spritesheet('xp-gem', 'xpgem.PNG', {
+        this.load.spritesheet('xp-gem', 'assets/images/xpgem.PNG', {
             frameWidth: 193,
             frameHeight: 233
         });
         
         // Cave obstacle assets
-        this.load.image('cave-crystal', 'cave/crystal.PNG');
-        this.load.image('cave-rock', 'cave/rock.PNG');
-        this.load.image('cave-stala', 'cave/stala.PNG');
+        this.load.image('cave-crystal', 'assets/obstacles/cave/crystal.PNG');
+        this.load.image('cave-rock', 'assets/obstacles/cave/rock.PNG');
+        this.load.image('cave-stala', 'assets/obstacles/cave/stala.PNG');
         
         // Boss sprites
-        this.load.spritesheet('obelisk-boss', 'obeliskBoss.png', {
+        this.load.spritesheet('obelisk-boss', 'assets/images/obeliskBoss.png', {
             frameWidth: 100,
             frameHeight: 100
         });
         
-        this.load.spritesheet('boss-laser', 'laser.png', {
+        this.load.spritesheet('boss-laser', 'assets/images/laser.png', {
             frameWidth: 300,  // 4200px / 14 frames = 300px per frame
             frameHeight: 100
         });
         
-        this.load.spritesheet('boss-arm-projectile', 'arm_projectile_glowing.png', {
+        this.load.spritesheet('boss-arm-projectile', 'assets/images/arm_projectile_glowing.png', {
             frameWidth: 100,  // 600px / 6 frames = 100px per frame
             frameHeight: 100
         });
 
-        this.load.spritesheet('lightning-spell', 'spells/lightning1.png', {
+        this.load.spritesheet('lightning-spell', 'assets/effects/spells/lightning1.png', {
             frameWidth: 32,
             frameHeight: 32
         });
 
-        this.load.spritesheet('earth-spell', 'spells/earth1.png', {
+        this.load.spritesheet('earth-spell', 'assets/effects/spells/earth1.png', {
             frameWidth: 32,
             frameHeight: 32
         });
 
         // Load individual crystal spell frames
         for (let i = 2; i <= 6; i++) {
-            this.load.image(`crystal-frame-${i}`, `spells/crystalframe${i}.PNG`);
+            this.load.image(`crystal-frame-${i}`, `assets/effects/spells/crystalframe${i}.PNG`);
         }
         
         // Load rock spell animation (6 frames)
-        this.load.spritesheet('rock-spell', 'spells/rock1(6frames).PNG', {
+        this.load.spritesheet('rock-spell', 'assets/effects/spells/rock1(6frames).PNG', {
             frameWidth: 32,
             frameHeight: 30
         });
         
         // Load crystal bullet
-        this.load.image('crystal-bullet', 'spells/crystalbullet.PNG');
+        this.load.image('crystal-bullet', 'assets/effects/spells/crystalbullet.PNG');
         
         // Load gravity spell sprite sheet
-        this.load.spritesheet('gravity-spell', 'spells/gravity1.PNG', {
+        this.load.spritesheet('gravity-spell', 'assets/effects/spells/gravity1.PNG', {
             frameWidth: 64,
             frameHeight: 59
         });
         
         // Load meteor spell sprite sheet
-        this.load.spritesheet('meteor-spell', 'spells/meteor1.PNG', {
+        this.load.spritesheet('meteor-spell', 'assets/effects/spells/meteor1.PNG', {
             frameWidth: 32,
             frameHeight: 38
         });
         
         // Load star spell sprite sheet
-        this.load.spritesheet('star-spell', 'spells/star1(6frames).PNG', {
+        this.load.spritesheet('star-spell', 'assets/effects/spells/star1(6frames).PNG', {
             frameWidth: Math.floor(383 / 6), // 63 pixels per frame
             frameHeight: 46
         });
         
         // Load storm spell sprite sheet
-        this.load.spritesheet('storm-spell', 'spells/thunder1-17frames.PNG', {
+        this.load.spritesheet('storm-spell', 'assets/effects/spells/thunder1-17frames.PNG', {
             frameWidth: 64, // 1088 ÷ 17 frames
             frameHeight: 68
         });
 
         // Load individual air spell frames
         for (let i = 1; i <= 7; i++) {
-            this.load.image(`air-spell-${i}`, `spells/air${i}.png`);
+            this.load.image(`air-spell-${i}`, `assets/effects/spells/air${i}.png`);
         }
 
         // Load bat enemy sprite
-        this.load.spritesheet('bat-fly', 'bateye/Flight.png', {
+        this.load.spritesheet('bat-fly', 'assets/enemies/bateye/Flight.png', {
             frameWidth: 150,
             frameHeight: 150
         });
 
         // Load mushroom enemy sprite
-        this.load.spritesheet('mushroom-run', 'mushroom/Run.png', {
+        this.load.spritesheet('mushroom-run', 'assets/enemies/mushroom/Run.png', {
             frameWidth: 150, // 1200 / 8 frames
             frameHeight: 46  // Actual height of the sprite
         });
         
 
         // Load fire worm enemy sprite
-        this.load.spritesheet('fireworm-walk', 'fireworm/Walk.png', {
+        this.load.spritesheet('fireworm-walk', 'assets/fireworm/Walk.png', {
             frameWidth: 90, // 810 / 9 frames
             frameHeight: 90
         });
 
         // Load summoner enemy sprites
-        this.load.spritesheet('summoner-idle', 'newenemies/summoner/The Summoner idle animation-export.png', {
+        this.load.spritesheet('summoner-idle', 'assets/newenemies/summoner/The%20Summoner%20idle%20animation-export.png', {
             frameWidth: 80, // 960 / 12 frames
             frameHeight: 80
         });
 
-        this.load.spritesheet('summoner-summon', 'newenemies/summoner/summon animation-export.png', {
+        this.load.spritesheet('summoner-summon', 'assets/newenemies/summoner/summon%20animation-export.png', {
             frameWidth: 100, // 1400 / 14 frames
             frameHeight: 80
         });
 
         // Load lost soul enemy sprites
-        this.load.spritesheet('soul-move', 'newenemies/Soul/Soul/move/Soul_move.png', {
+        this.load.spritesheet('soul-move', 'assets/newenemies/Soul/Soul/move/Soul_move.png', {
             frameWidth: 96,
             frameHeight: 96 // 768 / 8 frames
         });
 
-        this.load.spritesheet('soul-attack', 'newenemies/Soul/Soul/attack/Soul_attack.png', {
+        this.load.spritesheet('soul-attack', 'assets/newenemies/Soul/Soul/attack/Soul_attack.png', {
             frameWidth: 96,
             frameHeight: 96 // 960 / 10 frames
         });
 
-        this.load.spritesheet('soul-bullet', 'newenemies/Soul/Soul/attack/bullet.png', {
+        this.load.spritesheet('soul-bullet', 'assets/newenemies/Soul/Soul/attack/bullet.png', {
             frameWidth: 96,
             frameHeight: 96 // 384 / 4 frames
         });
         
         // Load grave-specific soul sprites
-        this.load.spritesheet('soul-move-grave', 'newenemies/Soul/Soul/move/Soul_move-grave.png', {
+        this.load.spritesheet('soul-move-grave', 'assets/newenemies/Soul/Soul/move/Soul_move-grave.png', {
             frameWidth: 96,
             frameHeight: 96 // 768 / 8 frames
         });
         
-        this.load.spritesheet('soul-attack-grave', 'newenemies/Soul/Soul/attack/Soul_attack-grave.png', {
+        this.load.spritesheet('soul-attack-grave', 'assets/newenemies/Soul/Soul/attack/Soul_attack-grave.png', {
             frameWidth: 96,
             frameHeight: 96 // 960 / 10 frames
         });
 
         // Load bloboid enemy sprite
-        this.load.spritesheet('bloboid-walk', 'newenemies/blob/blob minion walk.png', {
+        this.load.spritesheet('bloboid-walk', 'assets/newenemies/blob/blob%20minion%20walk.png', {
             frameWidth: 80, // 640 / 8 frames
             frameHeight: 35
         });
@@ -613,145 +625,151 @@ class LoadingScene extends Phaser.Scene {
         // Sorcerer enemy removed from game
         
         // Load skeleton enemies for grave stage
-        this.load.spritesheet('skeleton-yellow-walk', 'skeleton/Skeleton_01_Yellow_Walk10frames.png', {
+        this.load.spritesheet('skeleton-yellow-walk', 'assets/enemies/skeleton/Skeleton_01_Yellow_Walk10frames.png', {
             frameWidth: 96, // 960 / 10 frames
             frameHeight: 64
         });
         
-        this.load.spritesheet('skeleton-seeker-walk', 'skeleton/skeleton_seeker_walk.png', {
+        this.load.spritesheet('skeleton-seeker-walk', 'assets/enemies/skeleton/skeleton_seeker_walk.png', {
             frameWidth: 120, // Single column, 6 frames
             frameHeight: 120 // 720 / 6 frames
         });
         
-        this.load.spritesheet('skeleton-seeker-spawn', 'skeleton/skeleton_seeker_spawn.png', {
+        this.load.spritesheet('skeleton-seeker-spawn', 'assets/enemies/skeleton/skeleton_seeker_spawn.png', {
             frameWidth: 120, // Single column, 11 frames
             frameHeight: 120 // 1320 / 11 frames
         });
 
         // Load Castle Land enemy sprites with correct dimensions
-        this.load.spritesheet('castle-knight', 'castlelandfoes/knightrun8frames.png', {
+        this.load.spritesheet('castle-knight', 'assets/enemies/castlelandfoes/knightrun8frames.png', {
             frameWidth: 180, // 1440 / 8 frames
             frameHeight: 180
         });
         
-        this.load.spritesheet('castle-rogue', 'castlelandfoes/roguerun6frames.png', {
+        this.load.spritesheet('castle-rogue', 'assets/enemies/castlelandfoes/roguerun6frames.png', {
             frameWidth: 61, // 368 / 6 frames (rounded down) 
             frameHeight: 33
         });
         
-        this.load.spritesheet('castle-soldier', 'castlelandfoes/soldier6frames.png', {
+        this.load.spritesheet('castle-soldier', 'assets/enemies/castlelandfoes/soldier6frames.png', {
             frameWidth: 135, // 810 / 6 frames
             frameHeight: 135
         });
         
         // Load bladekeeper as individual frames (288x128 each)
         for (let i = 1; i <= 8; i++) {
-            this.load.image(`castle-bladekeeper-${i}`, `castlelandfoes/bladekeeper/02_run_${i}.png`);
+            this.load.image(`castle-bladekeeper-${i}`, `assets/enemies/castlelandfoes/bladekeeper/02_run_${i}.png`);
         }
         
-        this.load.spritesheet('castle-squire', 'castlelandfoes/squire8frames.png', {
+        this.load.spritesheet('castle-squire', 'assets/enemies/castlelandfoes/squire8frames.png', {
             frameWidth: 150, // 1200 / 8 frames
             frameHeight: 150
         });
         
         // Load King Nothing boss sprites
-        this.load.image('king-nothing-attack1', 'castlelandfoes/kingnothingboss/Attack1.png');
-        this.load.image('king-nothing-attack2', 'castlelandfoes/kingnothingboss/Attack2.png');
-        this.load.image('king-nothing-attack3', 'castlelandfoes/kingnothingboss/Attack3.png');
-        this.load.image('king-nothing-death', 'castlelandfoes/kingnothingboss/Death.png');
-        this.load.image('king-nothing-run', 'castlelandfoes/kingnothingboss/Run.png');
+        this.load.image('king-nothing-attack1', 'assets/enemies/castlelandfoes/kingnothingboss/Attack1.png');
+        this.load.image('king-nothing-attack2', 'assets/enemies/castlelandfoes/kingnothingboss/Attack2.png');
+        this.load.image('king-nothing-attack3', 'assets/enemies/castlelandfoes/kingnothingboss/Attack3.png');
+        this.load.image('king-nothing-death', 'assets/enemies/castlelandfoes/kingnothingboss/Death.png');
+        this.load.image('king-nothing-run', 'assets/enemies/castlelandfoes/kingnothingboss/Run.png');
 
         // Load chest sprites
-        this.load.spritesheet('chest-idle', 'Chests5frames.PNG', {
+        this.load.spritesheet('chest-idle', 'assets/images/Chests5frames.PNG', {
             frameWidth: 48,
             frameHeight: 27
         });
         
-        this.load.spritesheet('chest-open', 'Chestsopen5frames.PNG', {
+        this.load.spritesheet('chest-open', 'assets/images/Chestsopen5frames.PNG', {
             frameWidth: 48,
             frameHeight: 27
         });
         
         // Load upgrade icons sprite sheet
-        this.load.spritesheet('upgrade-icons', 'upgradeicons10x6.PNG', {
+        this.load.spritesheet('upgrade-icons', 'assets/images/upgradeicons10x6.PNG', {
             frameWidth: 153,  // 1526 / 10 = 152.6, rounded to 153
             frameHeight: 171  // 1024 / 6 = 170.67, rounded to 171
         });
         
         // Load kawaii muffin sprite
-        this.load.image('muffin', 'Kawaii choco muffin.png');
+        this.load.image('muffin', 'assets/images/Kawaii%20choco%20muffin.png');
         
         // Load jar of butterflies sprite
-        this.load.image('butterflyjar', 'butterflyjar.PNG');
+        this.load.image('butterflyjar', 'assets/images/butterflyjar.PNG');
         
         // Load butterfly sprites
-        this.load.spritesheet('butterfly-blue', 'Butterfly/Blue.png', {
+        this.load.spritesheet('butterfly-blue', 'assets/Butterfly/Blue.png', {
             frameWidth: 16,
             frameHeight: 16
         });
-        this.load.spritesheet('butterfly-grey', 'Butterfly/Grey.png', {
+        this.load.spritesheet('butterfly-grey', 'assets/Butterfly/Grey.png', {
             frameWidth: 16,
             frameHeight: 16
         });
-        this.load.spritesheet('butterfly-pink', 'Butterfly/Pink.png', {
+        this.load.spritesheet('butterfly-pink', 'assets/Butterfly/Pink.png', {
             frameWidth: 16,
             frameHeight: 16
         });
-        this.load.spritesheet('butterfly-red', 'Butterfly/Red.png', {
+        this.load.spritesheet('butterfly-red', 'assets/Butterfly/Red.png', {
             frameWidth: 16,
             frameHeight: 16
         });
-        this.load.spritesheet('butterfly-white', 'Butterfly/White.png', {
+        this.load.spritesheet('butterfly-white', 'assets/Butterfly/White.png', {
             frameWidth: 16,
             frameHeight: 16
         });
-        this.load.spritesheet('butterfly-yellow', 'Butterfly/Yellow.png', {
+        this.load.spritesheet('butterfly-yellow', 'assets/Butterfly/Yellow.png', {
             frameWidth: 16,
             frameHeight: 16
         });
         
         // Load flamethrower sprite
-        this.load.image('flamethrower', 'firebreath.png');
+        this.load.image('flamethrower', 'assets/images/firebreath.png');
         
         // Load weakspot rune sprite
-        this.load.image('weakspot-rune', 'weakspotrune.png');
+        this.load.image('weakspot-rune', 'assets/images/weakspotrune.png');
         
         // Load Arcane Archer boss sprites
-        this.load.spritesheet('archer-boss-shoot', 'archerboss/boss2archershoot7frames.png', {
+        this.load.spritesheet('archer-boss-shoot', 'assets/bosses/archerboss/boss2archershoot7frames.png', {
             frameWidth: 453 / 7, // 64.7 rounded to 65
             frameHeight: 54
         });
         
-        this.load.spritesheet('archer-boss-roll', 'archerboss/boss2archerroll7frames.png', {
+        this.load.spritesheet('archer-boss-roll', 'assets/bosses/archerboss/boss2archerroll7frames.png', {
             frameWidth: 456 / 7, // 65.1 rounded to 65
             frameHeight: 54
         });
         
-        this.load.spritesheet('archer-boss-walk', 'archerboss/boss2archerwalk8frames.png', {
+        this.load.spritesheet('archer-boss-walk', 'assets/bosses/archerboss/boss2archerwalk8frames.png', {
             frameWidth: 510 / 8, // 63.75 rounded to 64
             frameHeight: 54
         });
         
-        this.load.spritesheet('archer-boss-death', 'archerboss/boss2archerdeath8frames.png', {
+        this.load.spritesheet('archer-boss-death', 'assets/bosses/archerboss/boss2archerdeath8frames.png', {
             frameWidth: 510 / 8, // Same width as walk animation
             frameHeight: 54
         });
         
-        this.load.image('archer-projectile', 'archerboss/projectile.png');
+        this.load.image('archer-projectile', 'assets/bosses/archerboss/projectile.png');
         
         // Load obelisk sprites
-        this.load.spritesheet('obelisk-idle', 'Obelisk_demo/Obelisk.png', {
+        this.load.spritesheet('obelisk-idle', 'assets/Obelisk_demo/Obelisk.png', {
             frameWidth: 2660 / 14, // 190 pixels per frame
             frameHeight: 240
         });
         
-        this.load.spritesheet('obelisk-effects', 'Obelisk_demo/Obelisk_effects.png', {
+        this.load.spritesheet('obelisk-effects', 'assets/Obelisk_demo/Obelisk_effects.png', {
             frameWidth: 2660 / 14, // 190 pixels per frame
             frameHeight: 240
+        });
+        
+        // Load blood tower sprite (11 frames)
+        this.load.spritesheet('blood-tower', 'assets/BloodMoonTower_free_version/RedMoonTower_free_idle_animation..png', {
+            frameWidth: 100, // Correct width per frame (1100 / 11)
+            frameHeight: 140  // Updated height to match actual image
         });
         
         // Load voidkin sprite for void stage
-        this.load.spritesheet('voidkin', 'voidkin15frames.png', {
+        this.load.spritesheet('voidkin', 'assets/images/voidkin15frames.png', {
             frameWidth: 3360 / 15, // 224 pixels per frame
             frameHeight: 240
         });
@@ -759,124 +777,124 @@ class LoadingScene extends Phaser.Scene {
         // Load Nekros boss sprites (individual frames)
         // Walk animation
         for (let i = 1; i <= 12; i++) {
-            this.load.image(`nekros-walk-${i}`, `Nekros/walk/walk_${i}.png`);
+            this.load.image(`nekros-walk-${i}`, `assets/bosses/Nekros/walk/walk_${i}.png`);
         }
         
         // Fly animation
         for (let i = 1; i <= 6; i++) {
-            this.load.image(`nekros-fly-${i}`, `Nekros/fly/fly_${i}.png`);
+            this.load.image(`nekros-fly-${i}`, `assets/bosses/Nekros/fly/fly_${i}.png`);
         }
         
         // Attack 1 animation
         for (let i = 1; i <= 7; i++) {
-            this.load.image(`nekros-attack1-${i}`, `Nekros/1atk/1atk_${i}.png`);
+            this.load.image(`nekros-attack1-${i}`, `assets/bosses/Nekros/1atk/1atk_${i}.png`);
         }
         
         // Attack 2 animation
         for (let i = 1; i <= 9; i++) {
-            this.load.image(`nekros-attack2-${i}`, `Nekros/2atk/2atk_${i}.png`);
+            this.load.image(`nekros-attack2-${i}`, `assets/bosses/Nekros/2atk/2atk_${i}.png`);
         }
         
         // Death animation
         for (let i = 1; i <= 11; i++) {
-            this.load.image(`nekros-death-${i}`, `Nekros/death/death_${i}.png`);
+            this.load.image(`nekros-death-${i}`, `assets/bosses/Nekros/death/death_${i}.png`);
         }
         
         // Hurt animation
         for (let i = 1; i <= 5; i++) {
-            this.load.image(`nekros-hurt-${i}`, `Nekros/hurt/hurt_${i}.png`);
+            this.load.image(`nekros-hurt-${i}`, `assets/bosses/Nekros/hurt/hurt_${i}.png`);
         }
         
         // Load forest enemy sprites
-        this.load.spritesheet('giantfly-walk', 'forestlandfoes/giantflywalk4frames.png', {
+        this.load.spritesheet('giantfly-walk', 'assets/enemies/forestlandfoes/giantflywalk4frames.png', {
             frameWidth: 32,
             frameHeight: 29  // Actual height: 128x29 / 4 frames
         });
-        this.load.spritesheet('giantfly-death', 'forestlandfoes/giantflydeath6frames.png', {
+        this.load.spritesheet('giantfly-death', 'assets/enemies/forestlandfoes/giantflydeath6frames.png', {
             frameWidth: 32,
             frameHeight: 30  // Actual height: 192x30 / 6 frames
         });
         
-        this.load.spritesheet('squirrel-walk', 'forestlandfoes/squirrelwalk8frames.png', {
+        this.load.spritesheet('squirrel-walk', 'assets/enemies/forestlandfoes/squirrelwalk8frames.png', {
             frameWidth: 32,
             frameHeight: 21  // Actual height: 256x21 / 8 frames
         });
-        this.load.spritesheet('squirrel-death', 'forestlandfoes/squirreldeath4frames.png', {
+        this.load.spritesheet('squirrel-death', 'assets/enemies/forestlandfoes/squirreldeath4frames.png', {
             frameWidth: 32,
             frameHeight: 16  // Actual height: 128x16 / 4 frames
         });
         
-        this.load.spritesheet('redpanda-walk', 'forestlandfoes/redpandawalk8frames.png', {
+        this.load.spritesheet('redpanda-walk', 'assets/enemies/forestlandfoes/redpandawalk8frames.png', {
             frameWidth: 32,
             frameHeight: 18  // Actual height: 256x18 / 8 frames
         });
         // Red panda death animation - now using the correct 8-frame version
-        this.load.spritesheet('redpanda-death', 'forestlandfoes/redpandadeath8frames.png', {
+        this.load.spritesheet('redpanda-death', 'assets/enemies/forestlandfoes/redpandadeath8frames.png', {
             frameWidth: 32,
             frameHeight: 18  // Actual height: 256x18 / 8 frames
         });
         
         // Load cave enemy sprites
-        this.load.spritesheet('brainmole-walk', 'cavelandfoes/brainmole4frames.png', {
+        this.load.spritesheet('brainmole-walk', 'assets/enemies/cavelandfoes/brainmole4frames.png', {
             frameWidth: 32,
             frameHeight: 32
         });
-        this.load.spritesheet('brainmole-death', 'cavelandfoes/brainmoledeath7frames.png', {
+        this.load.spritesheet('brainmole-death', 'assets/enemies/cavelandfoes/brainmoledeath7frames.png', {
             frameWidth: 32,
             frameHeight: 32
         });
         
-        this.load.spritesheet('intellectdevourer-walk', 'cavelandfoes/intellectdevourer8frames.png', {
+        this.load.spritesheet('intellectdevourer-walk', 'assets/enemies/cavelandfoes/intellectdevourer8frames.png', {
             frameWidth: 32,
             frameHeight: 20  // Actual height: 256x20 / 8 frames
         });
-        this.load.spritesheet('intellectdevourer-death', 'cavelandfoes/intellectdevourerdeath4frames.png', {
+        this.load.spritesheet('intellectdevourer-death', 'assets/enemies/cavelandfoes/intellectdevourerdeath4frames.png', {
             frameWidth: 32,
             frameHeight: 16  // Actual height: 128x16 / 4 frames
         });
         
         // Load wraith sprites
-        this.load.spritesheet('wraith-walk', 'scythewraith/scythewraithwalk8frames.png', {
+        this.load.spritesheet('wraith-walk', 'assets/bosses/scythewraith/scythewraithwalk8frames.png', {
             frameWidth: 64,
             frameHeight: 64
         });
-        this.load.spritesheet('wraith-attack', 'scythewraith/scythewraithattack8frames.png', {
+        this.load.spritesheet('wraith-attack', 'assets/bosses/scythewraith/scythewraithattack8frames.png', {
             frameWidth: 64,
             frameHeight: 64
         });
-        this.load.spritesheet('wraith-death', 'scythewraith/scythewraithdeath8frames.png', {
+        this.load.spritesheet('wraith-death', 'assets/bosses/scythewraith/scythewraithdeath8frames.png', {
             frameWidth: 64,
             frameHeight: 64
         });
         
         // Load desert land enemy sprites
-        this.load.spritesheet('cobra-walk', 'desertlandfoes/cobra8frames.png', {
+        this.load.spritesheet('cobra-walk', 'assets/enemies/desertlandfoes/cobra8frames.png', {
             frameWidth: 32,
             frameHeight: 20  // Actual height from sprite file
         });
-        this.load.spritesheet('cobra-death', 'desertlandfoes/cobradeath6frames.png', {
+        this.load.spritesheet('cobra-death', 'assets/enemies/desertlandfoes/cobradeath6frames.png', {
             frameWidth: 32,
             frameHeight: 20  // Actual height from sprite file
         });
         
-        this.load.spritesheet('cactuse-walk', 'desertlandfoes/cactuse8frames.png', {
+        this.load.spritesheet('cactuse-walk', 'assets/enemies/desertlandfoes/cactuse8frames.png', {
             frameWidth: 32,
             frameHeight: 26  // Actual height from sprite file
         });
-        this.load.spritesheet('cactuse-death', 'desertlandfoes/cactusedeath5frames.png', {
+        this.load.spritesheet('cactuse-death', 'assets/enemies/desertlandfoes/cactusedeath5frames.png', {
             frameWidth: 32,
             frameHeight: 22  // Death animation has different height
         });
         
-        this.load.spritesheet('armadillo-walk', 'desertlandfoes/armadillo8frames.png', {
+        this.load.spritesheet('armadillo-walk', 'assets/enemies/desertlandfoes/armadillo8frames.png', {
             frameWidth: 32,
             frameHeight: 18  // Actual height from sprite file
         });
-        this.load.spritesheet('armadillo-ball', 'desertlandfoes/armadilloball8frames.png', {
+        this.load.spritesheet('armadillo-ball', 'assets/enemies/desertlandfoes/armadilloball8frames.png', {
             frameWidth: 32,
             frameHeight: 18  // Ball animation same height
         });
-        this.load.spritesheet('armadillo-death', 'desertlandfoes/armadillodeath3frames.png', {
+        this.load.spritesheet('armadillo-death', 'assets/enemies/desertlandfoes/armadillodeath3frames.png', {
             frameWidth: 32,
             frameHeight: 17  // Death animation slightly different
         });
@@ -885,82 +903,82 @@ class LoadingScene extends Phaser.Scene {
         
         // Load character sprites and tarot cards (always load these)
         // Load Orb character sprites
-        this.load.spritesheet('orb-idle', 'homunculicharacters/orbidle10framesdims640x64.png', {
+        this.load.spritesheet('orb-idle', 'assets/sprites/homunculicharacters/orbidle10framesdims640x64.png', {
             frameWidth: 64,
             frameHeight: 64
         });
-        this.load.spritesheet('orb-walk', 'homunculicharacters/orbwalk8framesdims512x64.png', {
+        this.load.spritesheet('orb-walk', 'assets/sprites/homunculicharacters/orbwalk8framesdims512x64.png', {
             frameWidth: 64,
             frameHeight: 64
         });
-        this.load.spritesheet('orb-spawn', 'homunculicharacters/orbspawn8framesdims512x64.png', {
+        this.load.spritesheet('orb-spawn', 'assets/sprites/homunculicharacters/orbspawn8framesdims512x64.png', {
             frameWidth: 64,
             frameHeight: 64
         });
         
         // Load Grim character sprites  
-        this.load.spritesheet('grim-idle', 'homunculicharacters/grimidle8framesx2framesdims512x128.png', {
+        this.load.spritesheet('grim-idle', 'assets/sprites/homunculicharacters/grimidle8framesx2framesdims512x128.png', {
             frameWidth: 64,
             frameHeight: 64
         });
-        this.load.spritesheet('grim-walk', 'homunculicharacters/grimwalk6framesdimsdims384x64.png', {
+        this.load.spritesheet('grim-walk', 'assets/sprites/homunculicharacters/grimwalk6framesdimsdims384x64.png', {
             frameWidth: 64,
             frameHeight: 64
         });
-        this.load.spritesheet('grim-death', 'homunculicharacters/grimdeath8framesx3framesdims512x192.png', {
+        this.load.spritesheet('grim-death', 'assets/sprites/homunculicharacters/grimdeath8framesx3framesdims512x192.png', {
             frameWidth: 64,
             frameHeight: 64
         });
-        this.load.spritesheet('grim-spawn', 'homunculicharacters/grimspawn8framesx3framesdims512x192.png', {
+        this.load.spritesheet('grim-spawn', 'assets/sprites/homunculicharacters/grimspawn8framesx3framesdims512x192.png', {
             frameWidth: 64,
             frameHeight: 64
         });
         
         // Load Blip character sprites (vertical spritesheets - single column)
         // Updated dimensions: 64px wide
-        this.load.spritesheet('blip-idle', 'homunculicharacters/blipidle5framesvertical.png', {
+        this.load.spritesheet('blip-idle', 'assets/sprites/homunculicharacters/blipidle5framesvertical.png', {
             frameWidth: 64,
             frameHeight: 39  // 195px total / 5 frames = 39px per frame
         });
-        this.load.spritesheet('blip-walk', 'homunculicharacters/blipwalk8framesvertical.png', {
+        this.load.spritesheet('blip-walk', 'assets/sprites/homunculicharacters/blipwalk8framesvertical.png', {
             frameWidth: 64,
             frameHeight: 39  // 312px total / 8 frames = 39px per frame
         });
-        this.load.spritesheet('blip-death', 'homunculicharacters/blipdeath5framesvertical.png', {
+        this.load.spritesheet('blip-death', 'assets/sprites/homunculicharacters/blipdeath5framesvertical.png', {
             frameWidth: 64,
             frameHeight: 39  // 195px total / 5 frames = 39px per frame
         });
         
         // Load tarot cards
-        this.load.image('wiztarot', 'homunculicharacters/tarot/wiztarot.png');
-        this.load.image('wiztarotback', 'homunculicharacters/tarot/wiztarotback.png');
-        this.load.image('ordtarot', 'homunculicharacters/tarot/ordtarot.png');
-        this.load.image('orbtarotback', 'homunculicharacters/tarot/orbtarotback.png');
-        this.load.image('grimtarot', 'homunculicharacters/tarot/grimtarot.png');
-        this.load.image('grimtarotback', 'homunculicharacters/tarot/grimtarotback.png');
-        this.load.image('bliptarot', 'homunculicharacters/tarot/bliptarot.png');
-        this.load.image('bliptarotback', 'homunculicharacters/tarot/bliptarotback.png');
+        this.load.image('wiztarot', 'assets/sprites/homunculicharacters/tarot/wiztarot.png');
+        this.load.image('wiztarotback', 'assets/sprites/homunculicharacters/tarot/wiztarotback.png');
+        this.load.image('ordtarot', 'assets/sprites/homunculicharacters/tarot/ordtarot.png');
+        this.load.image('orbtarotback', 'assets/sprites/homunculicharacters/tarot/orbtarotback.png');
+        this.load.image('grimtarot', 'assets/sprites/homunculicharacters/tarot/grimtarot.png');
+        this.load.image('grimtarotback', 'assets/sprites/homunculicharacters/tarot/grimtarotback.png');
+        this.load.image('bliptarot', 'assets/sprites/homunculicharacters/tarot/bliptarot.png');
+        this.load.image('bliptarotback', 'assets/sprites/homunculicharacters/tarot/bliptarotback.png');
         
         // Load Eyelor boss sprites
         // Attack animation
         for (let i = 1; i <= 13; i++) {
-            this.load.image(`eyelor-attack-${i}`, `Eyelor/Attack/Eye Beast Attack${i}.png`);
+            this.load.image(`eyelor-attack-${i}`, `assets/bosses/Eyelor/Attack/Eye%20Beast%20Attack${i}.png`);
         }
         
         // Death animation
         for (let i = 1; i <= 15; i++) {
-            this.load.image(`eyelor-death-${i}`, `Eyelor/Death/Eye Beast Death${i}.png`);
+            this.load.image(`eyelor-death-${i}`, `assets/bosses/Eyelor/Death/Eye%20Beast%20Death${i}.png`);
         }
         
         // Movement animation
         for (let i = 1; i <= 13; i++) {
-            this.load.image(`eyelor-move-${i}`, `Eyelor/Movement/Eye Beast Moving${i}.png`);
+            this.load.image(`eyelor-move-${i}`, `assets/bosses/Eyelor/Movement/Eye%20Beast%20Moving${i}.png`);
         }
         
         // Void ball projectile
         for (let i = 1; i <= 3; i++) {
-            this.load.image(`void-ball-${i}`, `Eyelor/Void Ball Projectilep/Void Ball Projectile${i}.png`);
-            this.load.image(`projectile-destroyed-${i}`, `Eyelor/Void Ball Projectilep/Projectile Destroyed${i}.png`);
+            this.load.image(`void-ball-${i}`, `assets/bosses/Eyelor/Void%20Ball%20Projectilep/Void%20Ball%20Projectile${i}.png`);
+            this.load.image(`projectile-destroyed-${i}`, `assets/bosses/Eyelor/Void%20Ball%20Projectilep/Projectile%20Destroyed${i}.png`);
         }
     }
 
@@ -1502,7 +1520,7 @@ class TitleScene extends Phaser.Scene {
                             'dust', 'lava', 'steam', 'poison', 'volcano', 'ice', 'meteor', 'mud', 
                             'storm', 'crystal', 'death', 'time', 'sand', 'gravity', 'sun', 'smoke', 
                             'wave', 'star', 'zodiac', 'hex', 'venom', 'moon', 'nature', 'life', 
-                            'philosopherstone', 'halo'];
+                            'philosopherstone', 'halo', 'rook', 'bishop', 'joker'];
         const elements = allElements;
         const savedElement = localStorage.getItem('startElement') || 'none';
         let currentElementIndex = elements.indexOf(savedElement);
@@ -2371,7 +2389,10 @@ class TitleScene extends Phaser.Scene {
 class StageSelectScene extends Phaser.Scene {
     constructor() {
         super({ key: 'StageSelectScene' });
-        this.selectedStage = 8; // Start with Nexus selected
+        this.selectedStage = 11; // Start with Nexus selected (now at index 11 after adding 3 stages)
+        
+        // Initialize detail view state
+        this.detailViewActive = false;
         
         // Character selection state
         this.characterSelectionMode = false;
@@ -2385,6 +2406,12 @@ class StageSelectScene extends Phaser.Scene {
         // Always enable keyboard input when entering this scene
         this.input.keyboard.enabled = true;
         
+        // Track if we're transitioning internally (from character select to stage select)
+        this.isInternalTransition = false;
+        
+        // Always reset detail view state when initializing the scene
+        this.detailViewActive = false;
+        
         // Check if we should show character selection
         if (data && data.fromTitle) {
             this.characterSelectionMode = true;
@@ -2396,56 +2423,56 @@ class StageSelectScene extends Phaser.Scene {
             this.characterSelectionMode = true;
             this.currentPlayer = 'p2';
             this.selectedCard = null;
+        } else if (data && data.fromCharacterSelect) {
+            // Coming from GameOverScene or other scenes after character selection
+            // Ensure we're not in character selection mode
+            this.characterSelectionMode = false;
+        } else {
+            // Default to normal stage select mode
+            this.characterSelectionMode = false;
         }
     }
 
     preload() {
         // Load island sprites
-        this.load.image('island-forest', 'islands/forest.png');
-        this.load.image('island-cave', 'islands/cave.png');
-        this.load.image('island-sand', 'islands/sandpyramid.png');
-        this.load.image('island-volcano', 'islands/volcano.png');
-        this.load.image('island-grave', 'islands/grave.png');
-        this.load.image('island-castle', 'islands/castle.png');
-        this.load.image('island-spire', 'islands/spire.png');
-        this.load.image('island-crystal', 'islands/crystal.png');
+        this.load.image('island-forest', 'assets/ui/islands/forest.png');
+        this.load.image('island-cave', 'assets/ui/islands/cave.png');
+        this.load.image('island-sand', 'assets/ui/islands/sandpyramid.png');
+        this.load.image('island-volcano', 'assets/ui/islands/volcano.png');
+        this.load.image('island-grave', 'assets/ui/islands/grave.png');
+        this.load.image('island-castle', 'assets/ui/islands/castle.png');
+        this.load.image('island-spire', 'assets/ui/islands/spire.png');
+        this.load.image('island-crystal', 'assets/ui/islands/crystal.png');
         
         // Load planet sprites
-        this.load.image('planet-forest', 'planets/forestland.png');
-        this.load.image('planet-cave', 'planets/caveland.png');
-        this.load.image('planet-sand', 'planets/desertland.png');
-        this.load.image('planet-lava', 'planets/lavaland.png');
-        this.load.image('planet-grave', 'planets/graveland.png');
-        this.load.image('planet-castle', 'planets/castleland.png');
-        this.load.image('planet-spire', 'planets/spireland.png');
-        this.load.image('planet-snow', 'planets/snowland.png');
+        this.load.image('planet-forest', 'assets/ui/planets/forestland.png');
+        this.load.image('planet-cave', 'assets/ui/planets/caveland.png');
+        this.load.image('planet-sand', 'assets/ui/planets/desertland.png');
+        this.load.image('planet-swamp', 'assets/ui/planets/swampland.png');
+        this.load.image('planet-snow', 'assets/ui/planets/snowland.png');
+        this.load.image('planet-ocean', 'assets/ui/planets/oceanland.png');
+        this.load.image('planet-lava', 'assets/ui/planets/lavaland.png');
+        this.load.image('planet-grave', 'assets/ui/planets/graveland.png');
+        this.load.image('planet-castle', 'assets/ui/planets/castleland.png');
+        this.load.image('planet-spire', 'assets/ui/planets/spireland.png');
         
         // Load essence sprite for Nexus
-        this.load.image('essence', 'essence.png');
+        this.load.image('essence', 'assets/images/essence.png');
         
-        // Load stage title images
-        this.load.image('title-forest', 'stagetitles/forestlandtitle.png');
-        this.load.image('title-cave', 'stagetitles/cavelandtitle.png');
-        this.load.image('title-sand', 'stagetitles/desertlandtitle.png');
-        this.load.image('title-lava', 'stagetitles/lavalandtitle.png');
-        this.load.image('title-grave', 'stagetitles/gravelandtitle.png');
-        this.load.image('title-castle', 'stagetitles/castlelandtitle.png');
-        this.load.image('title-spire', 'stagetitles/spirelandtitle.png');
-        this.load.image('title-void', 'stagetitles/voidtitle.PNG');
-        this.load.image('title-arcade', 'stagetitles/arcadelandtitle.png');
+        // Stage title images are already loaded in the main game preload
         
         // Load arcade assets
-        this.load.image('arcademachine', 'arcademachine.png');
-        this.load.image('arcadeoverlay', 'arcadeoverlay.png');
-        this.load.image('arcade-controlpanel', 'arcadeoverlay-export.png');
+        this.load.image('arcademachine', 'assets/images/arcademachine.png');
+        this.load.image('arcadeoverlay', 'assets/images/arcadeoverlay.png');
+        this.load.image('arcade-controlpanel', 'assets/images/arcadeoverlay-export.png');
         
         // Load orb sprites for arcade game
-        this.load.image('orb-fire', 'orbs/fireorb.png');
-        this.load.image('orb-water', 'orbs/waterorb.png');
-        this.load.image('orb-nature', 'orbs/natureorb.png');
-        this.load.image('orb-lightning', 'orbs/lightiningorb.png');
-        this.load.image('orb-ice', 'orbs/iceorb.png');
-        this.load.image('orb-arcane', 'orbs/arcaneorb.png');
+        this.load.image('orb-fire', 'assets/effects/orbs/fireorb.png');
+        this.load.image('orb-water', 'assets/effects/orbs/waterorb.png');
+        this.load.image('orb-nature', 'assets/effects/orbs/natureorb.png');
+        this.load.image('orb-lightning', 'assets/effects/orbs/lightiningorb.png');
+        this.load.image('orb-ice', 'assets/effects/orbs/iceorb.png');
+        this.load.image('orb-arcane', 'assets/effects/orbs/arcaneorb.png');
     }
 
     create() {
@@ -2455,10 +2482,84 @@ class StageSelectScene extends Phaser.Scene {
         // Re-enable keyboard input
         this.input.keyboard.enabled = true;
         
+        // Start stage select music only if it's not already playing
+        // Check for existing music in the sound manager first
+        let existingMusic = this.sound.get('stageselect-bgm');
+        if (existingMusic && existingMusic.isPlaying) {
+            // Music is already playing, just reference it
+            this.stageSelectMusic = existingMusic;
+        } else if (!this.isInternalTransition) {
+            // Only start new music if not transitioning internally and no music is playing
+            this.stageSelectMusic = this.sound.add('stageselect-bgm', { 
+                loop: true, 
+                volume: 0 // Start at 0 volume
+            });
+            this.stageSelectMusic.play();
+            
+            // Fade in music
+            this.tweens.add({
+                targets: this.stageSelectMusic,
+                volume: 0.5,
+                duration: 2000,
+                ease: 'Power2'
+            });
+        }
+        
+        // Create essential UI elements early (needed for both character selection and stage select)
+        // These were previously created later but are needed when returning from other scenes
+        // Clean up any existing UI elements first to prevent duplicates
+        if (this.descriptionTitleImage) {
+            this.descriptionTitleImage.destroy();
+            this.descriptionTitleImage = null;
+        }
+        if (this.descriptionTitle) {
+            this.descriptionTitle.destroy();
+            this.descriptionTitle = null;
+        }
+        
+        // Now create fresh UI elements
+        this.descriptionTitleImage = this.add.image(400, 72, 'forestland-title');
+        this.descriptionTitleImage.setOrigin(0.5);
+        this.descriptionTitleImage.setScale(0.12);
+        this.descriptionTitleImage.setDepth(100);
+        this.descriptionTitleImage.setVisible(false);
+        
+        this.descriptionTitle = this.add.text(400, 72, '', {
+            fontSize: '24px',
+            color: '#ffd700',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.descriptionTitle.setDepth(100);
+        this.descriptionTitle.setVisible(false);
+        
         // Check if we should show character selection
         if (this.characterSelectionMode) {
             this.createCharacterSelection();
             return; // Don't create the normal stage select yet
+        }
+        
+        // Create the stage select interface
+        this.createStageSelectInterface();
+    }
+    
+    createStageSelectInterface() {
+        // Create description UI elements if they don't exist
+        if (!this.descriptionTitleImage) {
+            this.descriptionTitleImage = this.add.image(400, 72, 'forestland-title');
+            this.descriptionTitleImage.setOrigin(0.5);
+            this.descriptionTitleImage.setScale(0.12);
+            this.descriptionTitleImage.setDepth(100);
+            this.descriptionTitleImage.setVisible(false);
+        }
+        
+        if (!this.descriptionTitle) {
+            this.descriptionTitle = this.add.text(400, 72, '', {
+                fontSize: '24px',
+                color: '#ffd700',
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+            this.descriptionTitle.setDepth(100);
+            this.descriptionTitle.setVisible(false);
         }
         
         // Add input cooldown to prevent button press carryover
@@ -2500,6 +2601,12 @@ class StageSelectScene extends Phaser.Scene {
               icon: 'planet-cave', color: 0x8B4513, x: 400, y: 200 },
             { name: 'Sand Land', unlocked: unlockAllStages || localStorage.getItem('sandLandUnlocked') === 'true', description: 'Ancient pyramids in endless dunes', 
               icon: 'planet-sand', color: 0xFFD700, x: 600, y: 200 },
+            { name: 'Swamp Land', unlocked: unlockAllStages || localStorage.getItem('swampLandUnlocked') === 'true', description: 'Murky wetlands teeming with mysteries', 
+              icon: 'planet-swamp', color: 0x4B7C4B, x: 250, y: 350 },
+            { name: 'Snow Land', unlocked: unlockAllStages || localStorage.getItem('snowLandUnlocked') === 'true', description: 'Frozen wastelands of eternal winter', 
+              icon: 'planet-snow', color: 0xE0FFFF, x: 450, y: 275 },
+            { name: 'Ocean Land', unlocked: unlockAllStages || localStorage.getItem('oceanLandUnlocked') === 'true', description: 'Vast seas hiding ancient secrets', 
+              icon: 'planet-ocean', color: 0x006994, x: 550, y: 350 },
             { name: 'Lava Land', unlocked: unlockAllStages || localStorage.getItem('lavaLandUnlocked') === 'true', description: 'Burning fields of molten rock', 
               icon: 'planet-lava', color: 0xFF4500, x: 300, y: 450 },
             { name: 'Grave Land', unlocked: unlockAllStages || localStorage.getItem('graveLandUnlocked') === 'true', description: 'Where the dead refuse to rest', 
@@ -2518,23 +2625,6 @@ class StageSelectScene extends Phaser.Scene {
         
         // Create deep space/abyss background
         this.cameras.main.setBackgroundColor('#0a0a1a');
-        
-        // Start stage select music with fade in
-        if (!this.stageSelectMusic || !this.stageSelectMusic.isPlaying) {
-            this.stageSelectMusic = this.sound.add('stageselect-bgm', { 
-                loop: true, 
-                volume: 0 // Start at 0 volume
-            });
-            this.stageSelectMusic.play();
-            
-            // Fade in music
-            this.tweens.add({
-                targets: this.stageSelectMusic,
-                volume: 0.5,
-                duration: 2000,
-                ease: 'Power2'
-            });
-        }
         
         // Add floating particles for mystical effect
         this.createAbyssParticles();
@@ -2790,24 +2880,12 @@ class StageSelectScene extends Phaser.Scene {
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
         this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
         this.mKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
-
-        // Create title image for stage names at top of screen
-        this.descriptionTitleImage = this.add.image(400, 72, 'forestland-title'); // Moved down 20%
-        this.descriptionTitleImage.setOrigin(0.5);
-        this.descriptionTitleImage.setScale(0.12); // Scale down by additional 20%
-        this.descriptionTitleImage.setVisible(false);
         
-        // Keep title text as fallback for locked stages
-        this.descriptionTitle = this.add.text(400, 72, '', {
-            fontSize: '24px',
-            color: '#ffd700',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-        this.descriptionTitle.setVisible(false);
+        // UI elements already created at the beginning of create()
         
         // Highlight Nexus initially (it's always unlocked)
-        this.selectedStage = 8; // Nexus is at index 8
-        this.highlightStage(8);
+        this.selectedStage = 11; // Nexus is at index 11
+        this.highlightStage(11);
         
         // Ensure input is enabled (important when returning from game over)
         this.input.enabled = true;
@@ -2815,6 +2893,12 @@ class StageSelectScene extends Phaser.Scene {
     }
     
     showStageDescription(stage) {
+        // Safety check - ensure UI elements exist
+        if (!this.descriptionTitle || !this.descriptionTitleImage) {
+            console.warn('Stage description UI elements not ready');
+            return;
+        }
+        
         // Hide both title elements first
         this.descriptionTitle.setVisible(false);
         this.descriptionTitleImage.setVisible(false);
@@ -2826,29 +2910,40 @@ class StageSelectScene extends Phaser.Scene {
                 'Forest Land': 'forestland-title',
                 'Cave Land': 'caveland-title',
                 'Sand Land': 'desertland-title',
+                'Swamp Land': 'swampland-title',
+                'Snow Land': 'snowland-title',
+                'Ocean Land': 'oceanland-title',
                 'Lava Land': 'lavaland-title',
                 'Grave Land': 'graveland-title',
                 'Castle Land': 'castleland-title',
                 'Spire Land': 'spireland-title',
                 'The Void': 'voidland-title',
                 'Arcade': 'arcadeland-title',
-                'Snow Land': 'snowland-title',
                 'Nexus': 'nexus-title'
             };
             
             const titleKey = titleImageMap[stage.name];
-            if (titleKey && this.textures.exists(titleKey)) {
+            
+            if (titleKey && this.textures.exists(titleKey) && this.descriptionTitleImage) {
                 this.descriptionTitleImage.setTexture(titleKey);
                 this.descriptionTitleImage.setVisible(true);
                 this.descriptionTitleImage.setAlpha(0);
+                this.descriptionTitleImage.setDepth(100); // Ensure it's on top
                 
-                // Shift Void title down and to the left since it's taller
+                // Adjust position and scale based on stage
                 if (stage.name === 'The Void') {
                     this.descriptionTitleImage.x = 300; // Shift left
                     this.descriptionTitleImage.y = 85; // Shift down to prevent cutoff
+                    this.descriptionTitleImage.setScale(0.1);
+                } else if (stage.name === 'Ocean Land' || stage.name === 'Swamp Land') {
+                    // Ocean Land and Swamp Land images are smaller, scale them up more
+                    this.descriptionTitleImage.x = 400; // Center position
+                    this.descriptionTitleImage.y = 72; // Normal position
+                    this.descriptionTitleImage.setScale(0.24); // Double the normal scale
                 } else {
                     this.descriptionTitleImage.x = 400; // Center position
                     this.descriptionTitleImage.y = 72; // Normal position
+                    this.descriptionTitleImage.setScale(0.12);
                 }
                 
                 // Fade in animation
@@ -3583,12 +3678,20 @@ class StageSelectScene extends Phaser.Scene {
         } else {
             // Done with character selection, create the normal stage select
             this.characterSelectionMode = false;
+            this.isInternalTransition = true; // Mark as internal transition
             if (this.charSelectContainer) {
                 this.charSelectContainer.destroy();
                 this.charSelectContainer = null;
             }
             this.children.removeAll();
-            this.create(); // Re-run create to show stage select
+            
+            // Clear references to destroyed UI elements so they get recreated
+            this.descriptionTitleImage = null;
+            this.descriptionTitle = null;
+            
+            // Instead of calling create() which would restart music, 
+            // just create the stage select interface
+            this.createStageSelectInterface();
         }
     }
     
@@ -3678,6 +3781,7 @@ class StageSelectScene extends Phaser.Scene {
         // Handle character selection scrolling if in that mode
         if (this.characterSelectionMode && this.charSelectUpdate) {
             this.charSelectUpdate();
+            return; // Don't process stage selection input while in character selection mode
         }
         
         // Check for second gamepad
@@ -4191,6 +4295,9 @@ class StageSelectScene extends Phaser.Scene {
             'Forest Land': 'forestland-title',
             'Cave Land': 'caveland-title',
             'Sand Land': 'desertland-title',
+            'Swamp Land': 'swampland-title',
+            'Snow Land': 'snowland-title',
+            'Ocean Land': 'oceanland-title',
             'Lava Land': 'lavaland-title',
             'Grave Land': 'graveland-title',
             'Castle Land': 'castleland-title',
@@ -4570,7 +4677,7 @@ class ArcadeScene extends Phaser.Scene {
     
     preload() {
         // Load arcade music
-        this.load.audio('arcade-bgm', 'Sketchbook 2024-05-01_02(arcade).ogg');
+        this.load.audio('arcade-bgm', 'assets/audio/Sketchbook%202024-05-01_02(arcade).ogg');
         
         // Load arcade control panel animation frames
         this.load.image('arcade-frame1', 'arcadeframe1.png');
@@ -4578,12 +4685,12 @@ class ArcadeScene extends Phaser.Scene {
         this.load.image('arcade-frame3', 'arcadeframe3.png');
         
         // Load orb images for arcade gems
-        this.load.image('orb-fire', 'orbs/fireorb.png');
-        this.load.image('orb-water', 'orbs/waterorb.png');
-        this.load.image('orb-nature', 'orbs/natureorb.png');
-        this.load.image('orb-lightning', 'orbs/lightiningorb.png');
-        this.load.image('orb-ice', 'orbs/iceorb.png');
-        this.load.image('orb-arcane', 'orbs/arcaneorb.png');
+        this.load.image('orb-fire', 'assets/effects/orbs/fireorb.png');
+        this.load.image('orb-water', 'assets/effects/orbs/waterorb.png');
+        this.load.image('orb-nature', 'assets/effects/orbs/natureorb.png');
+        this.load.image('orb-lightning', 'assets/effects/orbs/lightiningorb.png');
+        this.load.image('orb-ice', 'assets/effects/orbs/iceorb.png');
+        this.load.image('orb-arcane', 'assets/effects/orbs/arcaneorb.png');
     }
     
     create() {
@@ -5994,37 +6101,49 @@ class CutsceneScene extends Phaser.Scene {
         // Load any cutscene-specific assets here if needed
         // Characters and backgrounds will use existing game assets
         
+        // Load tarot cards for homunculi showcase (use existing tarot card assets)
+        if (!this.textures.exists('wiztarotback')) {
+            this.load.image('wiztarot', 'assets/sprites/homunculicharacters/tarot/wiztarot.png');
+            this.load.image('wiztarotback', 'assets/sprites/homunculicharacters/tarot/wiztarotback.png');
+            this.load.image('ordtarot', 'assets/sprites/homunculicharacters/tarot/ordtarot.png');
+            this.load.image('orbtarotback', 'assets/sprites/homunculicharacters/tarot/orbtarotback.png');
+            this.load.image('grimtarot', 'assets/sprites/homunculicharacters/tarot/grimtarot.png');
+            this.load.image('grimtarotback', 'assets/sprites/homunculicharacters/tarot/grimtarotback.png');
+            this.load.image('bliptarot', 'assets/sprites/homunculicharacters/tarot/bliptarot.png');
+            this.load.image('bliptarotback', 'assets/sprites/homunculicharacters/tarot/bliptarotback.png');
+        }
+        
         // Load space planet sprites for dramatic sundering scene (if not already loaded)
         if (!this.textures.exists('space-planet-1')) {
-            this.load.image('space-planet-1', 'cutscenestuff/spaceplanets/3567478988888887.png');
-            this.load.image('space-planet-2', 'cutscenestuff/spaceplanets/3888646336666666557.png');
-            this.load.image('space-planet-3', 'cutscenestuff/spaceplanets/6643328644.png');
-            this.load.image('space-planet-4', 'cutscenestuff/spaceplanets/665577543328644.png');
-            this.load.image('space-planet-5', 'cutscenestuff/spaceplanets/6666666557.png');
-            this.load.image('space-planet-6', 'cutscenestuff/spaceplanets/6666666557 (1).png');
+            this.load.image('space-planet-1', 'assets/cutscenestuff/spaceplanets/3567478988888887.png');
+            this.load.image('space-planet-2', 'assets/cutscenestuff/spaceplanets/3888646336666666557.png');
+            this.load.image('space-planet-3', 'assets/cutscenestuff/spaceplanets/6643328644.png');
+            this.load.image('space-planet-4', 'assets/cutscenestuff/spaceplanets/665577543328644.png');
+            this.load.image('space-planet-5', 'assets/cutscenestuff/spaceplanets/6666666557.png');
+            this.load.image('space-planet-6', 'assets/cutscenestuff/spaceplanets/6666666557%20(1).png');
         }
         
         // Load element orbs for vortex effect (if not already loaded)
         if (!this.textures.exists('chaos-orb')) {
-            this.load.image('fire-orb', 'orbs/fireorb.png');
-            this.load.image('water-orb', 'orbs/waterorb.png');
-            this.load.image('earth-orb', 'orbs/earthorb.png');
-            this.load.image('air-orb', 'orbs/airorb.png');
-            this.load.image('lightning-orb', 'orbs/lightiningorb.png');
-            this.load.image('ice-orb', 'orbs/iceorb.png');
-            this.load.image('nature-orb', 'orbs/natureorb.png');
-            this.load.image('arcane-orb', 'orbs/arcaneorb.png');
-            this.load.image('poison-orb', 'orbs/poisonorb.png');
-            this.load.image('metal-orb', 'orbs/metalorb.png');
-            this.load.image('crystal-orb', 'orbs/crystalorb.png');
-            this.load.image('void-orb', 'orbs/void.png');
-            this.load.image('holy-orb', 'orbs/holyorb.png');
-            this.load.image('death-orb', 'orbs/deathorb.png');
-            this.load.image('time-orb', 'orbs/timeorb.png');
-            this.load.image('gravity-orb', 'orbs/gravityorb.png');
-            this.load.image('storm-orb', 'orbs/stormorb.png');
-            this.load.image('lava-orb', 'orbs/lavaorb.png');
-            this.load.image('chaos-orb', 'orbs/chaos.png');
+            this.load.image('fire-orb', 'assets/effects/orbs/fireorb.png');
+            this.load.image('water-orb', 'assets/effects/orbs/waterorb.png');
+            this.load.image('earth-orb', 'assets/effects/orbs/earthorb.png');
+            this.load.image('air-orb', 'assets/effects/orbs/airorb.png');
+            this.load.image('lightning-orb', 'assets/effects/orbs/lightiningorb.png');
+            this.load.image('ice-orb', 'assets/effects/orbs/iceorb.png');
+            this.load.image('nature-orb', 'assets/effects/orbs/natureorb.png');
+            this.load.image('arcane-orb', 'assets/effects/orbs/arcaneorb.png');
+            this.load.image('poison-orb', 'assets/effects/orbs/poisonorb.png');
+            this.load.image('metal-orb', 'assets/effects/orbs/metalorb.png');
+            this.load.image('crystal-orb', 'assets/effects/orbs/crystalorb.png');
+            this.load.image('void-orb', 'assets/effects/orbs/void.png');
+            this.load.image('holy-orb', 'assets/effects/orbs/holyorb.png');
+            this.load.image('death-orb', 'assets/effects/orbs/deathorb.png');
+            this.load.image('time-orb', 'assets/effects/orbs/timeorb.png');
+            this.load.image('gravity-orb', 'assets/effects/orbs/gravityorb.png');
+            this.load.image('storm-orb', 'assets/effects/orbs/stormorb.png');
+            this.load.image('lava-orb', 'assets/effects/orbs/lavaorb.png');
+            this.load.image('chaos-orb', 'assets/effects/orbs/chaos.png');
         }
     }
 
@@ -6065,8 +6184,8 @@ class CutsceneScene extends Phaser.Scene {
         // Initialize cutscene slides based on type
         this.initializeCutscene();
         
-        // Add skip prompt
-        const skipText = this.add.text(750, 570, 'Press SPACE to continue | ESC to skip', {
+        // Add skip prompt (ESC only)
+        const skipText = this.add.text(750, 570, 'ESC to skip', {
             fontSize: '14px',
             color: '#888888',
             fontFamily: 'Arial'
@@ -6124,9 +6243,8 @@ class CutsceneScene extends Phaser.Scene {
                 {
                     title: 'The Sundered Galaxy',
                     texts: [
-                        'In the vast expanse of the cosmos...',
-                        'Where stars dance eternal and worlds collide...',
-                        'A great catastrophe shattered the very fabric of reality.'
+                        'The cosmos shattered.',
+                        'Reality itself torn asunder.'
                     ],
                     image: null,
                     titleStyle: { fontSize: '48px', color: '#ffdd44', fontStyle: 'bold' }
@@ -6134,27 +6252,27 @@ class CutsceneScene extends Phaser.Scene {
                 {
                     title: 'The Arcane Awakening',
                     texts: [
-                        'From the rifts between dimensions, magic poured forth.',
-                        'Ancient energies, long dormant, surged through the galaxy.',
-                        'Transforming all it touched with raw elemental power.'
+                        'Magic erupted from dimensional rifts.',
+                        'Raw elemental power transformed worlds.'
                     ],
-                    image: { key: 'wizard-idle', frame: 0, scale: 3, animation: 'wizard-idle' }
+                    image: null,
+                    specialAnimation: 'horizontalTarotCards'
                 },
                 {
                     title: 'Birth of the Homunculi',
                     texts: [
-                        'In hidden laboratories across dying worlds...',
-                        'Alchemists sought to create life anew.',
-                        'The Homunculi were born - beings of pure magical essence.'
+                        'Alchemists created new life.',
+                        'Homunculi - beings of pure magic.'
                     ],
-                    image: { key: 'orb-idle', frame: 0, scale: 2, animation: 'orb-idle' }
+                    image: null,
+                    specialAnimation: 'tarotCards'
                 },
                 {
                     title: 'The Eternal Conflict',
                     texts: [
-                        'But darkness followed in magic\'s wake.',
-                        'Twisted creatures emerged from the void.',
-                        'An endless war began for the soul of the galaxy.'
+                        'Darkness followed.',
+                        'Void creatures emerged.',
+                        'War engulfed the galaxy.'
                     ],
                     image: { key: 'soul-move', frame: 0, scale: 2, animation: 'soul-moving' },
                     additionalImage: { key: 'voidkin', frame: 0, scale: 1.5, animation: 'voidkin-walk' }
@@ -6162,9 +6280,9 @@ class CutsceneScene extends Phaser.Scene {
                 {
                     title: 'Your Destiny Awaits',
                     texts: [
-                        'Now, a new champion rises.',
-                        'Master the elements. Defeat the darkness.',
-                        'Restore balance to the Sundered Galaxy.'
+                        'Rise, champion.',
+                        'Master the elements.',
+                        'Save the galaxy.'
                     ],
                     image: null,
                     transition: 'fadeToTitle'
@@ -6176,6 +6294,10 @@ class CutsceneScene extends Phaser.Scene {
     showSlide(index) {
         if (this.isTransitioning) return;
         this.isTransitioning = true;
+        
+        // Track active typewriter effects
+        this.activeTypewriters = 0;
+        this.allTextComplete = false;
         
         // Clear previous elements
         this.clearCurrentSlide();
@@ -6196,12 +6318,37 @@ class CutsceneScene extends Phaser.Scene {
             this.createElementOrbVortex();
         }
         
+        // Track animation time for special animations
+        let animationTime = 0;
+        
+        // Special tarot card animation for homunculi slide
+        if (slide.specialAnimation === 'tarotCards') {
+            this.createTarotCardAnimation();
+            // Tarot animation takes about 5 seconds total (cards appear, flip, fly away)
+            animationTime = 5500;
+        }
+        
+        // Horizontal tarot card animation for arcane awakening slide
+        if (slide.specialAnimation === 'horizontalTarotCards') {
+            this.createHorizontalTarotAnimation();
+            // Horizontal animation takes about 4 seconds
+            animationTime = 4000;
+        }
+        
         // Skip title display - less is more
         // Title is already in the slide data if needed for reference
         
+        // Calculate total time needed for all text to complete
+        let totalTextTime = 0;
+        
         // Animate texts with typewriter effect
         slide.texts.forEach((text, i) => {
-            this.time.delayedCall(500 + (i * 1500), () => {
+            const delay = 100 + (i * 100); // Much shorter delays between lines
+            const typewriterTime = text.length * 30; // Back to 30ms per character
+            totalTextTime = Math.max(totalTextTime, delay + typewriterTime);
+            
+            this.activeTypewriters++;
+            this.time.delayedCall(delay, () => {
                 this.createTypewriterText(text, 200 + (i * 60));
             });
         });
@@ -6222,9 +6369,14 @@ class CutsceneScene extends Phaser.Scene {
             });
         }
         
-        // Allow continuing after a delay
-        this.time.delayedCall(2000, () => {
+        // Only allow continuing after ALL text AND animations have finished
+        const totalWaitTime = Math.max(totalTextTime + 500, animationTime);
+        this.time.delayedCall(totalWaitTime, () => {
             this.isTransitioning = false;
+            this.allTextComplete = true;
+            
+            // Show continue prompt
+            this.showContinuePrompt();
         });
     }
     
@@ -6263,56 +6415,56 @@ class CutsceneScene extends Phaser.Scene {
                 ease: 'Power2'
             });
             
-            // Float dramatically through space
+            // Float dramatically through space (faster)
             this.tweens.add({
                 targets: planet,
                 x: 400 + Math.random() * 100 - 50,
                 y: 300 + Math.random() * 100 - 50,
-                duration: 4000,
-                delay: i * 200,
+                duration: 2000, // Reduced from 4000
+                delay: i * 100, // Reduced from 200
                 ease: 'Power2.easeInOut',
                 onComplete: () => {
-                    // After floating, converge to center
+                    // After floating, converge to center (faster)
                     this.tweens.add({
                         targets: planet,
                         x: 400,
                         y: 300,
                         scale: 0.1,
-                        duration: 1500,
+                        duration: 800, // Reduced from 1500
                         ease: 'Power3.easeIn'
                     });
                 }
             });
             
-            // Rotation for dramatic effect
+            // Rotation for dramatic effect (faster)
             this.tweens.add({
                 targets: planet,
                 rotation: Math.PI * 2 * (Math.random() > 0.5 ? 1 : -1),
-                duration: 8000,
+                duration: 4000, // Reduced from 8000
                 ease: 'Linear'
             });
         });
         
-        // Create the convergence explosion after planets meet
-        this.time.delayedCall(5500, () => {
-            // Create bright flash at center
-            const flash = this.add.circle(400, 300, 10, 0xffffff);
+        // Create the convergence explosion after planets meet (faster timing)
+        this.time.delayedCall(2800, () => { // Reduced from 5500
+            // Create dimmer flash at center
+            const flash = this.add.circle(400, 300, 10, 0xcccccc); // Dimmer color (was 0xffffff)
             flash.setDepth(200);
             flash.setAlpha(0);
             
-            // Expand and brighten
+            // Expand and brighten (but not as bright)
             this.tweens.add({
                 targets: flash,
-                scale: 50,
-                alpha: 1,
-                duration: 500,
+                scale: 40, // Reduced from 50
+                alpha: 0.6, // Reduced from 1
+                duration: 400, // Reduced from 500
                 ease: 'Power2',
                 onComplete: () => {
                     // Fade to darkness
                     this.tweens.add({
                         targets: flash,
                         alpha: 0,
-                        duration: 1500,
+                        duration: 1000, // Reduced from 1500
                         ease: 'Power2',
                         onComplete: () => {
                             flash.destroy();
@@ -6325,7 +6477,7 @@ class CutsceneScene extends Phaser.Scene {
                             targets: planet,
                             alpha: 0,
                             scale: 0,
-                            duration: 300,
+                            duration: 200, // Reduced from 300
                             ease: 'Power3',
                             onComplete: () => {
                                 planet.destroy();
@@ -6349,6 +6501,177 @@ class CutsceneScene extends Phaser.Scene {
                         }
                     });
                 }
+            });
+        });
+    }
+    
+    createHorizontalTarotAnimation() {
+        // Create tarot cards flying horizontally across screen
+        const tarotCards = [
+            { key: 'wiztarot', back: 'wiztarotback', name: 'Wizard' },
+            { key: 'ordtarot', back: 'orbtarotback', name: 'Orb' },
+            { key: 'grimtarot', back: 'grimtarotback', name: 'Soul' },
+            { key: 'bliptarot', back: 'bliptarotback', name: 'Butterfly' }
+        ];
+        
+        tarotCards.forEach((card, i) => {
+            // Start from left side of screen
+            const startX = -100;
+            const startY = 200 + (i * 80); // Stagger vertically
+            
+            // Create card back
+            const cardBack = this.add.image(startX, startY, card.back);
+            cardBack.setScale(0.3);
+            cardBack.setAlpha(1);
+            cardBack.setDepth(50 + i);
+            
+            // Store for cleanup
+            this.imageElements.push(cardBack);
+            
+            // Fly horizontally across screen with slight wave motion
+            this.tweens.add({
+                targets: cardBack,
+                x: 900, // Fly to right side
+                duration: 3000 + (i * 200), // Slightly different speeds
+                delay: i * 300, // Stagger the start times
+                ease: 'Power1.easeInOut',
+                onComplete: () => {
+                    // Destroy after flying off screen
+                    cardBack.destroy();
+                }
+            });
+            
+            // Add wave motion for more dynamic movement
+            this.tweens.add({
+                targets: cardBack,
+                y: startY + Math.sin(i) * 30,
+                duration: 800,
+                delay: i * 300,
+                yoyo: true,
+                repeat: 2,
+                ease: 'Sine.easeInOut'
+            });
+            
+            // Gentle rotation as they fly
+            this.tweens.add({
+                targets: cardBack,
+                rotation: Math.PI / 8,
+                duration: 1500,
+                delay: i * 300,
+                yoyo: true,
+                repeat: 1,
+                ease: 'Sine.easeInOut'
+            });
+        });
+    }
+    
+    createTarotCardAnimation() {
+        // Create tarot cards for each homunculus
+        const tarotCards = [
+            { key: 'wiztarot', back: 'wiztarotback', name: 'Wizard' },
+            { key: 'ordtarot', back: 'orbtarotback', name: 'Orb' },
+            { key: 'grimtarot', back: 'grimtarotback', name: 'Soul' },
+            { key: 'bliptarot', back: 'bliptarotback', name: 'Butterfly' }
+        ];
+        
+        // Starting positions in a circle
+        const centerX = 400;
+        const centerY = 350;
+        const radius = 200;
+        
+        tarotCards.forEach((card, i) => {
+            const angle = (i / tarotCards.length) * Math.PI * 2;
+            const startX = centerX + Math.cos(angle) * radius;
+            const startY = centerY + Math.sin(angle) * radius;
+            
+            // Create card back first
+            const cardBack = this.add.image(startX, startY, card.back);
+            cardBack.setScale(0.25, 0.25); // 50% smaller - ensure both X and Y are positive
+            cardBack.setAlpha(0);
+            cardBack.setDepth(50 + i);
+            
+            // Store for cleanup
+            this.imageElements.push(cardBack);
+            
+            // Fade in and float
+            this.tweens.add({
+                targets: cardBack,
+                alpha: 1,
+                scale: 0.3, // 50% smaller
+                duration: 800,
+                delay: i * 200,
+                ease: 'Power2'
+            });
+            
+            // Gentle floating motion
+            this.tweens.add({
+                targets: cardBack,
+                x: centerX + Math.cos(angle + this.time.now * 0.001) * (radius - 50),
+                y: centerY + Math.sin(angle + this.time.now * 0.001) * (radius - 50),
+                duration: 3000,
+                delay: i * 200,
+                ease: 'Sine.easeInOut',
+                yoyo: true,
+                repeat: 1
+            });
+            
+            // Rotation
+            this.tweens.add({
+                targets: cardBack,
+                rotation: Math.PI * 2,
+                duration: 4000,
+                delay: i * 200,
+                ease: 'Linear'
+            });
+            
+            // Flip to reveal front after 2 seconds
+            this.time.delayedCall(2000 + (i * 100), () => {
+                // Create card front
+                const cardFront = this.add.image(cardBack.x, cardBack.y, card.key);
+                // Always use positive scale values to ensure card is upright
+                cardFront.setScale(Math.abs(cardBack.scaleX), Math.abs(cardBack.scaleY));
+                cardFront.setDepth(cardBack.depth + 10);
+                // Don't copy rotation during flip to avoid upside down cards
+                cardFront.setRotation(0);
+                
+                this.imageElements.push(cardFront);
+                
+                // Quick flip animation
+                this.tweens.add({
+                    targets: cardBack,
+                    scaleX: 0,
+                    duration: 150,
+                    ease: 'Linear',
+                    onComplete: () => {
+                        cardBack.setVisible(false);
+                        // Flip in the front - ensure positive scale
+                        cardFront.setScale(0, 0.35); // Use fixed positive scale
+                        this.tweens.add({
+                            targets: cardFront,
+                            scaleX: 0.35, // 50% smaller
+                            duration: 150,
+                            ease: 'Linear'
+                        });
+                    }
+                });
+                
+                // After reveal, fly off screen dramatically
+                this.time.delayedCall(1500, () => {
+                    const exitAngle = angle + Math.PI;
+                    const exitX = centerX + Math.cos(exitAngle) * 1000;
+                    const exitY = centerY + Math.sin(exitAngle) * 1000;
+                    
+                    this.tweens.add({
+                        targets: cardFront,
+                        x: exitX,
+                        y: exitY,
+                        scale: 0.15, // 50% smaller
+                        rotation: Math.PI * 2, // Gentle spin instead of wild rotation
+                        duration: 1200,
+                        delay: i * 50,
+                        ease: 'Power2.easeIn'
+                    });
+                });
             });
         });
     }
@@ -6545,13 +6868,21 @@ class CutsceneScene extends Phaser.Scene {
         // Typewriter effect
         let charIndex = 0;
         const typewriterTimer = this.time.addEvent({
-            delay: 30,
+            delay: 30, // Back to original speed
             callback: () => {
+                // Safety check to prevent crash if text object was destroyed
+                if (!textObj || !textObj.scene) {
+                    if (typewriterTimer) typewriterTimer.destroy();
+                    this.activeTypewriters--;
+                    return;
+                }
+                
                 textObj.text = text.substring(0, charIndex);
                 charIndex++;
                 
                 if (charIndex > text.length) {
                     typewriterTimer.destroy();
+                    this.activeTypewriters--;
                 }
             },
             repeat: text.length
@@ -6607,6 +6938,12 @@ class CutsceneScene extends Phaser.Scene {
     }
 
     clearCurrentSlide() {
+        // Remove continue prompt if exists
+        if (this.continuePrompt) {
+            this.continuePrompt.destroy();
+            this.continuePrompt = null;
+        }
+        
         // Fade out text elements
         this.textElements.forEach(text => {
             this.tweens.add({
@@ -6630,11 +6967,42 @@ class CutsceneScene extends Phaser.Scene {
         this.textElements = [];
         this.imageElements = [];
     }
+    
+    showContinuePrompt() {
+        // Create a subtle prompt at the bottom of the screen
+        this.continuePrompt = this.add.text(400, 550, 'Press SPACE to continue', {
+            fontSize: '16px',
+            color: '#888888',
+            fontStyle: 'italic'
+        });
+        this.continuePrompt.setOrigin(0.5);
+        this.continuePrompt.setDepth(150);
+        this.continuePrompt.setAlpha(0);
+        
+        // Fade in and pulse
+        this.tweens.add({
+            targets: this.continuePrompt,
+            alpha: 1,
+            duration: 500,
+            ease: 'Power2'
+        });
+        
+        this.tweens.add({
+            targets: this.continuePrompt,
+            alpha: 0.5,
+            duration: 1000,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1,
+            delay: 500
+        });
+    }
 
     setupInputHandlers() {
-        // Space to continue
+        // Space to continue (only when slide is complete)
         this.input.keyboard.on('keydown-SPACE', () => {
-            if (!this.isTransitioning) {
+            // Only allow continuing if slide is complete and not transitioning
+            if (!this.isTransitioning && this.allTextComplete) {
                 this.currentSlide++;
                 this.showSlide(this.currentSlide);
             }
@@ -6645,9 +7013,10 @@ class CutsceneScene extends Phaser.Scene {
             this.endCutscene();
         });
         
-        // Click/tap to continue
+        // Click/tap to continue (only when slide is complete)
         this.input.on('pointerdown', () => {
-            if (!this.isTransitioning) {
+            // Only allow continuing if slide is complete and not transitioning
+            if (!this.isTransitioning && this.allTextComplete) {
                 this.currentSlide++;
                 this.showSlide(this.currentSlide);
             }
@@ -6904,6 +7273,51 @@ class TalentTreeScene extends Phaser.Scene {
             strokeThickness: 2
         }).setOrigin(0.5);
         
+        // Path titles
+        this.add.text(200, 130, 'Shadow Weaver', {
+            fontSize: '20px',
+            color: '#8888ff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        
+        this.add.text(400, 130, 'Unending Thirst', {
+            fontSize: '20px',
+            color: '#88ff88',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        
+        this.add.text(600, 130, 'Crimson Blade', {
+            fontSize: '20px',
+            color: '#ff8888',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        
+        // Tier indicators on the left
+        const tierY = [500, 420, 340, 260, 180];
+        const tierLabels = ['Origin', 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4'];
+        tierY.forEach((y, index) => {
+            this.add.text(50, y, tierLabels[index], {
+                fontSize: '14px',
+                color: '#888888',
+                fontStyle: 'italic'
+            }).setOrigin(0.5);
+            
+            // Add subtle horizontal line for each tier
+            if (index > 0) {
+                const line = this.add.graphics();
+                line.lineStyle(1, 0x333333, 0.3);
+                line.moveTo(80, y);
+                line.lineTo(720, y);
+                line.strokePath();
+            }
+        });
+        
         // Create talent tree structure
         this.createTalentTree();
         
@@ -6975,53 +7389,81 @@ class TalentTreeScene extends Phaser.Scene {
             talentArray.forEach(id => this.talents.set(id, true));
         }
         
-        // Define talent nodes with sprite sheet icons
-        // Icon mapping: 10x6 grid (0-59), row-major order
+        // Define talent nodes with three paths and four tiers
+        // Path positions: Left (Shadow Weaver), Center (Unending Thirst), Right (Crimson Blade)
         const talentData = [
-            // Center (always unlocked)
-            { id: 'origin', x: 400, y: 300, name: 'Origin', desc: 'The beginning of power', cost: 0, 
-              effect: null, iconFrame: 10, color: 0xffd700, unlocked: true }, // Star icon
+            // Origin node at the bottom center
+            { id: 'origin', x: 400, y: 500, name: 'Origin', desc: 'The beginning of power', cost: 0, 
+              effect: null, iconFrame: 10, color: 0xffd700, unlocked: true, tier: 0 }, // Star icon
             
-            // First ring - Basic stats
-            { id: 'health1', x: 400, y: 200, name: 'Vitality I', desc: '+20% Max Health', cost: 1,
-              effect: { maxHealth: 1.2 }, iconFrame: 51, color: 0xff4444, requires: ['origin'] }, // Heart
-            { id: 'damage1', x: 500, y: 250, name: 'Power I', desc: '+15% Damage', cost: 1,
-              effect: { damage: 1.15 }, iconFrame: 22, color: 0xff8844, requires: ['origin'] }, // Sword
-            { id: 'speed1', x: 500, y: 350, name: 'Swiftness I', desc: '+10% Move Speed', cost: 1,
-              effect: { moveSpeed: 1.1 }, iconFrame: 11, color: 0x44ffff, requires: ['origin'] }, // Boot/Wing
-            { id: 'pickup1', x: 400, y: 400, name: 'Magnetism I', desc: '+30% Pickup Range', cost: 1,
-              effect: { pickupRange: 1.3 }, iconFrame: 4, color: 0x8844ff, requires: ['origin'] }, // Magnet/Leaf
-            { id: 'cooldown1', x: 300, y: 350, name: 'Haste I', desc: '-10% Cooldowns', cost: 1,
-              effect: { cooldown: 0.9 }, iconFrame: 41, color: 0x44ff44, requires: ['origin'] }, // Hourglass
-            { id: 'regen1', x: 300, y: 250, name: 'Recovery I', desc: '+1 HP/10s', cost: 1,
-              effect: { regen: 0.1 }, iconFrame: 5, color: 0x44ff88, requires: ['origin'] }, // Potion
+            // PATH 1: CRIMSON BLADE (Right side - Offense)
+            // Tier 1
+            { id: 'serrated1', x: 550, y: 420, name: 'Serrated Edge I', desc: '+5% Base Damage', cost: 1,
+              effect: { damage: 1.05 }, iconFrame: 22, color: 0xff4444, requires: ['origin'], tier: 1, path: 'crimson', ranks: 3 },
+            { id: 'serrated2', x: 600, y: 420, name: 'Serrated Edge II', desc: '+10% Base Damage', cost: 1,
+              effect: { damage: 1.10 }, iconFrame: 22, color: 0xff4444, requires: ['serrated1'], tier: 1, path: 'crimson', ranks: 3 },
+            { id: 'serrated3', x: 650, y: 420, name: 'Serrated Edge III', desc: '+15% Base Damage', cost: 1,
+              effect: { damage: 1.15 }, iconFrame: 22, color: 0xff4444, requires: ['serrated2'], tier: 1, path: 'crimson', ranks: 3 },
             
-            // Second ring - Advanced stats
-            { id: 'health2', x: 400, y: 120, name: 'Vitality II', desc: '+40% Max Health', cost: 2,
-              effect: { maxHealth: 1.4 }, iconFrame: 51, color: 0xff4444, requires: ['health1'] }, // Heart
-            { id: 'damage2', x: 580, y: 200, name: 'Power II', desc: '+30% Damage', cost: 2,
-              effect: { damage: 1.3 }, iconFrame: 22, color: 0xff8844, requires: ['damage1'] }, // Sword
-            { id: 'multishot', x: 600, y: 300, name: 'Multi-Cast', desc: '+1 Projectile', cost: 3,
-              effect: { projectiles: 1 }, iconFrame: 16, color: 0xffaa44, requires: ['damage1'] }, // Orb
-            { id: 'speed2', x: 580, y: 400, name: 'Swiftness II', desc: '+20% Move Speed', cost: 2,
-              effect: { moveSpeed: 1.2 }, iconFrame: 11, color: 0x44ffff, requires: ['speed1'] }, // Boot
-            { id: 'dodge', x: 500, y: 450, name: 'Evasion', desc: '10% Dodge Chance', cost: 3,
-              effect: { dodge: 0.1 }, iconFrame: 6, color: 0x4488ff, requires: ['speed1'] }, // Shield
-            { id: 'lifesteal', x: 220, y: 300, name: 'Vampirism', desc: '5% Life Steal', cost: 3,
-              effect: { lifesteal: 0.05 }, iconFrame: 29, color: 0xcc44cc, requires: ['regen1'] }, // Mask/Skull
+            // Tier 2
+            { id: 'reckless', x: 600, y: 340, name: 'Reckless Strike', desc: '+15% DMG, +5% DMG taken', cost: 1,
+              effect: { damage: 1.15, damageTaken: 1.05 }, iconFrame: 17, color: 0xff6666, requires: ['serrated3'], tier: 2, path: 'crimson' },
             
-            // Third ring - Specializations
-            { id: 'tank', x: 300, y: 120, name: 'Fortress', desc: '+60% HP, -20% Speed', cost: 4,
-              effect: { maxHealth: 1.6, moveSpeed: 0.8 }, iconFrame: 45, color: 0x888888, requires: ['health2', 'regen1'] }, // Castle
-            { id: 'glass', x: 680, y: 250, name: 'Glass Cannon', desc: '+50% DMG, -30% HP', cost: 4,
-              effect: { damage: 1.5, maxHealth: 0.7 }, iconFrame: 17, color: 0xff00ff, requires: ['damage2', 'multishot'] }, // Crystal
-            { id: 'ninja', x: 600, y: 480, name: 'Shadow Walker', desc: '+30% Speed & Dodge', cost: 4,
-              effect: { moveSpeed: 1.3, dodge: 0.3 }, iconFrame: 26, color: 0x333333, requires: ['speed2', 'dodge'] }, // Shadow/Hood
+            // Tier 3
+            { id: 'keen1', x: 570, y: 260, name: 'Keen Eye I', desc: '+5% Crit, +10% Crit DMG', cost: 1,
+              effect: { critChance: 0.05, critDamage: 1.1 }, iconFrame: 31, color: 0xff8888, requires: ['reckless'], tier: 3, path: 'crimson', ranks: 2 },
+            { id: 'keen2', x: 630, y: 260, name: 'Keen Eye II', desc: '+10% Crit, +20% Crit DMG', cost: 1,
+              effect: { critChance: 0.10, critDamage: 1.2 }, iconFrame: 31, color: 0xff8888, requires: ['keen1'], tier: 3, path: 'crimson', ranks: 2 },
             
-            // Ultimate center node
-            { id: 'transcend', x: 400, y: 300, name: 'Transcendence', desc: 'Unlock true potential', cost: 10,
-              effect: { all: 1.1 }, iconFrame: 24, color: 0xffffff, requires: ['health2', 'damage2', 'speed2'], 
-              special: true, radius: 25 } // Sun/Ultimate
+            // Tier 4
+            { id: 'frenzy', x: 600, y: 180, name: 'Frenzied Strikes', desc: 'Kill: +10% AtkSpd (3s, x3)', cost: 1,
+              effect: { onKill: 'frenzy' }, iconFrame: 16, color: 0xffaaaa, requires: ['keen2'], tier: 4, path: 'crimson' },
+            
+            // PATH 2: UNENDING THIRST (Center - Defense)
+            // Tier 1
+            { id: 'blood1', x: 350, y: 420, name: 'Blood Pact I', desc: '+10% Max Health', cost: 1,
+              effect: { maxHealth: 1.1 }, iconFrame: 51, color: 0x44ff44, requires: ['origin'], tier: 1, path: 'thirst', ranks: 3 },
+            { id: 'blood2', x: 400, y: 420, name: 'Blood Pact II', desc: '+20% Max Health', cost: 1,
+              effect: { maxHealth: 1.2 }, iconFrame: 51, color: 0x44ff44, requires: ['blood1'], tier: 1, path: 'thirst', ranks: 3 },
+            { id: 'blood3', x: 450, y: 420, name: 'Blood Pact III', desc: '+30% Max Health', cost: 1,
+              effect: { maxHealth: 1.3 }, iconFrame: 51, color: 0x44ff44, requires: ['blood2'], tier: 1, path: 'thirst', ranks: 3 },
+            
+            // Tier 2
+            { id: 'vampiric', x: 400, y: 340, name: 'Vampiric Touch', desc: 'Heal 2% of damage dealt', cost: 1,
+              effect: { lifesteal: 0.02 }, iconFrame: 29, color: 0x66ff66, requires: ['blood3'], tier: 2, path: 'thirst' },
+            
+            // Tier 3
+            { id: 'iron1', x: 370, y: 260, name: 'Iron Skin I', desc: '-5% Damage Taken', cost: 1,
+              effect: { damageReduction: 0.95 }, iconFrame: 45, color: 0x88ff88, requires: ['vampiric'], tier: 3, path: 'thirst', ranks: 2 },
+            { id: 'iron2', x: 430, y: 260, name: 'Iron Skin II', desc: '-10% Damage Taken', cost: 1,
+              effect: { damageReduction: 0.90 }, iconFrame: 45, color: 0x88ff88, requires: ['iron1'], tier: 3, path: 'thirst', ranks: 2 },
+            
+            // Tier 4
+            { id: 'immortal', x: 400, y: 180, name: 'Immortal Will', desc: '<20% HP: 2s invuln (60s CD)', cost: 1,
+              effect: { lowHealthInvuln: true }, iconFrame: 6, color: 0xaaffaa, requires: ['iron2'], tier: 4, path: 'thirst' },
+            
+            // PATH 3: SHADOW WEAVER (Left side - Utility)
+            // Tier 1
+            { id: 'fleet1', x: 150, y: 420, name: 'Fleet Foot I', desc: '+5% Movement Speed', cost: 1,
+              effect: { moveSpeed: 1.05 }, iconFrame: 11, color: 0x4444ff, requires: ['origin'], tier: 1, path: 'shadow', ranks: 3 },
+            { id: 'fleet2', x: 200, y: 420, name: 'Fleet Foot II', desc: '+10% Movement Speed', cost: 1,
+              effect: { moveSpeed: 1.10 }, iconFrame: 11, color: 0x4444ff, requires: ['fleet1'], tier: 1, path: 'shadow', ranks: 3 },
+            { id: 'fleet3', x: 250, y: 420, name: 'Fleet Foot III', desc: '+15% Movement Speed', cost: 1,
+              effect: { moveSpeed: 1.15 }, iconFrame: 11, color: 0x4444ff, requires: ['fleet2'], tier: 1, path: 'shadow', ranks: 3 },
+            
+            // Tier 2
+            { id: 'arcane', x: 200, y: 340, name: 'Arcane Shroud', desc: '-10% All Cooldowns', cost: 1,
+              effect: { cooldown: 0.9 }, iconFrame: 41, color: 0x6666ff, requires: ['fleet3'], tier: 2, path: 'shadow' },
+            
+            // Tier 3
+            { id: 'expand1', x: 170, y: 260, name: 'Expanding Shadow I', desc: '+10% AoE Size', cost: 1,
+              effect: { aoeSize: 1.1 }, iconFrame: 4, color: 0x8888ff, requires: ['arcane'], tier: 3, path: 'shadow', ranks: 2 },
+            { id: 'expand2', x: 230, y: 260, name: 'Expanding Shadow II', desc: '+20% AoE Size', cost: 1,
+              effect: { aoeSize: 1.2 }, iconFrame: 4, color: 0x8888ff, requires: ['expand1'], tier: 3, path: 'shadow', ranks: 2 },
+            
+            // Tier 4
+            { id: 'temporal', x: 200, y: 180, name: 'Temporal Flux', desc: 'Zone: -50% enemy speed (30s)', cost: 1,
+              effect: { temporalZone: true }, iconFrame: 24, color: 0xaaaaff, requires: ['expand2'], tier: 4, path: 'shadow' }
         ];
         
         // Store talent data for animation
@@ -7196,13 +7638,38 @@ class TalentTreeScene extends Phaser.Scene {
     }
     
     canUnlockTalent(talent) {
+        if (talent.unlocked || this.talents.has(talent.id)) return false;
         if (!talent.requires) return true;
         
         // Check if all required talents are unlocked
-        return talent.requires.every(reqId => {
-            const reqTalent = this.nodeButtons.find(t => t.id === reqId);
+        const hasRequiredTalents = talent.requires.every(reqId => {
+            const reqTalent = this.talentData.find(t => t.id === reqId);
             return reqTalent && (reqTalent.unlocked || this.talents.has(reqId));
         });
+        
+        if (!hasRequiredTalents) return false;
+        
+        // Check tier requirements - need 4 points spent in lower tiers to unlock next tier
+        if (talent.tier && talent.tier > 1) {
+            let pointsInLowerTiers = 0;
+            
+            // Count points spent in all tiers below this one
+            for (let tier = 1; tier < talent.tier; tier++) {
+                this.talentData.forEach(t => {
+                    if (t.tier === tier && this.talents.has(t.id)) {
+                        pointsInLowerTiers += t.cost || 1;
+                    }
+                });
+            }
+            
+            // Need at least 4 points total in all tiers below to unlock this tier
+            const requiredPoints = (talent.tier - 1) * 4;
+            if (pointsInLowerTiers < requiredPoints) {
+                return false;
+            }
+        }
+        
+        return true;
     }
     
     unlockTalent(talent) {
@@ -7866,16 +8333,24 @@ class GameScene extends Phaser.Scene {
         // Add starting element from options
         const startElement = localStorage.getItem('startElement');
         if (startElement && startElement !== 'none') {
-            this.charges = [startElement];
-            this.chargeSlots[0] = startElement; // Also update chargeSlots
-            this.discoveredElements.add(startElement); // Add to discovered elements
-            console.log('Starting with element:', startElement);
-            
-            // Auto-activate philosopher stone if it's the starting element
-            if (startElement === 'philosopherstone') {
-                // Store flag to activate later when game is ready
-                console.log('Will auto-activate philosopher stone when game starts');
-                this.shouldAutoActivatePhilosopherStone = true;
+            // Check if it's a passive element (like rook, bishop, or joker)
+            if (startElement === 'rook' || startElement === 'bishop' || startElement === 'joker') {
+                // Add passive element to first passive slot (slot 4)
+                this.chargeSlots[4] = startElement;
+                console.log('Starting with passive element:', startElement);
+            } else {
+                // Normal active element
+                this.charges = [startElement];
+                this.chargeSlots[0] = startElement; // Also update chargeSlots
+                this.discoveredElements.add(startElement); // Add to discovered elements
+                console.log('Starting with element:', startElement);
+                
+                // Auto-activate philosopher stone if it's the starting element
+                if (startElement === 'philosopherstone') {
+                    // Store flag to activate later when game is ready
+                    console.log('Will auto-activate philosopher stone when game starts');
+                    this.shouldAutoActivatePhilosopherStone = true;
+                }
             }
         }
 
@@ -7913,7 +8388,7 @@ class GameScene extends Phaser.Scene {
             sand: { frame: 0, color: 0xf4a460, name: 'Sand', sheet: 'sand-orb', isImage: true },
             gravity: { frame: 0, color: 0x4b0082, name: 'Gravity', sheet: 'gravity-orb', isImage: true },
             sun: { frame: 0, color: 0xffeb3b, name: 'Sun', sheet: 'sun-orb', isImage: true, fireRate: 999999 },
-            smoke: { frame: 0, color: 0x696969, name: 'Smoke', sheet: 'smoke-orb', isImage: true, fireRate: 999999 },
+            smoke: { frame: 0, color: 0x696969, name: 'Smoke', sheet: 'smoke-orb', isImage: true, fireRate: 1500 },
             wave: { frame: 0, color: 0x00bcd4, name: 'Wave', sheet: 'wave-orb', isImage: true },
             star: { frame: 0, color: 0xffffff, name: 'Star', sheet: 'star-orb', isImage: true },
             zodiac: { frame: 0, color: 0xffd700, name: 'Zodiac', sheet: 'zodiac-orb', isImage: true },
@@ -7924,7 +8399,10 @@ class GameScene extends Phaser.Scene {
             life: { frame: 0, color: 0xff6666, name: 'Life', sheet: 'life-symbol', isImage: true }, // No new orb for life
             philosopherstone: { frame: 0, color: 0xffd700, name: 'Philosopher Stone', sheet: 'philosopher-orb', isImage: true, fireRate: 999999 },
             halo: { frame: 2, color: 0x87ceeb, name: 'Halo', sheet: 'element-symbols3', fireRate: 999999 }, // No new orb for halo
-            metal: { frame: 0, color: 0xc0c0c0, name: 'Metal', sheet: 'metal-orb', isImage: true, fireRate: 999999 }
+            metal: { frame: 0, color: 0xc0c0c0, name: 'Metal', sheet: 'metal-orb', isImage: true, fireRate: 10000 }, // 10 second cooldown
+            rook: { frame: 0, color: 0x8b7355, name: 'Rook', sheet: 'rook-orb', isImage: true, fireRate: 999999 }, // Passive element, doesn't fire directly
+            bishop: { frame: 0, color: 0x9b59b6, name: 'Bishop', sheet: 'bishop-orb', isImage: true, fireRate: 999999 }, // Passive element, doesn't fire directly
+            joker: { frame: 0, color: 0x800080, name: 'Joker', sheet: 'joker-orb', isImage: true, fireRate: 999999 } // Passive element, applies all chess modifiers
         };
 
         // Define primary elements (can drop from enemies)
@@ -8070,7 +8548,7 @@ class GameScene extends Phaser.Scene {
             life: 'Heals the wizard over time with regenerative energy. Restoration magic.',
             philosopherstone: 'Fusion of life and death. Grants automatic level up every 45 seconds. Ultimate alchemical achievement.',
             halo: 'Fusion of holy and water. Creates a damaging aura that continuously hurts nearby enemies. Divine protection.',
-            metal: 'Hardened metallic skin reflects 50% of damage back to attackers. Defensive thorns effect.'
+            metal: 'Metallic shield grants 50% damage reduction for 8 seconds.'
         };
 
         console.log('Creating background for stage:', this.stage);
@@ -8429,6 +8907,11 @@ class GameScene extends Phaser.Scene {
         this.obeliskChunks = new Set(); // Track which chunks have obelisks
         this.activeObelisks = new Map(); // Track active obelisks by chunk key
         
+        // Initialize blood towers group
+        this.bloodTowers = this.physics.add.group();
+        this.bloodTowerChunks = new Set(); // Track which chunks have blood towers
+        this.activeBloodTowers = new Map(); // Track active blood towers by chunk key
+        
         // Create obelisk direction indicator
         this.obeliskIndicator = this.add.triangle(0, 0, 0, 0, 15, 10, 0, 20, 0x00ffff);
         this.obeliskIndicator.setDepth(900);
@@ -8597,9 +9080,13 @@ class GameScene extends Phaser.Scene {
         // Add overlap detection for obelisks
         this.physics.add.overlap(this.wizard, this.obelisks, this.handleObeliskInteraction, null, this);
         
+        // Add overlap detection for blood towers
+        this.physics.add.overlap(this.wizard, this.bloodTowers, this.handleBloodTowerInteraction, null, this);
+        
         // Add overlap for P2 in multiplayer
         if (this.multiplayerEnabled && this.wizard2) {
             this.physics.add.overlap(this.wizard2, this.obelisks, this.handleObeliskInteraction, null, this);
+            this.physics.add.overlap(this.wizard2, this.bloodTowers, this.handleBloodTowerInteraction, null, this);
         }
         
         // Add collisions with barriers (only in cave stage, only for player)
@@ -9120,6 +9607,14 @@ class GameScene extends Phaser.Scene {
             frames: this.anims.generateFrameNumbers('obelisk-effects', { start: 0, end: 13 }),
             frameRate: 12,
             repeat: 0
+        });
+        
+        // Blood tower idle animation (11 frames)
+        createAnimIfNotExists({
+            key: 'blood-tower-idle',
+            frames: this.anims.generateFrameNumbers('blood-tower', { start: 0, end: 10 }),
+            frameRate: 10,
+            repeat: -1
         });
         
         // Laser cast (frames 35-41)
@@ -9987,8 +10482,16 @@ class GameScene extends Phaser.Scene {
             if (this.charges.length === 0) {
                 const startElement = localStorage.getItem('startElement');
                 if (startElement && startElement !== 'none') {
-                    this.chargeSlots[0] = startElement;
-                    this.charges = [startElement];
+                    // Check if it's a chess piece element (rook/bishop/joker)
+                    if (startElement === 'rook' || startElement === 'bishop' || startElement === 'joker') {
+                        // Place chess pieces in passive slot 4 (first passive slot)
+                        this.chargeSlots[4] = startElement;
+                        this.charges = []; // Don't add to charges array since it's passive-only
+                    } else {
+                        // Normal elements go to active slot 0
+                        this.chargeSlots[0] = startElement;
+                        this.charges = [startElement];
+                    }
                 }
                 // If 'none' is selected, start with no charges
             } else {
@@ -10268,13 +10771,15 @@ class GameScene extends Phaser.Scene {
             'forest': 'forestland-title',
             'cave': 'caveland-title',
             'sand': 'desertland-title',
+            'swamp': 'swampland-title',
+            'snow': 'snowland-title',
+            'ocean': 'oceanland-title',
             'lava': 'lavaland-title',
             'grave': 'graveland-title',
             'castle': 'castleland-title',
             'spire': 'spireland-title',
             'void': 'voidland-title',
-            'arcade': 'arcadeland-title',
-            'snow': 'snowland-title'
+            'arcade': 'arcadeland-title'
         };
         
         return stageImageKeys[this.stage] || 'forestland-title';
@@ -10285,6 +10790,9 @@ class GameScene extends Phaser.Scene {
             'forest': 'FOREST LAND',
             'cave': 'CAVE LAND',
             'sand': 'DESERT LAND',
+            'swamp': 'SWAMP LAND',
+            'snow': 'SNOW LAND',
+            'ocean': 'OCEAN LAND',
             'lava': 'LAVA LAND',
             'grave': 'GRAVE LAND',
             'castle': 'CASTLE LAND',
@@ -10436,8 +10944,16 @@ class GameScene extends Phaser.Scene {
                         if (!this.chargeSlots) {
                             this.chargeSlots = new Array(8).fill(null);
                         }
-                        this.chargeSlots[0] = element;
-                        this.charges = [element];
+                        // Check if it's a chess piece element (rook/bishop/joker)
+                        if (element === 'rook' || element === 'bishop' || element === 'joker') {
+                            // Place chess pieces in passive slot 4 (first passive slot)
+                            this.chargeSlots[4] = element;
+                            this.charges = []; // Don't add to charges array since it's passive-only
+                        } else {
+                            // Normal elements go to active slot 0
+                            this.chargeSlots[0] = element;
+                            this.charges = [element];
+                        }
                         console.log('Element selected:', element);
                         console.log('ChargeSlots after selection:', [...this.chargeSlots]);
                         console.log('Charges after selection:', [...this.charges]);
@@ -10658,8 +11174,16 @@ class GameScene extends Phaser.Scene {
         if (!this.chargeSlots) {
             this.chargeSlots = new Array(8).fill(null);
         }
-        this.chargeSlots[0] = element;
-        this.charges = [element];
+        // Check if it's a chess piece element (rook/bishop/joker)
+        if (element === 'rook' || element === 'bishop' || element === 'joker') {
+            // Place chess pieces in passive slot 4 (first passive slot)
+            this.chargeSlots[4] = element;
+            this.charges = []; // Don't add to charges array since it's passive-only
+        } else {
+            // Normal elements go to active slot 0
+            this.chargeSlots[0] = element;
+            this.charges = [element];
+        }
         this.updateChargeUI();
 
         // Clean up selection UI - check if it exists first
@@ -13266,6 +13790,7 @@ class GameScene extends Phaser.Scene {
         // Update obelisks based on player position
         if (this.wizard) {
             this.updateObelisks(this.wizard.x, this.wizard.y);
+            this.updateBloodTowers(this.wizard.x, this.wizard.y);
             
             // Throttle obelisk indicator updates to every 5 frames
             if (!this.obeliskIndicatorThrottle) this.obeliskIndicatorThrottle = 0;
@@ -13273,6 +13798,32 @@ class GameScene extends Phaser.Scene {
             if (this.obeliskIndicatorThrottle >= 5) {
                 this.updateObeliskIndicator();
                 this.obeliskIndicatorThrottle = 0;
+            }
+            
+            // Update orbital projectiles if Saturn passive is active
+            if (this.orbitalProjectiles && this.orbitalProjectiles.length > 0) {
+                const dt = delta / 1000; // Convert to seconds
+                for (let i = this.orbitalProjectiles.length - 1; i >= 0; i--) {
+                    const orbital = this.orbitalProjectiles[i];
+                    if (!orbital.projectile || !orbital.projectile.active) {
+                        this.orbitalProjectiles.splice(i, 1);
+                        continue;
+                    }
+                    
+                    // Update angle
+                    orbital.angle += orbital.speed * dt;
+                    
+                    // Calculate new position
+                    const x = this.wizard.x + Math.cos(orbital.angle) * orbital.radius;
+                    const y = this.wizard.y + Math.sin(orbital.angle) * orbital.radius;
+                    
+                    // Update projectile position
+                    orbital.projectile.x = x;
+                    orbital.projectile.y = y;
+                    
+                    // Optional: rotate the projectile to face outward
+                    orbital.projectile.rotation = orbital.angle + Math.PI / 2;
+                }
             }
         }
         
@@ -14264,7 +14815,8 @@ class GameScene extends Phaser.Scene {
             // Only check first 4 slots (active slots)
             for (let slotIndex = 0; slotIndex < 4; slotIndex++) {
                 const element = this.chargeSlots[slotIndex];
-                if (element) {
+                // Skip passive elements like rook, bishop, and joker
+                if (element && element !== 'rook' && element !== 'bishop' && element !== 'joker') {
                     const elementConfig = this.elementConfig[element];
                     const fireRate = (elementConfig.fireRate || 1000) / this.speedMultiplier; // Apply hyper mode multiplier
 
@@ -14300,7 +14852,8 @@ class GameScene extends Phaser.Scene {
                 // Only check first 4 slots (active slots)
                 for (let slotIndex = 0; slotIndex < 4; slotIndex++) {
                     const element = this.wizard2.chargeSlots[slotIndex];
-                    if (element) {
+                    // Skip passive elements like rook and bishop
+                    if (element && element !== 'rook' && element !== 'bishop') {
                         const elementConfig = this.elementConfig[element];
                         const fireRate = (elementConfig.fireRate || 1000) / this.speedMultiplier;
 
@@ -16475,42 +17028,69 @@ class GameScene extends Phaser.Scene {
             }
             
             if (element) {
-                const config = this.elementConfig[element];
-                if (config) {
-                    // Check if texture exists
-                    if (!this.textures.exists(config.sheet)) {
-                        console.error(`Pause menu: Texture ${config.sheet} does not exist!`);
+                // Check if it's a passive orb (slots 4-7) or regular element
+                const passiveOrbs = ['joker', 'rook', 'bishop', 'queen', 'knight', 'king', 'saturn'];
+                const isPassiveOrb = passiveOrbs.includes(element);
+                
+                if (isPassiveOrb) {
+                    // Handle passive orbs
+                    const orbTexture = element === 'joker' ? 'joker-orb' : `${element}-orb`;
+                    if (this.textures.exists(orbTexture)) {
+                        this.pauseChargeSlots[i].circle.setTexture(orbTexture);
+                        this.pauseChargeSlots[i].circle.setVisible(true);
+                        this.pauseChargeSlots[i].circle.setTint(0xffffff);
+                        this.pauseChargeSlots[i].circle.setAlpha(1);
+                        // Show discard buttons for all slots now
+                        this.pauseChargeSlots[i].discardBtn.setVisible(true);
+                        
+                        // Reset position
+                        this.pauseChargeSlots[i].circle.x = this.pauseChargeSlots[i].x;
+                        this.pauseChargeSlots[i].circle.y = this.pauseChargeSlots[i].y;
+                        
+                        console.log(`Pause Slot ${i}: passive orb=${element}, texture=${orbTexture}`);
+                    } else {
+                        console.error(`Passive orb texture not found: ${orbTexture}`);
                         this.pauseChargeSlots[i].circle.setVisible(false);
-                        return;
                     }
-                    // Update texture if needed
-                    if (this.pauseChargeSlots[i].circle.texture.key !== config.sheet) {
-                        this.pauseChargeSlots[i].circle.setTexture(config.sheet, config.frame);
-                    } else {
-                        this.pauseChargeSlots[i].circle.setFrame(config.frame);
-                    }
-                    this.pauseChargeSlots[i].circle.setVisible(true);
-                    this.pauseChargeSlots[i].circle.setTint(0xffffff);
-                    this.pauseChargeSlots[i].circle.setAlpha(1);
-                    this.pauseChargeSlots[i].discardBtn.setVisible(true);
+                } else {
+                    // Handle regular elements
+                    const config = this.elementConfig[element];
+                    if (config) {
+                        // Check if texture exists
+                        if (!this.textures.exists(config.sheet)) {
+                            console.error(`Pause menu: Texture ${config.sheet} does not exist!`);
+                            this.pauseChargeSlots[i].circle.setVisible(false);
+                            return;
+                        }
+                        // Update texture if needed
+                        if (this.pauseChargeSlots[i].circle.texture.key !== config.sheet) {
+                            this.pauseChargeSlots[i].circle.setTexture(config.sheet, config.frame);
+                        } else {
+                            this.pauseChargeSlots[i].circle.setFrame(config.frame);
+                        }
+                        this.pauseChargeSlots[i].circle.setVisible(true);
+                        this.pauseChargeSlots[i].circle.setTint(0xffffff);
+                        this.pauseChargeSlots[i].circle.setAlpha(1);
+                        this.pauseChargeSlots[i].discardBtn.setVisible(true);
                     
-                    // Debug logging
-                    console.log(`Pause Slot ${i}: element=${element}, frame=${config.frame}, sheet=${config.sheet}, visible=${this.pauseChargeSlots[i].circle.visible}`);
+                        // Debug logging
+                        console.log(`Pause Slot ${i}: element=${element}, frame=${config.frame}, sheet=${config.sheet}, visible=${this.pauseChargeSlots[i].circle.visible}`);
 
-                    // Update slot index data for dragging
-                    this.pauseChargeSlots[i].circle.setData('slotIndex', i);
+                        // Update slot index data for dragging
+                        this.pauseChargeSlots[i].circle.setData('slotIndex', i);
 
-                    // Reset position in case it was dragged
-                    this.pauseChargeSlots[i].circle.x = this.pauseChargeSlots[i].x;
-                    this.pauseChargeSlots[i].circle.y = this.pauseChargeSlots[i].y;
-                    
-                    // Update tier text
-                    const tier = targetTiers.get(`${element}_${i}`) || 1;
-                    if (tier > 1) {
-                        this.pauseChargeSlots[i].tierText.setText(tier.toString());
-                        this.pauseChargeSlots[i].tierText.setVisible(true);
-                    } else {
-                        this.pauseChargeSlots[i].tierText.setVisible(false);
+                        // Reset position in case it was dragged
+                        this.pauseChargeSlots[i].circle.x = this.pauseChargeSlots[i].x;
+                        this.pauseChargeSlots[i].circle.y = this.pauseChargeSlots[i].y;
+                        
+                        // Update tier text
+                        const tier = targetTiers.get(`${element}_${i}`) || 1;
+                        if (tier > 1) {
+                            this.pauseChargeSlots[i].tierText.setText(tier.toString());
+                            this.pauseChargeSlots[i].tierText.setVisible(true);
+                        } else {
+                            this.pauseChargeSlots[i].tierText.setVisible(false);
+                        }
                     }
                 }
             } else {
@@ -16751,7 +17331,7 @@ class GameScene extends Phaser.Scene {
             gravity: 'Pull enemies slowly toward you. +30% damage to slowed enemies.',
             volcano: 'Eruptions on spell cast. +25% fire damage, +10% area damage.',
             storm: 'Storm aura randomly strikes enemies. +35% lightning damage.',
-            smoke: 'Directional dust cone that blinds enemies. 10s cooldown.',
+            smoke: 'Directional dust cone that blinds enemies for 1 second.',
             nature: 'Regenerate 1% max HP/sec. Spawn healing flowers on kills.',
             life: '+5 HP/sec regeneration. Resurrect with 50% HP once per minute.',
             moon: 'Night aura weakens enemies. +20% damage at night (every 2 min).',
@@ -18957,42 +19537,81 @@ class GameScene extends Phaser.Scene {
         const element = this.charges[0];
         const colors = { fire: 0xff4444, lightning: 0xffff44, water: 0x4444ff, earth: 0x44ff44 };
         
-        // Create a simple projectile
-        const projectileSize = 8;
-        const textureKey = element + '-simple-proj';
-        if (!this.textures.exists(textureKey)) {
-            const graphics = this.add.graphics();
-            graphics.fillStyle(colors[element] || 0xffffff, 1);
-            graphics.fillCircle(projectileSize, projectileSize, projectileSize);
-            graphics.generateTexture(textureKey, projectileSize * 2, projectileSize * 2);
-            graphics.destroy();
+        // Check if the first passive slot (slot 4) has rook (modifies first active slot)
+        const hasRookModifier = this.chargeSlots && this.chargeSlots[4] === 'rook';
+        
+        if (hasRookModifier) {
+            // Fire projectiles in 4 cardinal directions (like a rook moves in chess)
+            const speed = 400 * this.speedMultiplier;
+            const rookDirections = [
+                { x: 0, y: -speed },    // Up
+                { x: speed, y: 0 },     // Right
+                { x: 0, y: speed },     // Down
+                { x: -speed, y: 0 }     // Left
+            ];
+            
+            // Create texture if needed
+            const projectileSize = 8;
+            const textureKey = element + '-simple-proj';
+            if (!this.textures.exists(textureKey)) {
+                const graphics = this.add.graphics();
+                graphics.fillStyle(colors[element] || 0xffffff, 1);
+                graphics.fillCircle(projectileSize, projectileSize, projectileSize);
+                graphics.generateTexture(textureKey, projectileSize * 2, projectileSize * 2);
+                graphics.destroy();
+            }
+            
+            // Create 4 projectiles
+            rookDirections.forEach(dir => {
+                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, textureKey);
+                projectile.element = element;
+                projectile.damage = 1;
+                projectile.body.setCollideWorldBounds(false);
+                projectile.setDepth(5);
+                projectile.setVelocity(dir.x, dir.y);
+                this.projectiles.add(projectile);
+            });
+            
+            // Removed unnecessary rook animation
+        } else {
+            // Normal single projectile firing
+            // Create a simple projectile
+            const projectileSize = 8;
+            const textureKey = element + '-simple-proj';
+            if (!this.textures.exists(textureKey)) {
+                const graphics = this.add.graphics();
+                graphics.fillStyle(colors[element] || 0xffffff, 1);
+                graphics.fillCircle(projectileSize, projectileSize, projectileSize);
+                graphics.generateTexture(textureKey, projectileSize * 2, projectileSize * 2);
+                graphics.destroy();
+            }
+            
+            const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, textureKey);
+            projectile.element = element;
+            projectile.damage = 1;
+            projectile.body.setCollideWorldBounds(false);
+            projectile.setDepth(5);
+            
+            this.projectiles.add(projectile);
+            
+            // Simple directional firing
+            const speed = 400 * this.speedMultiplier;
+            const diagonalSpeed = speed / Math.sqrt(2);
+            
+            const directions = {
+                up: { x: 0, y: -speed },
+                down: { x: 0, y: speed },
+                left: { x: -speed, y: 0 },
+                right: { x: speed, y: 0 },
+                'up-left': { x: -diagonalSpeed, y: -diagonalSpeed },
+                'up-right': { x: diagonalSpeed, y: -diagonalSpeed },
+                'down-left': { x: -diagonalSpeed, y: diagonalSpeed },
+                'down-right': { x: diagonalSpeed, y: diagonalSpeed }
+            };
+            
+            const dir = directions[this.wizard.lastDirection || 'down'];
+            projectile.setVelocity(dir.x, dir.y);
         }
-        
-        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, textureKey);
-        projectile.element = element;
-        projectile.damage = 1;
-        projectile.body.setCollideWorldBounds(false);
-        projectile.setDepth(5);
-        
-        this.projectiles.add(projectile);
-        
-        // Simple directional firing
-        const speed = 400 * this.speedMultiplier;
-        const diagonalSpeed = speed / Math.sqrt(2);
-        
-        const directions = {
-            up: { x: 0, y: -speed },
-            down: { x: 0, y: speed },
-            left: { x: -speed, y: 0 },
-            right: { x: speed, y: 0 },
-            'up-left': { x: -diagonalSpeed, y: -diagonalSpeed },
-            'up-right': { x: diagonalSpeed, y: -diagonalSpeed },
-            'down-left': { x: -diagonalSpeed, y: diagonalSpeed },
-            'down-right': { x: diagonalSpeed, y: diagonalSpeed }
-        };
-        
-        const dir = directions[this.wizard.lastDirection || 'down'];
-        projectile.setVelocity(dir.x, dir.y);
     }
 
     projectileHitObstacle(projectile, obstacle) {
@@ -21374,7 +21993,18 @@ class GameScene extends Phaser.Scene {
                                   (Math.abs(cx) % 3 === 2 && Math.abs(cy) % 3 === 1); // Offset grid 2
                 
                 if (shouldSpawn) {
-                    this.spawnObelisk(cx, cy);
+                    // Alternate between obelisk and blood tower based on chunk coordinates
+                    // Use a simple deterministic pattern to decide which to spawn
+                    const spawnBloodTower = (cx + cy) % 2 === 0;
+                    
+                    if (spawnBloodTower && !this.bloodTowerChunks.has(chunkKey)) {
+                        // Spawn blood tower instead of obelisk
+                        this.spawnBloodTower(cx, cy);
+                        this.bloodTowerChunks.add(chunkKey);
+                    } else {
+                        // Spawn obelisk
+                        this.spawnObelisk(cx, cy);
+                    }
                     this.obeliskChunks.add(chunkKey);
                     // Log only the first few spawns to avoid spam
                     if (this.obeliskChunks.size <= 5) {
@@ -22103,6 +22733,435 @@ class GameScene extends Phaser.Scene {
         
         if (resumeGame) {
             this.resumeGame('obelisk');
+        }
+    }
+    
+    // Blood Tower System Functions
+    updateBloodTowers(playerX, playerY) {
+        const chunkX = Math.floor(playerX / this.chunkSize);
+        const chunkY = Math.floor(playerY / this.chunkSize);
+        const viewDistance = 3;
+        
+        // Blood towers are now spawned together with obelisks in updateObelisks()
+        // This ensures a 1:1 ratio between them
+        
+        // Update existing blood towers
+        this.activeBloodTowers.forEach((tower, key) => {
+            const [tx, ty] = key.split(',').map(Number);
+            const chunkDistance = Math.abs(tx - chunkX) + Math.abs(ty - chunkY);
+            
+            if (chunkDistance > viewDistance + 2) {
+                if (tower.particles) tower.particles.destroy();
+                tower.destroy();
+                this.activeBloodTowers.delete(key);
+            } else {
+                // Reset interaction if players are far away
+                if (tower.hasInteracted && !tower.activated) {
+                    const distanceP1 = Phaser.Math.Distance.Between(playerX, playerY, tower.x, tower.y);
+                    let canReset = distanceP1 > tower.interactionRadius + 50;
+                    
+                    if (this.multiplayerEnabled && this.wizard2) {
+                        const distanceP2 = Phaser.Math.Distance.Between(this.wizard2.x, this.wizard2.y, tower.x, tower.y);
+                        canReset = canReset && distanceP2 > tower.interactionRadius + 50;
+                    }
+                    
+                    if (canReset) {
+                        tower.hasInteracted = false;
+                    }
+                }
+            }
+        });
+    }
+    
+    spawnBloodTower(chunkX, chunkY) {
+        const x = chunkX * this.chunkSize + Phaser.Math.Between(300, this.chunkSize - 300);
+        const y = chunkY * this.chunkSize + Phaser.Math.Between(300, this.chunkSize - 300);
+        
+        const tower = this.physics.add.sprite(x, y, 'blood-tower');
+        tower.play('blood-tower-idle');
+        tower.setScale(1.5);
+        tower.setDepth(30);
+        
+        // Adjusted body size for new 140px height
+        tower.body.setSize(60, 100);
+        tower.body.setOffset(20, 40);
+        tower.body.setImmovable(true);
+        
+        tower.isBloodTower = true;
+        tower.activated = false;
+        tower.hasInteracted = false;
+        tower.interactionRadius = 100;
+        
+        // Random passive orb reward
+        const passiveOrbs = ['joker', 'rook', 'bishop', 'queen', 'knight', 'king', 'saturn'];
+        tower.reward = Phaser.Utils.Array.GetRandom(passiveOrbs);
+        tower.healthCost = 0.2 + Math.random() * 0.2; // 20-40% of max health
+        
+        this.bloodTowers.add(tower);
+        this.activeBloodTowers.set(`${chunkX},${chunkY}`, tower);
+        
+        // Red glow effect
+        tower.glowTween = this.tweens.add({
+            targets: tower,
+            alpha: { from: 0.8, to: 1 },
+            duration: 2000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Red particle effect (create simple red particles if texture doesn't exist)
+        if (!this.textures.exists('red-particle')) {
+            const graphics = this.add.graphics();
+            graphics.fillStyle(0xff0000, 1);
+            graphics.fillCircle(4, 4, 4);
+            graphics.generateTexture('red-particle', 8, 8);
+            graphics.destroy();
+        }
+        
+        const particles = this.add.particles(x, y - 30, 'red-particle', {
+            scale: { start: 0.4, end: 0 },
+            alpha: { start: 0.6, end: 0 },
+            speed: { min: 20, max: 50 },
+            lifespan: 2000,
+            frequency: 200,
+            tint: 0xff0000,
+            blendMode: 'ADD'
+        });
+        particles.setDepth(29);
+        tower.particles = particles;
+    }
+    
+    handleBloodTowerInteraction(wizard, tower) {
+        if (tower.activated || this.isPaused || this.spellbookOpen || 
+            this.chestSelectionActive || this.fusionUI || this.bloodTowerMenuOpen) {
+            return;
+        }
+        
+        if (tower.hasInteracted) {
+            return;
+        }
+        
+        tower.hasInteracted = true;
+        this.openBloodTowerMenu(tower, wizard);
+    }
+    
+    openBloodTowerMenu(tower, wizard) {
+        this.bloodTowerMenuOpen = true;
+        this.currentBloodTower = tower;
+        
+        if (this.multiplayerEnabled && wizard) {
+            this.menuControllingPlayer = wizard.playerNumber;
+        }
+        
+        this.pauseGame('bloodTower');
+        
+        // Create menu container (similar position to obelisk menu)
+        this.bloodTowerMenu = this.add.container(400, 380);
+        this.bloodTowerMenu.setDepth(950);
+        this.bloodTowerMenu.setScrollFactor(0);
+        
+        // Background overlay (matching obelisk style)
+        const overlay = this.add.rectangle(0, -80, 800, 600, 0x000000, 0.85);
+        overlay.setInteractive(); // Block clicks
+        
+        // Menu panel (matching obelisk dimensions but with red theme)
+        const panel = this.add.rectangle(0, 0, 500, 300, 0x2a2a2a, 1);
+        panel.setStrokeStyle(2, 0x666666);
+        
+        // Title (matching obelisk style)
+        const title = this.add.text(0, -120, 'BLOOD TOWER', {
+            fontSize: '28px',
+            color: '#ff0000',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        
+        // Requirements text
+        const reqText = this.add.text(0, -80, 'Blood Sacrifice Required:', {
+            fontSize: '18px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        
+        // Cost display (styled like obelisk requirement slots)
+        const costBg = this.add.rectangle(-60, -20, 80, 80, 0x441111, 0.8);
+        costBg.setStrokeStyle(2, 0x660000);
+        
+        // Health icon/text in cost slot
+        const healthCostPercent = Math.floor(tower.healthCost * 100);
+        const costPercent = this.add.text(-60, -30, `${healthCostPercent}%`, {
+            fontSize: '24px',
+            color: '#ff0000',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        
+        const costHP = this.add.text(-60, -5, 'HP', {
+            fontSize: '18px',
+            color: '#ff6666'
+        }).setOrigin(0.5);
+        
+        // Reward display (styled like obelisk requirement slots)
+        const rewardBg = this.add.rectangle(60, -20, 80, 80, 0x444444, 0.8);
+        rewardBg.setStrokeStyle(2, 0x666666);
+        
+        // Display reward orb
+        const orbTexture = tower.reward === 'joker' ? 'joker-orb' : `${tower.reward}-orb`;
+        const rewardOrb = this.add.image(60, -20, orbTexture);
+        rewardOrb.setScale(0.3);
+        
+        // Exchange text
+        const exchangeText = this.add.text(0, 50, 'Exchange Blood for Power:', {
+            fontSize: '18px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        
+        // Actual HP cost display - use proper health reference
+        const maxHealth = wizard.playerNumber === 2 ? (wizard.maxHealth || 100) : this.maxHealth;
+        const healthCostAmount = Math.floor(maxHealth * tower.healthCost);
+        const detailText = this.add.text(0, 75, `(${healthCostAmount} HP → ${tower.reward.toUpperCase()} ORB)`, {
+            fontSize: '16px',
+            color: '#aaaaaa'
+        }).setOrigin(0.5);
+        
+        // Sacrifice button (styled like obelisk activate)
+        const acceptBtn = this.add.text(0, 120, ' SACRIFICE ', {
+            fontSize: '22px',
+            color: '#ffffff',
+            backgroundColor: '#660000',
+            padding: { x: 20, y: 10 }
+        }).setOrigin(0.5);
+        acceptBtn.setInteractive({ useHandCursor: true });
+        
+        // Instructions (matching obelisk style)
+        const instructions = this.add.text(0, -300, 'Press SPACE or A to sacrifice • ESC or B to decline', {
+            fontSize: '14px',
+            color: '#888888'
+        }).setOrigin(0.5);
+        
+        // Close button (matching obelisk style)
+        const closeBtn = this.add.text(230, -120, ' X ', {
+            fontSize: '24px',
+            color: '#ff6666',
+            fontStyle: 'bold',
+            backgroundColor: '#2a2a2a',
+            padding: { x: 10, y: 5 }
+        }).setOrigin(0.5);
+        closeBtn.setInteractive({ useHandCursor: true });
+        
+        // Button interactions
+        acceptBtn.on('pointerover', () => {
+            acceptBtn.setScale(1.1);
+            acceptBtn.setBackgroundColor('#880000');
+        });
+        acceptBtn.on('pointerout', () => {
+            acceptBtn.setScale(1);
+            acceptBtn.setBackgroundColor('#660000');
+        });
+        acceptBtn.on('pointerdown', () => {
+            console.log('Sacrifice button clicked');
+            this.acceptBloodTowerOffer(tower, wizard);
+        });
+        
+        closeBtn.on('pointerover', () => {
+            closeBtn.setScale(1.1);
+            closeBtn.setColor('#ff9999');
+        });
+        closeBtn.on('pointerout', () => {
+            closeBtn.setScale(1);
+            closeBtn.setColor('#ff6666');
+        });
+        closeBtn.on('pointerdown', () => {
+            console.log('Blood tower close button clicked');
+            this.closeBloodTowerMenu();
+        });
+        
+        // Add all elements to container
+        this.bloodTowerMenu.add([
+            overlay, panel, title, reqText,
+            costBg, costPercent, costHP,
+            rewardBg, rewardOrb,
+            exchangeText, detailText,
+            acceptBtn, instructions, closeBtn
+        ]);
+        
+        // Set up keyboard controls
+        this.bloodTowerKeyHandler = this.input.keyboard.on('keydown', (event) => {
+            if (event.code === 'Space' || event.code === 'KeyA') {
+                console.log('Sacrifice key pressed');
+                this.acceptBloodTowerOffer(tower, wizard);
+            } else if (event.code === 'Escape' || event.code === 'KeyB') {
+                this.closeBloodTowerMenu();
+            }
+        });
+        
+        // Set up gamepad controls
+        if (this.input.gamepad && this.input.gamepad.total > 0) {
+            this.bloodTowerGamepadPressed = false;
+            this.bloodTowerGamepadCheck = this.time.addEvent({
+                delay: 100,
+                callback: () => {
+                    const gamepad = this.input.gamepad.getPad(0);
+                    if (gamepad) {
+                        if (gamepad.buttons[0] && gamepad.buttons[0].pressed) {
+                            // A button pressed - only trigger once per press
+                            if (!this.bloodTowerGamepadPressed) {
+                                this.bloodTowerGamepadPressed = true;
+                                this.acceptBloodTowerOffer(tower, wizard);
+                            }
+                        } else if (gamepad.buttons[1] && gamepad.buttons[1].pressed) {
+                            // B button pressed - only trigger once per press
+                            if (!this.bloodTowerGamepadPressed) {
+                                this.bloodTowerGamepadPressed = true;
+                                this.closeBloodTowerMenu();
+                            }
+                        } else {
+                            // Reset when no buttons pressed
+                            this.bloodTowerGamepadPressed = false;
+                        }
+                    }
+                },
+                loop: true
+            });
+        }
+    }
+    
+    acceptBloodTowerOffer(tower, wizard) {
+        // Prevent multiple accepts
+        if (this.bloodTowerAccepting) {
+            console.log('Blood tower already being accepted, ignoring duplicate call');
+            return;
+        }
+        this.bloodTowerAccepting = true;
+        
+        // Get proper health values
+        const maxHealth = wizard.playerNumber === 2 ? (wizard.maxHealth || 100) : this.maxHealth;
+        const healthCost = Math.floor(maxHealth * tower.healthCost);
+        
+        // Deduct health from the correct property
+        if (wizard.playerNumber === 2) {
+            wizard.health = (wizard.health || 100) - healthCost;
+        } else {
+            this.playerHealth -= healthCost;
+        }
+        this.showDamageNumber(wizard.x, wizard.y - 30, healthCost, '#ff0000');
+        
+        wizard.setTint(0xff0000);
+        this.time.delayedCall(200, () => {
+            wizard.clearTint();
+        });
+        
+        // Check health using correct property
+        const currentHealth = wizard.playerNumber === 2 ? (wizard.health || 0) : this.playerHealth;
+        if (currentHealth <= 0) {
+            if (wizard.playerNumber === 2) {
+                wizard.health = 0;
+            } else {
+                this.playerHealth = 0;
+            }
+            this.closeBloodTowerMenu(false);
+            this.playerDeath(wizard);
+            return;
+        }
+        
+        // Grant passive orb reward
+        this.grantPassiveOrb(tower.reward, wizard);
+        
+        // Mark tower as used
+        tower.activated = true;
+        if (tower.glowTween) tower.glowTween.stop();
+        tower.setAlpha(0.5);
+        if (tower.particles) tower.particles.destroy();
+        
+        // Blood explosion effect
+        const bloodBurst = this.add.circle(tower.x, tower.y, 10, 0xff0000, 0.8);
+        bloodBurst.setDepth(100);
+        this.tweens.add({
+            targets: bloodBurst,
+            scale: 15,
+            alpha: 0,
+            duration: 800,
+            ease: 'Power2',
+            onComplete: () => bloodBurst.destroy()
+        });
+        
+        this.closeBloodTowerMenu();
+    }
+    
+    grantPassiveOrb(orbType, wizard) {
+        console.log(`grantPassiveOrb called with orbType: ${orbType}`);
+        console.log('Current chargeSlots:', [...this.chargeSlots]);
+        
+        // Find first empty passive slot (4-7)
+        let emptySlot = -1;
+        for (let i = 4; i < 8; i++) {
+            if (!this.chargeSlots[i]) {
+                emptySlot = i;
+                break;
+            }
+        }
+        
+        if (emptySlot === -1) {
+            const msg = this.add.text(wizard.x, wizard.y - 60, 'No empty passive slots!', {
+                fontSize: '20px',
+                color: '#ff0000',
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+            
+            this.tweens.add({
+                targets: msg,
+                y: wizard.y - 100,
+                alpha: 0,
+                duration: 1500,
+                onComplete: () => msg.destroy()
+            });
+            return;
+        }
+        
+        this.chargeSlots[emptySlot] = orbType;
+        console.log(`Added ${orbType} to slot ${emptySlot}`);
+        console.log('Updated chargeSlots:', [...this.chargeSlots]);
+        
+        const successMsg = this.add.text(wizard.x, wizard.y - 60, `Gained ${orbType.toUpperCase()} ORB!`, {
+            fontSize: '24px',
+            color: '#ffff00',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+        
+        this.tweens.add({
+            targets: successMsg,
+            y: wizard.y - 100,
+            scale: 1.2,
+            duration: 500,
+            yoyo: true,
+            onComplete: () => {
+                this.tweens.add({
+                    targets: successMsg,
+                    alpha: 0,
+                    duration: 500,
+                    onComplete: () => successMsg.destroy()
+                });
+            }
+        });
+        
+        this.updateChargeUI();
+    }
+    
+    closeBloodTowerMenu(resumeGame = true) {
+        // Reset accepting flag
+        this.bloodTowerAccepting = false;
+        
+        if (this.bloodTowerMenu) {
+            this.bloodTowerMenu.destroy();
+            this.bloodTowerMenu = null;
+        }
+        
+        this.bloodTowerMenuOpen = false;
+        this.currentBloodTower = null;
+        this.menuControllingPlayer = null;
+        
+        if (resumeGame) {
+            this.resumeGame('bloodTower');
         }
     }
     
@@ -23965,13 +25024,17 @@ class GameScene extends Phaser.Scene {
                     // Determine which player should get this level up
                     const shouldP1LevelUp = this.playerLevel % 2 === 1; // P1 gets odd levels (1, 3, 5...)
                     
-                    // Give level up to the appropriate player
+                    // Give level up to the appropriate player (only if they're alive)
                     if (shouldP1LevelUp) {
-                        this.menuControllingPlayer = 1;
-                        this.openChest(this.wizard, null);
+                        if (this.wizard && this.playerHealth > 0) {
+                            this.menuControllingPlayer = 1;
+                            this.openChest(this.wizard, null);
+                        }
                     } else {
-                        this.menuControllingPlayer = 2;
-                        this.openChest(this.wizard2, null);
+                        if (this.wizard2 && this.playerHealthP2 > 0) {
+                            this.menuControllingPlayer = 2;
+                            this.openChest(this.wizard2, null);
+                        }
                     }
                 } else {
                     // Single player - normal level up
@@ -24486,32 +25549,32 @@ class GameScene extends Phaser.Scene {
             switch (element) {
                 case 'fire':
                     // Pass all charges so fire can scale based on total fire elements
-                    this.fireFireProjectile([element], this.charges, chargeIndex, elementTier);
+                    this.fireFireProjectile([element], this.charges, slotIndex, elementTier);
                     break;
                 case 'water':
                     // Pass all charges so water can scale based on total water elements
-                    this.createWaterOrb(linkedElements, this.charges, chargeIndex, elementTier);
+                    this.createWaterOrb(linkedElements, this.charges, slotIndex, elementTier);
                     break;
                 case 'lightning':
-                    this.fireLightningProjectile(chargeIndex, elementTier);
+                    this.fireLightningProjectile(slotIndex, elementTier);
                     break;
                 case 'earth':
-                    this.fireEarthProjectile(chargeIndex, elementTier);
+                    this.fireEarthProjectile(slotIndex, elementTier);
                     break;
                 case 'rock':
                     this.fireRockProjectile(elementTier);
                     break;
                 case 'air':
-                    this.fireAirProjectile(chargeIndex, elementTier);
+                    this.fireAirProjectile(slotIndex, elementTier);
                     break;
                 case 'ice':
-                    this.fireIceProjectile(chargeIndex, elementTier);
+                    this.fireIceProjectile(slotIndex, elementTier);
                     break;
                 case 'arcane':
-                    this.fireArcaneProjectile(elementTier);
+                    this.fireArcaneProjectile(slotIndex, elementTier);
                     break;
                 case 'poison':
-                    this.createPoisonMines();
+                    this.createPoisonMines(slotIndex, elementTier);
                     break;
                 case 'volcano':
                     this.createVolcanicEruption(elementTier);
@@ -24553,7 +25616,7 @@ class GameScene extends Phaser.Scene {
                     this.createHexSpell();
                     break;
                 case 'venom':
-                    this.createVenomSpell();
+                    this.createVenomSpell(slotIndex, elementTier);
                     break;
                 case 'time':
                     this.createTimeSpell();
@@ -24565,7 +25628,7 @@ class GameScene extends Phaser.Scene {
                     this.createLifeSpell();
                     break;
                 case 'storm':
-                    this.createStormSpell();
+                    this.createStormSpell(slotIndex, elementTier);
                     break;
                 case 'holy':
                     this.createHolySpell();
@@ -24658,7 +25721,7 @@ class GameScene extends Phaser.Scene {
                     this.createSteamSpell();
                     break;
                 case 'poison':
-                    this.createPoisonMines();
+                    this.createPoisonMines(slotIndex, elementTier);
                     break;
                 case 'volcano':
                     this.createVolcanicEruption();
@@ -24840,6 +25903,298 @@ class GameScene extends Phaser.Scene {
         this.createElementalStorm();
     }
 
+    // Helper function to check for King passive and get damage multiplier
+    getKingDamageMultiplier(slotIndex) {
+        // Check if the passive slot for this active slot has King
+        const hasKingModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'king';
+        
+        // Check if any passive slot has joker (which applies King to all slots if King is equipped)
+        let hasJoker = false;
+        let hasAnyKing = false;
+        
+        for (let i = 4; i < 8; i++) {
+            if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
+                hasJoker = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'king') {
+                hasAnyKing = true;
+            }
+        }
+        
+        // Apply King damage multiplier if:
+        // 1. This slot has King directly, OR
+        // 2. Joker is active AND King is equipped anywhere
+        if (hasKingModifier || (hasJoker && hasAnyKing)) {
+            console.log('King modifier active - 2x damage');
+            return 2.0;
+        }
+        
+        return 1.0;
+    }
+    
+    // Helper function to check for Saturn passive
+    hasSaturnModifier(slotIndex) {
+        // Check if the passive slot for this active slot has Saturn
+        const hasSaturnModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'saturn';
+        
+        // Check if any passive slot has joker (which applies Saturn to all slots if Saturn is equipped)
+        let hasJoker = false;
+        let hasAnySaturn = false;
+        
+        for (let i = 4; i < 8; i++) {
+            if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
+                hasJoker = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'saturn') {
+                hasAnySaturn = true;
+            }
+        }
+        
+        // Apply Saturn modifier if:
+        // 1. This slot has Saturn directly, OR
+        // 2. Joker is active AND Saturn is equipped anywhere
+        if (hasSaturnModifier || (hasJoker && hasAnySaturn)) {
+            console.log('Saturn modifier active - orbital projectiles');
+            return true;
+        }
+        
+        return false;
+    }
+    
+    // Helper function to make a projectile orbit around the player
+    makeProjectileOrbit(projectile, orbitRadius = 100, orbitSpeed = 2) {
+        if (!this.orbitalProjectiles) {
+            this.orbitalProjectiles = [];
+        }
+        
+        // Add to orbital projectiles list
+        const orbitalData = {
+            projectile: projectile,
+            angle: Math.random() * Math.PI * 2, // Start at random angle
+            radius: orbitRadius,
+            speed: orbitSpeed,
+            lifetime: 5000 // 5 seconds
+        };
+        
+        this.orbitalProjectiles.push(orbitalData);
+        
+        // Remove linear velocity
+        projectile.body.setVelocity(0, 0);
+        
+        // Set up cleanup
+        this.time.delayedCall(orbitalData.lifetime, () => {
+            const index = this.orbitalProjectiles.indexOf(orbitalData);
+            if (index > -1) {
+                this.orbitalProjectiles.splice(index, 1);
+            }
+            if (projectile.active) {
+                projectile.destroy();
+            }
+        });
+    }
+    
+    // Helper function to check and handle chess modifiers for any projectile type
+    handleChessModifiers(slotIndex, projectileCreator) {
+        // First check if any passive slot has joker - if so, apply ALL chess modifiers to ALL active slots
+        let hasJoker = false;
+        let hasAnyRook = false;
+        let hasAnyBishop = false;
+        let hasAnyQueen = false;
+        let hasAnyKnight = false;
+        
+        // Check all passive slots for joker and chess pieces
+        for (let i = 4; i < 8; i++) {
+            if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
+                hasJoker = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'rook') {
+                hasAnyRook = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'bishop') {
+                hasAnyBishop = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'queen') {
+                hasAnyQueen = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
+                hasAnyKnight = true;
+            }
+        }
+        
+        // If joker is active, apply all chess modifiers found in passive slots
+        if (hasJoker) {
+            console.log('Joker modifier active - applying all chess patterns');
+            
+            // Helper function to create projectiles
+            const createProjectiles = () => {
+                let modifiersApplied = false;
+                
+                // Apply queen pattern if any queen is in passive slots (overrides rook and bishop)
+                if (hasAnyQueen) {
+                    console.log('Applying queen pattern via joker');
+                    // Fire 8 projectiles in all directions
+                    const queenDirections = [
+                        { x: 0, y: -1 },    // Up
+                        { x: 1, y: -1 },    // Up-Right
+                        { x: 1, y: 0 },     // Right
+                        { x: 1, y: 1 },     // Down-Right
+                        { x: 0, y: 1 },     // Down
+                        { x: -1, y: 1 },    // Down-Left
+                        { x: -1, y: 0 },    // Left
+                        { x: -1, y: -1 }    // Up-Left
+                    ];
+                    
+                    queenDirections.forEach((dir, index) => {
+                        const projectile = projectileCreator(dir);
+                        console.log(`Joker-Queen projectile ${index}: created`);
+                    });
+                    modifiersApplied = true;
+                } else {
+                    // Apply rook pattern if any rook is in passive slots
+                    if (hasAnyRook) {
+                        console.log('Applying rook pattern via joker');
+                        // Fire 4 projectiles in cardinal directions
+                        const rookDirections = [
+                            { x: 0, y: -1 },    // Up
+                            { x: 1, y: 0 },     // Right
+                            { x: 0, y: 1 },     // Down
+                            { x: -1, y: 0 }     // Left
+                        ];
+                        
+                        rookDirections.forEach((dir, index) => {
+                            const projectile = projectileCreator(dir);
+                            console.log(`Joker-Rook projectile ${index}: created`);
+                        });
+                        modifiersApplied = true;
+                    }
+                    
+                    // Apply bishop pattern if any bishop is in passive slots
+                    if (hasAnyBishop) {
+                        console.log('Applying bishop pattern via joker');
+                        // Fire 4 projectiles in diagonal directions
+                        const bishopDirections = [
+                            { x: 1, y: -1 },   // Up-Right
+                            { x: -1, y: -1 },  // Up-Left
+                            { x: 1, y: 1 },    // Down-Right
+                            { x: -1, y: 1 }    // Down-Left
+                        ];
+                        
+                        bishopDirections.forEach((dir, index) => {
+                            const projectile = projectileCreator(dir);
+                            console.log(`Joker-Bishop projectile ${index}: created`);
+                        });
+                        modifiersApplied = true;
+                    }
+                }
+                
+                // If joker is present but no chess pieces, don't apply any modifier
+                // The joker only amplifies equipped chess pieces, it doesn't provide its own pattern
+                if (!hasAnyRook && !hasAnyBishop && !hasAnyQueen) {
+                    console.log('Joker with no chess pieces - no modifier applied');
+                    modifiersApplied = false;
+                }
+                
+                return modifiersApplied;
+            };
+            
+            // Apply knight modifier if present (double cast)
+            if (hasAnyKnight) {
+                console.log('Applying knight modifier via joker - double cast');
+                const result = createProjectiles();
+                
+                // Second cast after delay
+                this.time.delayedCall(200, () => {
+                    createProjectiles();
+                });
+                
+                return result;
+            }
+            
+            return createProjectiles();
+        }
+        
+        // Normal chess passive check (without joker)
+        const hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
+        const hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+        const hasQueenModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'queen';
+        const hasKnightModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'knight';
+        
+        // Helper function for the actual cast
+        const performCast = () => {
+            if (hasQueenModifier) {
+                console.log('Queen modifier active');
+                // Fire 8 projectiles in all directions (queen pattern - combines rook and bishop)
+                const queenDirections = [
+                    { x: 0, y: -1 },    // Up
+                    { x: 1, y: -1 },    // Up-Right
+                    { x: 1, y: 0 },     // Right
+                    { x: 1, y: 1 },     // Down-Right
+                    { x: 0, y: 1 },     // Down
+                    { x: -1, y: 1 },    // Down-Left
+                    { x: -1, y: 0 },    // Left
+                    { x: -1, y: -1 }    // Up-Left
+                ];
+                
+                queenDirections.forEach((dir, index) => {
+                    const projectile = projectileCreator(dir);
+                    console.log(`Queen projectile ${index}: created`);
+                });
+                
+                return true; // Modifier was handled
+            } else if (hasRookModifier) {
+                console.log('Rook modifier active');
+                // Fire 4 projectiles in cardinal directions (rook pattern)
+                const rookDirections = [
+                    { x: 0, y: -1 },    // Up
+                    { x: 1, y: 0 },     // Right
+                    { x: 0, y: 1 },     // Down
+                    { x: -1, y: 0 }     // Left
+                ];
+                
+                rookDirections.forEach((dir, index) => {
+                    const projectile = projectileCreator(dir);
+                    console.log(`Rook projectile ${index}: created`);
+                });
+                
+                return true; // Modifier was handled
+            } else if (hasBishopModifier) {
+                console.log('Bishop modifier active');
+                // Fire 4 projectiles in diagonal directions (bishop pattern)
+                const bishopDirections = [
+                    { x: 1, y: -1 },   // Up-Right
+                    { x: -1, y: -1 },  // Up-Left
+                    { x: 1, y: 1 },    // Down-Right
+                    { x: -1, y: 1 }    // Down-Left
+                ];
+                
+                bishopDirections.forEach((dir, index) => {
+                    const projectile = projectileCreator(dir);
+                    console.log(`Bishop projectile ${index}: created`);
+                });
+                
+                return true; // Modifier was handled
+            }
+            
+            return false; // No directional modifier
+        };
+        
+        // Knight modifier - cast spell twice with delay
+        if (hasKnightModifier) {
+            console.log('Knight modifier active - double cast');
+            // First cast
+            const result = performCast();
+            
+            // Second cast after delay
+            this.time.delayedCall(200, () => {
+                performCast();
+            });
+            
+            return result;
+        }
+        
+        return performCast();
+    }
+
     fireFireProjectile(currentGroup = ['fire'], allCharges = null, slotIndex = 0, elementTier = 1) {
         // Get slot buffs
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
@@ -24847,74 +26202,287 @@ class GameScene extends Phaser.Scene {
         // Apply tier damage scaling
         const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
         
+        // Get King damage multiplier
+        const kingMultiplier = this.getKingDamageMultiplier(slotIndex);
+        
         // Count fire elements for damage calculation
         const fireCount = allCharges
             ? allCharges.filter(e => e === 'fire').length
             : currentGroup.filter(e => e === 'fire').length;
         
-        // Create fire projectile (following water/earth/lightning pattern)
-        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'firebolt');
-        projectile.element = 'fire';
-        projectile.damage = (2 + fireCount * 0.5) * slotBuff.damageMultiplier * tierDamageScale;
-        projectile.burnMagnitude = 3; // Burn magnitude to apply
-        projectile.slotIndex = slotIndex;
-        projectile.body.setCollideWorldBounds(false);
-        projectile.setDepth(5);
-        projectile.setScale(1.0 + (fireCount - 1) * 0.2); // Scale with fire count
+        // Check for chess piece modifiers in passive slots
+        let hasJoker = false;
+        let hasAnyRook = false;
+        let hasAnyBishop = false;
+        let hasAnyQueen = false;
+        let hasAnyKnight = false;
         
-        // Play travel animation
-        projectile.play('firebolt-travel');
-        
-        // Add to projectiles group
-        this.projectiles.add(projectile);
-        
-        // Directional firing (exactly like other projectiles)
-        const speed = 380 * slotBuff.speedMultiplier * this.speedMultiplier;
-        const diagonalSpeed = speed / Math.sqrt(2);
-        
-        const directions = {
-            up: { x: 0, y: -speed },
-            down: { x: 0, y: speed },
-            left: { x: -speed, y: 0 },
-            right: { x: speed, y: 0 },
-            'up-left': { x: -diagonalSpeed, y: -diagonalSpeed },
-            'up-right': { x: diagonalSpeed, y: -diagonalSpeed },
-            'down-left': { x: -diagonalSpeed, y: diagonalSpeed },
-            'down-right': { x: diagonalSpeed, y: diagonalSpeed }
-        };
-        
-        const direction = this.wizard.lastDirection || 'down';
-        const dir = directions[direction];
-        
-        if (!dir) {
-            console.error(`Invalid direction: ${direction}`);
-            const fallbackDir = directions['down'];
-            projectile.setVelocity(fallbackDir.x, fallbackDir.y);
-        } else {
-            projectile.setVelocity(dir.x, dir.y);
+        // Check all passive slots for joker and chess pieces
+        for (let i = 4; i < 8; i++) {
+            if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
+                hasJoker = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'rook') {
+                hasAnyRook = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'bishop') {
+                hasAnyBishop = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'queen') {
+                hasAnyQueen = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
+                hasAnyKnight = true;
+            }
         }
         
-        // Rotate projectile to match direction
-        const directionAngles = {
-            'up': -Math.PI / 2,
-            'down': Math.PI / 2,
-            'left': Math.PI,
-            'right': 0,
-            'up-left': -3 * Math.PI / 4,
-            'up-right': -Math.PI / 4,
-            'down-left': 3 * Math.PI / 4,
-            'down-right': Math.PI / 4
-        };
+        // Determine what modifiers to apply
+        let hasRookModifier = false;
+        let hasBishopModifier = false;
         
-        const angle = directionAngles[direction] || 0;
-        projectile.setRotation(angle);
-        
-        // Destroy after 2 seconds
-        this.time.delayedCall(2000, () => {
-            if (projectile.active) {
-                projectile.destroy();
+        if (hasJoker && (hasAnyRook || hasAnyBishop || hasAnyQueen || hasAnyKnight)) {
+            // Joker applies all chess modifiers that are equipped
+            // Queen overrides rook and bishop
+            if (hasAnyQueen) {
+                hasRookModifier = true;
+                hasBishopModifier = true;
+            } else {
+                hasRookModifier = hasAnyRook;
+                hasBishopModifier = hasAnyBishop;
             }
-        });
+        } else {
+            // Normal check for this slot's modifier
+            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
+            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+        }
+        
+        if (hasRookModifier && hasBishopModifier) {
+            // Fire in all 8 directions
+            const speed = 380 * slotBuff.speedMultiplier * this.speedMultiplier;
+            const diagonalSpeed = speed / Math.sqrt(2);
+            const allDirections = [
+                { x: 0, y: -speed },                        // Up
+                { x: diagonalSpeed, y: -diagonalSpeed },    // Up-Right
+                { x: speed, y: 0 },                         // Right
+                { x: diagonalSpeed, y: diagonalSpeed },     // Down-Right
+                { x: 0, y: speed },                         // Down
+                { x: -diagonalSpeed, y: diagonalSpeed },    // Down-Left
+                { x: -speed, y: 0 },                        // Left
+                { x: -diagonalSpeed, y: -diagonalSpeed }    // Up-Left
+            ];
+            
+            allDirections.forEach((dir, index) => {
+                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'firebolt');
+                projectile.element = 'fire';
+                projectile.damage = (2 + fireCount * 0.5) * slotBuff.damageMultiplier * tierDamageScale * kingMultiplier * 0.5; // Reduced damage for 8 projectiles
+                projectile.burnMagnitude = 3;
+                projectile.slotIndex = slotIndex;
+                projectile.body.setCollideWorldBounds(false);
+                projectile.setDepth(5);
+                projectile.setScale((1.0 + (fireCount - 1) * 0.2) * 0.7);
+                
+                // Add to projectiles group FIRST
+                this.projectiles.add(projectile);
+                
+                // Play animation
+                if (this.anims.exists('firebolt-travel')) {
+                    projectile.play('firebolt-travel');
+                }
+                
+                // Set velocity
+                projectile.body.setVelocity(dir.x, dir.y);
+                projectile.body.enable = true;
+                
+                // Rotate projectile
+                const angles = [
+                    -Math.PI/2,    // Up
+                    -Math.PI/4,    // Up-Right
+                    0,             // Right
+                    Math.PI/4,     // Down-Right
+                    Math.PI/2,     // Down
+                    3*Math.PI/4,   // Down-Left
+                    Math.PI,       // Left
+                    -3*Math.PI/4   // Up-Left
+                ];
+                projectile.setRotation(angles[index]);
+                
+                // Cleanup
+                this.time.delayedCall(2000, () => {
+                    if (projectile.active) {
+                        projectile.destroy();
+                    }
+                });
+            });
+            
+            return; // Exit early
+        } else if (hasRookModifier) {
+            console.log('Rook modifier active for fire projectile');
+            // Fire 4 projectiles in cardinal directions (rook pattern)
+            const speed = 380 * slotBuff.speedMultiplier * this.speedMultiplier;
+            const rookDirections = [
+                { x: 0, y: -speed },    // Up
+                { x: speed, y: 0 },     // Right
+                { x: 0, y: speed },     // Down
+                { x: -speed, y: 0 }     // Left
+            ];
+            
+            rookDirections.forEach((dir, index) => {
+                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'firebolt');
+                projectile.element = 'fire';
+                projectile.damage = (2 + fireCount * 0.5) * slotBuff.damageMultiplier * tierDamageScale * kingMultiplier * 0.75; // Slightly reduced damage for balance
+                projectile.burnMagnitude = 3;
+                projectile.slotIndex = slotIndex;
+                projectile.body.setCollideWorldBounds(false);
+                projectile.setDepth(5);
+                projectile.setScale((1.0 + (fireCount - 1) * 0.2) * 0.8); // Slightly smaller for visual clarity
+                
+                // Add to projectiles group FIRST before setting velocity
+                this.projectiles.add(projectile);
+                
+                // Try playing animation
+                if (this.anims.exists('firebolt-travel')) {
+                    projectile.play('firebolt-travel');
+                }
+                
+                // Set velocity and ensure physics body is enabled
+                projectile.body.setVelocity(dir.x, dir.y);
+                projectile.body.enable = true;
+                
+                console.log(`Rook fire projectile ${index}: velocity set to x:${dir.x}, y:${dir.y}`);
+                
+                // Rotate projectile based on direction
+                const angles = [-Math.PI/2, 0, Math.PI/2, Math.PI]; // Up, Right, Down, Left
+                projectile.setRotation(angles[index]);
+                
+                // Add timeout to destroy projectile if it doesn't hit anything
+                this.time.delayedCall(2000, () => {
+                    if (projectile.active) {
+                        projectile.destroy();
+                    }
+                });
+            });
+            
+            // Removed unnecessary rook animation
+        } else if (hasBishopModifier) {
+            console.log('Bishop modifier active for fire projectile');
+            // Fire 4 projectiles in diagonal directions (bishop pattern)
+            const speed = 380 * slotBuff.speedMultiplier * this.speedMultiplier;
+            const diagonalSpeed = speed / Math.sqrt(2); // Normalize diagonal speed
+            const bishopDirections = [
+                { x: diagonalSpeed, y: -diagonalSpeed },   // Up-Right
+                { x: -diagonalSpeed, y: -diagonalSpeed },  // Up-Left
+                { x: diagonalSpeed, y: diagonalSpeed },    // Down-Right
+                { x: -diagonalSpeed, y: diagonalSpeed }    // Down-Left
+            ];
+            
+            bishopDirections.forEach((dir, index) => {
+                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'firebolt');
+                projectile.element = 'fire';
+                projectile.damage = (2 + fireCount * 0.5) * slotBuff.damageMultiplier * tierDamageScale * kingMultiplier * 0.75; // Slightly reduced damage for balance
+                projectile.burnMagnitude = 3;
+                projectile.slotIndex = slotIndex;
+                projectile.body.setCollideWorldBounds(false);
+                projectile.setDepth(5);
+                projectile.setScale((1.0 + (fireCount - 1) * 0.2) * 0.8); // Slightly smaller for visual clarity
+                
+                // Add to projectiles group FIRST before setting velocity
+                this.projectiles.add(projectile);
+                
+                // Try playing animation
+                if (this.anims.exists('firebolt-travel')) {
+                    projectile.play('firebolt-travel');
+                }
+                
+                // Set velocity and ensure physics body is enabled
+                projectile.body.setVelocity(dir.x, dir.y);
+                projectile.body.enable = true;
+                
+                console.log(`Bishop fire projectile ${index}: velocity set to x:${dir.x}, y:${dir.y}`);
+                
+                // Rotate projectile based on direction
+                const angles = [-Math.PI/4, -3*Math.PI/4, Math.PI/4, 3*Math.PI/4]; // UR, UL, DR, DL
+                projectile.setRotation(angles[index]);
+                
+                // Add timeout to destroy projectile if it doesn't hit anything
+                this.time.delayedCall(2000, () => {
+                    if (projectile.active) {
+                        projectile.destroy();
+                    }
+                });
+            });
+            
+            // Removed unnecessary bishop animation
+        } else {
+            // Normal single projectile
+            // Create fire projectile (following water/earth/lightning pattern)
+            const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'firebolt');
+            projectile.element = 'fire';
+            projectile.damage = (2 + fireCount * 0.5) * slotBuff.damageMultiplier * tierDamageScale * kingMultiplier;
+            projectile.burnMagnitude = 3; // Burn magnitude to apply
+            projectile.slotIndex = slotIndex;
+            projectile.body.setCollideWorldBounds(false);
+            projectile.setDepth(5);
+            projectile.setScale(1.0 + (fireCount - 1) * 0.2); // Scale with fire count
+            
+            // Play travel animation
+            projectile.play('firebolt-travel');
+            
+            // Add to projectiles group
+            this.projectiles.add(projectile);
+            
+            // Directional firing (exactly like other projectiles)
+            const speed = 380 * slotBuff.speedMultiplier * this.speedMultiplier;
+            const diagonalSpeed = speed / Math.sqrt(2);
+            
+            const directions = {
+                up: { x: 0, y: -speed },
+                down: { x: 0, y: speed },
+                left: { x: -speed, y: 0 },
+                right: { x: speed, y: 0 },
+                'up-left': { x: -diagonalSpeed, y: -diagonalSpeed },
+                'up-right': { x: diagonalSpeed, y: -diagonalSpeed },
+                'down-left': { x: -diagonalSpeed, y: diagonalSpeed },
+                'down-right': { x: diagonalSpeed, y: diagonalSpeed }
+            };
+            
+            const direction = this.wizard.lastDirection || 'down';
+            const dir = directions[direction];
+            
+            if (!dir) {
+                console.error(`Invalid direction: ${direction}`);
+                const fallbackDir = directions['down'];
+                projectile.setVelocity(fallbackDir.x, fallbackDir.y);
+            } else {
+                projectile.setVelocity(dir.x, dir.y);
+            }
+            
+            // Rotate projectile to match direction
+            const directionAngles = {
+                'up': -Math.PI / 2,
+                'down': Math.PI / 2,
+                'left': Math.PI,
+                'right': 0,
+                'up-left': -3 * Math.PI / 4,
+                'up-right': -Math.PI / 4,
+                'down-left': 3 * Math.PI / 4,
+                'down-right': Math.PI / 4
+            };
+            
+            const angle = directionAngles[direction] || 0;
+            projectile.setRotation(angle);
+            
+            // Check for Saturn modifier - make projectile orbit instead of fly straight
+            if (this.hasSaturnModifier(slotIndex)) {
+                this.makeProjectileOrbit(projectile, 100, 3); // 100 pixel radius, 3 rad/s speed
+            } else {
+                // Normal projectile - destroy after 2 seconds
+                this.time.delayedCall(2000, () => {
+                    if (projectile.active) {
+                        projectile.destroy();
+                    }
+                });
+            }
+        }
     }
 
     createWaterOrb(elementGroup = ['water'], allCharges = null, slotIndex = 0, elementTier = 1) {
@@ -24933,7 +26501,122 @@ class GameScene extends Phaser.Scene {
         // Apply tier damage scaling
         const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
         
-        // Create new water ball projectile
+        // Check if this slot has rook or bishop modifier (passive slot 4+slotIndex corresponds to active slot)
+        const hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
+        const hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+        
+        if (hasRookModifier) {
+            console.log('Rook modifier active for water projectile');
+            // Fire 4 projectiles in cardinal directions (rook pattern)
+            const speed = 400 * slotBuff.speedMultiplier * this.speedMultiplier;
+            const rookDirections = [
+                { x: 0, y: -speed },    // Up
+                { x: speed, y: 0 },     // Right
+                { x: 0, y: speed },     // Down
+                { x: -speed, y: 0 }     // Left
+            ];
+            
+            rookDirections.forEach((dir, index) => {
+                const waterProjectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'waterball-projectile');
+                waterProjectile.setScale((0.8 + (waterCount - 1) * 0.3) * 0.8); // Slightly smaller for clarity
+                
+                // Set projectile properties
+                waterProjectile.element = 'water';
+                waterProjectile.damage = (2 + waterCount) * slotBuff.damageMultiplier * tierDamageScale * 0.75;
+                waterProjectile.power = waterCount;
+                waterProjectile.slotIndex = slotIndex;
+                waterProjectile.setDepth(5);
+                waterProjectile.body.setCollideWorldBounds(false);
+                waterProjectile.body.setCircle(20);
+                
+                // Add to projectiles group
+                this.projectiles.add(waterProjectile);
+                
+                // Play animation
+                waterProjectile.play('waterball-startup');
+                waterProjectile.on('animationcomplete-waterball-startup', () => {
+                    if (waterProjectile.active) {
+                        waterProjectile.play('waterball-travel');
+                    }
+                });
+                
+                // Set velocity
+                waterProjectile.body.setVelocity(dir.x, dir.y);
+                waterProjectile.body.enable = true;
+                
+                console.log(`Rook water projectile ${index}: velocity set to x:${dir.x}, y:${dir.y}`);
+                
+                // Rotate projectile based on direction
+                const angles = [-Math.PI/2, 0, Math.PI/2, Math.PI]; // Up, Right, Down, Left
+                waterProjectile.setRotation(angles[index]);
+                
+                // Cleanup after 2 seconds
+                this.time.delayedCall(2000, () => {
+                    if (waterProjectile.active) {
+                        waterProjectile.destroy();
+                    }
+                });
+            });
+            
+            return; // Exit early, we've created the rook projectiles
+        } else if (hasBishopModifier) {
+            console.log('Bishop modifier active for water projectile');
+            // Fire 4 projectiles in diagonal directions (bishop pattern)
+            const speed = 400 * slotBuff.speedMultiplier * this.speedMultiplier;
+            const diagonalSpeed = speed / Math.sqrt(2); // Normalize diagonal speed
+            const bishopDirections = [
+                { x: diagonalSpeed, y: -diagonalSpeed },   // Up-Right
+                { x: -diagonalSpeed, y: -diagonalSpeed },  // Up-Left
+                { x: diagonalSpeed, y: diagonalSpeed },    // Down-Right
+                { x: -diagonalSpeed, y: diagonalSpeed }    // Down-Left
+            ];
+            
+            bishopDirections.forEach((dir, index) => {
+                const waterProjectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'waterball-projectile');
+                waterProjectile.setScale((0.8 + (waterCount - 1) * 0.3) * 0.8); // Slightly smaller for clarity
+                
+                // Set projectile properties
+                waterProjectile.element = 'water';
+                waterProjectile.damage = (2 + waterCount) * slotBuff.damageMultiplier * tierDamageScale * 0.75;
+                waterProjectile.power = waterCount;
+                waterProjectile.slotIndex = slotIndex;
+                waterProjectile.setDepth(5);
+                waterProjectile.body.setCollideWorldBounds(false);
+                waterProjectile.body.setCircle(20);
+                
+                // Add to projectiles group
+                this.projectiles.add(waterProjectile);
+                
+                // Play animation
+                waterProjectile.play('waterball-startup');
+                waterProjectile.on('animationcomplete-waterball-startup', () => {
+                    if (waterProjectile.active) {
+                        waterProjectile.play('waterball-travel');
+                    }
+                });
+                
+                // Set velocity
+                waterProjectile.body.setVelocity(dir.x, dir.y);
+                waterProjectile.body.enable = true;
+                
+                console.log(`Bishop water projectile ${index}: velocity set to x:${dir.x}, y:${dir.y}`);
+                
+                // Rotate projectile based on direction
+                const angles = [-Math.PI/4, -3*Math.PI/4, Math.PI/4, 3*Math.PI/4]; // UR, UL, DR, DL
+                waterProjectile.setRotation(angles[index]);
+                
+                // Cleanup after 2 seconds
+                this.time.delayedCall(2000, () => {
+                    if (waterProjectile.active) {
+                        waterProjectile.destroy();
+                    }
+                });
+            });
+            
+            return; // Exit early, we've created the bishop projectiles
+        }
+        
+        // Normal single water projectile
         const waterProjectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'waterball-projectile');
         waterProjectile.setScale(0.8 + (waterCount - 1) * 0.3); // Scale with water count
         
@@ -25016,7 +26699,203 @@ class GameScene extends Phaser.Scene {
         // Apply tier damage scaling
         const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
         
-        // Create lightning projectile (following earth/water pattern)
+        // Check for chess piece modifiers in passive slots
+        // First check if any passive slot has joker
+        let hasJoker = false;
+        let hasAnyRook = false;
+        let hasAnyBishop = false;
+        let hasAnyQueen = false;
+        let hasAnyKnight = false;
+        
+        // Check all passive slots for joker and chess pieces
+        for (let i = 4; i < 8; i++) {
+            if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
+                hasJoker = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'rook') {
+                hasAnyRook = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'bishop') {
+                hasAnyBishop = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'queen') {
+                hasAnyQueen = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
+                hasAnyKnight = true;
+            }
+        }
+        
+        // Determine what modifiers to apply
+        let hasRookModifier = false;
+        let hasBishopModifier = false;
+        
+        if (hasJoker && (hasAnyRook || hasAnyBishop || hasAnyQueen || hasAnyKnight)) {
+            // Joker applies all chess modifiers that are equipped
+            // Queen overrides rook and bishop
+            if (hasAnyQueen) {
+                hasRookModifier = true;
+                hasBishopModifier = true;
+            } else {
+                hasRookModifier = hasAnyRook;
+                hasBishopModifier = hasAnyBishop;
+            }
+        } else {
+            // Normal check for this slot's modifier
+            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
+            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+        }
+        
+        if (hasRookModifier && hasBishopModifier) {
+            console.log('Both rook and bishop modifiers active for lightning projectile');
+            // Fire 8 projectiles in all directions
+            const speed = 500 * slotBuff.speedMultiplier * this.speedMultiplier;
+            const diagonalSpeed = speed / Math.sqrt(2);
+            const allDirections = [
+                { x: 0, y: -speed },                      // Up
+                { x: diagonalSpeed, y: -diagonalSpeed },  // Up-Right
+                { x: speed, y: 0 },                       // Right
+                { x: diagonalSpeed, y: diagonalSpeed },   // Down-Right
+                { x: 0, y: speed },                       // Down
+                { x: -diagonalSpeed, y: diagonalSpeed },  // Down-Left
+                { x: -speed, y: 0 },                      // Left
+                { x: -diagonalSpeed, y: -diagonalSpeed }  // Up-Left
+            ];
+            
+            allDirections.forEach((dir, index) => {
+                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'lightning-projectile');
+                projectile.element = 'lightning';
+                projectile.damage = 2 * slotBuff.damageMultiplier * tierDamageScale * 0.5; // Reduced for balance
+                projectile.slotIndex = slotIndex;
+                projectile.body.setCollideWorldBounds(false);
+                projectile.setDepth(5);
+                projectile.setScale(0.9);
+                
+                // Play animation
+                if (this.anims.exists('lightning-travel')) {
+                    projectile.play('lightning-travel');
+                }
+                
+                // Add to projectiles group
+                this.projectiles.add(projectile);
+                
+                // Set velocity
+                projectile.body.setVelocity(dir.x, dir.y);
+                projectile.body.enable = true;
+                
+                console.log(`All-direction lightning projectile ${index}: velocity set to x:${dir.x}, y:${dir.y}`);
+                
+                // Rotate projectile based on direction
+                const angles = [-Math.PI/2, -Math.PI/4, 0, Math.PI/4, Math.PI/2, 3*Math.PI/4, Math.PI, -3*Math.PI/4];
+                projectile.setRotation(angles[index]);
+                
+                // Cleanup
+                this.time.delayedCall(2000, () => {
+                    if (projectile.active) {
+                        projectile.destroy();
+                    }
+                });
+            });
+            
+            return; // Exit early
+        } else if (hasRookModifier) {
+            console.log('Rook modifier active for lightning projectile');
+            // Fire 4 projectiles in cardinal directions (rook pattern)
+            const speed = 500 * slotBuff.speedMultiplier * this.speedMultiplier;
+            const rookDirections = [
+                { x: 0, y: -speed },    // Up
+                { x: speed, y: 0 },     // Right
+                { x: 0, y: speed },     // Down
+                { x: -speed, y: 0 }     // Left
+            ];
+            
+            rookDirections.forEach((dir, index) => {
+                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'lightning-projectile');
+                projectile.element = 'lightning';
+                projectile.damage = 2 * slotBuff.damageMultiplier * tierDamageScale * 0.75;
+                projectile.slotIndex = slotIndex;
+                projectile.body.setCollideWorldBounds(false);
+                projectile.setDepth(5);
+                projectile.setScale(1.0);
+                
+                // Play animation
+                if (this.anims.exists('lightning-travel')) {
+                    projectile.play('lightning-travel');
+                }
+                
+                // Add to projectiles group
+                this.projectiles.add(projectile);
+                
+                // Set velocity
+                projectile.body.setVelocity(dir.x, dir.y);
+                projectile.body.enable = true;
+                
+                console.log(`Rook lightning projectile ${index}: velocity set to x:${dir.x}, y:${dir.y}`);
+                
+                // Rotate projectile based on direction
+                const angles = [-Math.PI/2, 0, Math.PI/2, Math.PI]; // Up, Right, Down, Left (matching rookDirections order)
+                projectile.setRotation(angles[index]);
+                
+                // Cleanup
+                this.time.delayedCall(2000, () => {
+                    if (projectile.active) {
+                        projectile.destroy();
+                    }
+                });
+            });
+            
+            return; // Exit early
+        } else if (hasBishopModifier) {
+            console.log('Bishop modifier active for lightning projectile');
+            // Fire 4 projectiles in diagonal directions (bishop pattern)
+            const speed = 500 * slotBuff.speedMultiplier * this.speedMultiplier;
+            const diagonalSpeed = speed / Math.sqrt(2);
+            const bishopDirections = [
+                { x: diagonalSpeed, y: -diagonalSpeed },   // Up-Right
+                { x: -diagonalSpeed, y: -diagonalSpeed },  // Up-Left
+                { x: diagonalSpeed, y: diagonalSpeed },    // Down-Right
+                { x: -diagonalSpeed, y: diagonalSpeed }    // Down-Left
+            ];
+            
+            bishopDirections.forEach((dir, index) => {
+                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'lightning-projectile');
+                projectile.element = 'lightning';
+                projectile.damage = 2 * slotBuff.damageMultiplier * tierDamageScale * 0.75;
+                projectile.slotIndex = slotIndex;
+                projectile.body.setCollideWorldBounds(false);
+                projectile.setDepth(5);
+                projectile.setScale(1.0);
+                
+                // Play animation
+                if (this.anims.exists('lightning-travel')) {
+                    projectile.play('lightning-travel');
+                }
+                
+                // Add to projectiles group
+                this.projectiles.add(projectile);
+                
+                // Set velocity
+                projectile.body.setVelocity(dir.x, dir.y);
+                projectile.body.enable = true;
+                
+                console.log(`Bishop lightning projectile ${index}: velocity set to x:${dir.x}, y:${dir.y}`);
+                
+                // Rotate projectile based on direction
+                const angles = [-Math.PI/4, -3*Math.PI/4, Math.PI/4, 3*Math.PI/4]; // UR, UL, DR, DL
+                projectile.setRotation(angles[index]);
+                
+                // Cleanup
+                this.time.delayedCall(2000, () => {
+                    if (projectile.active) {
+                        projectile.destroy();
+                    }
+                });
+            });
+            
+            return; // Exit early
+        }
+        
+        // Normal single lightning projectile
         const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'lightning-projectile');
         projectile.element = 'lightning';
         projectile.damage = 2 * slotBuff.damageMultiplier * tierDamageScale;
@@ -25186,7 +27065,200 @@ class GameScene extends Phaser.Scene {
         // Apply tier damage scaling
         const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
         
-        // Create air/wind projectile (following water/earth pattern)
+        // Check for chess piece modifiers in passive slots (don't use handleChessModifiers helper)
+        // First check if any passive slot has joker
+        let hasJoker = false;
+        let hasAnyRook = false;
+        let hasAnyBishop = false;
+        let hasAnyQueen = false;
+        let hasAnyKnight = false;
+        
+        // Check all passive slots for joker and chess pieces
+        for (let i = 4; i < 8; i++) {
+            if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
+                hasJoker = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'rook') {
+                hasAnyRook = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'bishop') {
+                hasAnyBishop = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'queen') {
+                hasAnyQueen = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
+                hasAnyKnight = true;
+            }
+        }
+        
+        // Determine what modifiers to apply
+        let hasRookModifier = false;
+        let hasBishopModifier = false;
+        
+        if (hasJoker && (hasAnyRook || hasAnyBishop || hasAnyQueen || hasAnyKnight)) {
+            // Joker applies all chess modifiers that are equipped
+            // Queen overrides rook and bishop
+            if (hasAnyQueen) {
+                hasRookModifier = true;
+                hasBishopModifier = true;
+            } else {
+                hasRookModifier = hasAnyRook;
+                hasBishopModifier = hasAnyBishop;
+            }
+        } else {
+            // Normal check for this slot's modifier
+            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
+            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+        }
+        
+        if (hasRookModifier && hasBishopModifier) {
+            console.log('Both rook and bishop modifiers active for air projectile');
+            // Fire 8 projectiles in all directions
+            const speed = 350 * slotBuff.speedMultiplier * this.speedMultiplier;
+            const diagonalSpeed = speed / Math.sqrt(2);
+            const allDirections = [
+                { x: 0, y: -speed },                      // Up
+                { x: diagonalSpeed, y: -diagonalSpeed },  // Up-Right
+                { x: speed, y: 0 },                       // Right
+                { x: diagonalSpeed, y: diagonalSpeed },   // Down-Right
+                { x: 0, y: speed },                       // Down
+                { x: -diagonalSpeed, y: diagonalSpeed },  // Down-Left
+                { x: -speed, y: 0 },                      // Left
+                { x: -diagonalSpeed, y: -diagonalSpeed }  // Up-Left
+            ];
+            
+            allDirections.forEach((dir, index) => {
+                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'wind-projectile');
+                projectile.element = 'air';
+                projectile.damage = 2 * slotBuff.damageMultiplier * tierDamageScale * 0.5; // Reduced for balance
+                projectile.pushForce = 400;
+                projectile.slotIndex = slotIndex;
+                projectile.body.setCollideWorldBounds(false);
+                projectile.setDepth(5);
+                projectile.setScale(0.9);
+                
+                // Play animation
+                projectile.play('wind-travel');
+                
+                // Add to projectiles group
+                this.projectiles.add(projectile);
+                
+                // Set velocity
+                projectile.body.setVelocity(dir.x, dir.y);
+                projectile.body.enable = true;
+                
+                console.log(`All-direction air projectile ${index}: velocity set to x:${dir.x}, y:${dir.y}`);
+                
+                // Rotate projectile based on direction
+                const angles = [-Math.PI/2, -Math.PI/4, 0, Math.PI/4, Math.PI/2, 3*Math.PI/4, Math.PI, -3*Math.PI/4];
+                projectile.setRotation(angles[index]);
+                
+                // Cleanup
+                this.time.delayedCall(2000, () => {
+                    if (projectile.active) {
+                        projectile.destroy();
+                    }
+                });
+            });
+            
+            return; // Exit early
+        } else if (hasRookModifier) {
+            console.log('Rook modifier active for air projectile');
+            // Fire 4 projectiles in cardinal directions (rook pattern)
+            const speed = 350 * slotBuff.speedMultiplier * this.speedMultiplier;
+            const rookDirections = [
+                { x: 0, y: -speed },    // Up
+                { x: 0, y: speed },     // Down
+                { x: -speed, y: 0 },    // Left
+                { x: speed, y: 0 }      // Right
+            ];
+            
+            rookDirections.forEach((dir, index) => {
+                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'wind-projectile');
+                projectile.element = 'air';
+                projectile.damage = 2 * slotBuff.damageMultiplier * tierDamageScale * 0.75;
+                projectile.pushForce = 400;
+                projectile.slotIndex = slotIndex;
+                projectile.body.setCollideWorldBounds(false);
+                projectile.setDepth(5);
+                projectile.setScale(1.0);
+                
+                // Play animation
+                projectile.play('wind-travel');
+                
+                // Add to projectiles group
+                this.projectiles.add(projectile);
+                
+                // Set velocity
+                projectile.body.setVelocity(dir.x, dir.y);
+                projectile.body.enable = true;
+                
+                console.log(`Rook air projectile ${index}: velocity set to x:${dir.x}, y:${dir.y}`);
+                
+                // Rotate projectile based on direction
+                const angles = [-Math.PI/2, Math.PI/2, Math.PI, 0]; // Up, Down, Left, Right
+                projectile.setRotation(angles[index]);
+                
+                // Cleanup
+                this.time.delayedCall(2000, () => {
+                    if (projectile.active) {
+                        projectile.destroy();
+                    }
+                });
+            });
+            
+            return; // Exit early
+        } else if (hasBishopModifier) {
+            console.log('Bishop modifier active for air projectile');
+            // Fire 4 projectiles in diagonal directions (bishop pattern)
+            const speed = 350 * slotBuff.speedMultiplier * this.speedMultiplier;
+            const diagonalSpeed = speed / Math.sqrt(2);
+            const bishopDirections = [
+                { x: diagonalSpeed, y: -diagonalSpeed },   // Up-Right
+                { x: -diagonalSpeed, y: -diagonalSpeed },  // Up-Left
+                { x: diagonalSpeed, y: diagonalSpeed },    // Down-Right
+                { x: -diagonalSpeed, y: diagonalSpeed }    // Down-Left
+            ];
+            
+            bishopDirections.forEach((dir, index) => {
+                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'wind-projectile');
+                projectile.element = 'air';
+                projectile.damage = 2 * slotBuff.damageMultiplier * tierDamageScale * 0.75;
+                projectile.pushForce = 400;
+                projectile.slotIndex = slotIndex;
+                projectile.body.setCollideWorldBounds(false);
+                projectile.setDepth(5);
+                projectile.setScale(1.0);
+                
+                // Play animation
+                projectile.play('wind-travel');
+                
+                // Add to projectiles group
+                this.projectiles.add(projectile);
+                
+                // Set velocity
+                projectile.body.setVelocity(dir.x, dir.y);
+                projectile.body.enable = true;
+                
+                console.log(`Bishop air projectile ${index}: velocity set to x:${dir.x}, y:${dir.y}`);
+                
+                // Rotate projectile based on direction
+                const angles = [-Math.PI/4, -3*Math.PI/4, Math.PI/4, 3*Math.PI/4]; // UR, UL, DR, DL
+                projectile.setRotation(angles[index]);
+                
+                // Cleanup
+                this.time.delayedCall(2000, () => {
+                    if (projectile.active) {
+                        projectile.destroy();
+                    }
+                });
+            });
+            
+            return; // Exit early
+        }
+        
+        // Normal single air projectile
         const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'wind-projectile');
         projectile.element = 'air';
         projectile.damage = 2 * slotBuff.damageMultiplier * tierDamageScale;
@@ -25342,7 +27414,207 @@ class GameScene extends Phaser.Scene {
         // Apply tier damage scaling
         const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
         
-        // Create earth projectile with new animation
+        // Check for chess piece modifiers in passive slots
+        let hasJoker = false;
+        let hasAnyRook = false;
+        let hasAnyBishop = false;
+        let hasAnyQueen = false;
+        let hasAnyKnight = false;
+        
+        // Check all passive slots for joker and chess pieces
+        for (let i = 4; i < 8; i++) {
+            if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
+                hasJoker = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'rook') {
+                hasAnyRook = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'bishop') {
+                hasAnyBishop = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'queen') {
+                hasAnyQueen = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
+                hasAnyKnight = true;
+            }
+        }
+        
+        // Determine what modifiers to apply
+        let hasRookModifier = false;
+        let hasBishopModifier = false;
+        
+        if (hasJoker && (hasAnyRook || hasAnyBishop || hasAnyQueen || hasAnyKnight)) {
+            // Joker applies all chess modifiers that are equipped
+            // Queen overrides rook and bishop
+            if (hasAnyQueen) {
+                hasRookModifier = true;
+                hasBishopModifier = true;
+            } else {
+                hasRookModifier = hasAnyRook;
+                hasBishopModifier = hasAnyBishop;
+            }
+        } else {
+            // Normal check for this slot's modifier
+            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
+            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+        }
+        
+        if (hasRookModifier && hasBishopModifier) {
+            // Fire 8 projectiles in all directions
+            const speed = 300 * slotBuff.speedMultiplier * this.speedMultiplier;
+            const allDirections = [
+                { x: 0, y: -speed },           // Up
+                { x: speed/Math.sqrt(2), y: -speed/Math.sqrt(2) }, // Up-Right
+                { x: speed, y: 0 },            // Right
+                { x: speed/Math.sqrt(2), y: speed/Math.sqrt(2) },  // Down-Right
+                { x: 0, y: speed },            // Down
+                { x: -speed/Math.sqrt(2), y: speed/Math.sqrt(2) }, // Down-Left
+                { x: -speed, y: 0 },           // Left
+                { x: -speed/Math.sqrt(2), y: -speed/Math.sqrt(2) } // Up-Left
+            ];
+            
+            allDirections.forEach((dir, index) => {
+                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'earth-projectile');
+                projectile.element = 'earth';
+                projectile.damage = 3 * slotBuff.damageMultiplier * tierDamageScale * 0.5; // Reduced damage for 8 projectiles
+                projectile.knockbackForce = 1600;
+                projectile.shatterMultiplier = 2.5;
+                projectile.slotIndex = slotIndex;
+                projectile.body.setCollideWorldBounds(false);
+                projectile.setDepth(5);
+                projectile.setScale(1.0);
+                
+                // Play animation
+                projectile.play('earth-travel');
+                
+                // Add to projectiles group
+                this.projectiles.add(projectile);
+                
+                // Set velocity
+                projectile.body.setVelocity(dir.x, dir.y);
+                projectile.body.enable = true;
+                
+                // Rotate projectile based on direction
+                const angles = [
+                    -Math.PI/2,    // Up
+                    -Math.PI/4,    // Up-Right
+                    0,             // Right
+                    Math.PI/4,     // Down-Right
+                    Math.PI/2,     // Down
+                    3*Math.PI/4,   // Down-Left
+                    Math.PI,       // Left
+                    -3*Math.PI/4   // Up-Left
+                ];
+                projectile.setRotation(angles[index]);
+                
+                // Cleanup
+                this.time.delayedCall(3000, () => {
+                    if (projectile.active) {
+                        projectile.destroy();
+                    }
+                });
+            });
+            
+            return; // Exit early
+        } else if (hasRookModifier) {
+            console.log('Rook modifier active for earth projectile');
+            // Fire 4 projectiles in cardinal directions (rook pattern)
+            const speed = 300 * slotBuff.speedMultiplier * this.speedMultiplier;
+            const rookDirections = [
+                { x: 0, y: -speed },    // Up
+                { x: 0, y: speed },     // Down
+                { x: -speed, y: 0 },    // Left
+                { x: speed, y: 0 }      // Right
+            ];
+            
+            rookDirections.forEach((dir, index) => {
+                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'earth-projectile');
+                projectile.element = 'earth';
+                projectile.damage = 3 * slotBuff.damageMultiplier * tierDamageScale * 0.75;
+                projectile.knockbackForce = 1600;
+                projectile.shatterMultiplier = 2.5;
+                projectile.slotIndex = slotIndex;
+                projectile.body.setCollideWorldBounds(false);
+                projectile.setDepth(5);
+                projectile.setScale(1.0);
+                
+                // Play animation
+                projectile.play('earth-travel');
+                
+                // Add to projectiles group
+                this.projectiles.add(projectile);
+                
+                // Set velocity
+                projectile.body.setVelocity(dir.x, dir.y);
+                projectile.body.enable = true;
+                
+                console.log(`Rook earth projectile ${index}: velocity set to x:${dir.x}, y:${dir.y}`);
+                
+                // Rotate projectile based on direction
+                const angles = [-Math.PI/2, Math.PI/2, Math.PI, 0]; // Up, Down, Left, Right
+                projectile.setRotation(angles[index]);
+                
+                // Cleanup
+                this.time.delayedCall(3000, () => {
+                    if (projectile.active) {
+                        projectile.destroy();
+                    }
+                });
+            });
+            
+            return; // Exit early
+        } else if (hasBishopModifier) {
+            console.log('Bishop modifier active for earth projectile');
+            // Fire 4 projectiles in diagonal directions (bishop pattern)
+            const speed = 300 * slotBuff.speedMultiplier * this.speedMultiplier;
+            const diagonalSpeed = speed / Math.sqrt(2);
+            const bishopDirections = [
+                { x: diagonalSpeed, y: -diagonalSpeed },   // Up-Right
+                { x: -diagonalSpeed, y: -diagonalSpeed },  // Up-Left
+                { x: diagonalSpeed, y: diagonalSpeed },    // Down-Right
+                { x: -diagonalSpeed, y: diagonalSpeed }    // Down-Left
+            ];
+            
+            bishopDirections.forEach((dir, index) => {
+                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'earth-projectile');
+                projectile.element = 'earth';
+                projectile.damage = 3 * slotBuff.damageMultiplier * tierDamageScale * 0.75;
+                projectile.knockbackForce = 1600;
+                projectile.shatterMultiplier = 2.5;
+                projectile.slotIndex = slotIndex;
+                projectile.body.setCollideWorldBounds(false);
+                projectile.setDepth(5);
+                projectile.setScale(1.0);
+                
+                // Play animation
+                projectile.play('earth-travel');
+                
+                // Add to projectiles group
+                this.projectiles.add(projectile);
+                
+                // Set velocity
+                projectile.body.setVelocity(dir.x, dir.y);
+                projectile.body.enable = true;
+                
+                console.log(`Bishop earth projectile ${index}: velocity set to x:${dir.x}, y:${dir.y}`);
+                
+                // Rotate projectile based on direction
+                const angles = [-Math.PI/4, -3*Math.PI/4, Math.PI/4, 3*Math.PI/4]; // UR, UL, DR, DL
+                projectile.setRotation(angles[index]);
+                
+                // Cleanup
+                this.time.delayedCall(3000, () => {
+                    if (projectile.active) {
+                        projectile.destroy();
+                    }
+                });
+            });
+            
+            return; // Exit early
+        }
+        
+        // Normal single earth projectile
         const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'earth-projectile');
         projectile.element = 'earth';
         projectile.damage = 3 * slotBuff.damageMultiplier * tierDamageScale;
@@ -25416,7 +27688,220 @@ class GameScene extends Phaser.Scene {
         // Apply tier damage scaling
         const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
         
-        // Create ice spike projectile
+        // Check for chess piece modifiers in passive slots
+        let hasJoker = false;
+        let hasAnyRook = false;
+        let hasAnyBishop = false;
+        let hasAnyQueen = false;
+        let hasAnyKnight = false;
+        
+        // Check all passive slots for joker and chess pieces
+        for (let i = 4; i < 8; i++) {
+            if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
+                hasJoker = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'rook') {
+                hasAnyRook = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'bishop') {
+                hasAnyBishop = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'queen') {
+                hasAnyQueen = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
+                hasAnyKnight = true;
+            }
+        }
+        
+        // Determine what modifiers to apply
+        let hasRookModifier = false;
+        let hasBishopModifier = false;
+        
+        if (hasJoker && (hasAnyRook || hasAnyBishop || hasAnyQueen || hasAnyKnight)) {
+            // Joker applies all chess modifiers that are equipped
+            // Queen overrides rook and bishop
+            if (hasAnyQueen) {
+                hasRookModifier = true;
+                hasBishopModifier = true;
+            } else {
+                hasRookModifier = hasAnyRook;
+                hasBishopModifier = hasAnyBishop;
+            }
+        } else {
+            // Normal check for this slot's modifier
+            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
+            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+        }
+        
+        if (hasRookModifier && hasBishopModifier) {
+            // Fire 8 projectiles in all directions
+            const speed = 320 * slotBuff.speedMultiplier * this.speedMultiplier;
+            const diagonalSpeed = speed / Math.sqrt(2);
+            const allDirections = [
+                { x: 0, y: -speed },                        // Up
+                { x: diagonalSpeed, y: -diagonalSpeed },    // Up-Right
+                { x: speed, y: 0 },                         // Right
+                { x: diagonalSpeed, y: diagonalSpeed },     // Down-Right
+                { x: 0, y: speed },                         // Down
+                { x: -diagonalSpeed, y: diagonalSpeed },    // Down-Left
+                { x: -speed, y: 0 },                        // Left
+                { x: -diagonalSpeed, y: -diagonalSpeed }    // Up-Left
+            ];
+            
+            allDirections.forEach((dir, index) => {
+                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'ice-spike-start1');
+                projectile.element = 'ice';
+                projectile.damage = 2.5 * slotBuff.damageMultiplier * tierDamageScale * 0.5; // Reduced for 8 projectiles
+                projectile.freezeDuration = 2000;
+                projectile.slotIndex = slotIndex;
+                projectile.body.setCollideWorldBounds(false);
+                projectile.setDepth(5);
+                projectile.setScale(0.8);
+                
+                // Play animation
+                projectile.play('ice-spike-start');
+                projectile.on('animationcomplete-ice-spike-start', () => {
+                    if (projectile.active) {
+                        projectile.play('ice-spike-travel');
+                    }
+                });
+                
+                // Add to projectiles group
+                this.projectiles.add(projectile);
+                
+                // Set velocity
+                projectile.body.setVelocity(dir.x, dir.y);
+                projectile.body.enable = true;
+                
+                // Rotate projectile
+                const angles = [
+                    -Math.PI/2,    // Up
+                    -Math.PI/4,    // Up-Right
+                    0,             // Right
+                    Math.PI/4,     // Down-Right
+                    Math.PI/2,     // Down
+                    3*Math.PI/4,   // Down-Left
+                    Math.PI,       // Left
+                    -3*Math.PI/4   // Up-Left
+                ];
+                projectile.setRotation(angles[index]);
+                
+                // Cleanup
+                this.time.delayedCall(2500, () => {
+                    if (projectile.active) {
+                        projectile.destroy();
+                    }
+                });
+            });
+            
+            return; // Exit early
+        } else if (hasRookModifier) {
+            console.log('Rook modifier active for ice projectile');
+            // Fire 4 projectiles in cardinal directions (rook pattern)
+            const speed = 320 * slotBuff.speedMultiplier * this.speedMultiplier;
+            const rookDirections = [
+                { x: 0, y: -speed },    // Up
+                { x: 0, y: speed },     // Down
+                { x: -speed, y: 0 },    // Left
+                { x: speed, y: 0 }      // Right
+            ];
+            
+            rookDirections.forEach((dir, index) => {
+                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'ice-spike-start1');
+                projectile.element = 'ice';
+                projectile.damage = 2.5 * slotBuff.damageMultiplier * tierDamageScale * 0.75;
+                projectile.freezeDuration = 2000;
+                projectile.slotIndex = slotIndex;
+                projectile.body.setCollideWorldBounds(false);
+                projectile.setDepth(5);
+                projectile.setScale(1.0);
+                
+                // Play animation
+                projectile.play('ice-spike-start');
+                projectile.on('animationcomplete-ice-spike-start', () => {
+                    if (projectile.active) {
+                        projectile.play('ice-spike-travel');
+                    }
+                });
+                
+                // Add to projectiles group
+                this.projectiles.add(projectile);
+                
+                // Set velocity
+                projectile.body.setVelocity(dir.x, dir.y);
+                projectile.body.enable = true;
+                
+                console.log(`Rook ice projectile ${index}: velocity set to x:${dir.x}, y:${dir.y}`);
+                
+                // Rotate projectile based on direction
+                const angles = [-Math.PI/2, Math.PI/2, Math.PI, 0]; // Up, Down, Left, Right
+                projectile.setRotation(angles[index]);
+                
+                // Cleanup
+                this.time.delayedCall(2500, () => {
+                    if (projectile.active) {
+                        projectile.destroy();
+                    }
+                });
+            });
+            
+            return; // Exit early
+        } else if (hasBishopModifier) {
+            console.log('Bishop modifier active for ice projectile');
+            // Fire 4 projectiles in diagonal directions (bishop pattern)
+            const speed = 320 * slotBuff.speedMultiplier * this.speedMultiplier;
+            const diagonalSpeed = speed / Math.sqrt(2);
+            const bishopDirections = [
+                { x: diagonalSpeed, y: -diagonalSpeed },   // Up-Right
+                { x: -diagonalSpeed, y: -diagonalSpeed },  // Up-Left
+                { x: diagonalSpeed, y: diagonalSpeed },    // Down-Right
+                { x: -diagonalSpeed, y: diagonalSpeed }    // Down-Left
+            ];
+            
+            bishopDirections.forEach((dir, index) => {
+                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'ice-spike-start1');
+                projectile.element = 'ice';
+                projectile.damage = 2.5 * slotBuff.damageMultiplier * tierDamageScale * 0.75;
+                projectile.freezeDuration = 2000;
+                projectile.slotIndex = slotIndex;
+                projectile.body.setCollideWorldBounds(false);
+                projectile.setDepth(5);
+                projectile.setScale(1.0);
+                
+                // Play animation
+                projectile.play('ice-spike-start');
+                projectile.on('animationcomplete-ice-spike-start', () => {
+                    if (projectile.active) {
+                        projectile.play('ice-spike-travel');
+                    }
+                });
+                
+                // Add to projectiles group
+                this.projectiles.add(projectile);
+                
+                // Set velocity
+                projectile.body.setVelocity(dir.x, dir.y);
+                projectile.body.enable = true;
+                
+                console.log(`Bishop ice projectile ${index}: velocity set to x:${dir.x}, y:${dir.y}`);
+                
+                // Rotate projectile based on direction
+                const angles = [-Math.PI/4, -3*Math.PI/4, Math.PI/4, 3*Math.PI/4]; // UR, UL, DR, DL
+                projectile.setRotation(angles[index]);
+                
+                // Cleanup
+                this.time.delayedCall(2500, () => {
+                    if (projectile.active) {
+                        projectile.destroy();
+                    }
+                });
+            });
+            
+            return; // Exit early
+        }
+        
+        // Normal single ice projectile
         const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'ice-spike-start1');
         projectile.element = 'ice';
         projectile.damage = 2.5 * slotBuff.damageMultiplier * tierDamageScale;
@@ -25487,7 +27972,7 @@ class GameScene extends Phaser.Scene {
     }
     
 
-    createPoisonMines(elementTier = 1) {
+    createPoisonMines(slotIndex = 0, elementTier = 1) {
         // Create a group to track active poison fields if not exists
         if (!this.poisonFields) {
             this.poisonFields = this.physics.add.group();
@@ -25499,8 +27984,56 @@ class GameScene extends Phaser.Scene {
             return;
         }
         
+        // Get slot buffs
+        const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
+        
         // Apply tier damage scaling only
         const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
+        
+        // Check for chess piece modifiers in passive slots
+        let hasJoker = false;
+        let hasAnyRook = false;
+        let hasAnyBishop = false;
+        let hasAnyQueen = false;
+        let hasAnyKnight = false;
+        
+        // Check all passive slots for joker and chess pieces
+        for (let i = 4; i < 8; i++) {
+            if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
+                hasJoker = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'rook') {
+                hasAnyRook = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'bishop') {
+                hasAnyBishop = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'queen') {
+                hasAnyQueen = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
+                hasAnyKnight = true;
+            }
+        }
+        
+        // Determine what modifiers to apply
+        let hasRookModifier = false;
+        let hasBishopModifier = false;
+        
+        if (hasJoker) {
+            // Joker applies all chess modifiers
+            hasRookModifier = hasAnyRook;
+            hasBishopModifier = hasAnyBishop;
+            // If joker but no chess pieces, place mines in all directions
+            if (!hasAnyRook && !hasAnyBishop) {
+                hasRookModifier = true;
+                hasBishopModifier = true;
+            }
+        } else {
+            // Normal check for this slot's modifier
+            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
+            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+        }
         
         // Calculate position behind wizard based on last movement direction
         const direction = this.wizard.lastDirection || 'down';
@@ -25540,42 +28073,44 @@ class GameScene extends Phaser.Scene {
                 break;
         }
         
-        let spawnX = this.wizard.x + offsetX;
-        let spawnY = this.wizard.y + offsetY;
-        
-        // Check for existing mines and adjust position if needed
-        const mineSpacing = 35;
-        let attempts = 0;
-        const maxAttempts = 8;
-        
-        while (attempts < maxAttempts) {
-            let tooClose = false;
+        // Function to create a single poison mine at specified location
+        const createPoisonMine = (x, y, damageMultiplier = 1) => {
+            let spawnX = x;
+            let spawnY = y;
             
-            // Check distance to all existing poison fields
-            if (this.poisonFields && this.poisonFields.children && this.poisonFields.children.entries) {
-                this.poisonFields.children.entries.forEach(existingField => {
-                    if (existingField.active) {
-                        const dist = Phaser.Math.Distance.Between(spawnX, spawnY, existingField.x, existingField.y);
-                        if (dist < mineSpacing) {
-                            tooClose = true;
+            // Check for existing mines and adjust position if needed
+            const mineSpacing = 35;
+            let attempts = 0;
+            const maxAttempts = 8;
+            
+            while (attempts < maxAttempts) {
+                let tooClose = false;
+                
+                // Check distance to all existing poison fields
+                if (this.poisonFields && this.poisonFields.children && this.poisonFields.children.entries) {
+                    this.poisonFields.children.entries.forEach(existingField => {
+                        if (existingField.active) {
+                            const dist = Phaser.Math.Distance.Between(spawnX, spawnY, existingField.x, existingField.y);
+                            if (dist < mineSpacing) {
+                                tooClose = true;
+                            }
                         }
-                    }
-                });
+                    });
+                }
+                
+                if (!tooClose) {
+                    break; // Found a good spot
+                }
+                
+                // Try adjacent positions in a circle
+                const angle = (attempts * Math.PI * 2) / maxAttempts;
+                spawnX = x + Math.cos(angle) * mineSpacing;
+                spawnY = y + Math.sin(angle) * mineSpacing;
+                attempts++;
             }
             
-            if (!tooClose) {
-                break; // Found a good spot
-            }
-            
-            // Try adjacent positions in a circle
-            const angle = (attempts * Math.PI * 2) / maxAttempts;
-            spawnX = this.wizard.x + offsetX + Math.cos(angle) * mineSpacing;
-            spawnY = this.wizard.y + offsetY + Math.sin(angle) * mineSpacing;
-            attempts++;
-        }
-        
-        // Create poison field at calculated position
-        const field = this.physics.add.sprite(spawnX, spawnY, 'poison-spell');
+            // Create poison field at calculated position
+            const field = this.physics.add.sprite(spawnX, spawnY, 'poison-spell');
         field.setFrame(0); // Stay on first frame initially
         field.setScale(0.75); // 50% smaller than default
         field.setDepth(4); // Above ground but below UI
@@ -25631,7 +28166,7 @@ class GameScene extends Phaser.Scene {
                 // Apply poison to enemy if not already poisoned
                 if (!enemy.poisoned) {
                     enemy.poisoned = true;
-                    enemy.poisonDamage = 1; // 1 damage every 2 seconds
+                    enemy.poisonDamage = 1 * slotBuff.damageMultiplier * tierDamageScale * damageMultiplier; // damage every 2 seconds
                     
                     // Visual poison effect - green tint
                     enemy.setTint(0x00ff00);
@@ -25647,7 +28182,7 @@ class GameScene extends Phaser.Scene {
                         callback: () => {
                             if (enemy.active && !enemy.isDying) {
                                 // Deal poison damage
-                                enemy.health -= enemy.poisonDamage;
+                                enemy.health -= enemy.poisonDamage * damageMultiplier;
                                 this.showDamageNumber(enemy.x, enemy.y - 20, enemy.poisonDamage, '#00ff00');
                                 
                                 // Check if enemy died from poison
@@ -25673,25 +28208,75 @@ class GameScene extends Phaser.Scene {
             }
         });
         
-        // Auto-animate and destroy field after 10 seconds if untouched
-        this.time.delayedCall(10000, () => {
-            if (field.active && !field.hasTriggered) {
-                field.hasTriggered = true;
-                // Stop pulsing
-                if (field.pulseTween) {
-                    field.pulseTween.stop();
+            // Auto-animate and destroy field after 10 seconds if untouched
+            this.time.delayedCall(10000, () => {
+                if (field.active && !field.hasTriggered) {
+                    field.hasTriggered = true;
+                    // Stop pulsing
+                    if (field.pulseTween) {
+                        field.pulseTween.stop();
+                    }
+                    field.setScale(0.75); // Reset scale
+                    field.setAlpha(1); // Reset alpha
+                    // Play animation before destroying
+                    if (this.anims.exists('poison-mine-anim')) {
+                        field.play('poison-mine-anim');
+                    }
+                    field.once('animationcomplete', () => {
+                        field.destroy();
+                    });
                 }
-                field.setScale(0.75); // Reset scale
-                field.setAlpha(1); // Reset alpha
-                // Play animation before destroying
-                if (this.anims.exists('poison-mine-anim')) {
-                    field.play('poison-mine-anim');
-                }
-                field.once('animationcomplete', () => {
-                    field.destroy();
-                });
-            }
-        });
+            });
+        }; // End of createPoisonMine function
+        
+        // Determine where to place mines based on modifiers
+        if (hasRookModifier && hasBishopModifier) {
+            // Place mines in all 8 directions around the player
+            const distance = 60;
+            const positions = [
+                { x: this.wizard.x, y: this.wizard.y - distance },          // Up
+                { x: this.wizard.x + distance, y: this.wizard.y },          // Right
+                { x: this.wizard.x, y: this.wizard.y + distance },          // Down
+                { x: this.wizard.x - distance, y: this.wizard.y },          // Left
+                { x: this.wizard.x + distance/Math.sqrt(2), y: this.wizard.y - distance/Math.sqrt(2) }, // Up-Right
+                { x: this.wizard.x + distance/Math.sqrt(2), y: this.wizard.y + distance/Math.sqrt(2) }, // Down-Right
+                { x: this.wizard.x - distance/Math.sqrt(2), y: this.wizard.y + distance/Math.sqrt(2) }, // Down-Left
+                { x: this.wizard.x - distance/Math.sqrt(2), y: this.wizard.y - distance/Math.sqrt(2) }  // Up-Left
+            ];
+            
+            positions.forEach(pos => {
+                createPoisonMine(pos.x, pos.y, 0.5); // Reduce damage when placing multiple
+            });
+        } else if (hasRookModifier) {
+            // Place mines in cardinal directions
+            const distance = 60;
+            const cardinalPositions = [
+                { x: this.wizard.x, y: this.wizard.y - distance },  // Up
+                { x: this.wizard.x + distance, y: this.wizard.y },  // Right
+                { x: this.wizard.x, y: this.wizard.y + distance },  // Down
+                { x: this.wizard.x - distance, y: this.wizard.y }   // Left
+            ];
+            
+            cardinalPositions.forEach(pos => {
+                createPoisonMine(pos.x, pos.y, 0.75);
+            });
+        } else if (hasBishopModifier) {
+            // Place mines in diagonal directions
+            const distance = 60;
+            const diagonalPositions = [
+                { x: this.wizard.x + distance/Math.sqrt(2), y: this.wizard.y - distance/Math.sqrt(2) }, // Up-Right
+                { x: this.wizard.x + distance/Math.sqrt(2), y: this.wizard.y + distance/Math.sqrt(2) }, // Down-Right
+                { x: this.wizard.x - distance/Math.sqrt(2), y: this.wizard.y + distance/Math.sqrt(2) }, // Down-Left
+                { x: this.wizard.x - distance/Math.sqrt(2), y: this.wizard.y - distance/Math.sqrt(2) }  // Up-Left
+            ];
+            
+            diagonalPositions.forEach(pos => {
+                createPoisonMine(pos.x, pos.y, 0.75);
+            });
+        } else {
+            // Place single mine behind wizard
+            createPoisonMine(this.wizard.x + offsetX, this.wizard.y + offsetY, 1);
+        }
     }
 
     createEarthquake(linkedCount = 1) {
@@ -25866,9 +28451,41 @@ class GameScene extends Phaser.Scene {
 
     // New element abilities
     fireRockProjectile(elementTier = 1) {
-        // Rock element - lobs multiple heavy stones in arcs
+        // Rock element - lobs multiple heavy stones in arcs in player's facing direction
         const stoneCount = 3 + Math.floor((elementTier - 1) / 2); // 3-5 stones based on tier
-        const baseAngle = Math.random() * Math.PI * 2; // Random starting direction
+        
+        // Get player's facing direction
+        const direction = this.wizard.lastDirection || 'down';
+        let baseAngle = 0;
+        
+        // Map directions to angles
+        switch (direction) {
+            case 'up':
+                baseAngle = -Math.PI / 2;
+                break;
+            case 'down':
+                baseAngle = Math.PI / 2;
+                break;
+            case 'left':
+                baseAngle = Math.PI;
+                break;
+            case 'right':
+                baseAngle = 0;
+                break;
+            case 'up-left':
+                baseAngle = -3 * Math.PI / 4;
+                break;
+            case 'up-right':
+                baseAngle = -Math.PI / 4;
+                break;
+            case 'down-left':
+                baseAngle = 3 * Math.PI / 4;
+                break;
+            case 'down-right':
+                baseAngle = Math.PI / 4;
+                break;
+        }
+        
         const spreadAngle = Math.PI / 3; // 60 degree spread
         
         // Apply tier damage scaling
@@ -26127,41 +28744,129 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    fireArcaneProjectile(elementTier = 1) {
+    fireArcaneProjectile(slotIndex = 0, elementTier = 1) {
         // Arcane element - boomerang projectile that passes through enemies
         
-        // Find nearest enemy to target first (needed for spawn offset)
-        let nearestEnemy = null;
-        let nearestDistance = Infinity;
+        // Apply tier damage scaling
+        const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
         
-        this.enemies.children.entries.forEach(enemy => {
-            if (enemy.active && !enemy.isDying) {
-                const distance = Phaser.Math.Distance.Between(this.wizard.x, this.wizard.y, enemy.x, enemy.y);
-                if (distance < nearestDistance) {
-                    nearestDistance = distance;
-                    nearestEnemy = enemy;
-                }
+        // Check for chess piece modifiers in passive slots (don't use handleChessModifiers for arcane)
+        // First check if any passive slot has joker
+        let hasJoker = false;
+        let hasAnyRook = false;
+        let hasAnyBishop = false;
+        let hasAnyQueen = false;
+        let hasAnyKnight = false;
+        
+        // Check all passive slots for joker and chess pieces
+        for (let i = 4; i < 8; i++) {
+            if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
+                hasJoker = true;
             }
-        });
-        
-        // Get angle to nearest enemy, or use wizard's facing direction if no enemies
-        let angle;
-        if (nearestEnemy) {
-            angle = Phaser.Math.Angle.Between(this.wizard.x, this.wizard.y, nearestEnemy.x, nearestEnemy.y);
-        } else {
-            // Fallback to wizard's facing direction if no enemies found
-            const directionMap = {
-                'up': -Math.PI / 2,
-                'down': Math.PI / 2,
-                'left': Math.PI,
-                'right': 0,
-                'up-left': -3 * Math.PI / 4,
-                'up-right': -Math.PI / 4,
-                'down-left': 3 * Math.PI / 4,
-                'down-right': Math.PI / 4
-            };
-            angle = directionMap[this.wizard.lastDirection] || 0;
+            if (this.chargeSlots && this.chargeSlots[i] === 'rook') {
+                hasAnyRook = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'bishop') {
+                hasAnyBishop = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'queen') {
+                hasAnyQueen = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
+                hasAnyKnight = true;
+            }
         }
+        
+        // Determine what modifiers to apply
+        let hasRookModifier = false;
+        let hasBishopModifier = false;
+        
+        if (hasJoker && (hasAnyRook || hasAnyBishop || hasAnyQueen || hasAnyKnight)) {
+            // Joker applies all chess modifiers that are equipped
+            // Queen overrides rook and bishop
+            if (hasAnyQueen) {
+                hasRookModifier = true;
+                hasBishopModifier = true;
+            } else {
+                hasRookModifier = hasAnyRook;
+                hasBishopModifier = hasAnyBishop;
+            }
+        } else {
+            // Normal check for this slot's modifier
+            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
+            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+        }
+        
+        if (hasRookModifier && hasBishopModifier) {
+            console.log('Both rook and bishop modifiers active for arcane projectile');
+            // Fire 8 boomerangs in all directions
+            const allAngles = [
+                -Math.PI / 2,       // Up
+                -Math.PI / 4,       // Up-Right
+                0,                  // Right
+                Math.PI / 4,        // Down-Right
+                Math.PI / 2,        // Down
+                3 * Math.PI / 4,    // Down-Left
+                Math.PI,            // Left
+                -3 * Math.PI / 4    // Up-Left
+            ];
+            
+            allAngles.forEach((angle, index) => {
+                this.createArcaneBoomerang(angle, tierDamageScale * 0.5, slotIndex); // Reduced damage for balance
+            });
+            
+            return; // Exit early
+        } else if (hasRookModifier) {
+            console.log('Rook modifier active for arcane projectile');
+            // Fire 4 boomerangs in cardinal directions (rook pattern)
+            const rookAngles = [
+                -Math.PI / 2,    // Up
+                Math.PI / 2,     // Down
+                Math.PI,         // Left
+                0                // Right
+            ];
+            
+            rookAngles.forEach((angle, index) => {
+                this.createArcaneBoomerang(angle, tierDamageScale * 0.75, slotIndex);
+            });
+            
+            return; // Exit early
+        } else if (hasBishopModifier) {
+            console.log('Bishop modifier active for arcane projectile');
+            // Fire 4 boomerangs in diagonal directions (bishop pattern)
+            const bishopAngles = [
+                -Math.PI / 4,       // Up-Right
+                -3 * Math.PI / 4,   // Up-Left
+                Math.PI / 4,        // Down-Right
+                3 * Math.PI / 4     // Down-Left
+            ];
+            
+            bishopAngles.forEach((angle, index) => {
+                this.createArcaneBoomerang(angle, tierDamageScale * 0.75, slotIndex);
+            });
+            
+            return; // Exit early
+        }
+        
+        // Normal single arcane boomerang - fire in player's facing direction
+        // Use wizard's facing direction like other projectiles
+        const directionMap = {
+            'up': -Math.PI / 2,
+            'down': Math.PI / 2,
+            'left': Math.PI,
+            'right': 0,
+            'up-left': -3 * Math.PI / 4,
+            'up-right': -Math.PI / 4,
+            'down-left': 3 * Math.PI / 4,
+            'down-right': Math.PI / 4
+        };
+        const angle = directionMap[this.wizard.lastDirection] || directionMap['down'];
+        
+        // Create single boomerang
+        this.createArcaneBoomerang(angle, tierDamageScale, slotIndex);
+    }
+    
+    createArcaneBoomerang(angle, damageScale, slotIndex = 0) {
         
         // Spawn projectile slightly offset from wizard in the direction it will travel
         const spawnOffset = 30;
@@ -26180,10 +28885,8 @@ class GameScene extends Phaser.Scene {
         });
 
         projectile.element = 'arcane';
-        
-        // Apply tier damage scaling
-        const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
-        projectile.damage = 3 * tierDamageScale;
+        projectile.damage = 3 * damageScale;
+        projectile.slotIndex = slotIndex;
         projectile.setDepth(5);
         projectile.setScale(1.5); // Double the size from 0.75
 
@@ -26968,7 +29671,7 @@ class GameScene extends Phaser.Scene {
     }
 
     createMetalShield() {
-        // Create a metallic shield around the player that reflects damage back
+        // Create a metallic shield around the player that provides 50% damage reduction
         if (!this.textures.exists('metal-shield')) {
             const graphics = this.add.graphics();
             // Create metallic shield texture
@@ -26996,7 +29699,7 @@ class GameScene extends Phaser.Scene {
             repeat: -1
         });
         
-        // Enable thorns effect
+        // Enable 50% damage reduction
         this.metalShieldActive = true;
         this.metalShieldDuration = 8000; // 8 seconds
         this.metalShieldEndTime = this.time.now + this.metalShieldDuration;
@@ -30101,10 +32804,60 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    createVenomSpell() {
-        // Venom element - shoots piercing spines that apply poison
-        const spineCount = 5; // Number of spines to shoot
-        const spread = Math.PI / 3; // 60 degree spread
+    createVenomSpell(slotIndex = 0, elementTier = 1) {
+        // Venom element - shoots piercing spine that applies poison
+        
+        // Get slot buffs
+        const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
+        
+        // Apply tier damage scaling
+        const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
+        
+        // Check for chess piece modifiers in passive slots
+        let hasJoker = false;
+        let hasAnyRook = false;
+        let hasAnyBishop = false;
+        let hasAnyQueen = false;
+        let hasAnyKnight = false;
+        
+        // Check all passive slots for joker and chess pieces
+        for (let i = 4; i < 8; i++) {
+            if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
+                hasJoker = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'rook') {
+                hasAnyRook = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'bishop') {
+                hasAnyBishop = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'queen') {
+                hasAnyQueen = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
+                hasAnyKnight = true;
+            }
+        }
+        
+        // Determine what modifiers to apply
+        let hasRookModifier = false;
+        let hasBishopModifier = false;
+        
+        if (hasJoker && (hasAnyRook || hasAnyBishop || hasAnyQueen || hasAnyKnight)) {
+            // Joker applies all chess modifiers that are equipped
+            // Queen overrides rook and bishop
+            if (hasAnyQueen) {
+                hasRookModifier = true;
+                hasBishopModifier = true;
+            } else {
+                hasRookModifier = hasAnyRook;
+                hasBishopModifier = hasAnyBishop;
+            }
+        } else {
+            // Normal check for this slot's modifier
+            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
+            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+        }
         
         // Get player's facing direction
         const direction = this.wizard.lastDirection || 'down';
@@ -30121,7 +32874,7 @@ class GameScene extends Phaser.Scene {
             'down-right': Math.PI / 4
         };
         
-        const targetAngle = directionAngles[direction] || 0;
+        const baseAngle = directionAngles[direction] || 0;
         
         // Create venom spine texture if it doesn't exist
         if (!this.textures.exists('venom-spine')) {
@@ -30148,16 +32901,13 @@ class GameScene extends Phaser.Scene {
             graphics.destroy();
         }
         
-        // Create venomous spines
-        for (let i = 0; i < spineCount; i++) {
-            // Calculate angle for this spine with spread
-            const angleOffset = (i - (spineCount - 1) / 2) * (spread / (spineCount - 1));
-            const spineAngle = targetAngle + angleOffset;
+        // Helper function to create a venom spine in a specific direction
+        const createVenomSpine = (angle, damageMultiplier = 1) => {
             
             const spine = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'venom-spine');
             spine.element = 'venom';
-            spine.damage = 3;
-            spine.poisonDamage = 6; // Total poison damage over time
+            spine.damage = 3 * slotBuff.damageMultiplier * tierDamageScale * damageMultiplier;
+            spine.poisonDamage = 6 * slotBuff.damageMultiplier * tierDamageScale; // Total poison damage over time
             spine.isPiercing = true; // Pierce through enemies like crystal
             spine.hitEnemies = new Set(); // Track which enemies have been hit
             spine.body.setCollideWorldBounds(false);
@@ -30168,13 +32918,13 @@ class GameScene extends Phaser.Scene {
             this.projectiles.add(spine);
             
             // Set rotation to match angle
-            spine.setRotation(spineAngle + Math.PI / 2);
+            spine.setRotation(angle + Math.PI / 2);
             
             // Set velocity
-            const speed = 600;
+            const speed = 600 * slotBuff.speedMultiplier * this.speedMultiplier;
             spine.setVelocity(
-                Math.cos(spineAngle) * speed,
-                Math.sin(spineAngle) * speed
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed
             );
             
             // Create a separate texture for particles if needed
@@ -30214,20 +32964,6 @@ class GameScene extends Phaser.Scene {
             // Store trail update timer on spine for cleanup
             spine.trailUpdate = trailUpdate;
             
-            // Add slight delay between spines for visual effect
-            this.time.delayedCall(i * 50, () => {
-                // Visual launch effect
-                const flash = this.add.circle(this.wizard.x, this.wizard.y, 10, 0x8b00ff, 0.8);
-                flash.setDepth(5);
-                this.tweens.add({
-                    targets: flash,
-                    scale: 2,
-                    alpha: 0,
-                    duration: 200,
-                    onComplete: () => flash.destroy()
-                });
-            });
-            
             // Destroy after 2 seconds
             this.time.delayedCall(2000, () => {
                 if (spine.active) {
@@ -30236,6 +32972,52 @@ class GameScene extends Phaser.Scene {
                 trail.destroy();
                 trailUpdate.destroy();
             });
+        };
+        
+        // Determine directions to fire based on modifiers
+        if (hasRookModifier && hasBishopModifier) {
+            // Fire in all 8 directions
+            const allDirections = [
+                -Math.PI/2,    // Up
+                -Math.PI/4,    // Up-Right
+                0,             // Right
+                Math.PI/4,     // Down-Right
+                Math.PI/2,     // Down
+                3*Math.PI/4,   // Down-Left
+                Math.PI,       // Left
+                -3*Math.PI/4   // Up-Left
+            ];
+            
+            allDirections.forEach(angle => {
+                createVenomSpine(angle, 0.6); // Reduce damage per projectile when firing multiple
+            });
+        } else if (hasRookModifier) {
+            // Fire in cardinal directions
+            const cardinalDirections = [
+                -Math.PI/2,  // Up
+                0,           // Right
+                Math.PI/2,   // Down
+                Math.PI      // Left
+            ];
+            
+            cardinalDirections.forEach(angle => {
+                createVenomSpine(angle, 0.75);
+            });
+        } else if (hasBishopModifier) {
+            // Fire in diagonal directions
+            const diagonalDirections = [
+                -Math.PI/4,    // Up-Right
+                Math.PI/4,     // Down-Right
+                3*Math.PI/4,   // Down-Left
+                -3*Math.PI/4   // Up-Left
+            ];
+            
+            diagonalDirections.forEach(angle => {
+                createVenomSpine(angle, 0.75);
+            });
+        } else {
+            // Fire single projectile in player's facing direction
+            createVenomSpine(baseAngle, 1);
         }
         
         // Visual effect at wizard
@@ -30649,27 +33431,63 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    createStormSpell() {
-        // Storm element - shoots 3 piercing projectiles that push enemies
-        const projectileCount = 3;
+    createStormSpell(slotIndex = 0, elementTier = 1) {
+        // Storm element - shoots piercing projectile that pushes enemies
         
-        // Get wizard direction
-        const direction = this.wizard.lastDirection || 'down';
+        // Get slot buffs
+        const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
         
-        // Simple direction to angle mapping
-        let baseAngle = Math.PI / 2; // Default down
-        if (direction === 'up') baseAngle = -Math.PI / 2;
-        else if (direction === 'down') baseAngle = Math.PI / 2;
-        else if (direction === 'left') baseAngle = Math.PI;
-        else if (direction === 'right') baseAngle = 0;
-        else if (direction === 'up-left') baseAngle = -3 * Math.PI / 4;
-        else if (direction === 'up-right') baseAngle = -Math.PI / 4;
-        else if (direction === 'down-left') baseAngle = 3 * Math.PI / 4;
-        else if (direction === 'down-right') baseAngle = Math.PI / 4;
+        // Apply tier damage scaling
+        const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
         
-        const spreadAngle = Math.PI / 10; // 18 degrees spread
-        const projectileSpeed = 400;
-        const damage = 2;
+        // Check for chess piece modifiers in passive slots
+        let hasJoker = false;
+        let hasAnyRook = false;
+        let hasAnyBishop = false;
+        let hasAnyQueen = false;
+        let hasAnyKnight = false;
+        
+        // Check all passive slots for joker and chess pieces
+        for (let i = 4; i < 8; i++) {
+            if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
+                hasJoker = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'rook') {
+                hasAnyRook = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'bishop') {
+                hasAnyBishop = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'queen') {
+                hasAnyQueen = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
+                hasAnyKnight = true;
+            }
+        }
+        
+        // Determine what modifiers to apply
+        let hasRookModifier = false;
+        let hasBishopModifier = false;
+        
+        if (hasJoker && (hasAnyRook || hasAnyBishop || hasAnyQueen || hasAnyKnight)) {
+            // Joker applies all chess modifiers that are equipped
+            // Queen overrides rook and bishop
+            if (hasAnyQueen) {
+                hasRookModifier = true;
+                hasBishopModifier = true;
+            } else {
+                hasRookModifier = hasAnyRook;
+                hasBishopModifier = hasAnyBishop;
+            }
+        } else {
+            // Normal check for this slot's modifier
+            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
+            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+        }
+        
+        const projectileSpeed = 400 * slotBuff.speedMultiplier * this.speedMultiplier;
+        const damage = 2 * slotBuff.damageMultiplier * tierDamageScale;
         const knockbackForce = 1200;
         
         // Create animation if it doesn't exist
@@ -30682,11 +33500,8 @@ class GameScene extends Phaser.Scene {
             });
         }
         
-        // Shoot 3 projectiles simultaneously in a fan pattern
-        for (let i = 0; i < projectileCount; i++) {
-            // Calculate angle for this projectile (-1, 0, 1) * spread
-            const angleOffset = (i - 1) * spreadAngle;
-            const projectileAngle = baseAngle + angleOffset;
+        // Helper function to create a storm projectile in a specific direction
+        const createStormProjectile = (angle, damageMultiplier = 1) => {
             
             // Create storm projectile
             const storm = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'storm-spell', 0);
@@ -30700,7 +33515,7 @@ class GameScene extends Phaser.Scene {
             
             // Set properties
             storm.element = 'storm';
-            storm.damage = damage;
+            storm.damage = damage * damageMultiplier;
             storm.knockbackForce = knockbackForce;
             storm.isPiercing = true; // Pierce through enemies
             storm.hitEnemies = new Set(); // Track hit enemies to prevent multiple hits
@@ -30709,9 +33524,12 @@ class GameScene extends Phaser.Scene {
             this.projectiles.add(storm);
             
             // Set velocity
-            const velocityX = Math.cos(projectileAngle) * projectileSpeed;
-            const velocityY = Math.sin(projectileAngle) * projectileSpeed;
+            const velocityX = Math.cos(angle) * projectileSpeed;
+            const velocityY = Math.sin(angle) * projectileSpeed;
             storm.setVelocity(velocityX, velocityY);
+            
+            // Set rotation to match direction
+            storm.setRotation(angle);
             
             // Add electric trail effect
             const trailInterval = this.time.addEvent({
@@ -30747,6 +33565,60 @@ class GameScene extends Phaser.Scene {
                     storm.destroy();
                 }
             });
+        };
+        
+        // Determine directions to fire based on modifiers
+        if (hasRookModifier && hasBishopModifier) {
+            // Fire in all 8 directions
+            const allDirections = [
+                -Math.PI/2,    // Up
+                -Math.PI/4,    // Up-Right
+                0,             // Right
+                Math.PI/4,     // Down-Right
+                Math.PI/2,     // Down
+                3*Math.PI/4,   // Down-Left
+                Math.PI,       // Left
+                -3*Math.PI/4   // Up-Left
+            ];
+            
+            allDirections.forEach(angle => {
+                createStormProjectile(angle, 0.7); // Reduce damage per projectile when firing multiple
+            });
+        } else if (hasRookModifier) {
+            // Fire in cardinal directions
+            const cardinalDirections = [
+                -Math.PI/2,  // Up
+                0,           // Right
+                Math.PI/2,   // Down
+                Math.PI      // Left
+            ];
+            
+            cardinalDirections.forEach(angle => {
+                createStormProjectile(angle, 0.8);
+            });
+        } else if (hasBishopModifier) {
+            // Fire in diagonal directions
+            const diagonalDirections = [
+                -Math.PI/4,    // Up-Right
+                Math.PI/4,     // Down-Right
+                3*Math.PI/4,   // Down-Left
+                -3*Math.PI/4   // Up-Left
+            ];
+            
+            diagonalDirections.forEach(angle => {
+                createStormProjectile(angle, 0.8);
+            });
+        } else {
+            // Fire single projectile in player's facing direction
+            let angle = 0;
+            switch(this.wizard.lastDirection) {
+                case 'up': angle = -Math.PI/2; break;
+                case 'down': angle = Math.PI/2; break;
+                case 'left': angle = Math.PI; break;
+                case 'right': angle = 0; break;
+                default: angle = 0;
+            }
+            createStormProjectile(angle, 1);
         }
     }
 
@@ -33330,8 +36202,23 @@ class GameScene extends Phaser.Scene {
         }
         this.chestOpening = true;
         
+        // Safety check - if wizard is null or dead, bail out
+        if (!wizard) {
+            this.chestOpening = false;
+            return;
+        }
+        
+        // Check if the wizard is actually alive based on the correct health variable
+        const isP2 = wizard === this.wizard2;
+        const wizardHealth = isP2 ? this.playerHealthP2 : this.playerHealth;
+        if (wizardHealth <= 0) {
+            this.chestOpening = false;
+            return;
+        }
+        
         // Track which player is controlling this menu in multiplayer
-        if (this.multiplayerEnabled) {
+        // Only set if not already set (it may have been set explicitly before calling openChest)
+        if (this.multiplayerEnabled && !this.menuControllingPlayer) {
             this.menuControllingPlayer = wizard.playerNumber;
         }
 
@@ -33581,9 +36468,10 @@ class GameScene extends Phaser.Scene {
             // Determine which player is leveling up
             const isP2 = levelingWizard === this.wizard2;
             const targetWizard = isP2 ? this.wizard2 : this.wizard;
-            const targetChargeSlots = isP2 && targetWizard.chargeSlots ? targetWizard.chargeSlots : this.chargeSlots;
-            const targetCharges = isP2 && targetWizard.charges ? targetWizard.charges : this.charges;
-            const targetPouch = isP2 && targetWizard.elementPouch ? targetWizard.elementPouch : this.elementPouch;
+            // In multiplayer, P1 uses the main game properties, P2 uses wizard2 properties
+            const targetChargeSlots = isP2 ? (targetWizard.chargeSlots || this.chargeSlots) : this.chargeSlots;
+            const targetCharges = isP2 ? (targetWizard.charges || this.charges) : this.charges;
+            const targetPouch = isP2 ? (targetWizard.elementPouch || this.elementPouch) : this.elementPouch;
             
             // Count total elements across all slots (active, passive, and pouch)
             let totalElements = 0;
@@ -33918,18 +36806,37 @@ class GameScene extends Phaser.Scene {
     showFortitudeReward() {
         console.log('showFortitudeReward called');
         
+        // Determine which player is getting the reward
+        const isP2 = this.multiplayerEnabled && this.menuControllingPlayer === 2;
+        const targetWizard = isP2 ? this.wizard2 : this.wizard;
+        
         // Store current HP before healing
-        const oldMaxHP = this.maxHealth;
-        const oldHP = this.playerHealth;
+        let oldMaxHP, oldHP, maxHealthKey, playerHealthKey;
+        
+        if (isP2) {
+            oldMaxHP = this.maxHealthP2;
+            oldHP = this.playerHealthP2;
+            maxHealthKey = 'maxHealthP2';
+            playerHealthKey = 'playerHealthP2';
+        } else {
+            oldMaxHP = this.maxHealth;
+            oldHP = this.playerHealth;
+            maxHealthKey = 'maxHealth';
+            playerHealthKey = 'playerHealth';
+        }
         
         // Increase max HP by 20%
-        this.maxHealth = Math.floor(this.maxHealth * 1.2);
+        this[maxHealthKey] = Math.floor(this[maxHealthKey] * 1.2);
         
         // Heal to full
-        this.playerHealth = this.maxHealth;
+        this[playerHealthKey] = this[maxHealthKey];
+        
+        // Update health bar for the correct player
+        this.updateWizardHealthBar();
         
         // Visual feedback
-        const message = this.add.text(400, 300, `FORTITUDE GRANTED!\nMax HP: ${oldMaxHP} → ${this.maxHealth}\nFully Healed!`, {
+        const playerLabel = isP2 ? 'P2 ' : (this.multiplayerEnabled ? 'P1 ' : '');
+        const message = this.add.text(400, 300, `${playerLabel}FORTITUDE GRANTED!\nMax HP: ${oldMaxHP} → ${this[maxHealthKey]}\nFully Healed!`, {
             fontSize: '24px',
             color: '#44ff44',
             fontStyle: 'bold',
@@ -33941,28 +36848,30 @@ class GameScene extends Phaser.Scene {
         message.setScrollFactor(0);
         message.setDepth(210);
         
-        // Healing effect on wizard
-        const healEffect = this.add.circle(this.wizard.x, this.wizard.y, 40, 0x44ff44, 0.6);
-        healEffect.setDepth(this.wizard.depth + 1);
-        
-        this.tweens.add({
-            targets: healEffect,
-            scale: { from: 1, to: 3 },
-            alpha: { from: 0.6, to: 0 },
-            duration: 1000,
-            onComplete: () => {
-                healEffect.destroy();
-            }
-        });
-        
-        // Flash wizard green
-        this.wizard.setTint(0x44ff44);
+        // Healing effect on the correct wizard
+        if (targetWizard) {
+            const healEffect = this.add.circle(targetWizard.x, targetWizard.y, 40, 0x44ff44, 0.6);
+            healEffect.setDepth(targetWizard.depth + 1);
+            
+            this.tweens.add({
+                targets: healEffect,
+                scale: { from: 1, to: 3 },
+                alpha: { from: 0.6, to: 0 },
+                duration: 1000,
+                onComplete: () => {
+                    healEffect.destroy();
+                }
+            });
+            
+            // Flash correct wizard green
+            targetWizard.setTint(0x44ff44);
+        }
         
         // Use setTimeout when game is paused since Phaser timers don't run with timeScale = 0
         if (this.gamePaused || this.time.timeScale === 0) {
             setTimeout(() => {
-                if (this.wizard && this.wizard.active) {
-                    this.wizard.clearTint();
+                if (targetWizard && targetWizard.active) {
+                    targetWizard.clearTint();
                 }
             }, 300);
             
@@ -33974,7 +36883,9 @@ class GameScene extends Phaser.Scene {
             }, 2000);
         } else {
             this.time.delayedCall(300, () => {
-                this.wizard.clearTint();
+                if (targetWizard && targetWizard.active) {
+                    targetWizard.clearTint();
+                }
             });
             
             const fortitudeTimer = this.time.delayedCall(2000, () => {
@@ -35604,6 +38515,11 @@ class GameScene extends Phaser.Scene {
         this.fusionUI = null;
         this.chestCursorIndex = 0;
         
+        // Reset menu controlling player in multiplayer
+        if (this.multiplayerEnabled) {
+            this.menuControllingPlayer = null;
+        }
+        
         // resumeGame already called above, no need to call again
     }
 
@@ -37106,42 +40022,29 @@ class GameScene extends Phaser.Scene {
             return; // No damage taken
         }
         
-        // Check for metal shield thorns effect (metal element or metal shield item)
+        // Check for metal shield 50% damage reduction
         const hasMetalElement = this.charges.includes('metal') || this.chargeSlots.includes('metal');
-        if ((this.metalShieldActive || hasMetalElement) && source && source.active) {
-            // Reflect 50% damage back to attacker
-            const thornsDamage = Math.floor(damage * 0.5);
-            if (source.health !== undefined && source.health > 0) {
-                source.health -= thornsDamage;
-                
-                // Visual feedback for thorns damage
-                source.setTint(0xc0c0c0); // Silver tint
-                this.time.delayedCall(200, () => {
-                    if (source.active) source.clearTint();
-                });
-                
-                // Create damage number
-                const damageText = this.add.text(source.x, source.y - 20, thornsDamage, {
-                    fontSize: '18px',
-                    color: '#c0c0c0',
-                    stroke: '#000000',
-                    strokeThickness: 2
-                });
-                damageText.setOrigin(0.5);
-                
-                this.tweens.add({
-                    targets: damageText,
-                    y: source.y - 40,
-                    alpha: 0,
-                    duration: 800,
-                    onComplete: () => damageText.destroy()
-                });
-                
-                // Check if enemy died from thorns
-                if (source.health <= 0) {
-                    this.killEnemy(source);
-                }
-            }
+        if (this.metalShieldActive || hasMetalElement) {
+            // Reduce incoming damage by 50%
+            damage = Math.floor(damage * 0.5);
+            
+            // Visual feedback for damage reduction
+            const reductionText = this.add.text(this.wizard.x, this.wizard.y - 60, 'REDUCED!', {
+                fontSize: '14px',
+                color: '#c0c0c0',
+                fontStyle: 'bold'
+            });
+            reductionText.setOrigin(0.5);
+            reductionText.setDepth(150);
+            
+            this.tweens.add({
+                targets: reductionText,
+                y: reductionText.y - 20,
+                alpha: 0,
+                duration: 800,
+                ease: 'Power2',
+                onComplete: () => reductionText.destroy()
+            });
         }
         
         console.log('Player taking damage:', damage, 'Current health:', this.playerHealth, '-> New health:', this.playerHealth - damage);

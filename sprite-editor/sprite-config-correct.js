@@ -4,25 +4,25 @@ const SPRITE_CONFIGS = {
     players: {
         'wizard': {
             texture: 'wizard-idle',
-            path: 'wizmove/newiz/wizard_idle.PNG',
+            path: 'assets/sprites/wizmove/newiz/wizard_idle.PNG',
             frameWidth: 231,
             frameHeight: 190,
             animations: {
                 idle: { frames: 6, rate: 8 },
-                walk: { texture: 'wizard-fly', path: 'wizmove/newiz/wizard_fly_forward.png', frames: 5, rate: 10 },
-                death: { texture: 'wizard-death', path: 'wizmove/newiz/wizard_death.PNG', frames: 7, rate: 10 }
+                walk: { texture: 'wizard-fly', path: 'assets/sprites/wizmove/newiz/wizard_fly_forward.png', frames: 5, rate: 10 },
+                death: { texture: 'wizard-death', path: 'assets/sprites/wizmove/newiz/wizard_death.PNG', frames: 7, rate: 10 }
             },
             defaultScale: 0.5
         },
         'wizard-p2': {
             texture: 'wizard-idle-p2',
-            path: 'wizmove/newiz/wizard_idle2.PNG',
+            path: 'assets/sprites/wizmove/newiz/wizard_idle2.PNG',
             frameWidth: 231,
             frameHeight: 190,
             animations: {
                 idle: { frames: 6, rate: 8 },
-                walk: { texture: 'wizard-fly-p2', path: 'wizmove/newiz/wizard_fly_forward2.png', frames: 5, rate: 10 },
-                death: { texture: 'wizard-death-p2', path: 'wizmove/newiz/wizard_death2.png', frames: 7, rate: 10 }
+                walk: { texture: 'wizard-fly-p2', path: 'assets/sprites/wizmove/newiz/wizard_fly_forward2.png', frames: 5, rate: 10 },
+                death: { texture: 'wizard-death-p2', path: 'assets/sprites/wizmove/newiz/wizard_death2.png', frames: 7, rate: 10 }
             },
             defaultScale: 0.5
         }
@@ -32,7 +32,7 @@ const SPRITE_CONFIGS = {
     forest: {
         'tree': {
             texture: 'enemy-walk',  // CORRECT texture key from game.js
-            path: 'tree/tronchungo3/walking-sheet.png',
+            path: 'assets/enemies/tree/tronchungo3/walking-sheet.png',
             frameWidth: 48,  // CORRECT dimensions from game.js
             frameHeight: 60,
             animations: {
@@ -42,7 +42,7 @@ const SPRITE_CONFIGS = {
         },
         'mushroom': {
             texture: 'mushroom-run',
-            path: 'mushroom/Run.png',
+            path: 'assets/enemies/mushroom/Run.png',
             frameWidth: 150,
             frameHeight: 46,
             animations: {
@@ -52,29 +52,29 @@ const SPRITE_CONFIGS = {
         },
         'giantfly': {
             texture: 'giantfly-walk',
-            path: 'forestlandfoes/giantflywalk4frames.png',
+            path: 'assets/enemies/forestlandfoes/giantflywalk4frames.png',
             frameWidth: 32,
             frameHeight: 32,
             animations: {
                 walk: { frames: 4, rate: 8 },
-                death: { texture: 'giantfly-death', path: 'forestlandfoes/giantflydeath6frames.png', frames: 6, rate: 10 }
+                death: { texture: 'giantfly-death', path: 'assets/enemies/forestlandfoes/giantflydeath6frames.png', frames: 6, rate: 10 }
             },
             defaultScale: 2.0
         },
         'squirrel': {
             texture: 'squirrel-walk',
-            path: 'forestlandfoes/squirrelwalk8frames.png',
+            path: 'assets/enemies/forestlandfoes/squirrelwalk8frames.png',
             frameWidth: 32,
             frameHeight: 32,
             animations: {
                 walk: { frames: 8, rate: 10 },
-                death: { texture: 'squirrel-death', path: 'forestlandfoes/squirreldeath4frames.png', frames: 4, rate: 8 }
+                death: { texture: 'squirrel-death', path: 'assets/enemies/forestlandfoes/squirreldeath4frames.png', frames: 4, rate: 8 }
             },
             defaultScale: 2.0
         },
         'redpanda': {
             texture: 'redpanda-walk',
-            path: 'forestlandfoes/redpandawalk8frames.png',
+            path: 'assets/enemies/forestlandfoes/redpandawalk8frames.png',
             frameWidth: 32,
             frameHeight: 32,
             animations: {
@@ -111,7 +111,7 @@ const SPRITE_CONFIGS = {
         },
         'kobold': {
             texture: 'kobold-walk',  // CORRECT texture key
-            path: 'kobold/kobold8frames.png',  // CORRECT path
+            path: 'assets/enemies/kobold/kobold8frames.png',  // CORRECT path
             frameWidth: 148,  // CORRECT dimensions from game.js
             frameHeight: 96,
             animations: {
@@ -131,23 +131,23 @@ const SPRITE_CONFIGS = {
         },
         'brainmole': {
             texture: 'brainmole-walk',
-            path: 'cavelandfoes/brainmole4frames.png',
+            path: 'assets/enemies/cavelandfoes/brainmole4frames.png',
             frameWidth: 32,
             frameHeight: 32,
             animations: {
                 walk: { frames: 4, rate: 8 },
-                death: { texture: 'brainmole-death', path: 'cavelandfoes/brainmoledeath7frames.png', frames: 7, rate: 12 }
+                death: { texture: 'brainmole-death', path: 'assets/enemies/cavelandfoes/brainmoledeath7frames.png', frames: 7, rate: 12 }
             },
             defaultScale: 2.0
         },
         'intellectdevourer': {
             texture: 'intellectdevourer-walk',
-            path: 'cavelandfoes/intellectdevourer8frames.png',
+            path: 'assets/enemies/cavelandfoes/intellectdevourer8frames.png',
             frameWidth: 32,
             frameHeight: 32,
             animations: {
                 walk: { frames: 8, rate: 10 },
-                death: { texture: 'intellectdevourer-death', path: 'cavelandfoes/intellectdevourerdeath4frames.png', frames: 4, rate: 10 }
+                death: { texture: 'intellectdevourer-death', path: 'assets/enemies/cavelandfoes/intellectdevourerdeath4frames.png', frames: 4, rate: 10 }
             },
             defaultScale: 1.8
         }
@@ -177,7 +177,7 @@ const SPRITE_CONFIGS = {
         },
         'flyingdemon': {
             texture: 'flying-demon',
-            path: 'flyingdemon/flamedemon4frames.png',
+            path: 'assets/bosses/flyingdemon/flamedemon4frames.png',
             frameWidth: 16,
             frameHeight: 16,
             animations: {
@@ -219,7 +219,7 @@ const SPRITE_CONFIGS = {
         },
         'skeleton-yellow': {
             texture: 'skeleton-yellow-walk',
-            path: 'skeleton/Skeleton_01_Yellow_Walk10frames.png',
+            path: 'assets/enemies/skeleton/Skeleton_01_Yellow_Walk10frames.png',
             frameWidth: 100,
             frameHeight: 100,
             animations: {
@@ -229,12 +229,12 @@ const SPRITE_CONFIGS = {
         },
         'skeleton-seeker': {
             texture: 'skeleton-seeker-walk',
-            path: 'skeleton/skeleton_seeker_walk.png',
+            path: 'assets/enemies/skeleton/skeleton_seeker_walk.png',
             frameWidth: 100,
             frameHeight: 100,
             animations: {
                 walk: { frames: 10, rate: 10 },
-                spawn: { texture: 'skeleton-seeker-spawn', path: 'skeleton/skeleton_seeker_spawn.png', frames: 10, rate: 10 }
+                spawn: { texture: 'skeleton-seeker-spawn', path: 'assets/enemies/skeleton/skeleton_seeker_spawn.png', frames: 10, rate: 10 }
             },
             defaultScale: 1.0
         }
@@ -244,7 +244,7 @@ const SPRITE_CONFIGS = {
     castle: {
         'knight': {
             texture: 'castle-knight',
-            path: 'castlelandfoes/knightrun8frames.png',
+            path: 'assets/enemies/castlelandfoes/knightrun8frames.png',
             frameWidth: 64,
             frameHeight: 64,
             animations: {
@@ -254,7 +254,7 @@ const SPRITE_CONFIGS = {
         },
         'rogue': {
             texture: 'castle-rogue',
-            path: 'castlelandfoes/roguerun6frames.png',
+            path: 'assets/enemies/castlelandfoes/roguerun6frames.png',
             frameWidth: 48,
             frameHeight: 48,
             animations: {
@@ -264,7 +264,7 @@ const SPRITE_CONFIGS = {
         },
         'soldier': {
             texture: 'castle-soldier',
-            path: 'castlelandfoes/soldier6frames.png',
+            path: 'assets/enemies/castlelandfoes/soldier6frames.png',
             frameWidth: 64,
             frameHeight: 64,
             animations: {
@@ -274,7 +274,7 @@ const SPRITE_CONFIGS = {
         },
         'squire': {
             texture: 'castle-squire',
-            path: 'castlelandfoes/squire8frames.png',
+            path: 'assets/enemies/castlelandfoes/squire8frames.png',
             frameWidth: 48,
             frameHeight: 48,
             animations: {
@@ -288,13 +288,13 @@ const SPRITE_CONFIGS = {
     bosses: {
         'archer-boss': {
             texture: 'archer-boss-walk',
-            path: 'archerboss/boss2archerwalk8frames.png',
+            path: 'assets/bosses/archerboss/boss2archerwalk8frames.png',
             frameWidth: 64,  // 510/8 = 63.75
             frameHeight: 54,
             animations: {
                 walk: { frames: 8, rate: 10 },
-                attack: { texture: 'archer-boss-shoot', path: 'archerboss/boss2archershoot7frames.png', frames: 7, frameWidth: 65, rate: 10 },
-                death: { texture: 'archer-boss-death', path: 'archerboss/boss2archerdeath8frames.png', frames: 8, rate: 10 }
+                attack: { texture: 'archer-boss-shoot', path: 'assets/bosses/archerboss/boss2archershoot7frames.png', frames: 7, frameWidth: 65, rate: 10 },
+                death: { texture: 'archer-boss-death', path: 'assets/bosses/archerboss/boss2archerdeath8frames.png', frames: 8, rate: 10 }
             },
             defaultScale: 2.0
         },
@@ -322,7 +322,7 @@ const SPRITE_CONFIGS = {
             // Nekros uses individual images, not spritesheets
             // This is loaded differently in game.js
             texture: 'nekros-walk-1',  // First frame as placeholder
-            path: 'Nekros/walk/walk_1.png',
+            path: 'assets/bosses/Nekros/walk/walk_1.png',
             frameWidth: 128,  // Estimate
             frameHeight: 128,
             animations: {
@@ -338,7 +338,7 @@ const SPRITE_CONFIGS = {
         'king-nothing': {
             // King Nothing also uses individual images
             texture: 'king-nothing-run',
-            path: 'castlelandfoes/kingnothingboss/Run.png',
+            path: 'assets/enemies/castlelandfoes/kingnothingboss/Run.png',
             frameWidth: 128,  // Estimate
             frameHeight: 128,
             animations: {
@@ -365,36 +365,36 @@ const SPRITE_CONFIGS = {
     characters: {
         'wraith': {
             texture: 'wraith-walk',
-            path: 'scythewraith/scythewraithwalk8frames.png',
+            path: 'assets/bosses/scythewraith/scythewraithwalk8frames.png',
             frameWidth: 64,
             frameHeight: 64,
             animations: {
                 walk: { frames: 8, rate: 10 },
-                attack: { texture: 'wraith-attack', path: 'scythewraith/scythewraithattack8frames.png', frames: 8, rate: 12 },
-                death: { texture: 'wraith-death', path: 'scythewraith/scythewraithdeath8frames.png', frames: 8, rate: 10 }
+                attack: { texture: 'wraith-attack', path: 'assets/bosses/scythewraith/scythewraithattack8frames.png', frames: 8, rate: 12 },
+                death: { texture: 'wraith-death', path: 'assets/bosses/scythewraith/scythewraithdeath8frames.png', frames: 8, rate: 10 }
             },
             defaultScale: 1.5
         },
         'orb': {
             texture: 'orb-idle',
-            path: 'homunculicharacters/orbidle10framesdims640x64.png',
+            path: 'assets/sprites/homunculicharacters/orbidle10framesdims640x64.png',
             frameWidth: 64,
             frameHeight: 64,
             animations: {
                 idle: { frames: 10, rate: 8 },
-                walk: { texture: 'orb-walk', path: 'homunculicharacters/orbwalk8framesdims512x64.png', frames: 8, rate: 10 }
+                walk: { texture: 'orb-walk', path: 'assets/sprites/homunculicharacters/orbwalk8framesdims512x64.png', frames: 8, rate: 10 }
             },
             defaultScale: 1.5
         },
         'grim': {
             texture: 'grim-idle',
-            path: 'homunculicharacters/grimidle8framesx2framesdims512x128.png',
+            path: 'assets/sprites/homunculicharacters/grimidle8framesx2framesdims512x128.png',
             frameWidth: 64,
             frameHeight: 64,
             animations: {
                 idle: { frames: 16, rate: 8 },
-                walk: { texture: 'grim-walk', path: 'homunculicharacters/grimwalk6framesdimsdims384x64.png', frames: 6, rate: 10 },
-                death: { texture: 'grim-death', path: 'homunculicharacters/grimdeath8framesx3framesdims512x192.png', frames: 24, rate: 10 }
+                walk: { texture: 'grim-walk', path: 'assets/sprites/homunculicharacters/grimwalk6framesdimsdims384x64.png', frames: 6, rate: 10 },
+                death: { texture: 'grim-death', path: 'assets/sprites/homunculicharacters/grimdeath8framesx3framesdims512x192.png', frames: 24, rate: 10 }
             },
             defaultScale: 1.5
         }

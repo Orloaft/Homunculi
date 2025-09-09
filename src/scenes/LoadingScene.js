@@ -11,23 +11,86 @@ export default class LoadingScene extends Phaser.Scene {
     }
 
     preload() {
+        // Set background color immediately
+        this.cameras.main.setBackgroundColor('#11130d');
+        
         // Load the loading screen image
-        this.load.image('loading-bg', 'art1.png');
+        this.load.image('loading-bg', 'assets/images/art1.png');
+        
+        // Load the game cartridge texture for spinning animation
+        this.load.image('cartridge-texture', 'gamecartridge/Box+Cartridge-export.png');
         
         // Only load other assets if this is the first time (initial load)
         if (this.nextScene === 'TitleScene' && !this.textures.exists('title-bg')) {
+
+            // Create loading text immediately
+            const loadingTitle = this.add.text(400, 100, 'WIZBIZ', {
+                fontSize: '48px',
+                color: '#ffffff',
+                fontStyle: 'bold'
+            });
+            loadingTitle.setOrigin(0.5);
+            loadingTitle.setDepth(10);
+            
+            // Add a placeholder for cartridge while it loads
+            const cartridgePlaceholder = this.add.rectangle(400, 200, 100, 120, 0x444444, 0.5);
+            cartridgePlaceholder.setDepth(5);
+            
+            // Create the spinning cartridge when its texture loads
+            this.load.once('filecomplete-image-cartridge-texture', () => {
+                // Remove placeholder
+                cartridgePlaceholder.destroy();
+                
+                // Create actual cartridge
+                const cartridge = this.add.image(400, 200, 'cartridge-texture');
+                cartridge.setScale(0.4);
+                cartridge.setDepth(100);
+                cartridge.setAlpha(0);
+                
+                // Fade in
+                this.tweens.add({
+                    targets: cartridge,
+                    alpha: 1,
+                    duration: 300,
+                    ease: 'Power2'
+                });
+                
+                // Spin animation
+                this.tweens.add({
+                    targets: cartridge,
+                    rotation: Math.PI * 2,
+                    duration: 3000,
+                    repeat: -1,
+                    ease: 'Linear'
+                });
+                
+                // Pulse effect
+                this.tweens.add({
+                    targets: cartridge,
+                    scaleX: 0.35,
+                    scaleY: 0.45,
+                    duration: 1500,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+                
+                this.spinningCartridge = cartridge;
+            });
+
+            // Create loading UI elements
 
             // Create loading bar
             const progressBar = this.add.graphics();
             const progressBox = this.add.graphics();
             progressBox.fillStyle(0x222222, 0.8);
-            progressBox.fillRect(240, 270, 320, 50);
+            progressBox.fillRect(240, 370, 320, 50);
 
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         const loadingText = this.make.text({
             x: width / 2,
-            y: height / 2 - 50,
+            y: height / 2 + 50,
             text: 'Loading...',
             style: {
                 font: '20px monospace',
@@ -38,7 +101,7 @@ export default class LoadingScene extends Phaser.Scene {
 
         const percentText = this.make.text({
             x: width / 2,
-            y: height / 2 - 5,
+            y: height / 2 + 95,
             text: '0%',
             style: {
                 font: '18px monospace',
@@ -52,7 +115,7 @@ export default class LoadingScene extends Phaser.Scene {
             percentText.setText(parseInt(value * 100) + '%');
             progressBar.clear();
             progressBar.fillStyle(0xffffff, 1);
-            progressBar.fillRect(250, 280, 300 * value, 30);
+            progressBar.fillRect(250, 380, 300 * value, 30);
         });
 
         this.load.on('complete', () => {
@@ -60,6 +123,7 @@ export default class LoadingScene extends Phaser.Scene {
             progressBox.destroy();
             loadingText.destroy();
             percentText.destroy();
+            // Keep the cartridge spinning - it will be cleaned up in create()
         });
 
         // Load all game assets
@@ -69,52 +133,52 @@ export default class LoadingScene extends Phaser.Scene {
 
     loadGameAssets() {
         // UI Assets
-        this.load.image('title-bg', 'magustitle.png');
+        this.load.image('title-bg', 'assets/images/magustitle.png');
 
         // Wizard sprites
-        this.load.spritesheet('wizard-idle', 'wizmove/newiz/wizard idle.png', {
+        this.load.spritesheet('wizard-idle', 'assets/sprites/wizmove/newiz/wizard%20idle.png', {
             frameWidth: 80,
             frameHeight: 80
         });
-        this.load.spritesheet('wizard-fly', 'wizmove/newiz/wizard fly forward.png', {
+        this.load.spritesheet('wizard-fly', 'assets/sprites/wizmove/newiz/wizard%20fly%20forward.png', {
             frameWidth: 80,
             frameHeight: 80
         });
-        this.load.spritesheet('wizard-death', 'wizmove/newiz/wizard death.png', {
+        this.load.spritesheet('wizard-death', 'assets/sprites/wizmove/newiz/wizard%20death.png', {
             frameWidth: 80,
             frameHeight: 80
         });
 
         // Enemy sprites
-        this.load.spritesheet('enemy-walk', 'tree/tronchungo3/walking-sheet.png', {
+        this.load.spritesheet('enemy-walk', 'assets/enemies/tree/tronchungo3/walking-sheet.png', {
             frameWidth: 48,
             frameHeight: 60
         });
 
         // Tiles and environment
-        this.load.image('dirt-tiles', 'TopDownFantasy_Forest_v1/TopDownFantasy-Forest/Tiles/dirt.png');
-        this.load.image('grass-tile', 'grass.PNG');
-        this.load.image('stone-tile', 'stone.png');
-        this.load.image('tree', 'foliage.png');
+        this.load.image('dirt-tiles', 'assets/TopDownFantasy_Forest_v1/TopDownFantasy-Forest/Tiles/dirt.png');
+        this.load.image('grass-tile', 'assets/images/grass.PNG');
+        this.load.image('stone-tile', 'assets/images/stone.png');
+        this.load.image('tree', 'assets/images/foliage.png');
 
         // Element symbols sprite sheets
-        this.load.spritesheet('element-symbols', 'elements.png', {
+        this.load.spritesheet('element-symbols', 'assets/images/elements.png', {
             frameWidth: 273,
             frameHeight: 273
         });
-        this.load.spritesheet('element-symbols2', 'elements2.PNG', {
+        this.load.spritesheet('element-symbols2', 'assets/images/elements2.PNG', {
             frameWidth: 341,
             frameHeight: 341
         });
-        this.load.spritesheet('element-symbols3', 'elements3.PNG', {
+        this.load.spritesheet('element-symbols3', 'assets/images/elements3.PNG', {
             frameWidth: 341,
             frameHeight: 341
         });
 
         // Slime sprites
         for (let i = 0; i < 4; i++) {
-            this.load.image(`slime-idle-${i}`, `Slime/Individual Sprites/slime-idle-${i}.png`);
-            this.load.image(`slime-die-${i}`, `Slime/Individual Sprites/slime-die-${i}.png`);
+            this.load.image(`slime-idle-${i}`, `assets/Slime/Individual Sprites/slime-idle-${i}.png`);
+            this.load.image(`slime-die-${i}`, `assets/Slime/Individual Sprites/slime-die-${i}.png`);
         }
 
         // Golem sprites
@@ -132,29 +196,29 @@ export default class LoadingScene extends Phaser.Scene {
 
     loadGolemSprites() {
         // Orange Golem
-        this.load.spritesheet('golem-orange-walk', 'Golem_1/Orange/No_Swoosh_VFX/Golem_1_walk.png', {
+        this.load.spritesheet('golem-orange-walk', 'assets/Golem_1/Orange/No_Swoosh_VFX/Golem_1_walk.png', {
             frameWidth: 90,
             frameHeight: 64
         });
-        this.load.spritesheet('golem-orange-hurt', 'Golem_1/Orange/No_Swoosh_VFX/Golem_1_hurt.png', {
+        this.load.spritesheet('golem-orange-hurt', 'assets/Golem_1/Orange/No_Swoosh_VFX/Golem_1_hurt.png', {
             frameWidth: 90,
             frameHeight: 64
         });
-        this.load.spritesheet('golem-orange-die', 'Golem_1/Orange/No_Swoosh_VFX/Golem_1_die.png', {
+        this.load.spritesheet('golem-orange-die', 'assets/Golem_1/Orange/No_Swoosh_VFX/Golem_1_die.png', {
             frameWidth: 90,
             frameHeight: 64
         });
 
         // Blue Golem
-        this.load.spritesheet('golem-blue-walk', 'Golem_1/Blue/No_Swoosh_VFX/Golem_1_walk.png', {
+        this.load.spritesheet('golem-blue-walk', 'assets/Golem_1/Blue/No_Swoosh_VFX/Golem_1_walk.png', {
             frameWidth: 90,
             frameHeight: 64
         });
-        this.load.spritesheet('golem-blue-hurt', 'Golem_1/Blue/No_Swoosh_VFX/Golem_1_hurt.png', {
+        this.load.spritesheet('golem-blue-hurt', 'assets/Golem_1/Blue/No_Swoosh_VFX/Golem_1_hurt.png', {
             frameWidth: 90,
             frameHeight: 64
         });
-        this.load.spritesheet('golem-blue-die', 'Golem_1/Blue/No_Swoosh_VFX/Golem_1_die.png', {
+        this.load.spritesheet('golem-blue-die', 'assets/Golem_1/Blue/No_Swoosh_VFX/Golem_1_die.png', {
             frameWidth: 90,
             frameHeight: 64
         });
@@ -163,73 +227,73 @@ export default class LoadingScene extends Phaser.Scene {
     loadEnemySprites() {
         // Sorcerer enemy
         for (let i = 0; i < 10; i++) {
-            this.load.image(`sorcerer-attack-${i}`, `newenemies/sorcerer villain/sorcerer attack_Animation 1_${i}.png`);
+            this.load.image(`sorcerer-attack-${i}`, `assets/newenemies/sorcerer villain/sorcerer attack_Animation 1_${i}.png`);
         }
 
         // Bat sprites
         for (let i = 0; i < 7; i++) {
-            this.load.image(`bat-fly-${i}`, `newenemies/bat/bat fly_${i}.png`);
+            this.load.image(`bat-fly-${i}`, `assets/newenemies/bat/bat fly_${i}.png`);
         }
 
         // Mushroom sprites
         for (let i = 0; i < 8; i++) {
-            this.load.image(`mushroom-walk-${i}`, `newenemies/mushy/mushroom walk_${i}.png`);
+            this.load.image(`mushroom-walk-${i}`, `assets/newenemies/mushy/mushroom walk_${i}.png`);
         }
 
         // Fire worm sprites
         for (let i = 0; i < 9; i++) {
-            this.load.image(`fireworm-walk-${i}`, `newenemies/fireworm/fire worm walk_${i}.png`);
+            this.load.image(`fireworm-walk-${i}`, `assets/newenemies/fireworm/fire worm walk_${i}.png`);
         }
 
         // Summoner sprites
-        this.load.spritesheet('summoner-idle', 'newenemies/summoner/The Summoner idle animation-export.png', {
+        this.load.spritesheet('summoner-idle', 'assets/newenemies/summoner/The%20Summoner%20idle%20animation-export.png', {
             frameWidth: 32,
             frameHeight: 32
         });
-        this.load.spritesheet('summoner-cast', 'newenemies/summoner/The Summoner cast animation-export.png', {
+        this.load.spritesheet('summoner-cast', 'assets/newenemies/summoner/The%20Summoner%20cast%20animation-export.png', {
             frameWidth: 32,
             frameHeight: 32
         });
 
         // Lost soul sprites
         for (let i = 0; i < 16; i++) {
-            this.load.image(`soul-idle-${i}`, `newenemies/lostsoul/lost soul idle ${String(i).padStart(2, '0')}.png`);
+            this.load.image(`soul-idle-${i}`, `assets/newenemies/lostsoul/lost soul idle ${String(i).padStart(2, '0')}.png`);
         }
 
         // Bloboid sprites
         for (let i = 0; i < 8; i++) {
-            this.load.image(`bloboid-walk-${i}`, `newenemies/blob/blob minion walk ${String(i).padStart(2, '0')}.png`);
+            this.load.image(`bloboid-walk-${i}`, `assets/newenemies/blob/blob minion walk ${String(i).padStart(2, '0')}.png`);
         }
 
         // Dark eye sprites
         for (let i = 1; i <= 8; i++) {
-            this.load.image(`darkeye-walk-${i}`, `newenemies/Bringer-Of-Death/Individual Sprite/Walk/Bringer-of-Death_Walk_${i}.png`);
+            this.load.image(`darkeye-walk-${i}`, `assets/newenemies/Bringer-Of-Death/Individual Sprite/Walk/Bringer-of-Death_Walk_${i}.png`);
         }
     }
 
     loadSpellEffects() {
-        this.load.spritesheet('fire-spell', 'spells/fire1.png', {
+        this.load.spritesheet('fire-spell', 'assets/effects/spells/fire1.png', {
             frameWidth: 32,
             frameHeight: 32
         });
 
-        this.load.spritesheet('arcane-spell', 'spells/arcane1.png', {
+        this.load.spritesheet('arcane-spell', 'assets/effects/spells/arcane1.png', {
             frameWidth: 32,
             frameHeight: 32
         });
 
-        this.load.spritesheet('earth-spell', 'spells/earth1.png', {
+        this.load.spritesheet('earth-spell', 'assets/effects/spells/earth1.png', {
             frameWidth: 32,
             frameHeight: 32
         });
 
-        this.load.spritesheet('water-spell', 'spells/water1.png', {
+        this.load.spritesheet('water-spell', 'assets/effects/spells/water1.png', {
             frameWidth: 32,
             frameHeight: 32
         });
 
         // Load lightning spell
-        this.load.spritesheet('lightning-spell', 'spells/lightning1.png', {
+        this.load.spritesheet('lightning-spell', 'assets/effects/spells/lightning1.png', {
             frameWidth: 32,
             frameHeight: 32
         });
@@ -249,12 +313,16 @@ export default class LoadingScene extends Phaser.Scene {
     create() {
         // Set background to match the dark theme
         this.cameras.main.setBackgroundColor('#11130d');
-
-        // Display loading complete image
-        const loadingImage = this.add.image(400, 300, 'loading-bg');
+        
+        // Don't show loading image if we have a cartridge
+        let loadingImage = null;
+        if (!this.spinningCartridge) {
+            // Only show loading image if cartridge failed to load
+            loadingImage = this.add.image(400, 300, 'loading-bg');
+        }
         
         // If this is a transition (not initial load), we can proceed faster
-        const fadeDelay = this.nextScene === 'TitleScene' ? 1000 : 500;
+        const fadeDelay = this.nextScene === 'TitleScene' ? 4000 : 500; // Even longer delay to see cartridge
 
         // Create a black overlay for smooth transition
         const blackOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000);
@@ -262,26 +330,55 @@ export default class LoadingScene extends Phaser.Scene {
 
         // Wait a bit before starting fade
         this.time.delayedCall(fadeDelay, () => {
-            // First fade the loading image
-            this.tweens.add({
-                targets: loadingImage,
-                alpha: 0,
-                duration: 1000,
-                ease: 'Power2',
-                onComplete: () => {
-                    // Then fade in the black overlay
-                    this.tweens.add({
-                        targets: blackOverlay,
-                        alpha: 1,
-                        duration: 500,
-                        ease: 'Power2',
-                        onComplete: () => {
-                            // Start the next scene
-                            this.scene.start(this.nextScene, this.sceneData);
-                        }
-                    });
-                }
-            });
+            // Fade out cartridge if it exists
+            if (this.spinningCartridge) {
+                this.tweens.add({
+                    targets: this.spinningCartridge,
+                    alpha: 0,
+                    scale: 0.2,
+                    rotation: this.spinningCartridge.rotation + Math.PI,
+                    duration: 500,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        this.spinningCartridge.destroy();
+                    }
+                });
+            }
+            
+            // First fade the loading image if it exists
+            if (loadingImage) {
+                this.tweens.add({
+                    targets: loadingImage,
+                    alpha: 0,
+                    duration: 1000,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        // Then fade in the black overlay
+                        this.tweens.add({
+                            targets: blackOverlay,
+                            alpha: 1,
+                            duration: 500,
+                            ease: 'Power2',
+                            onComplete: () => {
+                                // Start the next scene
+                                this.scene.start(this.nextScene, this.sceneData);
+                            }
+                        });
+                    }
+                });
+            } else {
+                // No loading image, just fade to black
+                this.tweens.add({
+                    targets: blackOverlay,
+                    alpha: 1,
+                    duration: 1000,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        // Start the next scene
+                        this.scene.start(this.nextScene, this.sceneData);
+                    }
+                });
+            }
         });
     }
 }

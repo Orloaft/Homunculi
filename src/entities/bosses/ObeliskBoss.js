@@ -259,7 +259,7 @@ export class ObeliskBoss extends BaseBoss {
             this.x,
             this.y,
             1000,
-            20,
+            40,  // Make warning match actual laser width
             0xff0000,
             0.3
         );
@@ -272,6 +272,21 @@ export class ObeliskBoss extends BaseBoss {
             this.scene.wizard.x, this.scene.wizard.y
         );
         this.laserWarning.rotation = targetAngle;
+        
+        // Optional: Add debug visualization for the actual hit area
+        if (this.scene.debugMode) {
+            this.debugLaser = this.scene.add.rectangle(
+                this.x,
+                this.y,
+                1000,
+                40,
+                0x00ff00,
+                0.2
+            );
+            this.debugLaser.setOrigin(0, 0.5);
+            this.debugLaser.rotation = targetAngle;
+            this.debugLaser.setDepth(89);
+        }
         
         // Flash warning
         this.scene.tweens.add({
@@ -292,7 +307,7 @@ export class ObeliskBoss extends BaseBoss {
             this.laserWarning.destroy();
         }
         
-        // Create laser beam
+        // Create laser beam visual
         this.laserBeam = this.scene.add.sprite(this.x, this.y, 'boss-laser');
         this.laserBeam.setOrigin(0, 0.5);
         this.laserBeam.setScale(1, 2);
@@ -300,29 +315,94 @@ export class ObeliskBoss extends BaseBoss {
         this.laserBeam.setDepth(95);
         this.laserBeam.play('boss-laser-anim');
         
-        // Create physics body for laser
-        this.scene.physics.add.existing(this.laserBeam);
-        this.laserBeam.body.setSize(1000, 40);
-        this.laserBeam.body.setOffset(0, -20);
-        this.laserBeam.body.enable = true;
+        // Store angle for hit detection
+        this.laserAngle = angle;
+        this.laserLength = 1000;
+        this.laserWidth = 40;
         
-        // Damage player on overlap
-        this.laserOverlap = this.scene.physics.add.overlap(
-            this.laserBeam,
-            this.scene.wizard,
-            () => {
-                if (this.scene.wizard.takeDamage) {
-                    this.scene.wizard.takeDamage(this.damage * 2);
-                }
-            }
-        );
+        // Start checking for laser hits
+        this.laserActive = true;
     }
     
     updateLaserBeam() {
         if (this.laserBeam) {
             this.laserBeam.x = this.x;
             this.laserBeam.y = this.y;
+            
+            // Check for laser collision with player
+            if (this.laserActive && this.scene.wizard) {
+                const player = this.scene.wizard;
+                
+                // Calculate the laser line segment
+                const laserEndX = this.x + Math.cos(this.laserAngle) * this.laserLength;
+                const laserEndY = this.y + Math.sin(this.laserAngle) * this.laserLength;
+                
+                // Check if player is hit by the laser
+                // Calculate distance from player to laser line
+                const distToLaser = this.pointToLineDistance(
+                    player.x, player.y,
+                    this.x, this.y,
+                    laserEndX, laserEndY
+                );
+                
+                // Check if player is within laser width and length
+                if (distToLaser < this.laserWidth / 2) {
+                    // Check if player is within the laser's length (not behind or past it)
+                    const dotProduct = 
+                        (player.x - this.x) * (laserEndX - this.x) + 
+                        (player.y - this.y) * (laserEndY - this.y);
+                    const laserLengthSquared = this.laserLength * this.laserLength;
+                    
+                    if (dotProduct >= 0 && dotProduct <= laserLengthSquared) {
+                        // Player is hit by laser
+                        if (!this.laserHitCooldown) {
+                            if (player.takeDamage) {
+                                player.takeDamage(this.damage * 2);
+                            }
+                            // Add cooldown to prevent multiple hits per frame
+                            this.laserHitCooldown = true;
+                            this.scene.time.delayedCall(100, () => {
+                                this.laserHitCooldown = false;
+                            });
+                        }
+                    }
+                }
+            }
         }
+    }
+    
+    // Helper function to calculate distance from point to line
+    pointToLineDistance(px, py, x1, y1, x2, y2) {
+        const A = px - x1;
+        const B = py - y1;
+        const C = x2 - x1;
+        const D = y2 - y1;
+        
+        const dot = A * C + B * D;
+        const lenSq = C * C + D * D;
+        let param = -1;
+        
+        if (lenSq !== 0) {
+            param = dot / lenSq;
+        }
+        
+        let xx, yy;
+        
+        if (param < 0) {
+            xx = x1;
+            yy = y1;
+        } else if (param > 1) {
+            xx = x2;
+            yy = y2;
+        } else {
+            xx = x1 + param * C;
+            yy = y1 + param * D;
+        }
+        
+        const dx = px - xx;
+        const dy = py - yy;
+        
+        return Math.sqrt(dx * dx + dy * dy);
     }
     
     cleanupLaserBeam() {
@@ -336,10 +416,14 @@ export class ObeliskBoss extends BaseBoss {
             this.laserBeam = null;
         }
         
-        if (this.laserOverlap) {
-            this.laserOverlap.destroy();
-            this.laserOverlap = null;
+        if (this.debugLaser) {
+            this.debugLaser.destroy();
+            this.debugLaser = null;
         }
+        
+        // Reset laser state
+        this.laserActive = false;
+        this.laserHitCooldown = false;
     }
     
     createShield() {

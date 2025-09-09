@@ -2,7 +2,7 @@
   "name": "wizbiz-game",
   "version": "1.0.1",
   "description": "A magical wizard adventure game",
-  "main": "main.js",
+  "main": "scripts/main.js",
   "scripts": {
     "start": "electron .",
     "build-win": "electron-builder --win",
@@ -43,13 +43,11 @@
           "arch": ["x64"]
         }
       ],
-      "icon": "icon.ico",
       "forceCodeSigning": false,
       "verifyUpdateCodeSignature": false
     },
     "mac": {
-      "target": "dmg",
-      "icon": "icon.icns"
+      "target": "dmg"
     },
     "linux": {
       "target": "AppImage",

@@ -6,7 +6,7 @@ const SpriteConfig = {
     // Forest Land Enemies
     giantfly: {
         texture: 'giantfly-walk',
-        path: 'forestlandfoes/giantflywalk4frames.png',
+        path: 'assets/enemies/forestlandfoes/giantflywalk4frames.png',
         frameWidth: 32,
         frameHeight: 29,  // Actual height from file (128x29 / 4 frames)
         animations: {
@@ -20,7 +20,7 @@ const SpriteConfig = {
             death: { 
                 key: 'giantfly-dying',
                 texture: 'giantfly-death',
-                path: 'forestlandfoes/giantflydeath6frames.png',
+                path: 'assets/enemies/forestlandfoes/giantflydeath6frames.png',
                 frameWidth: 32,
                 frameHeight: 30,  // Actual height (192x30 / 6 frames)
                 start: 0, 
@@ -38,7 +38,7 @@ const SpriteConfig = {
     
     squirrel: {
         texture: 'squirrel-walk',
-        path: 'forestlandfoes/squirrelwalk8frames.png',
+        path: 'assets/enemies/forestlandfoes/squirrelwalk8frames.png',
         frameWidth: 32,
         frameHeight: 21,  // Actual height (256x21 / 8 frames)
         animations: {
@@ -52,7 +52,7 @@ const SpriteConfig = {
             death: { 
                 key: 'squirrel-dying',
                 texture: 'squirrel-death',
-                path: 'forestlandfoes/squirreldeath4frames.png',
+                path: 'assets/enemies/forestlandfoes/squirreldeath4frames.png',
                 frameWidth: 32,
                 frameHeight: 16,  // Actual height (128x16 / 4 frames)
                 start: 0, 
@@ -69,7 +69,7 @@ const SpriteConfig = {
     
     redpanda: {
         texture: 'redpanda-walk',
-        path: 'forestlandfoes/redpandawalk8frames.png',
+        path: 'assets/enemies/forestlandfoes/redpandawalk8frames.png',
         frameWidth: 32,
         frameHeight: 18,  // Actual height (256x18 / 8 frames)
         animations: {
@@ -83,7 +83,7 @@ const SpriteConfig = {
             death: {
                 key: 'redpanda-dying',
                 texture: 'redpanda-death',
-                path: 'forestlandfoes/redpandadeath8frames.png',
+                path: 'assets/enemies/forestlandfoes/redpandadeath8frames.png',
                 frameWidth: 32,
                 frameHeight: 18,  // Actual height (256x18 / 8 frames)
                 start: 0, 
@@ -101,7 +101,7 @@ const SpriteConfig = {
     // Mushroom enemy
     mushroom: {
         texture: 'mushroom-run',
-        path: 'mushroom/Run.png',
+        path: 'assets/enemies/mushroom/Run.png',
         frameWidth: 150,  // 1200 / 8 frames
         frameHeight: 46,
         animations: {
@@ -123,7 +123,7 @@ const SpriteConfig = {
     // Tree enemy
     tree: {
         texture: 'tree-walk',
-        path: 'tree/walk.png',
+        path: 'assets/enemies/tree/walk.png',
         frameWidth: 128,  // 768 / 6 frames
         frameHeight: 128,
         animations: {
@@ -137,7 +137,7 @@ const SpriteConfig = {
             death: {
                 key: 'tree-dying',
                 texture: 'tree-death',
-                path: 'tree/death.png',
+                path: 'assets/enemies/tree/death.png',
                 frameWidth: 128,
                 frameHeight: 128,
                 start: 0,
@@ -177,7 +177,7 @@ const SpriteConfig = {
     // Cave enemies
     kobold: {
         texture: 'kobold-walk',
-        path: 'kobold/Walk.png',
+        path: 'assets/enemies/kobold/Walk.png',
         frameWidth: 115,  // 345 / 3 frames
         frameHeight: 111,
         animations: {
@@ -191,7 +191,7 @@ const SpriteConfig = {
             death: {
                 key: 'kobold-dying',
                 texture: 'kobold-death',
-                path: 'kobold/Death.png',
+                path: 'assets/enemies/kobold/Death.png',
                 frameWidth: 115,
                 frameHeight: 111,
                 start: 0,

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stage Select Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0a0a1a;
+            color: #fff;
+            padding: 20px;
+        }
+        .stage-info {
+            margin: 10px 0;
+            padding: 10px;
+            background: #1a1a2a;
+            border-radius: 5px;
+        }
+        .unlocked {
+            color: #4f4;
+        }
+        .locked {
+            color: #f44;
+        }
+        h2 {
+            color: #4af;
+        }
+    </style>
+</head>
+<body>
+    <h1>Stage Select Debug Info</h1>
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+        
+        // Check if planet images exist
+        const planets = [
+            'forestland', 'caveland', 'desertland', 
+            'swampland', 'snowland', 'oceanland',
+            'lavaland', 'graveland', 'castleland', 'spireland'
+        ];
+        
+        const stages = [
+            { name: 'Forestland', planetKey: 'planet-forest', unlocked: true },
+            { name: 'Caveland', planetKey: 'planet-cave', unlocked: true },
+            { name: 'Desertland', planetKey: 'planet-sand', unlocked: false },
+            { name: 'Swampland', planetKey: 'planet-swamp', unlocked: false },
+            { name: 'Snowland', planetKey: 'planet-snow', unlocked: false },
+            { name: 'Oceanland', planetKey: 'planet-ocean', unlocked: false },
+            { name: 'Lavaland', planetKey: 'planet-lava', unlocked: false },
+            { name: 'Graveland', planetKey: 'planet-grave', unlocked: false },
+            { name: 'Castleland', planetKey: 'planet-castle', unlocked: true },
+            { name: 'Spireland', planetKey: 'planet-spire', unlocked: false }
+        ];
+        
+        const positions = [
+            { x: 200, y: 200 }, // Forest
+            { x: 600, y: 200 }, // Cave
+            { x: 150, y: 350 }, // Desert
+            { x: 300, y: 300 }, // Swamp - NEW
+            { x: 400, y: 250 }, // Snow - NEW
+            { x: 500, y: 300 }, // Ocean - NEW
+            { x: 650, y: 350 }, // Lava
+            { x: 300, y: 450 }, // Grave
+            { x: 500, y: 450 }, // Castle
+            { x: 400, y: 120 }  // Spire
+        ];
+        
+        results.innerHTML = '<h2>Stage Configuration:</h2>';
+        
+        stages.forEach((stage, index) => {
+            const div = document.createElement('div');
+            div.className = 'stage-info';
+            const status = stage.unlocked ? 
+                '<span class="unlocked">✓ UNLOCKED</span>' : 
+                '<span class="locked">🔒 LOCKED</span>';
+            const pos = positions[index];
+            div.innerHTML = `
+                <strong>${index}. ${stage.name}</strong> ${status}<br>
+                Planet Key: ${stage.planetKey}<br>
+                Position: (${pos.x}, ${pos.y})<br>
+                Image Path: assets/ui/planets/${planets[index]}.png
+            `;
+            results.appendChild(div);
+        });
+        
+        // Test loading planet images
+        results.innerHTML += '<h2>Testing Planet Image Loading:</h2>';
+        
+        planets.forEach((planet, index) => {
+            const img = new Image();
+            const div = document.createElement('div');
+            div.className = 'stage-info';
+            div.id = `planet-${index}`;
+            div.textContent = `Loading ${planet}.png...`;
+            results.appendChild(div);
+            
+            img.onload = () => {
+                document.getElementById(`planet-${index}`).innerHTML = 
+                    `<span class="unlocked">✓</span> ${planet}.png loaded successfully (${img.width}x${img.height})`;
+            };
+            img.onerror = () => {
+                document.getElementById(`planet-${index}`).innerHTML = 
+                    `<span class="locked">✗</span> ${planet}.png failed to load`;
+            };
+            img.src = `assets/ui/planets/${planet}.png`;
+        });
+    </script>
+</body>
+</html>

@@ -22,13 +22,13 @@ function createWindow() {
       webgl: true,
       disableBlinkFeatures: 'RenderingPipelineThrottling'
     },
-    icon: path.join(__dirname, 'zodiac.png'),
+    icon: path.join(__dirname, '..', 'assets', 'images', 'zodiac.png'),
     backgroundColor: '#11130d',
     show: false // Don't show until ready
   });
 
   // Load the game
-  mainWindow.loadFile('index.html');
+  mainWindow.loadFile(path.join(__dirname, '..', 'index.html'));
 
   // Show window when ready
   mainWindow.once('ready-to-show', () => {
