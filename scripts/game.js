@@ -127,6 +127,7 @@ class LoadingScene extends Phaser.Scene {
         this.load.image('grass-tile', 'assets/images/grass.PNG');
         this.load.image('stone-tile', 'assets/images/stone.png');
         this.load.image('lava-tile', 'assets/images/lava.png');
+        this.load.image('dungeon-wall', 'assets/images/dungeonwall.png');
         this.load.image('desert-tile', 'assets/images/desert.png');
         this.load.image('tree', 'assets/images/foliage.png');
         
@@ -196,6 +197,15 @@ class LoadingScene extends Phaser.Scene {
         
         // Load additional element symbols
         this.load.image('smoke-symbol', 'assets/images/smoke.png');
+        
+        // Load dungeon gate sprites for each stage
+        this.load.image('forestland-gate', 'assets/obstacles/dungeongates/forestland.png');
+        this.load.image('caveland-gate', 'assets/obstacles/dungeongates/caveland.png');
+        this.load.image('desertland-gate', 'assets/obstacles/dungeongates/desertland.png');
+        this.load.image('lavaland-gate', 'assets/obstacles/dungeongates/lavaland.png');
+        this.load.image('graveland-gate', 'assets/obstacles/dungeongates/graveland.png');
+        this.load.image('castleland-gate', 'assets/obstacles/dungeongates/castleland.png');
+        this.load.image('snowland-gate', 'assets/obstacles/dungeongates/snowland.png');
         
         // Load smoke cloud animation frames
         for (let i = 1; i <= 9; i++) {
@@ -8578,17 +8588,19 @@ class GameScene extends Phaser.Scene {
             this.wizard = this.physics.add.sprite(wizardStartX, wizardStartY, p1Sprite);
         }
         
-        // Scale and flip based on character type
-        if (this.p1Character === 'grim') {
-            this.wizard.setScale(1.3); // Scale up Grim by 30%
-            this.wizard.setFlipX(true); // Flip Grim horizontally
-            // Adjust origin to shift sprite up visually
-            this.wizard.setOrigin(0.5, 0.65); // Shift sprite up more to center in circle
-        } else if (this.p1Character === 'blip') {
-            this.wizard.setScale(2.4); // Scale down 20% from 3x (3 * 0.8 = 2.4)
-            this.wizard.setOrigin(0.5, 0.5); // Center origin
+        // Apply scale from config
+        if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+            hitboxConfig.applyScale(this.wizard, this.p1Character);
         } else {
-            this.wizard.setScale(1.0); // Default scale for other characters
+            // Fallback to default scale
+            this.wizard.setScale(1.0);
+        }
+        
+        // Character-specific adjustments
+        if (this.p1Character === 'grim') {
+            this.wizard.setFlipX(true); // Flip Grim horizontally
+            this.wizard.setOrigin(0.5, 0.65); // Shift sprite up more to center in circle
+        } else {
             this.wizard.setOrigin(0.5, 0.5); // Default origin
         }
         
@@ -8611,16 +8623,20 @@ class GameScene extends Phaser.Scene {
             const p2Sprite = this.getCharacterSprite(this.p2Character || 'wizard', true);
             this.wizard2 = this.physics.add.sprite(wizard2X, wizard2Y, p2Sprite);
             
-            // Scale and flip based on character type for P2
-            if ((this.p2Character || 'wizard') === 'grim') {
-                this.wizard2.setScale(1.3); // Scale up Grim by 30%
+            // Apply scale from config for P2
+            const p2Char = this.p2Character || 'wizard';
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(this.wizard2, p2Char);
+            } else {
+                // Fallback to default scale
+                this.wizard2.setScale(1.0);
+            }
+            
+            // Character-specific adjustments for P2
+            if (p2Char === 'grim') {
                 this.wizard2.setFlipX(true); // Flip Grim horizontally
                 this.wizard2.setOrigin(0.5, 0.65); // Shift sprite up more to center in circle
-            } else if ((this.p2Character || 'wizard') === 'blip') {
-                this.wizard2.setScale(2.4); // Scale down 20% from 3x (3 * 0.8 = 2.4)
-                this.wizard2.setOrigin(0.5, 0.5); // Center origin
             } else {
-                this.wizard2.setScale(1.0); // Default scale for other characters
                 this.wizard2.setOrigin(0.5, 0.5); // Default origin
             }
             
@@ -8912,12 +8928,30 @@ class GameScene extends Phaser.Scene {
         this.bloodTowerChunks = new Set(); // Track which chunks have blood towers
         this.activeBloodTowers = new Map(); // Track active blood towers by chunk key
         
+        // Initialize dungeon gate system
+        this.dungeonGates = this.physics.add.group();
+        this.dungeonGate = null;
+        this.dungeonArrow = null;
+        this.inDungeon = false;
+        this.dungeonActive = false;
+        this.savedStageState = null;
+        this.dungeonEnemies = this.physics.add.group();
+        this.dungeonWaveTimer = null;
+        this.dungeonSpawnTimer = null;
+        
         // Create obelisk direction indicator
         this.obeliskIndicator = this.add.triangle(0, 0, 0, 0, 15, 10, 0, 20, 0x00ffff);
         this.obeliskIndicator.setDepth(900);
         this.obeliskIndicator.setScrollFactor(0);
         this.obeliskIndicator.setVisible(false);
         this.obeliskIndicator.setAlpha(0.8);
+        
+        // Create dungeon gate direction indicator (red arrow)
+        this.dungeonArrow = this.add.triangle(0, 0, 0, 0, 20, 12, 0, 24, 0xff0000);
+        this.dungeonArrow.setDepth(901);
+        this.dungeonArrow.setScrollFactor(0);
+        this.dungeonArrow.setVisible(false);
+        this.dungeonArrow.setAlpha(0.9);
         
         this.jewels = this.physics.add.group();
         this.muffins = this.physics.add.group();
@@ -12610,6 +12644,11 @@ class GameScene extends Phaser.Scene {
             this.setupSpireland();
         }
         
+        // Spawn dungeon gate for non-spire stages
+        if (this.stage !== 'spire' && this.stage !== 'nexus') {
+            this.spawnDungeonGate();
+        }
+        
         console.log('Game fully started!');
         
         // Mark animations as ready to prevent errors
@@ -13787,8 +13826,8 @@ class GameScene extends Phaser.Scene {
             this.obstacleManager.update(this.wizard.x, this.wizard.y);
         }
         
-        // Update obelisks based on player position
-        if (this.wizard) {
+        // Update obelisks based on player position (skip if in dungeon)
+        if (this.wizard && !this.inDungeon) {
             this.updateObelisks(this.wizard.x, this.wizard.y);
             this.updateBloodTowers(this.wizard.x, this.wizard.y);
             
@@ -13797,6 +13836,7 @@ class GameScene extends Phaser.Scene {
             this.obeliskIndicatorThrottle++;
             if (this.obeliskIndicatorThrottle >= 5) {
                 this.updateObeliskIndicator();
+                this.updateDungeonArrow(); // Update dungeon gate arrow
                 this.obeliskIndicatorThrottle = 0;
             }
             
@@ -14321,12 +14361,15 @@ class GameScene extends Phaser.Scene {
                 debugText += `\nTime: ${waveTime.toFixed(1)}s, lastSpawn=${this.lastWaveSpawn ? ((this.time.now - this.lastWaveSpawn)/1000).toFixed(1)+'s ago' : 'never'}`;
             }
             
-            this.waveDebugText.setText(debugText);
-        } else if (this.waveDebugText) {
+            // Only set text if the debug text object still exists and is not destroyed
+            if (this.waveDebugText && this.waveDebugText.scene) {
+                this.waveDebugText.setText(debugText);
+            }
+        } else if (this.waveDebugText && this.waveDebugText.scene) {
             // Hide debug text if debug mode is off
             this.waveDebugText.setVisible(false);
         }
-        if (this.gameStarted && !this.bossSpawned) {
+        if (this.gameStarted && !this.bossSpawned && !this.inDungeon) {
             // Check if it's time to start a new wave (every 60 seconds)
             const waveTime = (this.time.now - this.waveStartTime) / 1000; // Convert to seconds
             console.log(`Wave ${this.currentWave}, time: ${waveTime.toFixed(1)}s`);
@@ -14362,7 +14405,7 @@ class GameScene extends Phaser.Scene {
                 // Movement-based spawning (Vampire Survivors style)
                 if (!this.wizard) {
                     const debugEnabled = localStorage.getItem('debugMode') === 'true';
-                    if (debugEnabled && this.waveDebugText) {
+                    if (debugEnabled && this.waveDebugText && this.waveDebugText.scene) {
                         this.waveDebugText.setText(this.waveDebugText.text + '\nERROR: No wizard!');
                     }
                     return; // Can't spawn without player
@@ -14382,8 +14425,10 @@ class GameScene extends Phaser.Scene {
                 
                 // Add debug info about spawn conditions (only if debug mode is on)
                 if (debugEnabled && this.waveDebugText) {
-                    this.waveDebugText.setText(this.waveDebugText.text + 
-                        `\nSpawn: move=${spawnByMovement}(${this.distanceTraveled?.toFixed(0)}px), time=${spawnByTime}, count=${currentEnemyCount}/${waveDef.maxEnemies}`);
+                    if (this.waveDebugText && this.waveDebugText.scene) {
+                        this.waveDebugText.setText(this.waveDebugText.text + 
+                            `\nSpawn: move=${spawnByMovement}(${this.distanceTraveled?.toFixed(0)}px), time=${spawnByTime}, count=${currentEnemyCount}/${waveDef.maxEnemies}`);
+                    }
                 }
                 
                 if (currentEnemyCount < waveDef.maxEnemies && (spawnByMovement || spawnByTime)) {
@@ -20115,7 +20160,17 @@ class GameScene extends Phaser.Scene {
     }
     
     applySavedScale(enemy, enemyType) {
-        // Try to apply saved scale data
+        // First try to apply scale from hitboxConfig
+        if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+            const scale = hitboxConfig.getScale(enemyType);
+            if (scale && scale !== 1.0) {
+                enemy.setScale(scale);
+                console.log(`Applied scale from hitboxConfig for ${enemyType}: ${scale}`);
+                return true;
+            }
+        }
+        
+        // Fallback to localStorage scale data
         const scaleData = localStorage.getItem('spriteScaleData');
         if (scaleData) {
             try {
@@ -20123,7 +20178,7 @@ class GameScene extends Phaser.Scene {
                 const scale = scales[enemyType];
                 if (scale) {
                     enemy.setScale(scale.scaleX, scale.scaleY);
-                    console.log(`Applied saved scale for ${enemyType}: ${scale.scaleX}x${scale.scaleY}`);
+                    console.log(`Applied saved scale from localStorage for ${enemyType}: ${scale.scaleX}x${scale.scaleY}`);
                     return true;
                 }
             } catch (e) {
@@ -20293,7 +20348,12 @@ class GameScene extends Phaser.Scene {
             bat.play('bat-flying');
         } else if (enemyType === 'mushroom') {
             const mushroom = this.physics.add.sprite(x, y, 'mushroom-run', 0);
-            mushroom.setScale(0.7);
+            
+            // Apply scale from config or use default
+            if (!this.applySavedScale(mushroom, 'mushroom')) {
+                mushroom.setScale(0.7);
+            }
+            
             mushroom.setFlipY(true); // Reverse vertical facing
             mushroom.health = 5; // Increased by 50%
             mushroom.maxHealth = mushroom.health;
@@ -20461,7 +20521,12 @@ class GameScene extends Phaser.Scene {
             this.addEnemyToGroup(bloboid);
         } else if (enemyType === 'slime') {
             const slime = this.physics.add.sprite(x, y, 'slime-idle', 0);
-            slime.setScale(1.0);
+            
+            // Apply scale from config or use default
+            if (!this.applySavedScale(slime, 'slime')) {
+                slime.setScale(1.0);
+            }
+            
             slime.health = 4; // Increased by 50%
             slime.maxHealth = slime.health;
             slime.enemyType = 'slime';
@@ -20495,7 +20560,12 @@ class GameScene extends Phaser.Scene {
         } else if (enemyType === 'golem') {
             const golemColor = Math.random() < 0.5 ? 'orange' : 'blue';
             const golem = this.physics.add.sprite(x, y, `golem-${golemColor}-walk`, 0);
-            golem.setScale(1.5);
+            
+            // Apply scale from config or use default
+            if (!this.applySavedScale(golem, 'golem')) {
+                golem.setScale(1.5);
+            }
+            
             golem.health = 15; // Increased by 50%
             golem.maxHealth = golem.health;
             golem.enemyType = 'golem';
@@ -20575,7 +20645,12 @@ class GameScene extends Phaser.Scene {
             this.addEnemyToGroup(imp);
         } else if (enemyType === 'kobold') {
             const kobold = this.physics.add.sprite(x, y, 'kobold-walk', 0);
-            kobold.setScale(0.6); // Reduced by 40%
+            
+            // Apply scale from config or use default
+            if (!this.applySavedScale(kobold, 'kobold')) {
+                kobold.setScale(0.6); // Reduced by 40%
+            }
+            
             kobold.health = 6;
             kobold.maxHealth = kobold.health;
             kobold.enemyType = 'kobold';
@@ -20853,7 +20928,12 @@ class GameScene extends Phaser.Scene {
             this.addEnemyToGroup(squire);
         } else if (enemyType === 'cobra') {
             const cobra = this.physics.add.sprite(x, y, 'cobra-walk', 0);
-            cobra.setScale(2.0); // Scale up the 32x32 sprite
+            
+            // Apply scale from config or use default
+            if (!this.applySavedScale(cobra, 'cobra')) {
+                cobra.setScale(2.0); // Scale up the 32x32 sprite
+            }
+            
             cobra.health = 6; // Medium health
             cobra.maxHealth = cobra.health;
             cobra.enemyType = 'cobra';
@@ -20875,7 +20955,14 @@ class GameScene extends Phaser.Scene {
             this.addEnemyToGroup(cobra);
         } else if (enemyType === 'cactuse') {
             const cactuse = this.physics.add.sprite(x, y, 'cactuse-walk', 0);
-            cactuse.setScale(2.0); // Scale up the 32x32 sprite
+            
+            // Apply scale from config
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(cactuse, 'cactuse');
+            } else {
+                cactuse.setScale(2.0); // Fallback scale
+            }
+            
             cactuse.health = 8; // High health - tough desert plant
             cactuse.maxHealth = cactuse.health;
             cactuse.enemyType = 'cactuse';
@@ -23033,23 +23120,55 @@ class GameScene extends Phaser.Scene {
         this.bloodTowerAccepting = true;
         
         // Get proper health values
-        const maxHealth = wizard.playerNumber === 2 ? (wizard.maxHealth || 100) : this.maxHealth;
-        const healthCost = Math.floor(maxHealth * tower.healthCost);
+        const oldMaxHealth = wizard.playerNumber === 2 ? (wizard.maxHealth || 100) : this.maxHealth;
+        const healthCost = Math.floor(oldMaxHealth * tower.healthCost);
+        const newMaxHealth = oldMaxHealth - healthCost;
         
-        // Deduct health from the correct property
+        // Reduce maximum health
         if (wizard.playerNumber === 2) {
-            wizard.health = (wizard.health || 100) - healthCost;
+            wizard.maxHealth = newMaxHealth;
+            // If current health exceeds new max, reduce to new max
+            if (wizard.health > newMaxHealth) {
+                const healthLost = wizard.health - newMaxHealth;
+                wizard.health = newMaxHealth;
+                this.showDamageNumber(wizard.x, wizard.y - 30, healthLost, '#ff0000');
+            }
         } else {
-            this.playerHealth -= healthCost;
+            this.maxHealth = newMaxHealth;
+            // If current health exceeds new max, reduce to new max
+            if (this.playerHealth > newMaxHealth) {
+                const healthLost = this.playerHealth - newMaxHealth;
+                this.playerHealth = newMaxHealth;
+                this.showDamageNumber(wizard.x, wizard.y - 30, healthLost, '#ff0000');
+            }
         }
-        this.showDamageNumber(wizard.x, wizard.y - 30, healthCost, '#ff0000');
+        
+        // Visual feedback - show max health reduction
+        const maxHealthText = this.add.text(wizard.x, wizard.y - 50, 
+            `-${healthCost} MAX HP`, {
+            fontSize: '20px',
+            color: '#ff0000',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+        maxHealthText.setOrigin(0.5);
+        maxHealthText.setDepth(1000);
+        
+        this.tweens.add({
+            targets: maxHealthText,
+            y: maxHealthText.y - 30,
+            alpha: 0,
+            duration: 1500,
+            onComplete: () => maxHealthText.destroy()
+        });
         
         wizard.setTint(0xff0000);
         this.time.delayedCall(200, () => {
             wizard.clearTint();
         });
         
-        // Check health using correct property
+        // Check if player died from health reduction
         const currentHealth = wizard.playerNumber === 2 ? (wizard.health || 0) : this.playerHealth;
         if (currentHealth <= 0) {
             if (wizard.playerNumber === 2) {
@@ -23058,7 +23177,17 @@ class GameScene extends Phaser.Scene {
                 this.playerHealth = 0;
             }
             this.closeBloodTowerMenu(false);
-            this.playerDeath(wizard);
+            // Trigger game over properly
+            if (!this.isGameOver) {
+                this.isGameOver = true;
+                this.scene.start('GameOverScene', {
+                    survivalTime: this.survivalTime,
+                    enemiesKilled: this.enemiesKilled,
+                    itemsCollected: this.itemsCollected,
+                    won: false,
+                    stage: this.selectedStage || this.stage || 'forest'
+                });
+            }
             return;
         }
         
@@ -44626,6 +44755,637 @@ class GameScene extends Phaser.Scene {
             delay: 1000,
             onComplete: () => phaseText.destroy()
         });
+    }
+    
+    // Dungeon Gate System Methods
+    spawnDungeonGate() {
+        // Get the appropriate gate texture based on stage
+        const gateTextures = {
+            'forest': 'forestland-gate',
+            'cave': 'caveland-gate',
+            'desert': 'desertland-gate',
+            'lava': 'lavaland-gate',
+            'graveyard': 'graveland-gate',
+            'castle': 'castleland-gate',
+            'snow': 'snowland-gate'
+        };
+        
+        const gateTexture = gateTextures[this.stage] || 'forestland-gate';
+        
+        // Spawn gate at random location within reasonable distance from spawn
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 800 + Math.random() * 400; // 800-1200 pixels from center
+        const gateX = this.cameras.main.centerX + Math.cos(angle) * distance;
+        const gateY = this.cameras.main.centerY + Math.sin(angle) * distance;
+        
+        // Create the dungeon gate (scaled down more)
+        this.dungeonGate = this.physics.add.sprite(gateX, gateY, gateTexture);
+        this.dungeonGate.setScale(0.5); // Scaled down to 50%
+        this.dungeonGate.setDepth(50);
+        this.dungeonGate.body.setSize(60, 80);
+        this.dungeonGate.body.setImmovable(true);
+        
+        // Add simple glowing effect without scale animation
+        this.tweens.add({
+            targets: this.dungeonGate,
+            alpha: { from: 0.7, to: 1 },
+            duration: 1500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Add to gates group
+        this.dungeonGates.add(this.dungeonGate);
+        
+        // Show the direction arrow
+        this.dungeonArrow.setVisible(true);
+        
+        // Set up collision with player
+        this.physics.add.overlap(this.wizard, this.dungeonGate, () => {
+            this.enterDungeon();
+        });
+        
+        // Set up collision with P2 if exists
+        if (this.wizard2) {
+            this.physics.add.overlap(this.wizard2, this.dungeonGate, () => {
+                this.enterDungeon();
+            });
+        }
+        
+        console.log(`Dungeon gate spawned at ${gateX}, ${gateY} for stage ${this.stage}`);
+    }
+    
+    updateDungeonArrow() {
+        if (!this.dungeonGate || !this.dungeonArrow.visible || this.inDungeon) return;
+        
+        // Position arrow at edge of screen pointing to gate
+        const camera = this.cameras.main;
+        const player = this.wizard;
+        
+        // Calculate angle from player to gate
+        const angle = Phaser.Math.Angle.Between(
+            player.x, player.y,
+            this.dungeonGate.x, this.dungeonGate.y
+        );
+        
+        // Position arrow at edge of screen
+        const margin = 50;
+        const screenCenterX = camera.scrollX + camera.width / 2;
+        const screenCenterY = camera.scrollY + camera.height / 2;
+        
+        // Calculate arrow position on screen edge
+        let arrowX, arrowY;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const aspectRatio = camera.width / camera.height;
+        
+        if (Math.abs(cos) > Math.abs(sin) * aspectRatio) {
+            // Arrow on left or right edge
+            arrowX = cos > 0 ? camera.width - margin : margin;
+            arrowY = camera.height / 2 + (sin / Math.abs(cos)) * (camera.width / 2 - margin);
+        } else {
+            // Arrow on top or bottom edge
+            arrowY = sin > 0 ? camera.height - margin : margin;
+            arrowX = camera.width / 2 + (cos / Math.abs(sin)) * (camera.height / 2 - margin);
+        }
+        
+        // Clamp arrow position to screen bounds
+        arrowX = Phaser.Math.Clamp(arrowX, margin, camera.width - margin);
+        arrowY = Phaser.Math.Clamp(arrowY, margin, camera.height - margin);
+        
+        this.dungeonArrow.setPosition(arrowX, arrowY);
+        this.dungeonArrow.setRotation(angle + Math.PI / 2);
+        
+        // Fade arrow if gate is visible on screen
+        const gateScreenX = this.dungeonGate.x - camera.scrollX;
+        const gateScreenY = this.dungeonGate.y - camera.scrollY;
+        
+        if (gateScreenX > 0 && gateScreenX < camera.width &&
+            gateScreenY > 0 && gateScreenY < camera.height) {
+            this.dungeonArrow.setAlpha(0.3);
+        } else {
+            this.dungeonArrow.setAlpha(0.9);
+        }
+    }
+    
+    enterDungeon() {
+        if (this.inDungeon || this.dungeonActive) return;
+        
+        console.log('Entering dungeon!');
+        this.dungeonActive = true;
+        
+        // Save current stage state
+        this.savedStageState = {
+            enemyWaveTimer: this.enemySpawnTimer,
+            waveStartTime: this.waveStartTime,
+            currentWave: this.currentWave,
+            survivalTime: this.survivalTime,
+            enemies: [...this.enemies.children.entries],
+            playerX: this.wizard.x,
+            playerY: this.wizard.y,
+            cameraScrollX: this.cameras.main.scrollX,
+            cameraScrollY: this.cameras.main.scrollY
+        };
+        
+        // Pause main stage timers and stop all enemy spawning
+        if (this.enemySpawnTimer) {
+            this.enemySpawnTimer.paused = true;
+        }
+        
+        // Stop any active wave spawning
+        if (this.waveSpawnTimer) {
+            this.waveSpawnTimer.paused = true;
+        }
+        
+        // Pause survival timer to freeze the wave system
+        this.pausedSurvivalTime = this.survivalTime;
+        
+        // Clear existing enemies (store them for later)
+        this.enemies.children.entries.forEach(enemy => {
+            enemy.setVisible(false);
+            enemy.setActive(false);
+            if (enemy.body) enemy.body.enable = false;
+        });
+        
+        // Hide all obelisks
+        if (this.obelisks) {
+            this.obelisks.children.entries.forEach(obelisk => {
+                obelisk.setVisible(false);
+                if (obelisk.body) obelisk.body.enable = false;
+            });
+        }
+        
+        // Also hide obelisks from the active map
+        if (this.activeObelisks) {
+            this.activeObelisks.forEach(obelisk => {
+                if (obelisk) {
+                    obelisk.setVisible(false);
+                    if (obelisk.body) obelisk.body.enable = false;
+                }
+            });
+        }
+        
+        // Hide all blood towers
+        if (this.bloodTowers) {
+            this.bloodTowers.children.entries.forEach(tower => {
+                tower.setVisible(false);
+                if (tower.body) tower.body.enable = false;
+            });
+        }
+        
+        // Also hide blood towers from the active map
+        if (this.activeBloodTowers) {
+            this.activeBloodTowers.forEach(tower => {
+                if (tower) {
+                    tower.setVisible(false);
+                    if (tower.body) tower.body.enable = false;
+                }
+            });
+        }
+        
+        // Hide all obstacles (trees, rocks, etc.)
+        if (this.obstacleManager) {
+            const obstacles = this.obstacleManager.getObstaclesGroup();
+            if (obstacles && obstacles.children) {
+                obstacles.children.entries.forEach(obstacle => {
+                    obstacle.setVisible(false);
+                    if (obstacle.body) obstacle.body.enable = false;
+                });
+            }
+        }
+        
+        // Hide any trees if they exist
+        if (this.trees && Array.isArray(this.trees)) {
+            // this.trees is an array of tree data, not a group
+            this.trees.forEach(treeData => {
+                if (treeData.sprite) {
+                    treeData.sprite.setVisible(false);
+                    if (treeData.sprite.body) treeData.sprite.body.enable = false;
+                }
+            });
+        }
+        
+        // Hide dungeon gate and arrow
+        this.dungeonGate.setVisible(false);
+        this.dungeonArrow.setVisible(false);
+        
+        // Transition to dungeon
+        this.cameras.main.fade(500, 0, 0, 0, false, (camera, progress) => {
+            if (progress === 1) {
+                this.createDungeon();
+            }
+        });
+    }
+    
+    createDungeon() {
+        this.inDungeon = true;
+        
+        // Hide all existing floor tiles instead of destroying
+        if (this.floorTiles && this.floorTiles.length > 0) {
+            this.floorTiles.forEach(tile => {
+                if (tile && tile.setVisible) {
+                    tile.setVisible(false);
+                }
+            });
+        }
+        
+        // Create narrow dungeon layout (similar to Spireland but with cave tiles)
+        const dungeonWidth = 3000;
+        const dungeonHeight = 600; // Narrow height
+        
+        // Store dungeon tiles for cleanup
+        this.dungeonTiles = [];
+        
+        // Create dungeon floor using tileSprite for seamless coverage
+        this.dungeonFloor = this.add.tileSprite(
+            dungeonWidth / 2,  // Center X
+            dungeonHeight / 2, // Center Y
+            dungeonWidth,      // Full width
+            dungeonHeight,     // Full height
+            'stone-tile'
+        );
+        this.dungeonFloor.setDepth(-10);
+        this.dungeonTiles.push(this.dungeonFloor);
+        
+        // Create walls using dungeon wall tiles
+        const wallTileSize = 32; // Size of dungeonwall.png
+        const wallThickness = wallTileSize; // Make walls as thick as the visual tiles
+        
+        // Create invisible collision walls
+        this.dungeonWalls = this.physics.add.staticGroup();
+        this.dungeonWallTiles = [];
+        
+        // Create collision barriers that match the visual wall tiles exactly
+        // Each wall tile gets its own collision body for complete coverage
+        
+        // Top wall - create collision for each tile
+        for (let x = 0; x <= dungeonWidth; x += wallTileSize) {
+            const wall = this.dungeonWalls.create(x + wallTileSize/2, wallTileSize/2, null);
+            wall.setVisible(false);
+            wall.body.setSize(wallTileSize, wallTileSize);
+            wall.refreshBody();
+        }
+        
+        // Bottom wall - create collision for each tile
+        for (let x = 0; x <= dungeonWidth; x += wallTileSize) {
+            const wall = this.dungeonWalls.create(x + wallTileSize/2, dungeonHeight - wallTileSize/2, null);
+            wall.setVisible(false);
+            wall.body.setSize(wallTileSize, wallTileSize);
+            wall.refreshBody();
+        }
+        
+        // Left wall - create collision for each tile
+        for (let y = 0; y <= dungeonHeight; y += wallTileSize) {
+            const wall = this.dungeonWalls.create(wallTileSize/2, y + wallTileSize/2, null);
+            wall.setVisible(false);
+            wall.body.setSize(wallTileSize, wallTileSize);
+            wall.refreshBody();
+        }
+        
+        // Right wall - create collision for each tile
+        for (let y = 0; y <= dungeonHeight; y += wallTileSize) {
+            const wall = this.dungeonWalls.create(dungeonWidth - wallTileSize/2, y + wallTileSize/2, null);
+            wall.setVisible(false);
+            wall.body.setSize(wallTileSize, wallTileSize);
+            wall.refreshBody();
+        }
+        
+        // Debug: Log wall creation
+        console.log(`Dungeon walls created: ${this.dungeonWalls.children.entries.length} collision bodies`);
+        
+        // Add visual wall tiles
+        // Top wall visual
+        for (let x = 0; x <= dungeonWidth; x += wallTileSize) {
+            const wallTile = this.add.image(x, wallTileSize/2, 'dungeon-wall');
+            wallTile.setOrigin(0, 0.5);
+            wallTile.setDepth(10);
+            this.dungeonWallTiles.push(wallTile);
+        }
+        
+        // Bottom wall visual
+        for (let x = 0; x <= dungeonWidth; x += wallTileSize) {
+            const wallTile = this.add.image(x, dungeonHeight - wallTileSize/2, 'dungeon-wall');
+            wallTile.setOrigin(0, 0.5);
+            wallTile.setDepth(10);
+            this.dungeonWallTiles.push(wallTile);
+        }
+        
+        // Left wall visual (skip corners to avoid overlap)
+        for (let y = wallTileSize; y < dungeonHeight - wallTileSize; y += wallTileSize) {
+            const wallTile = this.add.image(wallTileSize/2, y, 'dungeon-wall');
+            wallTile.setOrigin(0.5, 0);
+            wallTile.setDepth(10);
+            this.dungeonWallTiles.push(wallTile);
+        }
+        
+        // Right wall visual (skip corners to avoid overlap)
+        for (let y = wallTileSize; y < dungeonHeight - wallTileSize; y += wallTileSize) {
+            const wallTile = this.add.image(dungeonWidth - wallTileSize/2, y, 'dungeon-wall');
+            wallTile.setOrigin(0.5, 0);
+            wallTile.setDepth(10);
+            this.dungeonWallTiles.push(wallTile);
+        }
+        
+        // Set world bounds for dungeon
+        // No need to adjust for wall thickness since we're using collision bodies
+        this.physics.world.setBounds(0, 0, dungeonWidth, dungeonHeight);
+        
+        // Move player to dungeon start (away from walls)
+        const startX = wallTileSize * 3; // Start 3 tiles from left wall
+        const startY = dungeonHeight / 2;
+        this.wizard.setPosition(startX, startY);
+        if (this.wizard2) {
+            this.wizard2.setPosition(startX, startY);
+        }
+        
+        // Set camera bounds
+        this.cameras.main.setBounds(0, 0, dungeonWidth, dungeonHeight);
+        
+        // Add collisions with walls
+        this.physics.add.collider(this.wizard, this.dungeonWalls);
+        
+        if (this.wizard2) {
+            this.physics.add.collider(this.wizard2, this.dungeonWalls);
+        }
+        
+        // Also add collision for enemies that will spawn
+        if (this.enemies) {
+            this.physics.add.collider(this.enemies, this.dungeonWalls);
+        }
+        
+        // Create dungeon exit at the end
+        this.dungeonExit = this.physics.add.sprite(dungeonWidth - 100, dungeonHeight / 2, 'forestland-gate');
+        this.dungeonExit.setScale(0.5); // Match entrance gate scale
+        this.dungeonExit.setTint(0x00ff00); // Green tint for exit
+        this.dungeonExit.body.setImmovable(true);
+        
+        // Add simple glowing effect to exit without scale animation
+        this.tweens.add({
+            targets: this.dungeonExit,
+            alpha: { from: 0.7, to: 1 },
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Set up exit collision
+        this.physics.add.overlap(this.wizard, this.dungeonExit, () => {
+            this.exitDungeon();
+        });
+        
+        if (this.wizard2) {
+            this.physics.add.overlap(this.wizard2, this.dungeonExit, () => {
+                this.exitDungeon();
+            });
+        }
+        
+        // Start dungeon enemy spawning
+        this.startDungeonWaves();
+        
+        // Fade back in
+        this.cameras.main.fadeIn(500);
+        
+        console.log('Dungeon created!');
+    }
+    
+    startDungeonWaves() {
+        // Clear any existing dungeon timers
+        if (this.dungeonSpawnTimer) {
+            this.dungeonSpawnTimer.destroy();
+        }
+        
+        // Spawn waves of brainmoles and darkbats
+        let waveNumber = 0;
+        
+        this.dungeonSpawnTimer = this.time.addEvent({
+            delay: 3000, // Spawn every 3 seconds
+            callback: () => {
+                waveNumber++;
+                
+                // Increase difficulty each wave
+                const enemyCount = Math.min(3 + Math.floor(waveNumber / 2), 8);
+                
+                for (let i = 0; i < enemyCount; i++) {
+                    // Randomly choose enemy type
+                    const enemyType = Math.random() < 0.6 ? 'brainmole' : 'darkbat';
+                    
+                    // Spawn along the dungeon length
+                    const spawnX = 200 + Math.random() * 2600;
+                    const spawnY = 100 + Math.random() * 400;
+                    
+                    const enemy = this.createEnemy(enemyType, spawnX, spawnY);
+                    if (enemy) {
+                        this.dungeonEnemies.add(enemy);
+                        
+                        // Increase enemy stats for dungeon
+                        enemy.health *= 1.5;
+                        enemy.maxHealth = enemy.health;
+                        enemy.moveSpeed *= 1.2;
+                    }
+                }
+                
+                console.log(`Dungeon wave ${waveNumber}: Spawned ${enemyCount} enemies`);
+            },
+            loop: true
+        });
+        
+        // Set up collisions for dungeon enemies
+        this.physics.add.collider(this.wizard, this.dungeonEnemies, (wizard, enemy) => {
+            this.handleEnemyPlayerCollision(wizard, enemy);
+        });
+        
+        if (this.wizard2) {
+            this.physics.add.collider(this.wizard2, this.dungeonEnemies, (wizard, enemy) => {
+                this.handleEnemyPlayerCollision(wizard, enemy);
+            });
+        }
+    }
+    
+    exitDungeon() {
+        if (!this.inDungeon) return;
+        
+        console.log('Exiting dungeon!');
+        
+        // Stop dungeon spawning
+        if (this.dungeonSpawnTimer) {
+            this.dungeonSpawnTimer.destroy();
+            this.dungeonSpawnTimer = null;
+        }
+        
+        // Clear dungeon enemies
+        this.dungeonEnemies.clear(true, true);
+        
+        // Fade out
+        this.cameras.main.fade(500, 0, 0, 0, false, (camera, progress) => {
+            if (progress === 1) {
+                this.returnToStage();
+            }
+        });
+    }
+    
+    returnToStage() {
+        this.inDungeon = false;
+        this.dungeonActive = false;
+        
+        // Clean up dungeon tiles
+        if (this.dungeonTiles && this.dungeonTiles.length > 0) {
+            this.dungeonTiles.forEach(tile => {
+                if (tile) tile.destroy();
+            });
+            this.dungeonTiles = [];
+        }
+        
+        // Clean up visual wall tiles
+        if (this.dungeonWallTiles && this.dungeonWallTiles.length > 0) {
+            this.dungeonWallTiles.forEach(tile => {
+                if (tile) tile.destroy();
+            });
+            this.dungeonWallTiles = [];
+        }
+        
+        // Clean up dungeon walls
+        if (this.dungeonWalls) {
+            this.dungeonWalls.clear(true, true);
+            this.dungeonWalls = null;
+        }
+        
+        // Restore stage state
+        if (this.savedStageState) {
+            // Restore player position
+            this.wizard.setPosition(this.savedStageState.playerX, this.savedStageState.playerY);
+            if (this.wizard2) {
+                this.wizard2.setPosition(this.savedStageState.playerX, this.savedStageState.playerY);
+            }
+            
+            // Restore camera
+            this.cameras.main.scrollX = this.savedStageState.cameraScrollX;
+            this.cameras.main.scrollY = this.savedStageState.cameraScrollY;
+            
+            // Restore world bounds for infinite stages
+            if (this.stage !== 'spire') {
+                this.physics.world.setBounds(-Infinity, -Infinity, Infinity, Infinity);
+                this.cameras.main.removeBounds();
+            }
+            
+            // Restore enemies
+            this.savedStageState.enemies.forEach(enemy => {
+                if (enemy && !enemy.isDead) {
+                    enemy.setVisible(true);
+                    enemy.setActive(true);
+                    if (enemy.body) enemy.body.enable = true;
+                }
+            });
+            
+            // Restore obelisks
+            if (this.obelisks) {
+                this.obelisks.children.entries.forEach(obelisk => {
+                    if (obelisk && !obelisk.activated) {
+                        obelisk.setVisible(true);
+                        if (obelisk.body) obelisk.body.enable = true;
+                    }
+                });
+            }
+            
+            // Restore active obelisks from map
+            if (this.activeObelisks) {
+                this.activeObelisks.forEach(obelisk => {
+                    if (obelisk && !obelisk.activated) {
+                        obelisk.setVisible(true);
+                        if (obelisk.body) obelisk.body.enable = true;
+                    }
+                });
+            }
+            
+            // Restore blood towers
+            if (this.bloodTowers) {
+                this.bloodTowers.children.entries.forEach(tower => {
+                    if (tower && !tower.activated) {
+                        tower.setVisible(true);
+                        if (tower.body) tower.body.enable = true;
+                    }
+                });
+            }
+            
+            // Restore active blood towers from map
+            if (this.activeBloodTowers) {
+                this.activeBloodTowers.forEach(tower => {
+                    if (tower && !tower.activated) {
+                        tower.setVisible(true);
+                        if (tower.body) tower.body.enable = true;
+                    }
+                });
+            }
+            
+            // Restore obstacles
+            if (this.obstacleManager) {
+                const obstacles = this.obstacleManager.getObstaclesGroup();
+                if (obstacles && obstacles.children) {
+                    obstacles.children.entries.forEach(obstacle => {
+                        obstacle.setVisible(true);
+                        if (obstacle.body) obstacle.body.enable = true;
+                    });
+                }
+            }
+            
+            // Restore trees if they exist
+            if (this.trees && Array.isArray(this.trees)) {
+                // this.trees is an array of tree data, not a group
+                this.trees.forEach(treeData => {
+                    if (treeData.sprite) {
+                        treeData.sprite.setVisible(true);
+                        if (treeData.sprite.body) treeData.sprite.body.enable = true;
+                    }
+                });
+            }
+            
+            // Resume enemy spawn timer
+            if (this.enemySpawnTimer) {
+                this.enemySpawnTimer.paused = false;
+            }
+            
+            // Resume wave spawning if it exists
+            if (this.waveSpawnTimer) {
+                this.waveSpawnTimer.paused = false;
+            }
+            
+            // Restore survival time
+            if (this.pausedSurvivalTime !== undefined) {
+                this.survivalTime = this.pausedSurvivalTime;
+            }
+            
+            // Clear saved state
+            this.savedStageState = null;
+        }
+        
+        // Destroy dungeon exit
+        if (this.dungeonExit) {
+            this.dungeonExit.destroy();
+            this.dungeonExit = null;
+        }
+        
+        // Show floor tiles again
+        if (this.floorTiles && this.floorTiles.length > 0) {
+            this.floorTiles.forEach(tile => {
+                if (tile && tile.setVisible) {
+                    tile.setVisible(true);
+                }
+            });
+        }
+        // Note: Floor tiles should already exist from initial stage creation
+        // If they don't exist at this point, the stage wasn't properly initialized
+        
+        // Remove the used dungeon gate
+        if (this.dungeonGate) {
+            this.dungeonGate.destroy();
+            this.dungeonGate = null;
+        }
+        
+        // Fade back in
+        this.cameras.main.fadeIn(500);
+        
+        console.log('Returned to stage!');
     }
 }
 

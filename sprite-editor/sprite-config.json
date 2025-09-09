@@ -1,7 +1,7 @@
 {
   "mushroom": {
     "texture": "mushroom-run",
-    "path": "mushroom/Run.png",
+    "path": "../assets/enemies/mushroom/Run.png",
     "frameWidth": 150,
     "frameHeight": 46,
     "animations": {
@@ -15,7 +15,7 @@
   },
   "tree": {
     "texture": "enemy-walk",
-    "path": "tree/tronchungo3/walking-sheet.png",
+    "path": "../assets/enemies/tree/tronchungo3/walking-sheet.png",
     "frameWidth": 48,
     "frameHeight": 60,
     "animations": {
@@ -29,7 +29,7 @@
   },
   "giantfly": {
     "texture": "giantfly-walk",
-    "path": "forestlandfoes/giantflywalk4frames.png",
+    "path": "../assets/enemies/forestlandfoes/giantflywalk4frames.png",
     "frameWidth": 32,
     "frameHeight": 29,
     "animations": {
@@ -40,7 +40,7 @@
       },
       "death": {
         "texture": "giantfly-death",
-        "path": "forestlandfoes/giantflydeath6frames.png",
+        "path": "../assets/enemies/forestlandfoes/giantflydeath6frames.png",
         "frameWidth": 32,
         "frameHeight": 30,
         "start": 0,
@@ -52,7 +52,7 @@
   },
   "squirrel": {
     "texture": "squirrel-walk",
-    "path": "forestlandfoes/squirrelwalk8frames.png",
+    "path": "../assets/enemies/forestlandfoes/squirrelwalk8frames.png",
     "frameWidth": 32,
     "frameHeight": 21,
     "animations": {
@@ -63,7 +63,7 @@
       },
       "death": {
         "texture": "squirrel-death",
-        "path": "forestlandfoes/squirreldeath4frames.png",
+        "path": "../assets/enemies/forestlandfoes/squirreldeath4frames.png",
         "frameWidth": 32,
         "frameHeight": 16,
         "start": 0,
@@ -75,7 +75,7 @@
   },
   "redpanda": {
     "texture": "redpanda-walk",
-    "path": "forestlandfoes/redpandawalk8frames.png",
+    "path": "../assets/enemies/forestlandfoes/redpandawalk8frames.png",
     "frameWidth": 32,
     "frameHeight": 18,
     "animations": {
@@ -86,7 +86,7 @@
       },
       "death": {
         "texture": "redpanda-death",
-        "path": "forestlandfoes/redpandadeath8frames.png",
+        "path": "../assets/enemies/forestlandfoes/redpandadeath8frames.png",
         "frameWidth": 32,
         "frameHeight": 18,
         "start": 0,
@@ -135,7 +135,7 @@
   },
   "kobold": {
     "texture": "kobold-walk",
-    "path": "kobold/kobold8frames.png",
+    "path": "../assets/enemies/kobold/kobold8frames.png",
     "frameWidth": 148,
     "frameHeight": 96,
     "animations": {
@@ -149,7 +149,7 @@
   },
   "brainmole": {
     "texture": "brainmole-walk",
-    "path": "cavelandfoes/brainmole4frames.png",
+    "path": "../assets/enemies/cavelandfoes/brainmole4frames.png",
     "frameWidth": 32,
     "frameHeight": 32,
     "animations": {
@@ -160,7 +160,7 @@
       },
       "death": {
         "texture": "brainmole-death",
-        "path": "cavelandfoes/brainmoledeath7frames.png",
+        "path": "../assets/enemies/cavelandfoes/brainmoledeath7frames.png",
         "frameWidth": 32,
         "frameHeight": 32,
         "start": 0,
@@ -172,7 +172,7 @@
   },
   "intellectdevourer": {
     "texture": "intellectdevourer-walk",
-    "path": "cavelandfoes/intellectdevourer8frames.png",
+    "path": "../assets/enemies/cavelandfoes/intellectdevourer8frames.png",
     "frameWidth": 32,
     "frameHeight": 20,
     "animations": {
@@ -183,7 +183,7 @@
       },
       "death": {
         "texture": "intellectdevourer-death",
-        "path": "cavelandfoes/intellectdevourerdeath4frames.png",
+        "path": "../assets/enemies/cavelandfoes/intellectdevourerdeath4frames.png",
         "frameWidth": 32,
         "frameHeight": 16,
         "start": 0,
@@ -195,7 +195,7 @@
   },
   "cobra": {
     "texture": "cobra-walk",
-    "path": "desertlandfoes/cobra8frames.png",
+    "path": "../assets/enemies/desertlandfoes/cobra8frames.png",
     "frameWidth": 32,
     "frameHeight": 20,
     "animations": {
@@ -206,7 +206,7 @@
       },
       "death": {
         "texture": "cobra-death",
-        "path": "desertlandfoes/cobradeath6frames.png",
+        "path": "../assets/enemies/desertlandfoes/cobradeath6frames.png",
         "frameWidth": 32,
         "frameHeight": 20,
         "start": 0,
@@ -218,7 +218,7 @@
   },
   "cactuse": {
     "texture": "cactuse-walk",
-    "path": "desertlandfoes/cactuse8frames.png",
+    "path": "../assets/enemies/desertlandfoes/cactuse8frames.png",
     "frameWidth": 32,
     "frameHeight": 26,
     "animations": {
@@ -229,7 +229,7 @@
       },
       "death": {
         "texture": "cactuse-death",
-        "path": "desertlandfoes/cactusedeath5frames.png",
+        "path": "../assets/enemies/desertlandfoes/cactusedeath5frames.png",
         "frameWidth": 32,
         "frameHeight": 22,
         "start": 0,
@@ -241,7 +241,7 @@
   },
   "armadillo": {
     "texture": "armadillo-walk",
-    "path": "desertlandfoes/armadillo8frames.png",
+    "path": "../assets/enemies/desertlandfoes/armadillo8frames.png",
     "frameWidth": 32,
     "frameHeight": 18,
     "animations": {
@@ -252,7 +252,7 @@
       },
       "roll": {
         "texture": "armadillo-ball",
-        "path": "desertlandfoes/armadilloball8frames.png",
+        "path": "../assets/enemies/desertlandfoes/armadilloball8frames.png",
         "frameWidth": 32,
         "frameHeight": 18,
         "start": 0,
@@ -261,7 +261,7 @@
       },
       "death": {
         "texture": "armadillo-death",
-        "path": "desertlandfoes/armadillodeath3frames.png",
+        "path": "../assets/enemies/desertlandfoes/armadillodeath3frames.png",
         "frameWidth": 32,
         "frameHeight": 17,
         "start": 0,
@@ -343,7 +343,7 @@
   },
   "archerBoss": {
     "texture": "archer-boss-walk",
-    "path": "archerboss/boss2archerwalk8frames.png",
+    "path": "assets/bosses/archerboss/boss2archerwalk8frames.png",
     "frameWidth": 63,
     "frameHeight": 54,
     "animations": {
@@ -354,7 +354,7 @@
       },
       "attack": {
         "texture": "archer-boss-shoot",
-        "path": "archerboss/boss2archershoot7frames.png",
+        "path": "assets/bosses/archerboss/boss2archershoot7frames.png",
         "frameWidth": 64,
         "frameHeight": 54,
         "start": 0,
@@ -363,7 +363,7 @@
       },
       "death": {
         "texture": "archer-boss-death",
-        "path": "archerboss/boss2archerdeath8frames.png",
+        "path": "assets/bosses/archerboss/boss2archerdeath8frames.png",
         "frameWidth": 63,
         "frameHeight": 54,
         "start": 0,
@@ -403,7 +403,7 @@
   },
   "kingNothing": {
     "texture": "king-nothing-run",
-    "path": "castlelandfoes/kingnothingboss/Run.png",
+    "path": "../assets/enemies/castlelandfoes/kingnothingboss/Run.png",
     "frameWidth": 160,
     "frameHeight": 111,
     "animations": {
@@ -414,7 +414,7 @@
       },
       "attack": {
         "texture": "king-nothing-attack1",
-        "path": "castlelandfoes/kingnothingboss/Attack1.png",
+        "path": "../assets/enemies/castlelandfoes/kingnothingboss/Attack1.png",
         "frameWidth": 160,
         "frameHeight": 111,
         "start": 0,
@@ -423,7 +423,7 @@
       },
       "death": {
         "texture": "king-nothing-death",
-        "path": "castlelandfoes/kingnothingboss/Death.png",
+        "path": "../assets/enemies/castlelandfoes/kingnothingboss/Death.png",
         "frameWidth": 160,
         "frameHeight": 111,
         "start": 0,
@@ -435,7 +435,7 @@
   },
   "eyelor": {
     "texture": "eyelor-move-1",
-    "path": "Eyelor/Movement/Eye Beast Moving1.png",
+    "path": "assets/bosses/Eyelor/Movement/Eye Beast Moving1.png",
     "frameWidth": 200,
     "frameHeight": 200,
     "animations": {
@@ -451,7 +451,7 @@
   },
   "nekros": {
     "texture": "nekros-walk-1",
-    "path": "Nekros/walk/walk_1.png",
+    "path": "assets/bosses/Nekros/walk/walk_1.png",
     "frameWidth": 200,
     "frameHeight": 200,
     "animations": {
@@ -467,7 +467,7 @@
   },
   "castle-knight": {
     "texture": "castle-knight",
-    "path": "castlelandfoes/knightrun8frames.png",
+    "path": "../assets/enemies/castlelandfoes/knightrun8frames.png",
     "frameWidth": 180,
     "frameHeight": 180,
     "animations": {
@@ -481,7 +481,7 @@
   },
   "castle-rogue": {
     "texture": "castle-rogue",
-    "path": "castlelandfoes/roguerun6frames.png",
+    "path": "../assets/enemies/castlelandfoes/roguerun6frames.png",
     "frameWidth": 64,
     "frameHeight": 33,
     "animations": {
@@ -495,7 +495,7 @@
   },
   "castle-soldier": {
     "texture": "castle-soldier",
-    "path": "castlelandfoes/soldier6frames.png",
+    "path": "../assets/enemies/castlelandfoes/soldier6frames.png",
     "frameWidth": 135,
     "frameHeight": 135,
     "animations": {
@@ -510,7 +510,7 @@
   "castle-bladekeeper": {
     "individualFrames": true,
     "framePattern": "castle-bladekeeper-",
-    "path": "castlelandfoes/bladekeeper/02_run_1.png",
+    "path": "../assets/enemies/castlelandfoes/bladekeeper/02_run_1.png",
     "frameCount": 8,
     "frameWidth": 64,
     "frameHeight": 64,
@@ -525,7 +525,7 @@
   },
   "castle-squire": {
     "texture": "castle-squire",
-    "path": "castlelandfoes/squire8frames.png",
+    "path": "../assets/enemies/castlelandfoes/squire8frames.png",
     "frameWidth": 150,
     "frameHeight": 150,
     "animations": {
@@ -539,7 +539,7 @@
   },
   "yellowskeleton": {
     "texture": "yellowskeleton",
-    "path": "skeleton/Skeleton_01_Yellow_Walk10frames.png",
+    "path": "../assets/enemies/skeleton/Skeleton_01_Yellow_Walk10frames.png",
     "frameWidth": 96,
     "frameHeight": 64,
     "animations": {
@@ -553,7 +553,7 @@
   },
   "skeletonseeker": {
     "texture": "skeleton-seeker-walk",
-    "path": "skeleton/skeleton_seeker_walk.png",
+    "path": "../assets/enemies/skeleton/skeleton_seeker_walk.png",
     "frameWidth": 120,
     "frameHeight": 120,
     "animations": {
@@ -564,7 +564,7 @@
       },
       "spawn": {
         "texture": "skeleton-seeker-spawn",
-        "path": "skeleton/skeleton_seeker_spawn.png",
+        "path": "../assets/enemies/skeleton/skeleton_seeker_spawn.png",
         "frameWidth": 120,
         "frameHeight": 120,
         "start": 0,
@@ -577,7 +577,7 @@
   "clubimp": {
     "individualFrames": true,
     "framePattern": "club-imp-walk-",
-    "path": "impclub/walk_1.png",
+    "path": "../assets/enemies/impclub/walk_1.png",
     "frameCount": 6,
     "frameWidth": 32,
     "frameHeight": 32,
@@ -590,7 +590,7 @@
       "fall": {
         "individualFrames": true,
         "framePattern": "club-imp-fall-",
-        "path": "impclub/fall_back_1.png",
+        "path": "../assets/enemies/impclub/fall_back_1.png",
         "frameCount": 5,
         "start": 0,
         "end": 4,
@@ -599,7 +599,7 @@
       "standup": {
         "individualFrames": true,
         "framePattern": "club-imp-standup-",
-        "path": "impclub/stand_up_1.png",
+        "path": "../assets/enemies/impclub/stand_up_1.png",
         "frameCount": 5,
         "start": 0,
         "end": 4,
@@ -611,7 +611,7 @@
   "axeimp": {
     "individualFrames": true,
     "framePattern": "axe-imp-walk-",
-    "path": "impaxe/walk_1.png",
+    "path": "../assets/enemies/impaxe/walk_1.png",
     "frameCount": 6,
     "frameWidth": 32,
     "frameHeight": 32,
@@ -624,7 +624,7 @@
       "fall": {
         "individualFrames": true,
         "framePattern": "axe-imp-fall-",
-        "path": "impaxe/fall_back_1.png",
+        "path": "../assets/enemies/impaxe/fall_back_1.png",
         "frameCount": 4,
         "start": 0,
         "end": 3,
@@ -633,7 +633,7 @@
       "standup": {
         "individualFrames": true,
         "framePattern": "axe-imp-standup-",
-        "path": "impaxe/stand_up_1.png",
+        "path": "../assets/enemies/impaxe/stand_up_1.png",
         "frameCount": 5,
         "start": 0,
         "end": 4,
@@ -644,7 +644,7 @@
   },
   "flyingdemon": {
     "texture": "flyingdemon",
-    "path": "flyingdemon/flamedemon4frames.png",
+    "path": "assets/bosses/flyingdemon/flamedemon4frames.png",
     "frameWidth": 81,
     "frameHeight": 71,
     "animations": {
@@ -687,7 +687,7 @@
   },
   "wraith": {
     "texture": "wraith-walk",
-    "path": "scythewraith/scythewraithwalk8frames.png",
+    "path": "assets/bosses/scythewraith/scythewraithwalk8frames.png",
     "frameWidth": 79.5,
     "frameHeight": 68,
     "animations": {
@@ -698,7 +698,7 @@
       },
       "attack": {
         "texture": "wraith-attack",
-        "path": "scythewraith/scythewraithattack8frames.png",
+        "path": "assets/bosses/scythewraith/scythewraithattack8frames.png",
         "frameWidth": 79.5,
         "frameHeight": 68,
         "start": 0,
@@ -707,7 +707,7 @@
       },
       "death": {
         "texture": "wraith-death",
-        "path": "scythewraith/scythewraithdeath8frames.png",
+        "path": "assets/bosses/scythewraith/scythewraithdeath8frames.png",
         "frameWidth": 110,
         "frameHeight": 80,
         "start": 0,
@@ -719,7 +719,7 @@
   },
   "wizard": {
     "texture": "wizard-idle",
-    "path": "wizmove/newiz/wizard_idle.PNG",
+    "path": "assets/sprites/wizmove/newiz/wizard_idle.PNG",
     "frameWidth": 80,
     "frameHeight": 80,
     "animations": {
@@ -730,7 +730,7 @@
       },
       "walk": {
         "texture": "wizard-fly",
-        "path": "wizmove/newiz/wizard_fly_forward.png",
+        "path": "assets/sprites/wizmove/newiz/wizard_fly_forward.png",
         "frameWidth": 80,
         "frameHeight": 80,
         "start": 0,
@@ -739,7 +739,7 @@
       },
       "death": {
         "texture": "wizard-death",
-        "path": "wizmove/newiz/wizard_death.PNG",
+        "path": "assets/sprites/wizmove/newiz/wizard_death.PNG",
         "frameWidth": 80,
         "frameHeight": 80,
         "start": 0,
@@ -751,7 +751,7 @@
   },
   "orb": {
     "texture": "orb-idle",
-    "path": "homunculicharacters/orbidle10framesdims640x64.png",
+    "path": "assets/sprites/homunculicharacters/orbidle10framesdims640x64.png",
     "frameWidth": 64,
     "frameHeight": 64,
     "animations": {
@@ -762,7 +762,7 @@
       },
       "walk": {
         "texture": "orb-walk",
-        "path": "homunculicharacters/orbwalk8framesdims512x64.png",
+        "path": "assets/sprites/homunculicharacters/orbwalk8framesdims512x64.png",
         "frameWidth": 64,
         "frameHeight": 64,
         "start": 0,
@@ -771,7 +771,7 @@
       },
       "spawn": {
         "texture": "orb-spawn",
-        "path": "homunculicharacters/orbspawn8framesdims512x64.png",
+        "path": "assets/sprites/homunculicharacters/orbspawn8framesdims512x64.png",
         "frameWidth": 64,
         "frameHeight": 64,
         "start": 0,
@@ -783,7 +783,7 @@
   },
   "grim": {
     "texture": "grim-idle",
-    "path": "homunculicharacters/grimidle8framesx2framesdims512x128.png",
+    "path": "assets/sprites/homunculicharacters/grimidle8framesx2framesdims512x128.png",
     "frameWidth": 64,
     "frameHeight": 64,
     "animations": {
@@ -794,7 +794,7 @@
       },
       "walk": {
         "texture": "grim-walk",
-        "path": "homunculicharacters/grimwalk6framesdimsdims384x64.png",
+        "path": "assets/sprites/homunculicharacters/grimwalk6framesdimsdims384x64.png",
         "frameWidth": 64,
         "frameHeight": 64,
         "start": 0,
@@ -803,7 +803,7 @@
       },
       "death": {
         "texture": "grim-death",
-        "path": "homunculicharacters/grimdeath8framesx3framesdims512x192.png",
+        "path": "assets/sprites/homunculicharacters/grimdeath8framesx3framesdims512x192.png",
         "frameWidth": 64,
         "frameHeight": 64,
         "start": 0,
@@ -815,7 +815,7 @@
   },
   "blip": {
     "texture": "blip-idle",
-    "path": "homunculicharacters/blipidle5framesvertical.png",
+    "path": "assets/sprites/homunculicharacters/blipidle5framesvertical.png",
     "frameWidth": 64,
     "frameHeight": 39,
     "verticalSheet": true,
@@ -827,7 +827,7 @@
       },
       "walk": {
         "texture": "blip-walk",
-        "path": "homunculicharacters/blipwalk8framesvertical.png",
+        "path": "assets/sprites/homunculicharacters/blipwalk8framesvertical.png",
         "frameWidth": 64,
         "frameHeight": 39,
         "verticalSheet": true,
@@ -837,7 +837,7 @@
       },
       "death": {
         "texture": "blip-death",
-        "path": "homunculicharacters/blipdeath5framesvertical.png",
+        "path": "assets/sprites/homunculicharacters/blipdeath5framesvertical.png",
         "frameWidth": 64,
         "frameHeight": 39,
         "verticalSheet": true,
@@ -846,6 +846,6 @@
         "rate": 10
       }
     },
-    "defaultScale": 2.4
+    "defaultScale": 1.5
   }
 }
