@@ -17,8 +17,7 @@ export default class LoadingScene extends Phaser.Scene {
         // Load the loading screen image
         this.load.image('loading-bg', 'assets/images/art1.png');
         
-        // Load the game cartridge texture for spinning animation
-        this.load.image('cartridge-texture', 'gamecartridge/Box+Cartridge-export.png');
+        // We'll create a procedural cartridge instead of loading an image
         
         // Only load other assets if this is the first time (initial load)
         if (this.nextScene === 'TitleScene' && !this.textures.exists('title-bg')) {
@@ -32,51 +31,100 @@ export default class LoadingScene extends Phaser.Scene {
             loadingTitle.setOrigin(0.5);
             loadingTitle.setDepth(10);
             
-            // Add a placeholder for cartridge while it loads
-            const cartridgePlaceholder = this.add.rectangle(400, 200, 100, 120, 0x444444, 0.5);
-            cartridgePlaceholder.setDepth(5);
+            // Create a procedural game cartridge
+            const cartridgeContainer = this.add.container(400, 250);
+            cartridgeContainer.setDepth(100);
             
-            // Create the spinning cartridge when its texture loads
-            this.load.once('filecomplete-image-cartridge-texture', () => {
-                // Remove placeholder
-                cartridgePlaceholder.destroy();
-                
-                // Create actual cartridge
-                const cartridge = this.add.image(400, 200, 'cartridge-texture');
-                cartridge.setScale(0.4);
-                cartridge.setDepth(100);
-                cartridge.setAlpha(0);
-                
-                // Fade in
-                this.tweens.add({
-                    targets: cartridge,
-                    alpha: 1,
-                    duration: 300,
-                    ease: 'Power2'
-                });
-                
-                // Spin animation
-                this.tweens.add({
-                    targets: cartridge,
-                    rotation: Math.PI * 2,
-                    duration: 3000,
-                    repeat: -1,
-                    ease: 'Linear'
-                });
-                
-                // Pulse effect
-                this.tweens.add({
-                    targets: cartridge,
-                    scaleX: 0.35,
-                    scaleY: 0.45,
-                    duration: 1500,
-                    yoyo: true,
-                    repeat: -1,
-                    ease: 'Sine.easeInOut'
-                });
-                
-                this.spinningCartridge = cartridge;
+            // Create cartridge graphics
+            const graphics = this.add.graphics();
+            
+            // Main cartridge body (dark gray)
+            graphics.fillStyle(0x2a2a2a, 1);
+            graphics.fillRoundedRect(-40, -60, 80, 100, 8);
+            
+            // Cartridge label area (lighter gray)
+            graphics.fillStyle(0x4a4a4a, 1);
+            graphics.fillRoundedRect(-35, -30, 70, 50, 4);
+            
+            // Gold contacts at bottom
+            graphics.fillStyle(0xffd700, 1);
+            for (let i = 0; i < 8; i++) {
+                graphics.fillRect(-32 + i * 9, 35, 6, 8);
+            }
+            
+            // Add "WIZBIZ" text on label
+            const labelText = this.add.text(0, -5, 'WIZBIZ', {
+                fontSize: '14px',
+                color: '#ffffff',
+                fontStyle: 'bold'
             });
+            labelText.setOrigin(0.5);
+            
+            // Add a magical glow effect
+            const glowGraphics = this.add.graphics();
+            glowGraphics.lineStyle(4, 0x00ffff, 0.3);
+            glowGraphics.strokeRoundedRect(-42, -62, 84, 104, 8);
+            
+            // Add all elements to container
+            cartridgeContainer.add([glowGraphics, graphics, labelText]);
+            
+            // Initial fade in
+            cartridgeContainer.setAlpha(0);
+            this.tweens.add({
+                targets: cartridgeContainer,
+                alpha: 1,
+                duration: 500,
+                ease: 'Power2'
+            });
+            
+            // 3D-like rotation animation
+            this.tweens.add({
+                targets: cartridgeContainer,
+                scaleX: { from: 1, to: -1 },
+                duration: 2000,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut',
+                onUpdate: () => {
+                    // Flip the label text when cartridge flips
+                    if (cartridgeContainer.scaleX < 0) {
+                        labelText.setScale(-1, 1);
+                    } else {
+                        labelText.setScale(1, 1);
+                    }
+                }
+            });
+            
+            // Vertical spin
+            this.tweens.add({
+                targets: cartridgeContainer,
+                rotation: Math.PI * 2,
+                duration: 4000,
+                repeat: -1,
+                ease: 'Linear'
+            });
+            
+            // Pulse effect
+            this.tweens.add({
+                targets: cartridgeContainer,
+                scaleY: { from: 1, to: 1.1 },
+                duration: 1500,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+            
+            // Glow pulse
+            this.tweens.add({
+                targets: glowGraphics,
+                alpha: { from: 0.3, to: 0.8 },
+                duration: 1000,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+            
+            this.spinningCartridge = cartridgeContainer;
 
             // Create loading UI elements
 
@@ -88,16 +136,6 @@ export default class LoadingScene extends Phaser.Scene {
 
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
-        const loadingText = this.make.text({
-            x: width / 2,
-            y: height / 2 + 50,
-            text: 'Loading...',
-            style: {
-                font: '20px monospace',
-                fill: '#ffffff'
-            }
-        });
-        loadingText.setOrigin(0.5, 0.5);
 
         const percentText = this.make.text({
             x: width / 2,
@@ -121,7 +159,6 @@ export default class LoadingScene extends Phaser.Scene {
         this.load.on('complete', () => {
             progressBar.destroy();
             progressBox.destroy();
-            loadingText.destroy();
             percentText.destroy();
             // Keep the cartridge spinning - it will be cleaned up in create()
         });
@@ -332,13 +369,19 @@ export default class LoadingScene extends Phaser.Scene {
         this.time.delayedCall(fadeDelay, () => {
             // Fade out cartridge if it exists
             if (this.spinningCartridge) {
+                // Stop all existing tweens on the cartridge
+                this.tweens.killTweensOf(this.spinningCartridge);
+                
+                // Fancy fade out with spin
                 this.tweens.add({
                     targets: this.spinningCartridge,
                     alpha: 0,
-                    scale: 0.2,
-                    rotation: this.spinningCartridge.rotation + Math.PI,
-                    duration: 500,
-                    ease: 'Power2',
+                    scaleX: 0,
+                    scaleY: 0,
+                    rotation: this.spinningCartridge.rotation + Math.PI * 2,
+                    y: this.spinningCartridge.y - 50,
+                    duration: 800,
+                    ease: 'Back.easeIn',
                     onComplete: () => {
                         this.spinningCartridge.destroy();
                     }

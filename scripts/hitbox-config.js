@@ -93,7 +93,14 @@ if (typeof hitboxConfig === 'undefined') {
         'blip': { width: 18, height: 18, offsetX: 50, offsetY: 36 },
         'orb': { width: 30, height: 30, offsetX: 17, offsetY: 17 },
         'wizard': { width: 40, height: 50, offsetX: 20, offsetY: 15 },
-        'grim': { width: 40, height: 50, offsetX: 20, offsetY: 15 }
+        'grim': { width: 40, height: 50, offsetX: 20, offsetY: 15 },
+        
+        // Projectiles
+        'archer-projectile': { width: 16, height: 16, offsetX: 8, offsetY: 8 },
+        'waterball-projectile': { width: 20, height: 20, offsetX: 22, offsetY: 22 },
+        'fireball-projectile': { width: 20, height: 20, offsetX: 22, offsetY: 22 },
+        'void-ball': { width: 30, height: 30, offsetX: 17, offsetY: 17 },
+        'lightning-orb': { width: 20, height: 20, offsetX: 22, offsetY: 22 }
     },
     
     // Shadow configurations for each enemy type

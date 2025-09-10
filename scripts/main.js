@@ -1,6 +1,12 @@
 const { app, BrowserWindow, Menu, globalShortcut } = require('electron');
 const path = require('path');
 
+// Enable hardware acceleration and WebGL
+app.commandLine.appendSwitch('enable-webgl');
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-accelerated-2d-canvas');
+app.commandLine.appendSwitch('ignore-gpu-blacklist');
+app.commandLine.appendSwitch('enable-native-gpu-memory-buffers');
 // Disable V-Sync for higher FPS but cap at reasonable rate
 app.commandLine.appendSwitch('disable-gpu-vsync');
 // Don't completely disable frame rate limit - that causes 700+ FPS
@@ -17,9 +23,14 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       webSecurity: true,
+      // Enable WebGL and hardware acceleration
+      experimentalFeatures: true,
+      webgl: true,
+      experimentalCanvasFeatures: true,
+      accelerated2dCanvas: true,
+      offscreen: false,
       // Disable V-Sync and throttling for higher FPS
       backgroundThrottling: false,
-      webgl: true,
       disableBlinkFeatures: 'RenderingPipelineThrottling'
     },
     icon: path.join(__dirname, '..', 'assets', 'images', 'zodiac.png'),

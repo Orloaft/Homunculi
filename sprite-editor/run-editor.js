@@ -154,7 +154,13 @@ const server = http.createServer((req, res) => {
             'Bat-IdleFly9frames.png', 'obeliskBoss.png', 'voidkin15frames.png',
             'HitboxEditor.js', 'hitbox-config.js',
             // Add tile images for backgrounds
-            'grass.PNG', 'stone.png', 'desert.png', 'lava.png', 'skullfloor.png'
+            'grass.PNG', 'stone.png', 'desert.png', 'lava.png', 'skullfloor.png',
+            // Add orb projectiles and effects
+            '/effects/', '/orbs/',
+            // Add demon slime boss
+            '/demonslime/', '/boss_demon_slime/',
+            // Add other boss paths
+            '/bosses/', '/images/'
         ];
         
         const isAsset = assetPaths.some(path => decodedUrl.includes(path));

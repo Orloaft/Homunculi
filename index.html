@@ -16,10 +16,111 @@
             width: 100vw;
             height: 100vh;
         }
+        
+        /* Pre-loader styles for instant display during Electron startup */
+        #preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #11130d;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out;
+        }
+        
+        #preloader.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        /* Cartridge image container and animation */
+        .cartridge-container {
+            width: 300px;
+            height: 300px;
+            perspective: 1000px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .cartridge-image {
+            width: 375px; /* Scaled up by 50% from 250px */
+            height: auto;
+            animation: cartridgeSpin 8s linear infinite;
+            filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.5));
+        }
+        
+        @keyframes cartridgeSpin {
+            0% {
+                transform: rotateY(0deg) rotateX(0deg) scale(1);
+            }
+            25% {
+                transform: rotateY(90deg) rotateX(5deg) scale(0.95);
+            }
+            50% {
+                transform: rotateY(180deg) rotateX(0deg) scale(1);
+            }
+            75% {
+                transform: rotateY(270deg) rotateX(-5deg) scale(0.95);
+            }
+            100% {
+                transform: rotateY(360deg) rotateX(0deg) scale(1);
+            }
+        }
+        
+        /* Glow pulse effect */
+        @keyframes glow {
+            0%, 100% {
+                filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.3));
+            }
+            50% {
+                filter: drop-shadow(0 0 30px rgba(0, 255, 255, 0.8));
+            }
+        }
+        
+        .cartridge-image:hover {
+            animation: cartridgeSpin 2s linear infinite, glow 2s ease-in-out infinite;
+        }
+        
+        .loading-text {
+            position: absolute;
+            bottom: 30%;
+            width: 100%;
+            text-align: center;
+            color: #fff;
+            font-family: monospace;
+            font-size: 14px;
+            opacity: 0.7;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+        }
     </style>
 </head>
 <body>
+    <!-- Pre-loader shown immediately while Electron/Phaser loads -->
+    <div id="preloader">
+        <div class="cartridge-container" id="cartridge-3d-container">
+            <!-- 3D cartridge will be rendered here -->
+            <img src="gamecartridge/Box+Cartridge-export.png" alt="Loading..." class="cartridge-image" id="cartridge-fallback" style="display: none;" />
+        </div>
+        <div class="loading-text">Initializing...</div>
+    </div>
+    
     <div id="game-container"></div>
+    
+    <!-- Three.js for 3D cartridge rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+    
     <script src="scripts/phaser.min.js"></script>
     <script src="scripts/hitbox-config.js"></script>
     <script src="scripts/electron-fixes.js"></script>
@@ -33,5 +134,144 @@
     <script src="scripts/UltraOptimizedGameScene.js"></script>
     <script src="scripts/game.js?v=145"></script>
     <script src="scripts/autoplay.js"></script>
+    
+    <script>
+        // Initialize 3D cartridge with Three.js
+        (function init3DCartridge() {
+            const container = document.getElementById('cartridge-3d-container');
+            if (!container) return;
+            
+            try {
+                // Setup Three.js scene
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+                
+                // Try WebGL renderer first
+                let renderer;
+                try {
+                    renderer = new THREE.WebGLRenderer({ 
+                        antialias: true, 
+                        alpha: true,
+                        powerPreference: 'high-performance'
+                    });
+                    console.log('Three.js WebGL renderer initialized');
+                } catch (e) {
+                    console.warn('WebGL failed for Three.js, using Canvas fallback');
+                    // Fallback to image if WebGL fails
+                    document.getElementById('cartridge-fallback').style.display = 'block';
+                    return;
+                }
+                
+                renderer.setSize(300, 300);
+                renderer.setClearColor(0x000000, 0);
+                container.appendChild(renderer.domElement);
+                
+                // Add lighting
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                scene.add(ambientLight);
+                const directionalLight = new THREE.DirectionalLight(0x00ffff, 0.4);
+                directionalLight.position.set(1, 1, 1);
+                scene.add(directionalLight);
+                
+                // Load OBJ model
+                const loader = new THREE.OBJLoader();
+                let cartridgeModel = null;
+                
+                // Load texture
+                const textureLoader = new THREE.TextureLoader();
+                const texture = textureLoader.load('gamecartridge/Box+Cartridge-export.png');
+                
+                loader.load(
+                    'gamecartridge/Box+Cartridge.obj',
+                    function (object) {
+                        // Apply texture to all meshes
+                        object.traverse(function (child) {
+                            if (child instanceof THREE.Mesh) {
+                                child.material = new THREE.MeshPhongMaterial({
+                                    map: texture,
+                                    specular: 0x222222,
+                                    shininess: 25
+                                });
+                            }
+                        });
+                        
+                        // Scale and position the model
+                        object.scale.set(2, 2, 2);
+                        object.position.set(0, 0, 0);
+                        
+                        cartridgeModel = object;
+                        scene.add(object);
+                        console.log('3D cartridge model loaded');
+                    },
+                    function (xhr) {
+                        console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                    },
+                    function (error) {
+                        console.error('Error loading OBJ:', error);
+                        // Fallback to image
+                        document.getElementById('cartridge-fallback').style.display = 'block';
+                    }
+                );
+                
+                // Position camera
+                camera.position.z = 3;
+                
+                // Animation loop
+                function animate() {
+                    requestAnimationFrame(animate);
+                    
+                    // Rotate the cartridge
+                    if (cartridgeModel) {
+                        cartridgeModel.rotation.y += 0.01;
+                        cartridgeModel.rotation.x = Math.sin(Date.now() * 0.001) * 0.1;
+                    }
+                    
+                    renderer.render(scene, camera);
+                }
+                animate();
+                
+                // Store renderer for cleanup
+                window.cartridge3DRenderer = renderer;
+                
+            } catch (error) {
+                console.error('Failed to initialize 3D cartridge:', error);
+                // Show fallback image
+                document.getElementById('cartridge-fallback').style.display = 'block';
+            }
+        })();
+        
+        // Hide the pre-loader once Phaser starts rendering
+        window.hidePreloader = function() {
+            const preloader = document.getElementById('preloader');
+            if (preloader) {
+                // Clean up Three.js renderer
+                if (window.cartridge3DRenderer) {
+                    window.cartridge3DRenderer.dispose();
+                    window.cartridge3DRenderer = null;
+                }
+                
+                preloader.classList.add('hidden');
+                // Remove from DOM after transition
+                setTimeout(() => {
+                    preloader.remove();
+                }, 500);
+            }
+        };
+        
+        // Also hide it after a maximum timeout in case something goes wrong
+        setTimeout(window.hidePreloader, 15000);
+        
+        // Handle WebGL errors gracefully
+        window.addEventListener('error', function(e) {
+            if (e.message && e.message.includes('WebGL')) {
+                console.warn('WebGL Error detected, game should fallback to Canvas');
+                // Update loading text to show Canvas mode
+                const loadingText = document.querySelector('.loading-text');
+                if (loadingText) {
+                    loadingText.textContent = 'Initializing (Canvas Mode)...';
+                }
+            }
+        });
+    </script>
 </body>
 </html>

@@ -61,6 +61,9 @@ class LoadingScene extends Phaser.Scene {
         // Load the loading screen image
         this.load.image('loading-bg', 'assets/images/art1.png');
         
+        // Load the cartridge texture for loading animation
+        this.load.image('cartridge-model', 'gamecartridge/Box+Cartridge-export.png');
+        
         // Always load game assets (sprites are needed for gameplay)
         if (!this.textures.exists('title-bg')) {
             console.log('Loading assets inside conditional');
@@ -1020,9 +1023,31 @@ class LoadingScene extends Phaser.Scene {
             this.load.image(`void-ball-${i}`, `assets/bosses/Eyelor/Void%20Ball%20Projectilep/Void%20Ball%20Projectile${i}.png`);
             this.load.image(`projectile-destroyed-${i}`, `assets/bosses/Eyelor/Void%20Ball%20Projectilep/Projectile%20Destroyed${i}.png`);
         }
+        
+        // Load destructible barrel sprites
+        this.load.spritesheet('barrel-hit', 'assets/destructibles/barrelhit3frames.png', {
+            frameWidth: 64,
+            frameHeight: 33
+        });
+        
+        this.load.spritesheet('barrel-break', 'assets/destructibles/barrelbreak7frames.png', {
+            frameWidth: 64,
+            frameHeight: 36
+        });
+        
+        // Load the same spritesheet for idle, we'll use frame 0
+        this.load.spritesheet('barrel-idle-sheet', 'assets/destructibles/barrelhit3frames.png', {
+            frameWidth: 64,
+            frameHeight: 33
+        });
     }
 
     create() {
+        // Hide the HTML preloader now that Phaser is running
+        if (window.hidePreloader) {
+            window.hidePreloader();
+        }
+        
         // Set background to match the dark theme
         this.cameras.main.setBackgroundColor('#11130d');
         
@@ -1032,13 +1057,56 @@ class LoadingScene extends Phaser.Scene {
         // Display loading complete image
         const loadingImage = this.add.image(400, 300, 'loading-bg');
         
-        // Add "Loading..." text at the bottom of the screen
-        const loadingText = this.add.text(400, 550, 'Loading...', {
-            fontSize: '24px',
-            color: '#ffffff',
-            fontStyle: 'bold'
-        });
-        loadingText.setOrigin(0.5);
+        // Create the cartridge sprite using the pre-loaded texture
+        if (this.textures.exists('cartridge-model')) {
+            // Position in bottom right area
+            const cartridgeSprite = this.add.image(700, 520, 'cartridge-model');
+            
+            // Try to crop to show just one cartridge (adjust these values based on the actual image)
+            // This assumes the cartridge is in a specific portion of the texture
+            // You may need to adjust the crop rectangle based on the actual layout
+            const texture = this.textures.get('cartridge-model');
+            const frame = texture.get();
+            
+            // Crop to approximately 1/3 of the width if there are 3 objects side by side
+            // Or adjust height/width based on actual layout
+            cartridgeSprite.setCrop(0, 0, frame.width / 3, frame.height);
+            
+            cartridgeSprite.setScale(0.4); // Larger scale since we're showing just one object
+            cartridgeSprite.setDepth(100);
+            
+            // 3D-like rotation animation (flipping horizontally) - SLOWER
+            this.tweens.add({
+                targets: cartridgeSprite,
+                scaleX: { from: 0.4, to: -0.4 },
+                duration: 4000, // Doubled from 2000
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+            
+            // Continuous rotation - SLOWER
+            this.tweens.add({
+                targets: cartridgeSprite,
+                rotation: Math.PI * 2,
+                duration: 8000, // Doubled from 4000
+                repeat: -1,
+                ease: 'Linear'
+            });
+            
+            // Subtle bounce effect - SLOWER
+            this.tweens.add({
+                targets: cartridgeSprite,
+                y: { from: 520, to: 510 },
+                duration: 3000, // Doubled from 1500
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+            
+            // Store reference for cleanup
+            this.cartridgeSprite = cartridgeSprite;
+        }
         
         // If this is a transition (not initial load), we can proceed faster
         const fadeDelay = this.nextScene === 'TitleScene' ? 1000 : 500;
@@ -1049,9 +1117,25 @@ class LoadingScene extends Phaser.Scene {
 
         // Wait a bit before starting fade
         this.time.delayedCall(fadeDelay, () => {
-            // First fade the loading image and text
+            // Fade out cartridge if it exists
+            if (this.cartridgeSprite) {
+                this.tweens.killTweensOf(this.cartridgeSprite);
+                
+                // Fancy fade out with spin for cartridge
+                this.tweens.add({
+                    targets: this.cartridgeSprite,
+                    alpha: 0,
+                    scale: 0,
+                    rotation: this.cartridgeSprite.rotation + Math.PI * 2,
+                    y: this.cartridgeSprite.y - 50,
+                    duration: 800,
+                    ease: 'Back.easeIn'
+                });
+            }
+            
+            // First fade the loading image
             this.tweens.add({
-                targets: [loadingImage, loadingText],
+                targets: loadingImage,
                 alpha: 0,
                 duration: 1000,
                 ease: 'Power2',
@@ -7897,8 +7981,8 @@ class GameScene extends Phaser.Scene {
         this.discoveredSpells = [];
         this.spellbookOpen = false;
         this.spellbookUI = null;
-        this.playerHealth = 100;
-        this.maxHealth = 100;
+        this.playerHealth = 200; // Doubled from 100
+        this.maxHealth = 200; // Doubled from 100
         this.healthBar = null;
         this.healthBarBg = null;
         this.invulnerable = false;
@@ -8362,6 +8446,7 @@ class GameScene extends Phaser.Scene {
         this.eliteEnemies = [];
         this.chests = this.physics.add.group();
         this.standaloneItems = this.physics.add.group();
+        this.barrels = this.physics.add.group();
         this.playerXP = 0;
         this.playerLevel = 0; // Start at level 0 for easier first level up
         this.xpToNextLevel = 15; // Balanced for early game - first 5 levels are faster
@@ -8708,6 +8793,11 @@ class GameScene extends Phaser.Scene {
         this.wizard.playerNumber = 1; // Mark as player 1
         this.wizard.characterType = this.p1Character; // Store character type
         
+        // Set physics properties for smoother wall collision
+        this.wizard.body.setDrag(500, 500); // Add drag to stop quickly when not moving
+        this.wizard.body.setBounce(0, 0); // No bounce
+        this.wizard.body.setFriction(0, 0); // No friction for smooth sliding along walls
+        
         // Create animations for the character and set initial frame
         this.createCharacterAnimations(this.p1Character, false);
         this.wizard.setFrame(0); // Set initial frame to prevent errors
@@ -8742,6 +8832,11 @@ class GameScene extends Phaser.Scene {
             this.wizard2.lastDirection = 'down';
             this.wizard2.playerNumber = 2;
             this.wizard2.characterType = this.p2Character || 'wizard';
+            
+            // Set physics properties for smoother wall collision
+            this.wizard2.body.setDrag(500, 500); // Add drag to stop quickly when not moving
+            this.wizard2.body.setBounce(0, 0); // No bounce
+            this.wizard2.body.setFriction(0, 0); // No friction for smooth sliding along walls
             
             // Create animations for P2 character
             this.createCharacterAnimations(this.p2Character || 'wizard', true);
@@ -8808,8 +8903,8 @@ class GameScene extends Phaser.Scene {
                 this.wizard2.dimensionShiftCooldown = 0;
                 this.wizard2.dimensionShiftActive = false;
             }
-            this.wizard2.health = 100;
-            this.wizard2.maxHealth = 100;
+            this.wizard2.health = 200; // Doubled from 100
+            this.wizard2.maxHealth = 200; // Doubled from 100
             this.wizard2.invulnerable = false;
             
             // Play initial idle animation for P2
@@ -9149,9 +9244,13 @@ class GameScene extends Phaser.Scene {
         this.dungeonArrow.setAlpha(0.9);
         
         this.jewels = this.physics.add.group();
+        this.coins = this.physics.add.group(); // Initialize coins group for performance tracking
         this.muffins = this.physics.add.group();
         this.elementOrbs = this.physics.add.group();
         this.chargeExpansions = this.physics.add.group();
+        
+        // Initialize barrels group
+        this.barrels = this.physics.add.group();
         this.enemyProjectiles = this.physics.add.group({
             runChildUpdate: false,
             removeCallback: (projectile) => {
@@ -9251,6 +9350,21 @@ class GameScene extends Phaser.Scene {
                     return false;
                 }
             }, this);
+        
+        // Add barrel collision detection
+        this.physics.add.overlap(this.projectiles, this.barrels, this.hitBarrel, 
+            (projectile, barrel) => {
+                return projectile && projectile.active && barrel && barrel.active && !barrel.isBreaking;
+            }, this);
+        
+        // Add player-barrel collision (barrels act as obstacles for players only)
+        this.physics.add.collider(this.wizard, this.barrels);
+        if (this.multiplayerEnabled && this.wizard2) {
+            this.physics.add.collider(this.wizard2, this.barrels);
+        }
+        
+        // Enemies can pass through barrels (no collision)
+        
         this.physics.add.overlap(this.enemyProjectiles, this.wizard, this.bossProjectileHitPlayer, 
             // Process callback for boss projectiles
             (projectile, wizard) => {
@@ -9368,6 +9482,21 @@ class GameScene extends Phaser.Scene {
                 }
             }
         };
+        
+        // Create barrel animations
+        createAnimIfNotExists({
+            key: 'barrel-hit-anim',
+            frames: this.anims.generateFrameNumbers('barrel-hit', { start: 0, end: 2 }),
+            frameRate: 12,
+            repeat: 0
+        });
+        
+        createAnimIfNotExists({
+            key: 'barrel-break-anim',
+            frames: this.anims.generateFrameNumbers('barrel-break', { start: 0, end: 6 }),
+            frameRate: 15,
+            repeat: 0
+        });
 
         // Helper function for speed-scaled delays
         this.addScaledDelay = (delay, callback, scope) => {
@@ -9704,7 +9833,7 @@ class GameScene extends Phaser.Scene {
             createAnimIfNotExists({
                 key: `${gemType}-anim`,
                 frames: this.anims.generateFrameNumbers(gemType, { start: 0, end: 3 }),
-                frameRate: 8,
+                frameRate: 4, // Reduced from 8 for better performance
                 repeat: -1
             });
         });
@@ -9715,7 +9844,7 @@ class GameScene extends Phaser.Scene {
             createAnimIfNotExists({
                 key: `${coinType}-anim`,
                 frames: this.anims.generateFrameNumbers(coinType, { start: 0, end: 3 }),
-                frameRate: 8,
+                frameRate: 4, // Reduced from 8 for better performance
                 repeat: -1
             });
         });
@@ -12817,6 +12946,34 @@ class GameScene extends Phaser.Scene {
         this.gameStarted = true;
 
         console.log('Starting wave system');
+        
+        // Spawn random barrels at game start
+        this.spawnRandomBarrels();
+        
+        // Set up periodic barrel spawning (every 30-60 seconds)
+        this.barrelSpawnTimer = this.time.addEvent({
+            delay: Phaser.Math.Between(30000, 60000), // 30-60 seconds
+            callback: () => {
+                // Spawn 1-3 new barrels
+                const numBarrels = Phaser.Math.Between(1, 3);
+                for (let i = 0; i < numBarrels; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const distance = Phaser.Math.Between(300, 600);
+                    const x = this.wizard.x + Math.cos(angle) * distance;
+                    const y = this.wizard.y + Math.sin(angle) * distance;
+                    
+                    // Make sure barrel doesn't spawn too close to player
+                    const distToPlayer = Phaser.Math.Distance.Between(x, y, this.wizard.x, this.wizard.y);
+                    if (distToPlayer > 200) {
+                        this.spawnBarrel(x, y);
+                    }
+                }
+                
+                // Reset timer for next spawn
+                this.barrelSpawnTimer.delay = Phaser.Math.Between(30000, 60000);
+            },
+            loop: true
+        });
 
         // Update charge UI with starting element (don't reset charges)
         this.updateChargeUI();
@@ -14630,10 +14787,13 @@ class GameScene extends Phaser.Scene {
                 const spawnByTime = this.time.now > this.lastWaveSpawn + (waveDef.spawnInterval / this.speedMultiplier);
                 
                 // Add debug info about spawn conditions (only if debug mode is on)
-                if (debugEnabled && this.waveDebugText) {
-                    if (this.waveDebugText && this.waveDebugText.scene) {
+                if (debugEnabled && this.waveDebugText && this.waveDebugText.scene && !this.waveDebugText.destroyed) {
+                    try {
                         this.waveDebugText.setText(this.waveDebugText.text + 
                             `\nSpawn: move=${spawnByMovement}(${this.distanceTraveled?.toFixed(0)}px), time=${spawnByTime}, count=${currentEnemyCount}/${waveDef.maxEnemies}`);
+                    } catch (e) {
+                        console.warn('Could not update debug text:', e);
+                        this.waveDebugText = null;
                     }
                 }
                 
@@ -15235,10 +15395,35 @@ class GameScene extends Phaser.Scene {
                         moveSpeed *= enemy.mudSlowFactor || 0.2;
                     }
                     
+                    // Add some randomness to movement to avoid getting stuck on walls
+                    const angleVariation = (Math.random() - 0.5) * 0.3; // Add up to ±0.15 radians variation
+                    const adjustedAngle = angle + angleVariation;
+                    
                     enemy.setVelocity(
-                        Math.cos(angle) * moveSpeed,
-                        Math.sin(angle) * moveSpeed
+                        Math.cos(adjustedAngle) * moveSpeed,
+                        Math.sin(adjustedAngle) * moveSpeed
                     );
+                    
+                    // If enemy hasn't moved much in the last second, add more variation
+                    if (!enemy.lastPositionCheck) {
+                        enemy.lastPositionCheck = { x: enemy.x, y: enemy.y, time: this.time.now };
+                    } else if (this.time.now - enemy.lastPositionCheck.time > 1000) {
+                        const distMoved = Phaser.Math.Distance.Between(
+                            enemy.x, enemy.y,
+                            enemy.lastPositionCheck.x, enemy.lastPositionCheck.y
+                        );
+                        
+                        if (distMoved < 50) { // Enemy is stuck
+                            // Add perpendicular movement to unstick
+                            const perpAngle = angle + (Math.random() > 0.5 ? Math.PI/2 : -Math.PI/2);
+                            enemy.setVelocity(
+                                Math.cos(perpAngle) * moveSpeed,
+                                Math.sin(perpAngle) * moveSpeed
+                            );
+                        }
+                        
+                        enemy.lastPositionCheck = { x: enemy.x, y: enemy.y, time: this.time.now };
+                    }
                 }
                 continue;
             }
@@ -17483,9 +17668,9 @@ class GameScene extends Phaser.Scene {
             case 'earth':
                 // Earth passive: +30% health, damage reflection
                 this.passiveBonuses.thorns += 0.25; // Reflect 25% damage
-                if (this.maxHealth === 100) { // Only apply once
-                    this.maxHealth = 130; // 100 + 30% = 130
-                    this.playerHealth = Math.min(this.playerHealth + 30, this.maxHealth); // Heal 30 HP
+                if (this.maxHealth === 200) { // Only apply once (doubled base health)
+                    this.maxHealth = 260; // 200 + 30% = 260
+                    this.playerHealth = Math.min(this.playerHealth + 60, this.maxHealth); // Heal 60 HP
                 }
                 break;
                 
@@ -19801,6 +19986,23 @@ class GameScene extends Phaser.Scene {
     }
 
 
+    // Helper function to apply hitbox config to projectiles
+    applyProjectileHitbox(projectile, projectileType) {
+        if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+            const config = hitboxConfig.hitboxes[projectileType];
+            if (config) {
+                const scale = projectile.scaleX || 1;
+                const adjustedOffsetX = config.offsetX / scale;
+                const adjustedOffsetY = config.offsetY / scale;
+                
+                projectile.body.setSize(config.width, config.height);
+                projectile.body.setOffset(adjustedOffsetX, adjustedOffsetY);
+                return true;
+            }
+        }
+        return false;
+    }
+    
     fireProjectile() {
         // Simple fallback for legacy charge system - fires a basic projectile
         // This is only called if no specific spell combo matches
@@ -20286,16 +20488,25 @@ class GameScene extends Phaser.Scene {
     spawnWaveEnemy(waveDef) {
         // Add visual debug when spawning
         const debugEnabled = localStorage.getItem('debugMode') === 'true';
-        if (debugEnabled && this.waveDebugText) {
-            this.waveDebugText.setText(this.waveDebugText.text + ' SPAWNING!');
+        if (debugEnabled && this.waveDebugText && this.waveDebugText.scene && !this.waveDebugText.destroyed) {
+            try {
+                this.waveDebugText.setText(this.waveDebugText.text + ' SPAWNING!');
+            } catch (e) {
+                console.warn('Could not update debug text:', e);
+                this.waveDebugText = null; // Clear invalid reference
+            }
         }
         
         // Safety check
         if (!waveDef || !waveDef.enemies || waveDef.enemies.length === 0) {
             console.error('Invalid wave definition:', waveDef);
-            const debugEnabled = localStorage.getItem('debugMode') === 'true';
-            if (debugEnabled && this.waveDebugText) {
-                this.waveDebugText.setText('ERROR: Invalid wave definition!');
+            if (debugEnabled && this.waveDebugText && this.waveDebugText.scene && !this.waveDebugText.destroyed) {
+                try {
+                    this.waveDebugText.setText('ERROR: Invalid wave definition!');
+                } catch (e) {
+                    console.warn('Could not update debug text:', e);
+                    this.waveDebugText = null;
+                }
             }
             return;
         }
@@ -25214,6 +25425,135 @@ class GameScene extends Phaser.Scene {
 
         this.jewels.add(jewel);
         return jewel;
+    }
+
+    // Barrel-related functions
+    spawnBarrel(x, y) {
+        const barrel = this.physics.add.sprite(x, y, 'barrel-idle-sheet', 0);  // Use frame 0 of the spritesheet
+        barrel.setScale(1.5);
+        barrel.setDepth(10);
+        barrel.body.setSize(40, 30);
+        barrel.body.setImmovable(true);
+        barrel.body.mass = 1000;  // Make it very heavy so player can't push it
+        barrel.body.pushable = false;  // Explicitly set as non-pushable
+        
+        // Barrel properties
+        barrel.isBarrel = true;
+        barrel.hitCount = 0; // Takes 3 hits to break
+        barrel.isBreaking = false;
+        
+        this.barrels.add(barrel);
+        return barrel;
+    }
+    
+    spawnRandomBarrels() {
+        // Spawn 3-6 barrels randomly around the stage
+        const numBarrels = Phaser.Math.Between(3, 6);
+        const camera = this.cameras.main;
+        
+        for (let i = 0; i < numBarrels; i++) {
+            // Spawn within a reasonable distance from player
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Phaser.Math.Between(200, 500);
+            const x = this.wizard.x + Math.cos(angle) * distance;
+            const y = this.wizard.y + Math.sin(angle) * distance;
+            
+            // Make sure barrel doesn't spawn too close to player
+            const distToPlayer = Phaser.Math.Distance.Between(x, y, this.wizard.x, this.wizard.y);
+            if (distToPlayer > 150) {
+                this.spawnBarrel(x, y);
+            }
+        }
+    }
+    
+    hitBarrel(projectile, barrel) {
+        if (!barrel || barrel.isBreaking || !barrel.active) return;
+        
+        // Increment hit count (3 hits to break regardless of damage)
+        barrel.hitCount = (barrel.hitCount || 0) + 1;
+        
+        // Destroy the projectile
+        if (projectile && projectile.destroy) {
+            projectile.destroy();
+        }
+        
+        if (barrel.hitCount >= 3) {
+            // Barrel breaks after 3 hits - play break animation
+            barrel.isBreaking = true;
+            barrel.play('barrel-break-anim');
+            
+            // Immediately disable collision so player can walk through debris
+            if (barrel.body) {
+                barrel.body.enable = false;
+            }
+            
+            // Drop 3-7 coins
+            const numCoins = Phaser.Math.Between(3, 7);
+            for (let i = 0; i < numCoins; i++) {
+                const offsetX = (Math.random() - 0.5) * 40;
+                const offsetY = (Math.random() - 0.5) * 40;
+                // Drop silver coins (value 1-3 each)
+                const coinValue = Phaser.Math.Between(1, 3);
+                const coin = this.dropCoin(barrel.x + offsetX, barrel.y + offsetY, coinValue);
+                
+                // Add a little physics bounce for the coins
+                if (coin && coin.body) {
+                    const speed = Phaser.Math.Between(50, 150);
+                    const angle = Math.random() * Math.PI * 2;
+                    coin.body.setVelocity(
+                        Math.cos(angle) * speed,
+                        Math.sin(angle) * speed
+                    );
+                    
+                    // Slow down the coins over time
+                    this.time.delayedCall(500, () => {
+                        if (coin && coin.body) {
+                            coin.body.setVelocity(0, 0);
+                        }
+                    });
+                }
+            }
+            
+            // Wait for animation to complete, then wait 1 second before cleanup
+            barrel.once('animationcomplete', () => {
+                // Make debris semi-transparent and lower depth to show it's no longer solid
+                if (barrel && barrel.active) {
+                    barrel.setAlpha(0.6);
+                    barrel.setDepth(1); // Lower than player so they appear to walk over it
+                }
+                
+                // Wait 1 second before starting cleanup
+                this.time.delayedCall(1000, () => {
+                    if (!barrel || !barrel.active) return;
+                    
+                    // Flicker effect before disappearing (common game pattern)
+                    // Optimized flicker with tween instead of timer
+                    this.tweens.add({
+                        targets: barrel,
+                        alpha: { from: 0.6, to: 0 },
+                        duration: 150,
+                        ease: 'Linear',
+                        yoyo: true,
+                        repeat: 2, // 3 flickers total
+                        onComplete: () => {
+                            if (barrel && barrel.active) {
+                                barrel.destroy();
+                            }
+                        }
+                    });
+                });
+            });
+        } else {
+            // Barrel hit but not broken - play 3 frame hit animation
+            barrel.play('barrel-hit-anim');
+            
+            // Return to idle after animation completes
+            barrel.once('animationcomplete', () => {
+                if (barrel && barrel.active) {
+                    barrel.setTexture('barrel-idle-sheet', 0);  // Use frame 0 of the spritesheet
+                }
+            });
+        }
     }
     
     dropCoin(x, y, value = 1, scale = 1.0) {
@@ -45276,119 +45616,317 @@ class GameScene extends Phaser.Scene {
     createDungeon() {
         this.inDungeon = true;
         
-        // Hide all existing floor tiles instead of destroying
+        // Destroy the main floor tileSprite (this is what shows grass/tiles)
+        if (this.floor) {
+            this.floor.destroy();
+            this.floor = null;
+        }
+        
+        // Destroy all existing floor tiles
         if (this.floorTiles && this.floorTiles.length > 0) {
             this.floorTiles.forEach(tile => {
-                if (tile && tile.setVisible) {
-                    tile.setVisible(false);
+                if (tile && tile.destroy) {
+                    tile.destroy();
+                }
+            });
+            this.floorTiles = [];
+        }
+        
+        // Also destroy any grass decorations that might exist
+        if (this.grassDecorations) {
+            this.grassDecorations.forEach(grass => {
+                if (grass && grass.destroy) {
+                    grass.destroy();
+                }
+            });
+            this.grassDecorations = [];
+        }
+        
+        // Hide trees and other decorations
+        if (this.trees && this.trees.children && this.trees.children.entries) {
+            this.trees.children.entries.forEach(tree => {
+                if (tree && tree.setVisible) {
+                    tree.setVisible(false);
                 }
             });
         }
         
-        // Create narrow dungeon layout (similar to Spireland but with cave tiles)
+        // Hide any obstacles
+        if (this.obstacles && this.obstacles.children && this.obstacles.children.entries) {
+            this.obstacles.children.entries.forEach(obstacle => {
+                if (obstacle && obstacle.setVisible) {
+                    obstacle.setVisible(false);
+                }
+            });
+        }
+        
+        // Create maze-like dungeon layout
         const dungeonWidth = 3000;
-        const dungeonHeight = 1200; // Doubled height for more room
+        const dungeonHeight = 1200;
+        const wallTileSize = 32;
         
         // Store dungeon tiles for cleanup
         this.dungeonTiles = [];
         
-        // Create dungeon floor using tileSprite for seamless coverage
-        this.dungeonFloor = this.add.tileSprite(
-            dungeonWidth / 2,  // Center X
-            dungeonHeight / 2, // Center Y
-            dungeonWidth,      // Full width
-            dungeonHeight,     // Full height
-            'stone-tile'
-        );
-        this.dungeonFloor.setDepth(-10);
-        this.dungeonTiles.push(this.dungeonFloor);
+        // Set black background for dungeon (no floor tile for entire area)
+        this.cameras.main.setBackgroundColor('#000000');
         
-        // Create walls using dungeon wall tiles
-        const wallTileSize = 32; // Size of dungeonwall.png
-        const wallThickness = wallTileSize; // Make walls as thick as the visual tiles
-        
-        // Create invisible collision walls
+        // Create maze structure
         this.dungeonWalls = this.physics.add.staticGroup();
         this.dungeonWallTiles = [];
         
-        // Create collision barriers that match the visual wall tiles exactly
-        // Each wall tile gets its own collision body for complete coverage
+        // Helper function to create a wall segment
+        const createWallSegment = (x, y, width, height, isVertical = false) => {
+            // Create collision bodies
+            for (let wx = x; wx < x + width; wx += wallTileSize) {
+                for (let wy = y; wy < y + height; wy += wallTileSize) {
+                    const wall = this.dungeonWalls.create(wx + wallTileSize/2, wy + wallTileSize/2, null);
+                    wall.setVisible(false);
+                    wall.body.setSize(wallTileSize, wallTileSize);
+                    wall.refreshBody();
+                    
+                    // Create shadow first (slightly offset)
+                    const shadow = this.add.image(wx + wallTileSize/2 + 2, wy + wallTileSize/2 + 2, 'dungeon-wall');
+                    shadow.setTint(0x000000);
+                    shadow.setAlpha(0.5);
+                    shadow.setDepth(9);
+                    if (isVertical) {
+                        shadow.setRotation(Math.PI / 2);
+                    }
+                    this.dungeonWallTiles.push(shadow);
+                    
+                    // Create visual tile
+                    const wallTile = this.add.image(wx + wallTileSize/2, wy + wallTileSize/2, 'dungeon-wall');
+                    if (isVertical) {
+                        wallTile.setRotation(Math.PI / 2);
+                    }
+                    wallTile.setDepth(10);
+                    this.dungeonWallTiles.push(wallTile);
+                }
+            }
+        };
         
-        // Top wall - create collision for each tile
-        for (let x = 0; x <= dungeonWidth; x += wallTileSize) {
-            const wall = this.dungeonWalls.create(x + wallTileSize/2, wallTileSize/2, null);
-            wall.setVisible(false);
-            wall.body.setSize(wallTileSize, wallTileSize);
-            wall.refreshBody();
+        // Create outer walls
+        createWallSegment(0, 0, dungeonWidth, wallTileSize, false); // Top
+        createWallSegment(0, dungeonHeight - wallTileSize, dungeonWidth, wallTileSize, false); // Bottom
+        createWallSegment(0, wallTileSize, wallTileSize, dungeonHeight - 2*wallTileSize, true); // Left
+        createWallSegment(dungeonWidth - wallTileSize, wallTileSize, wallTileSize, dungeonHeight - 2*wallTileSize, true); // Right
+        
+        // Create a proper maze using recursive backtracker algorithm
+        const cellSize = 100; // Smaller cells for more detailed maze
+        const mazeWidth = Math.floor((dungeonWidth - 2 * wallTileSize) / cellSize);
+        const mazeHeight = Math.floor((dungeonHeight - 2 * wallTileSize) / cellSize);
+        
+        // Store maze data for enemy spawning
+        this.dungeonMazeData = {
+            maze: [],
+            cellSize: cellSize,
+            width: mazeWidth,
+            height: mazeHeight,
+            offsetX: wallTileSize,
+            offsetY: wallTileSize
+        };
+        
+        // Initialize maze grid (true = wall, false = path)
+        const maze = this.dungeonMazeData.maze;
+        for (let y = 0; y < mazeHeight; y++) {
+            maze[y] = [];
+            for (let x = 0; x < mazeWidth; x++) {
+                maze[y][x] = true; // Start with all walls
+            }
         }
         
-        // Bottom wall - create collision for each tile
-        for (let x = 0; x <= dungeonWidth; x += wallTileSize) {
-            const wall = this.dungeonWalls.create(x + wallTileSize/2, dungeonHeight - wallTileSize/2, null);
-            wall.setVisible(false);
-            wall.body.setSize(wallTileSize, wallTileSize);
-            wall.refreshBody();
+        // Recursive backtracker maze generation with proper wall carving
+        const stack = [];
+        const visited = new Set();
+        
+        // Start from cell (1, 1) to leave room for walls
+        let currentX = 1;
+        let currentY = 1;
+        maze[currentY][currentX] = false; // Mark starting cell as path
+        visited.add(`${currentX},${currentY}`);
+        stack.push({ x: currentX, y: currentY });
+        
+        while (stack.length > 0) {
+            const current = stack[stack.length - 1];
+            currentX = current.x;
+            currentY = current.y;
+            
+            // Find unvisited neighbors (2 cells away for proper wall structure)
+            const neighbors = [];
+            const directions = [
+                { dx: 0, dy: -2 },  // North
+                { dx: 2, dy: 0 },   // East  
+                { dx: 0, dy: 2 },   // South
+                { dx: -2, dy: 0 }   // West
+            ];
+            
+            for (const dir of directions) {
+                const nx = currentX + dir.dx;
+                const ny = currentY + dir.dy;
+                
+                // Check bounds and if unvisited
+                if (nx > 0 && nx < mazeWidth - 1 && 
+                    ny > 0 && ny < mazeHeight - 1 && 
+                    !visited.has(`${nx},${ny}`)) {
+                    neighbors.push({ x: nx, y: ny, dx: dir.dx / 2, dy: dir.dy / 2 });
+                }
+            }
+            
+            if (neighbors.length > 0) {
+                // Choose random unvisited neighbor
+                const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+                
+                // Carve path to neighbor (remove wall between)
+                maze[currentY + next.dy][currentX + next.dx] = false; // Remove wall
+                maze[next.y][next.x] = false; // Mark neighbor as path
+                
+                visited.add(`${next.x},${next.y}`);
+                stack.push({ x: next.x, y: next.y });
+            } else {
+                // No unvisited neighbors, backtrack
+                stack.pop();
+            }
         }
         
-        // Left wall - create collision for each tile
-        for (let y = 0; y <= dungeonHeight; y += wallTileSize) {
-            const wall = this.dungeonWalls.create(wallTileSize/2, y + wallTileSize/2, null);
-            wall.setVisible(false);
-            wall.body.setSize(wallTileSize, wallTileSize);
-            wall.refreshBody();
+        // Create clearings in the maze for combat areas
+        const clearings = [
+            { x: 1, y: 1, width: 3, height: 3 },                      // Start area
+            { x: Math.floor(mazeWidth/2)-1, y: Math.floor(mazeHeight/2)-1, width: 3, height: 3 }, // Center
+            { x: mazeWidth-4, y: mazeHeight-4, width: 3, height: 3 }  // Exit area
+        ];
+        
+        // Clear out clearings
+        for (const clearing of clearings) {
+            for (let y = clearing.y; y < clearing.y + clearing.height && y < mazeHeight; y++) {
+                for (let x = clearing.x; x < clearing.x + clearing.width && x < mazeWidth; x++) {
+                    maze[y][x] = false;
+                }
+            }
         }
         
-        // Right wall - create collision for each tile
-        for (let y = 0; y <= dungeonHeight; y += wallTileSize) {
-            const wall = this.dungeonWalls.create(dungeonWidth - wallTileSize/2, y + wallTileSize/2, null);
-            wall.setVisible(false);
-            wall.body.setSize(wallTileSize, wallTileSize);
-            wall.refreshBody();
-        }
-        
-        // Debug: Log wall creation
-        console.log(`Dungeon walls created: ${this.dungeonWalls.children.entries.length} collision bodies`);
-        
-        // Add visual wall tiles
-        // Top wall visual
-        for (let x = 0; x <= dungeonWidth; x += wallTileSize) {
-            const wallTile = this.add.image(x, wallTileSize/2, 'dungeon-wall');
-            wallTile.setOrigin(0, 0.5);
-            wallTile.setDepth(10);
-            this.dungeonWallTiles.push(wallTile);
-        }
-        
-        // Bottom wall visual
-        for (let x = 0; x <= dungeonWidth; x += wallTileSize) {
-            const wallTile = this.add.image(x, dungeonHeight - wallTileSize/2, 'dungeon-wall');
-            wallTile.setOrigin(0, 0.5);
-            wallTile.setDepth(10);
-            this.dungeonWallTiles.push(wallTile);
-        }
-        
-        // Left wall visual (skip corners to avoid overlap)
-        for (let y = wallTileSize; y < dungeonHeight - wallTileSize; y += wallTileSize) {
-            const wallTile = this.add.image(wallTileSize/2, y, 'dungeon-wall');
-            wallTile.setOrigin(0.5, 0);
-            wallTile.setDepth(10);
-            this.dungeonWallTiles.push(wallTile);
-        }
-        
-        // Right wall visual (skip corners to avoid overlap)
-        for (let y = wallTileSize; y < dungeonHeight - wallTileSize; y += wallTileSize) {
-            const wallTile = this.add.image(dungeonWidth - wallTileSize/2, y, 'dungeon-wall');
-            wallTile.setOrigin(0.5, 0);
-            wallTile.setDepth(10);
-            this.dungeonWallTiles.push(wallTile);
+        // Optimized wall and floor rendering with proper wall edges
+        for (let y = 0; y < mazeHeight; y++) {
+            for (let x = 0; x < mazeWidth; x++) {
+                const cellX = wallTileSize + x * cellSize;
+                const cellY = wallTileSize + y * cellSize;
+                
+                if (maze[y][x]) {
+                    // This is a wall cell - but only create actual wall tiles on edges adjacent to paths
+                    // Check each edge to see if it borders a walkable cell
+                    const hasPathNorth = y > 0 && !maze[y-1][x];
+                    const hasPathSouth = y < mazeHeight-1 && !maze[y+1][x];
+                    const hasPathEast = x < mazeWidth-1 && !maze[y][x+1];
+                    const hasPathWest = x > 0 && !maze[y][x-1];
+                    
+                    // Create wall tiles only on edges that border paths
+                    // But skip corners to avoid extension
+                    if (hasPathNorth) {
+                        // Top edge wall - skip corners if they also have side paths
+                        const skipLeftCorner = hasPathWest;
+                        const skipRightCorner = hasPathEast;
+                        const startX = skipLeftCorner ? cellX + wallTileSize : cellX;
+                        const endX = skipRightCorner ? cellX + cellSize - wallTileSize : cellX + cellSize;
+                        
+                        for (let wx = startX; wx < endX; wx += wallTileSize) {
+                            const wall = this.dungeonWalls.create(wx + wallTileSize/2, cellY + wallTileSize/2, null);
+                            wall.setVisible(false);
+                            wall.body.setSize(wallTileSize, wallTileSize);
+                            // Static bodies don't support friction/bounce methods
+                            wall.refreshBody();
+                            
+                            const wallTile = this.add.image(wx + wallTileSize/2, cellY + wallTileSize/2, 'dungeon-wall');
+                            wallTile.setDepth(10);
+                            this.dungeonWallTiles.push(wallTile);
+                        }
+                    }
+                    
+                    if (hasPathSouth) {
+                        // Bottom edge wall - skip corners if they also have side paths
+                        const skipLeftCorner = hasPathWest;
+                        const skipRightCorner = hasPathEast;
+                        const startX = skipLeftCorner ? cellX + wallTileSize : cellX;
+                        const endX = skipRightCorner ? cellX + cellSize - wallTileSize : cellX + cellSize;
+                        
+                        for (let wx = startX; wx < endX; wx += wallTileSize) {
+                            const wall = this.dungeonWalls.create(wx + wallTileSize/2, cellY + cellSize - wallTileSize/2, null);
+                            wall.setVisible(false);
+                            wall.body.setSize(wallTileSize, wallTileSize);
+                            // Static bodies don't support friction/bounce methods
+                            wall.refreshBody();
+                            
+                            const wallTile = this.add.image(wx + wallTileSize/2, cellY + cellSize - wallTileSize/2, 'dungeon-wall');
+                            wallTile.setDepth(10);
+                            this.dungeonWallTiles.push(wallTile);
+                        }
+                    }
+                    
+                    if (hasPathWest) {
+                        // Left edge wall - skip corners if they also have top/bottom paths
+                        const skipTopCorner = hasPathNorth;
+                        const skipBottomCorner = hasPathSouth;
+                        const startY = skipTopCorner ? cellY + wallTileSize : cellY;
+                        const endY = skipBottomCorner ? cellY + cellSize - wallTileSize : cellY + cellSize;
+                        
+                        for (let wy = startY; wy < endY; wy += wallTileSize) {
+                            const wall = this.dungeonWalls.create(cellX + wallTileSize/2, wy + wallTileSize/2, null);
+                            wall.setVisible(false);
+                            wall.body.setSize(wallTileSize, wallTileSize);
+                            // Static bodies don't support friction/bounce methods
+                            wall.refreshBody();
+                            
+                            const wallTile = this.add.image(cellX + wallTileSize/2, wy + wallTileSize/2, 'dungeon-wall');
+                            wallTile.setRotation(Math.PI / 2);
+                            wallTile.setDepth(10);
+                            this.dungeonWallTiles.push(wallTile);
+                        }
+                    }
+                    
+                    if (hasPathEast) {
+                        // Right edge wall - skip corners if they also have top/bottom paths
+                        const skipTopCorner = hasPathNorth;
+                        const skipBottomCorner = hasPathSouth;
+                        const startY = skipTopCorner ? cellY + wallTileSize : cellY;
+                        const endY = skipBottomCorner ? cellY + cellSize - wallTileSize : cellY + cellSize;
+                        
+                        for (let wy = startY; wy < endY; wy += wallTileSize) {
+                            const wall = this.dungeonWalls.create(cellX + cellSize - wallTileSize/2, wy + wallTileSize/2, null);
+                            wall.setVisible(false);
+                            wall.body.setSize(wallTileSize, wallTileSize);
+                            // Static bodies don't support friction/bounce methods
+                            wall.refreshBody();
+                            
+                            const wallTile = this.add.image(cellX + cellSize - wallTileSize/2, wy + wallTileSize/2, 'dungeon-wall');
+                            wallTile.setRotation(Math.PI / 2);
+                            wallTile.setDepth(10);
+                            this.dungeonWallTiles.push(wallTile);
+                        }
+                    }
+                    
+                    // Fill the rest with black void (no tiles needed, background is black)
+                    
+                } else {
+                    // This is a path - create floor tiles only here
+                    for (let fx = cellX; fx < cellX + cellSize; fx += 32) {
+                        for (let fy = cellY; fy < cellY + cellSize; fy += 32) {
+                            const floorTile = this.add.image(fx + 16, fy + 16, 'stone-tile');
+                            floorTile.setDepth(-5);
+                            // Darken floor tiles slightly for atmosphere
+                            floorTile.setTint(0xcccccc);
+                            this.dungeonTiles.push(floorTile);
+                        }
+                    }
+                }
+            }
         }
         
         // Set world bounds for dungeon
         // No need to adjust for wall thickness since we're using collision bodies
         this.physics.world.setBounds(0, 0, dungeonWidth, dungeonHeight);
         
-        // Move player to dungeon start (away from walls)
-        const startX = wallTileSize * 3; // Start 3 tiles from left wall
-        const startY = dungeonHeight / 2;
+        // Move player to first clearing (starting area)
+        const startX = wallTileSize + cellSize * 2.5; // Center of first clearing
+        const startY = wallTileSize + cellSize * 2.5; // Center of first clearing
         this.wizard.setPosition(startX, startY);
         if (this.wizard2) {
             this.wizard2.setPosition(startX, startY);
@@ -45404,13 +45942,36 @@ class GameScene extends Phaser.Scene {
             this.physics.add.collider(this.wizard2, this.dungeonWalls);
         }
         
-        // Also add collision for enemies that will spawn
+        // Also add collision for regular enemies if they exist
         if (this.enemies) {
             this.physics.add.collider(this.enemies, this.dungeonWalls);
         }
         
-        // Create dungeon exit at the end
-        this.dungeonExit = this.physics.add.sprite(dungeonWidth - 100, dungeonHeight / 2, 'forestland-gate');
+        // Initialize dungeon enemies group if not exists
+        if (!this.dungeonEnemies) {
+            this.dungeonEnemies = this.physics.add.group();
+        }
+        
+        // Add collision between projectiles and dungeon walls
+        if (this.projectiles) {
+            this.physics.add.collider(this.projectiles, this.dungeonWalls, (projectile, wall) => {
+                this.projectileHitObstacle(projectile, wall);
+            });
+        }
+        
+        // Add collision for enemy projectiles too
+        if (this.enemyProjectiles) {
+            this.physics.add.collider(this.enemyProjectiles, this.dungeonWalls, (projectile, wall) => {
+                if (projectile && projectile.active) {
+                    projectile.destroy();
+                }
+            });
+        }
+        
+        // Create dungeon exit in the last clearing
+        const exitX = wallTileSize + cellSize * (mazeWidth - 2.5);
+        const exitY = wallTileSize + cellSize * (mazeHeight - 2.5);
+        this.dungeonExit = this.physics.add.sprite(exitX, exitY, 'forestland-gate');
         this.dungeonExit.setScale(0.5); // Match entrance gate scale
         this.dungeonExit.setTint(0x00ff00); // Green tint for exit
         this.dungeonExit.body.setImmovable(true);
@@ -45466,18 +46027,18 @@ class GameScene extends Phaser.Scene {
                     // Randomly choose enemy type
                     const enemyType = Math.random() < 0.6 ? 'brainmole' : 'darkbat';
                     
-                    // Spawn along the dungeon length
-                    const spawnX = 200 + Math.random() * 2600;
-                    const spawnY = 100 + Math.random() * 400;
-                    
-                    const enemy = this.createEnemy(enemyType, spawnX, spawnY);
-                    if (enemy) {
-                        this.dungeonEnemies.add(enemy);
-                        
-                        // Increase enemy stats for dungeon
-                        enemy.health *= 1.5;
-                        enemy.maxHealth = enemy.health;
-                        enemy.moveSpeed *= 1.2;
+                    // Find a valid spawn position
+                    const spawnPos = this.findValidDungeonSpawnPosition();
+                    if (spawnPos) {
+                        const enemy = this.createEnemy(enemyType, spawnPos.x, spawnPos.y);
+                        if (enemy) {
+                            this.dungeonEnemies.add(enemy);
+                            
+                            // Increase enemy stats for dungeon
+                            enemy.health *= 1.5;
+                            enemy.maxHealth = enemy.health;
+                            enemy.moveSpeed *= 1.2;
+                        }
                     }
                 }
                 
@@ -45496,6 +46057,77 @@ class GameScene extends Phaser.Scene {
                 this.handleEnemyPlayerCollision(wizard, enemy);
             });
         }
+        
+        // Add collision between dungeon enemies and walls
+        this.physics.add.collider(this.dungeonEnemies, this.dungeonWalls);
+    }
+    
+    findValidDungeonSpawnPosition() {
+        if (!this.dungeonMazeData) return null;
+        
+        const { maze, cellSize, width, height, offsetX, offsetY } = this.dungeonMazeData;
+        const camera = this.cameras.main;
+        const maxAttempts = 50;
+        
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            // Pick a random cell
+            const cellX = Math.floor(Math.random() * width);
+            const cellY = Math.floor(Math.random() * height);
+            
+            // Check if cell is walkable (false = path, true = wall)
+            if (!maze[cellY] || maze[cellY][cellX] !== false) {
+                continue; // This is a wall or out of bounds, try again
+            }
+            
+            // Convert cell to world coordinates (center of the cell)
+            const worldX = offsetX + (cellX * cellSize) + (cellSize / 2);
+            const worldY = offsetY + (cellY * cellSize) + (cellSize / 2);
+            
+            // Check if spawn position is outside viewport (so enemies don't pop in)
+            const distFromCamera = Phaser.Math.Distance.Between(
+                worldX, worldY,
+                camera.scrollX + camera.width / 2,
+                camera.scrollY + camera.height / 2
+            );
+            
+            // Spawn at least 500 pixels away from camera center
+            if (distFromCamera > 500) {
+                // Also check distance from player for safety
+                const distFromPlayer = Phaser.Math.Distance.Between(
+                    worldX, worldY,
+                    this.wizard.x, this.wizard.y
+                );
+                
+                if (distFromPlayer > 400) {
+                    return { x: worldX, y: worldY };
+                }
+            }
+        }
+        
+        // If we couldn't find an ideal spot, just find any walkable spot
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            const cellX = Math.floor(Math.random() * width);
+            const cellY = Math.floor(Math.random() * height);
+            
+            // Check if cell is walkable (false = path, true = wall)
+            if (!maze[cellY] || maze[cellY][cellX] !== false) {
+                continue;
+            }
+            
+            const worldX = offsetX + (cellX * cellSize) + (cellSize / 2);
+            const worldY = offsetY + (cellY * cellSize) + (cellSize / 2);
+            
+            const distFromPlayer = Phaser.Math.Distance.Between(
+                worldX, worldY,
+                this.wizard.x, this.wizard.y
+            );
+            
+            if (distFromPlayer > 200) {
+                return { x: worldX, y: worldY };
+            }
+        }
+        
+        return null; // Couldn't find valid position
     }
     
     exitDungeon() {
@@ -45524,6 +46156,9 @@ class GameScene extends Phaser.Scene {
         this.inDungeon = false;
         this.dungeonActive = false;
         
+        // Restore the original background color (remove black)
+        this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
+        
         // Clean up dungeon tiles
         if (this.dungeonTiles && this.dungeonTiles.length > 0) {
             this.dungeonTiles.forEach(tile => {
@@ -45544,6 +46179,27 @@ class GameScene extends Phaser.Scene {
         if (this.dungeonWalls) {
             this.dungeonWalls.clear(true, true);
             this.dungeonWalls = null;
+        }
+        
+        // Recreate floor tiles since we destroyed them when entering dungeon
+        this.createStageBackground();
+        
+        // Show trees again
+        if (this.trees && this.trees.children && this.trees.children.entries) {
+            this.trees.children.entries.forEach(tree => {
+                if (tree && tree.setVisible) {
+                    tree.setVisible(true);
+                }
+            });
+        }
+        
+        // Show obstacles again
+        if (this.obstacles && this.obstacles.children && this.obstacles.children.entries) {
+            this.obstacles.children.entries.forEach(obstacle => {
+                if (obstacle && obstacle.setVisible) {
+                    obstacle.setVisible(true);
+                }
+            });
         }
         
         // Restore stage state
@@ -45681,6 +46337,44 @@ class GameScene extends Phaser.Scene {
         this.cameras.main.fadeIn(500);
         
         console.log('Returned to stage!');
+    }
+    
+    // Scene cleanup method to prevent null reference errors
+    shutdown() {
+        // Clean up debug text to prevent null reference errors
+        if (this.waveDebugText) {
+            if (this.waveDebugText.destroy && !this.waveDebugText.destroyed) {
+                this.waveDebugText.destroy();
+            }
+            this.waveDebugText = null;
+        }
+        
+        // Clean up any other text objects that might cause issues
+        if (this.scoreText) {
+            this.scoreText = null;
+        }
+        if (this.waveText) {
+            this.waveText = null;
+        }
+        if (this.survivalText) {
+            this.survivalText = null;
+        }
+        
+        // Clean up timers to prevent them from running after scene is destroyed
+        if (this.enemySpawnTimer) {
+            this.enemySpawnTimer.destroy();
+            this.enemySpawnTimer = null;
+        }
+        if (this.barrelSpawnTimer) {
+            this.barrelSpawnTimer.destroy();
+            this.barrelSpawnTimer = null;
+        }
+        if (this.dungeonSpawnTimer) {
+            this.dungeonSpawnTimer.destroy();
+            this.dungeonSpawnTimer = null;
+        }
+        
+        console.log('GameScene shutdown - cleaned up resources');
     }
 }
 
@@ -46377,8 +47071,51 @@ class BossCutsceneSystem {
     }
 }
 
+// Check for WebGL support - try to use WebGL when possible
+let renderType = Phaser.AUTO; // Let Phaser decide, but we'll test first
+const isElectron = typeof window !== 'undefined' && window.process && window.process.type === 'renderer';
+
+try {
+    const testCanvas = document.createElement('canvas');
+    const gl = testCanvas.getContext('webgl', { 
+        failIfMajorPerformanceCaveat: false,
+        preserveDrawingBuffer: true,
+        antialias: false,
+        powerPreference: isElectron ? 'high-performance' : 'default'
+    }) || testCanvas.getContext('experimental-webgl');
+    
+    if (gl) {
+        console.log('WebGL context created successfully');
+        console.log('WebGL Vendor:', gl.getParameter(gl.VENDOR));
+        console.log('WebGL Renderer:', gl.getParameter(gl.RENDERER));
+        console.log('WebGL Version:', gl.getParameter(gl.VERSION));
+        
+        // More lenient framebuffer test
+        try {
+            const fb = gl.createFramebuffer();
+            if (fb) {
+                renderType = Phaser.WEBGL;
+                console.log('✅ WebGL enabled and verified');
+                gl.deleteFramebuffer(fb);
+            }
+        } catch (fbError) {
+            console.warn('WebGL framebuffer test failed, but will still try WebGL:', fbError);
+            renderType = Phaser.WEBGL; // Still try WebGL
+        }
+    } else {
+        console.warn('WebGL context not available, using Canvas renderer');
+        renderType = Phaser.CANVAS;
+    }
+    
+    // Clean up test canvas
+    testCanvas.remove();
+} catch (e) {
+    console.warn('WebGL check failed, using AUTO mode:', e);
+    renderType = Phaser.AUTO;
+}
+
 const config = {
-    type: Phaser.AUTO,
+    type: renderType,
     width: 800,
     height: 600,
     backgroundColor: '#11130d',
@@ -46427,20 +47164,63 @@ const config = {
         context: null,
         noAudio: false
     },
-    // Critical performance settings
+    // Optimized render settings for Electron + WebGL
     render: {
         pixelArt: true,
         antialias: false,
-        powerPreference: 'high-performance',
-        batchSize: 4096,  // Increase batch size for more sprites
+        powerPreference: isElectron ? 'high-performance' : 'default',
+        batchSize: 4096,  // Increased for better performance
         maxTextures: -1,  // Use all available texture units
         mipmapFilter: 'LINEAR',
-        clearBeforeRender: false,
-        preserveDrawingBuffer: false,
-        premultipliedAlpha: true,
-        failIfMajorPerformanceCaveat: false
+        clearBeforeRender: false,  // Better performance
+        preserveDrawingBuffer: false,  // Better performance
+        premultipliedAlpha: true,  // Standard setting
+        failIfMajorPerformanceCaveat: false,
+        transparent: false,
+        desynchronized: true  // Better performance in Electron
     },
     scene: [LoadingScene, TitleScene, StageSelectScene, ArcadeScene, TalentTreeScene, CutsceneScene, GameScene, GameOverScene, UltraOptimizedGameScene]
 };
 
-const game = new Phaser.Game(config);
+let game;
+try {
+    game = new Phaser.Game(config);
+    
+    // Add error handler for runtime WebGL issues
+    window.addEventListener('error', function(e) {
+        if (e.message && (e.message.includes('Framebuffer') || e.message.includes('WebGL'))) {
+            console.error('WebGL Runtime Error:', e.message);
+            
+            // If we haven't already fallen back to Canvas, try to restart with Canvas
+            if (renderType === Phaser.WEBGL) {
+                console.log('Attempting to restart with Canvas renderer...');
+                if (game) {
+                    game.destroy(true);
+                }
+                
+                // Force Canvas renderer
+                config.type = Phaser.CANVAS;
+                try {
+                    game = new Phaser.Game(config);
+                    console.log('Successfully restarted with Canvas renderer');
+                } catch (restartError) {
+                    console.error('Failed to restart with Canvas:', restartError);
+                }
+            }
+        }
+    });
+} catch (initError) {
+    console.error('Failed to initialize Phaser:', initError);
+    
+    // Try Canvas as last resort
+    if (renderType !== Phaser.CANVAS) {
+        console.log('Attempting Canvas renderer as fallback...');
+        config.type = Phaser.CANVAS;
+        try {
+            game = new Phaser.Game(config);
+        } catch (canvasError) {
+            console.error('Canvas fallback also failed:', canvasError);
+            alert('Unable to initialize game. Please try refreshing the page or updating your browser.');
+        }
+    }
+}

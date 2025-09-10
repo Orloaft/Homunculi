@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collision Map Editor</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #2a2a2a;
+            color: white;
+        }
+        
+        #controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 1000;
+        }
+        
+        button {
+            display: block;
+            width: 100%;
+            margin: 5px 0;
+            padding: 8px;
+            background: #4a4a4a;
+            color: white;
+            border: 1px solid #666;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #5a5a5a;
+        }
+        
+        button.active {
+            background: #0084ff;
+        }
+        
+        #shapeList {
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 10px 0;
+            padding: 10px;
+            background: #3a3a3a;
+            border-radius: 4px;
+        }
+        
+        .shape-item {
+            padding: 5px;
+            margin: 2px 0;
+            background: #4a4a4a;
+            border-radius: 3px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .shape-item:hover {
+            background: #5a5a5a;
+        }
+        
+        .shape-item.selected {
+            background: #0084ff;
+        }
+        
+        input[type="number"], input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 5px;
+            margin: 5px 0;
+            background: #3a3a3a;
+            color: white;
+            border: 1px solid #666;
+            border-radius: 3px;
+        }
+        
+        label {
+            display: block;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #aaa;
+        }
+        
+        #instructions {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 300px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    
+    <div id="controls">
+        <h3>Collision Map Editor</h3>
+        
+        <label>Background Image:</label>
+        <input type="file" id="bgImageUpload" accept="image/*">
+        
+        <label>Drawing Mode:</label>
+        <button id="rectMode" class="active">Rectangle</button>
+        <button id="circleMode">Circle</button>
+        <button id="polygonMode">Polygon</button>
+        <button id="selectMode">Select/Edit</button>
+        
+        <label>Shape Properties:</label>
+        <input type="text" id="shapeName" placeholder="Shape name">
+        <input type="number" id="bounceValue" placeholder="Bounce (0-1)" step="0.1" min="0" max="1" value="0.5">
+        <input type="number" id="frictionValue" placeholder="Friction (0-1)" step="0.1" min="0" max="1" value="0.1">
+        
+        <label>Shapes:</label>
+        <div id="shapeList"></div>
+        
+        <button id="deleteShape">Delete Selected</button>
+        <button id="clearAll">Clear All</button>
+        <button id="exportData">Export JSON</button>
+        <button id="importData">Import JSON</button>
+        <input type="file" id="importFile" accept=".json" style="display: none;">
+        
+        <label>Grid Snap:</label>
+        <input type="number" id="gridSize" placeholder="Grid size" value="10">
+        <button id="toggleGrid">Toggle Grid</button>
+    </div>
+    
+    <div id="instructions">
+        <strong>Instructions:</strong>
+        <div id="modeInstructions">
+            Rectangle: Click and drag to draw
+        </div>
+    </div>
+
+    <script>
+        class CollisionMapEditor extends Phaser.Scene {
+            constructor() {
+                super({ key: 'CollisionMapEditor' });
+                this.shapes = [];
+                this.currentMode = 'rect';
+                this.selectedShape = null;
+                this.isDrawing = false;
+                this.polygonVertices = [];
+                this.gridSize = 10;
+                this.showGrid = true;
+            }
+
+            create() {
+                // Set up camera
+                this.cameras.main.setBackgroundColor('#1a1a1a');
+                
+                // Graphics for drawing
+                this.graphics = this.add.graphics();
+                this.tempGraphics = this.add.graphics();
+                this.gridGraphics = this.add.graphics();
+                
+                // Background image container
+                this.backgroundImage = null;
+                
+                // Mouse input
+                this.input.on('pointerdown', this.onPointerDown, this);
+                this.input.on('pointermove', this.onPointerMove, this);
+                this.input.on('pointerup', this.onPointerUp, this);
+                
+                // Enable camera controls
+                const cursors = this.input.keyboard.createCursorKeys();
+                const controlConfig = {
+                    camera: this.cameras.main,
+                    left: cursors.left,
+                    right: cursors.right,
+                    up: cursors.up,
+                    down: cursors.down,
+                    speed: 0.5
+                };
+                this.controls = new Phaser.Cameras.Controls.FixedKeyControl(controlConfig);
+                
+                // Zoom controls
+                this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
+                    const zoom = this.cameras.main.zoom;
+                    if (deltaY > 0) {
+                        this.cameras.main.setZoom(Math.max(0.25, zoom - 0.1));
+                    } else {
+                        this.cameras.main.setZoom(Math.min(4, zoom + 0.1));
+                    }
+                });
+                
+                this.drawGrid();
+                this.setupUI();
+            }
+
+            update(time, delta) {
+                this.controls.update(delta);
+            }
+
+            setupUI() {
+                // Mode buttons
+                document.getElementById('rectMode').onclick = () => this.setMode('rect');
+                document.getElementById('circleMode').onclick = () => this.setMode('circle');
+                document.getElementById('polygonMode').onclick = () => this.setMode('polygon');
+                document.getElementById('selectMode').onclick = () => this.setMode('select');
+                
+                // File upload
+                document.getElementById('bgImageUpload').onchange = (e) => this.loadBackgroundImage(e);
+                
+                // Shape management
+                document.getElementById('deleteShape').onclick = () => this.deleteSelectedShape();
+                document.getElementById('clearAll').onclick = () => this.clearAllShapes();
+                document.getElementById('exportData').onclick = () => this.exportData();
+                document.getElementById('importData').onclick = () => {
+                    document.getElementById('importFile').click();
+                };
+                document.getElementById('importFile').onchange = (e) => this.importData(e);
+                
+                // Grid
+                document.getElementById('toggleGrid').onclick = () => this.toggleGrid();
+                document.getElementById('gridSize').onchange = (e) => {
+                    this.gridSize = parseInt(e.target.value) || 10;
+                    if (this.showGrid) this.drawGrid();
+                };
+            }
+
+            setMode(mode) {
+                this.currentMode = mode;
+                this.polygonVertices = [];
+                this.tempGraphics.clear();
+                
+                // Update UI
+                document.querySelectorAll('#controls button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.getElementById(mode + 'Mode').classList.add('active');
+                
+                // Update instructions
+                const instructions = {
+                    'rect': 'Rectangle: Click and drag to draw',
+                    'circle': 'Circle: Click center and drag for radius',
+                    'polygon': 'Polygon: Click to add vertices, right-click to close',
+                    'select': 'Select: Click shapes to select, drag to move'
+                };
+                document.getElementById('modeInstructions').innerText = instructions[mode];
+            }
+
+            loadBackgroundImage(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        // Load image as texture
+                        this.textures.addBase64('background', e.target.result);
+                        
+                        // Remove old background if exists
+                        if (this.backgroundImage) {
+                            this.backgroundImage.destroy();
+                        }
+                        
+                        // Add new background
+                        this.backgroundImage = this.add.image(0, 0, 'background');
+                        this.backgroundImage.setOrigin(0, 0);
+                        this.backgroundImage.setDepth(-1);
+                        
+                        // Adjust camera bounds
+                        this.cameras.main.setBounds(0, 0, img.width, img.height);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+
+            onPointerDown(pointer) {
+                const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+                const x = this.snapToGrid(worldPoint.x);
+                const y = this.snapToGrid(worldPoint.y);
+                
+                if (pointer.rightButtonDown() && this.currentMode === 'polygon') {
+                    this.closePolygon();
+                    return;
+                }
+                
+                switch (this.currentMode) {
+                    case 'rect':
+                        this.startRect = { x, y };
+                        this.isDrawing = true;
+                        break;
+                    case 'circle':
+                        this.startCircle = { x, y };
+                        this.isDrawing = true;
+                        break;
+                    case 'polygon':
+                        this.polygonVertices.push({ x, y });
+                        this.drawTempPolygon();
+                        break;
+                    case 'select':
+                        this.selectShapeAt(x, y);
+                        if (this.selectedShape) {
+                            this.dragOffset = {
+                                x: x - this.selectedShape.x,
+                                y: y - this.selectedShape.y
+                            };
+                            this.isDrawing = true;
+                        }
+                        break;
+                }
+            }
+
+            onPointerMove(pointer) {
+                const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+                const x = this.snapToGrid(worldPoint.x);
+                const y = this.snapToGrid(worldPoint.y);
+                
+                if (!this.isDrawing) return;
+                
+                this.tempGraphics.clear();
+                
+                switch (this.currentMode) {
+                    case 'rect':
+                        this.drawTempRect(this.startRect.x, this.startRect.y, x, y);
+                        break;
+                    case 'circle':
+                        const radius = Phaser.Math.Distance.Between(this.startCircle.x, this.startCircle.y, x, y);
+                        this.drawTempCircle(this.startCircle.x, this.startCircle.y, radius);
+                        break;
+                    case 'select':
+                        if (this.selectedShape) {
+                            this.selectedShape.x = x - this.dragOffset.x;
+                            this.selectedShape.y = y - this.dragOffset.y;
+                            this.redrawAllShapes();
+                        }
+                        break;
+                }
+            }
+
+            onPointerUp(pointer) {
+                const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+                const x = this.snapToGrid(worldPoint.x);
+                const y = this.snapToGrid(worldPoint.y);
+                
+                if (!this.isDrawing && this.currentMode !== 'polygon') return;
+                
+                switch (this.currentMode) {
+                    case 'rect':
+                        this.createRectangle(this.startRect.x, this.startRect.y, x, y);
+                        break;
+                    case 'circle':
+                        const radius = Phaser.Math.Distance.Between(this.startCircle.x, this.startCircle.y, x, y);
+                        this.createCircle(this.startCircle.x, this.startCircle.y, radius);
+                        break;
+                }
+                
+                this.isDrawing = false;
+                this.tempGraphics.clear();
+            }
+
+            createRectangle(x1, y1, x2, y2) {
+                const shape = {
+                    type: 'rect',
+                    x: Math.min(x1, x2),
+                    y: Math.min(y1, y2),
+                    width: Math.abs(x2 - x1),
+                    height: Math.abs(y2 - y1),
+                    name: document.getElementById('shapeName').value || `Rect${this.shapes.length}`,
+                    bounce: parseFloat(document.getElementById('bounceValue').value) || 0.5,
+                    friction: parseFloat(document.getElementById('frictionValue').value) || 0.1
+                };
+                this.shapes.push(shape);
+                this.redrawAllShapes();
+                this.updateShapeList();
+            }
+
+            createCircle(x, y, radius) {
+                const shape = {
+                    type: 'circle',
+                    x: x,
+                    y: y,
+                    radius: radius,
+                    name: document.getElementById('shapeName').value || `Circle${this.shapes.length}`,
+                    bounce: parseFloat(document.getElementById('bounceValue').value) || 0.5,
+                    friction: parseFloat(document.getElementById('frictionValue').value) || 0.1
+                };
+                this.shapes.push(shape);
+                this.redrawAllShapes();
+                this.updateShapeList();
+            }
+
+            closePolygon() {
+                if (this.polygonVertices.length < 3) {
+                    this.polygonVertices = [];
+                    this.tempGraphics.clear();
+                    return;
+                }
+                
+                const shape = {
+                    type: 'polygon',
+                    vertices: [...this.polygonVertices],
+                    x: this.polygonVertices[0].x,
+                    y: this.polygonVertices[0].y,
+                    name: document.getElementById('shapeName').value || `Polygon${this.shapes.length}`,
+                    bounce: parseFloat(document.getElementById('bounceValue').value) || 0.5,
+                    friction: parseFloat(document.getElementById('frictionValue').value) || 0.1
+                };
+                this.shapes.push(shape);
+                this.polygonVertices = [];
+                this.tempGraphics.clear();
+                this.redrawAllShapes();
+                this.updateShapeList();
+            }
+
+            drawTempRect(x1, y1, x2, y2) {
+                this.tempGraphics.clear();
+                this.tempGraphics.lineStyle(2, 0x00ff00, 1);
+                this.tempGraphics.strokeRect(
+                    Math.min(x1, x2),
+                    Math.min(y1, y2),
+                    Math.abs(x2 - x1),
+                    Math.abs(y2 - y1)
+                );
+            }
+
+            drawTempCircle(x, y, radius) {
+                this.tempGraphics.clear();
+                this.tempGraphics.lineStyle(2, 0x00ff00, 1);
+                this.tempGraphics.strokeCircle(x, y, radius);
+            }
+
+            drawTempPolygon() {
+                this.tempGraphics.clear();
+                if (this.polygonVertices.length === 0) return;
+                
+                this.tempGraphics.lineStyle(2, 0x00ff00, 1);
+                this.tempGraphics.beginPath();
+                this.tempGraphics.moveTo(this.polygonVertices[0].x, this.polygonVertices[0].y);
+                
+                for (let i = 1; i < this.polygonVertices.length; i++) {
+                    this.tempGraphics.lineTo(this.polygonVertices[i].x, this.polygonVertices[i].y);
+                }
+                
+                this.tempGraphics.strokePath();
+                
+                // Draw vertices
+                this.tempGraphics.fillStyle(0x00ff00, 1);
+                this.polygonVertices.forEach(v => {
+                    this.tempGraphics.fillCircle(v.x, v.y, 3);
+                });
+            }
+
+            redrawAllShapes() {
+                this.graphics.clear();
+                
+                this.shapes.forEach((shape, index) => {
+                    const isSelected = shape === this.selectedShape;
+                    const color = isSelected ? 0xff0000 : 0x0084ff;
+                    const alpha = isSelected ? 0.3 : 0.2;
+                    
+                    this.graphics.lineStyle(2, color, 1);
+                    this.graphics.fillStyle(color, alpha);
+                    
+                    switch (shape.type) {
+                        case 'rect':
+                            this.graphics.fillRect(shape.x, shape.y, shape.width, shape.height);
+                            this.graphics.strokeRect(shape.x, shape.y, shape.width, shape.height);
+                            break;
+                        case 'circle':
+                            this.graphics.fillCircle(shape.x, shape.y, shape.radius);
+                            this.graphics.strokeCircle(shape.x, shape.y, shape.radius);
+                            break;
+                        case 'polygon':
+                            this.graphics.beginPath();
+                            this.graphics.moveTo(shape.vertices[0].x, shape.vertices[0].y);
+                            shape.vertices.forEach((v, i) => {
+                                if (i > 0) this.graphics.lineTo(v.x, v.y);
+                            });
+                            this.graphics.closePath();
+                            this.graphics.fillPath();
+                            this.graphics.strokePath();
+                            break;
+                    }
+                });
+            }
+
+            selectShapeAt(x, y) {
+                this.selectedShape = null;
+                
+                // Check shapes in reverse order (top to bottom)
+                for (let i = this.shapes.length - 1; i >= 0; i--) {
+                    const shape = this.shapes[i];
+                    let hit = false;
+                    
+                    switch (shape.type) {
+                        case 'rect':
+                            hit = x >= shape.x && x <= shape.x + shape.width &&
+                                  y >= shape.y && y <= shape.y + shape.height;
+                            break;
+                        case 'circle':
+                            const dist = Phaser.Math.Distance.Between(x, y, shape.x, shape.y);
+                            hit = dist <= shape.radius;
+                            break;
+                        case 'polygon':
+                            hit = this.pointInPolygon(x, y, shape.vertices);
+                            break;
+                    }
+                    
+                    if (hit) {
+                        this.selectedShape = shape;
+                        this.redrawAllShapes();
+                        this.updateShapeList();
+                        break;
+                    }
+                }
+            }
+
+            pointInPolygon(x, y, vertices) {
+                let inside = false;
+                for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
+                    const xi = vertices[i].x, yi = vertices[i].y;
+                    const xj = vertices[j].x, yj = vertices[j].y;
+                    
+                    const intersect = ((yi > y) !== (yj > y))
+                        && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                    if (intersect) inside = !inside;
+                }
+                return inside;
+            }
+
+            deleteSelectedShape() {
+                if (!this.selectedShape) return;
+                
+                const index = this.shapes.indexOf(this.selectedShape);
+                if (index > -1) {
+                    this.shapes.splice(index, 1);
+                    this.selectedShape = null;
+                    this.redrawAllShapes();
+                    this.updateShapeList();
+                }
+            }
+
+            clearAllShapes() {
+                if (confirm('Clear all shapes?')) {
+                    this.shapes = [];
+                    this.selectedShape = null;
+                    this.redrawAllShapes();
+                    this.updateShapeList();
+                }
+            }
+
+            updateShapeList() {
+                const list = document.getElementById('shapeList');
+                list.innerHTML = '';
+                
+                this.shapes.forEach((shape, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'shape-item';
+                    if (shape === this.selectedShape) {
+                        item.classList.add('selected');
+                    }
+                    item.innerHTML = `
+                        <span>${shape.name}</span>
+                        <span>${shape.type}</span>
+                    `;
+                    item.onclick = () => {
+                        this.selectedShape = shape;
+                        this.redrawAllShapes();
+                        this.updateShapeList();
+                    };
+                    list.appendChild(item);
+                });
+            }
+
+            drawGrid() {
+                this.gridGraphics.clear();
+                if (!this.showGrid) return;
+                
+                this.gridGraphics.lineStyle(1, 0x333333, 0.3);
+                
+                const bounds = this.cameras.main.getBounds();
+                const width = bounds.width || 2000;
+                const height = bounds.height || 2000;
+                
+                for (let x = 0; x <= width; x += this.gridSize) {
+                    this.gridGraphics.moveTo(x, 0);
+                    this.gridGraphics.lineTo(x, height);
+                }
+                
+                for (let y = 0; y <= height; y += this.gridSize) {
+                    this.gridGraphics.moveTo(0, y);
+                    this.gridGraphics.lineTo(width, y);
+                }
+                
+                this.gridGraphics.strokePath();
+            }
+
+            toggleGrid() {
+                this.showGrid = !this.showGrid;
+                this.drawGrid();
+            }
+
+            snapToGrid(value) {
+                if (!this.showGrid) return value;
+                return Math.round(value / this.gridSize) * this.gridSize;
+            }
+
+            exportData() {
+                const data = {
+                    background: this.backgroundImage ? this.backgroundImage.texture.key : null,
+                    shapes: this.shapes,
+                    gridSize: this.gridSize
+                };
+                
+                const json = JSON.stringify(data, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'collision-map.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            importData(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        this.shapes = data.shapes || [];
+                        this.gridSize = data.gridSize || 10;
+                        document.getElementById('gridSize').value = this.gridSize;
+                        this.redrawAllShapes();
+                        this.updateShapeList();
+                        this.drawGrid();
+                    } catch (error) {
+                        alert('Error loading file: ' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // Phaser configuration
+        const config = {
+            type: Phaser.AUTO,
+            width: window.innerWidth - 350,
+            height: window.innerHeight - 40,
+            parent: 'game-container',
+            backgroundColor: '#1a1a1a',
+            scene: CollisionMapEditor,
+            physics: {
+                default: 'matter',
+                matter: {
+                    debug: false
+                }
+            }
+        };
+
+        const game = new Phaser.Game(config);
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            game.scale.resize(window.innerWidth - 350, window.innerHeight - 40);
+        });
+    </script>
+</body>
+</html>

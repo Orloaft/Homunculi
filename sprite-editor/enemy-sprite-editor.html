@@ -368,21 +368,113 @@
     
     <div class="container">
         <div class="sidebar">
+            <!-- Mode Switcher -->
             <div class="section">
-                <h3 class="section-title">Enemy Selection</h3>
-                <select id="enemy-select" class="enemy-dropdown" onchange="selectEnemyFromDropdown()">
-                    <option value="">-- Select Enemy --</option>
-                </select>
+                <h3 class="section-title">Editor Mode</h3>
+                <div class="button-group" style="display: flex; gap: 10px;">
+                    <button id="sprite-mode-btn" class="btn btn-primary" onclick="switchMode('sprite')">🎮 Sprite</button>
+                    <button id="collision-mode-btn" class="btn" onclick="switchMode('collision')">🗺️ Collision</button>
+                </div>
             </div>
             
-            <div class="section">
-                <h3 class="section-title">Quick Actions</h3>
-                <div class="button-group">
-                    <button class="btn btn-secondary" onclick="resetAll()">Reset All</button>
-                    <button class="btn" onclick="exportData()">Export Data</button>
-                    <button class="btn" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);" onclick="exportConfigFile()">📄 Export Config File</button>
-                    <button class="btn" style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);" onclick="saveToGame()">💾 Save to Game</button>
-                    <button class="btn btn-secondary" onclick="loadFromGame()">📂 Load from Game</button>
+            <!-- Sprite Mode Controls -->
+            <div id="sprite-controls">
+                <div class="section">
+                    <h3 class="section-title">Enemy Selection</h3>
+                    <select id="enemy-select" class="enemy-dropdown" onchange="selectEnemyFromDropdown()">
+                        <option value="">-- Select Enemy --</option>
+                    </select>
+                </div>
+                
+                <div class="section">
+                    <h3 class="section-title">Quick Actions</h3>
+                    <div class="button-group">
+                        <button class="btn btn-secondary" onclick="resetAll()">Reset All</button>
+                        <button class="btn" onclick="exportData()">Export Data</button>
+                        <button class="btn" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);" onclick="exportConfigFile()">📄 Export Config File</button>
+                        <button class="btn" style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);" onclick="saveToGame()">💾 Save to Game</button>
+                        <button class="btn btn-secondary" onclick="loadFromGame()">📂 Load from Game</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Collision Mode Controls -->
+            <div id="collision-controls" style="display: none;">
+                <div class="section">
+                    <h3 class="section-title">Background</h3>
+                    <input type="file" id="bg-upload" accept="image/*" onchange="loadCollisionBackground(event)" style="width: 100%; padding: 5px; background: #333; border: 1px solid #555; border-radius: 5px; color: white;">
+                    <button class="btn btn-secondary" onclick="clearCollisionBackground()" style="margin-top: 10px; width: 100%;">Clear</button>
+                </div>
+                
+                <div class="section">
+                    <h3 class="section-title">Drawing Tools</h3>
+                    <div class="button-group">
+                        <button id="rect-tool" class="btn btn-primary" onclick="setCollisionTool('rect')">▭ Rectangle</button>
+                        <button id="circle-tool" class="btn" onclick="setCollisionTool('circle')">○ Circle</button>
+                        <button id="polygon-tool" class="btn" onclick="setCollisionTool('polygon')">⬟ Polygon</button>
+                        <button id="select-tool" class="btn" onclick="setCollisionTool('select')">↖ Select</button>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3 class="section-title">Shape Properties</h3>
+                    <div class="control-group">
+                        <label class="control-label">Name</label>
+                        <input type="text" id="shape-name" placeholder="Shape name" class="control-input">
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Type</label>
+                        <select id="shape-type" class="control-input">
+                            <option value="wall">Wall</option>
+                            <option value="platform">Platform</option>
+                            <option value="trigger">Trigger</option>
+                            <option value="damage">Damage</option>
+                            <option value="bounce">Bounce</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Rotation (deg)</label>
+                        <input type="range" id="shape-rotation" min="0" max="360" value="0" oninput="document.getElementById('rotation-val').textContent = this.value; updateSelectedShapeRotation()">
+                        <span id="rotation-val">0</span>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Bounce</label>
+                        <input type="range" id="shape-bounce" min="0" max="100" value="50" oninput="document.getElementById('bounce-val').textContent = this.value/100">
+                        <span id="bounce-val">0.5</span>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Friction</label>
+                        <input type="range" id="shape-friction" min="0" max="100" value="10" oninput="document.getElementById('friction-val').textContent = this.value/100">
+                        <span id="friction-val">0.1</span>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3 class="section-title">Polygon Mode</h3>
+                    <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 5px; font-size: 12px;">
+                        <strong>Instructions:</strong><br>
+                        • Left-click to add vertices<br>
+                        • Right-click or press Enter to close polygon<br>
+                        • Press Escape to cancel<br>
+                        <span id="polygon-status" style="color: #00ff00;">Ready to draw</span>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3 class="section-title">Shapes</h3>
+                    <div id="shape-list" style="max-height: 150px; overflow-y: auto; background: rgba(0,0,0,0.3); border-radius: 5px; padding: 5px;">
+                        <!-- Shapes listed here -->
+                    </div>
+                    <button class="btn btn-secondary" onclick="deleteSelectedShape()" style="margin-top: 10px;">Delete Selected</button>
+                    <button class="btn btn-secondary" onclick="clearAllShapes()">Clear All</button>
+                </div>
+                
+                <div class="section">
+                    <h3 class="section-title">Export</h3>
+                    <div class="button-group">
+                        <button class="btn" onclick="exportCollisionMap()">📄 Export Map</button>
+                        <button class="btn btn-primary" onclick="saveCollisionToGame()">💾 Save to Game</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -648,14 +740,14 @@
             // Cave enemies
             golem: {
                 texture: 'golem-orange-walk',
-                path: 'Golem_1/Orange/No_Swoosh_VFX/Golem_1_walk.png',
+                path: '../assets/Golem_1/Orange/No_Swoosh_VFX/Golem_1_walk.png',
                 frameWidth: 90,  // Actual dimensions from game.js
                 frameHeight: 64,
                 animations: {
                     walk: { start: 0, end: 9, rate: 8 },  // 10 frames (900/90)
                     death: {
                         texture: 'golem-orange-die',
-                        path: 'Golem_1/Orange/No_Swoosh_VFX/Golem_1_die.png',
+                        path: '../assets/Golem_1/Orange/No_Swoosh_VFX/Golem_1_die.png',
                         frameWidth: 90,
                         frameHeight: 64,
                         start: 0, end: 12, rate: 10  // 13 frames (1170/90)
@@ -665,7 +757,7 @@
             },
             slime: {
                 texture: 'bloboid-walk',
-                path: 'newenemies/blob/blob minion walk.png',
+                path: '../assets/newenemies/blob/blob%20minion%20walk.png',
                 frameWidth: 80,
                 frameHeight: 35,
                 animations: {
@@ -778,7 +870,7 @@
             },
             bat: {
                 texture: 'bat-fly',
-                path: 'bateye/Flight.png',
+                path: '../assets/enemies/bateye/Flight.png',
                 frameWidth: 150,
                 frameHeight: 150,
                 animations: {
@@ -788,7 +880,7 @@
             },
             darkbat: {
                 texture: 'dark-bat-fly',
-                path: 'Bat-IdleFly9frames.png',
+                path: '../assets/images/Bat-IdleFly9frames.png',
                 frameWidth: 16,
                 frameHeight: 16,
                 animations: {
@@ -798,7 +890,7 @@
             },
             soul: {
                 texture: 'soul-move',
-                path: 'newenemies/Soul/Soul/move/Soul_move.png',
+                path: '../assets/newenemies/Soul/Soul/move/Soul_move.png',
                 frameWidth: 96,
                 frameHeight: 96,
                 animations: {
@@ -808,7 +900,7 @@
             },
             fireworm: {
                 texture: 'fireworm-walk',
-                path: 'fireworm/Walk.png',
+                path: '../assets/fireworm/Walk.png',
                 frameWidth: 90,
                 frameHeight: 90,
                 animations: {
@@ -818,7 +910,7 @@
             },
             summoner: {
                 texture: 'summoner-idle',
-                path: 'newenemies/summoner/The Summoner idle animation-export.png',
+                path: '../assets/newenemies/summoner/The%20Summoner%20idle%20animation-export.png',
                 frameWidth: 80,
                 frameHeight: 80,
                 animations: {
@@ -826,24 +918,375 @@
                 },
                 defaultScale: 1.0
             },
+            // Missing enemies
+            bloboid: {
+                texture: 'bloboid-walk',
+                path: '../assets/newenemies/blob/blob%20minion%20walk.png',
+                frameWidth: 80,
+                frameHeight: 35,
+                animations: {
+                    walk: { start: 0, end: 7, rate: 10 }
+                },
+                defaultScale: 1.5
+            },
+            sorcerer: {
+                texture: 'sorcerer-idle',
+                individualFrames: true,
+                framePattern: 'sorcerer-idle-',
+                path: '../assets/newenemies/sorcerer villain/sorcerer attack_Animation 1_0.png',
+                frameCount: 10,
+                frameWidth: 80,
+                frameHeight: 80,
+                animations: {
+                    walk: { start: 0, end: 9, rate: 6 }
+                },
+                defaultScale: 1.5
+            },
+            // Element Symbols (Main spell projectiles)
+            'element-symbols': {
+                texture: 'element-symbols',
+                path: '../assets/images/elements.png',
+                frameWidth: 273,
+                frameHeight: 273,
+                animations: {
+                    cycle: { start: 0, end: 8, rate: 10 }
+                },
+                defaultScale: 0.3
+            },
+            'element-symbols2': {
+                texture: 'element-symbols2',
+                path: '../assets/images/elements2.PNG',
+                frameWidth: 341,
+                frameHeight: 341,
+                animations: {
+                    cycle: { start: 0, end: 8, rate: 10 }
+                },
+                defaultScale: 0.25
+            },
+            'element-symbols3': {
+                texture: 'element-symbols3',
+                path: '../assets/images/elements3.PNG',
+                frameWidth: 341,
+                frameHeight: 341,
+                animations: {
+                    cycle: { start: 0, end: 8, rate: 10 }
+                },
+                defaultScale: 0.25
+            },
+            'waterball-projectile': {
+                texture: 'waterball-projectile',
+                path: '../assets/effects/elementanimations/waterball/WaterBall%20-%20Startup%20and%20Infinite.png',
+                frameWidth: 64,
+                frameHeight: 64,
+                animations: {
+                    startup: { start: 0, end: 3, rate: 12 },
+                    travel: { start: 4, end: 19, rate: 15 }
+                },
+                defaultScale: 0.8
+            },
+            'waterball-impact': {
+                texture: 'waterball-impact',
+                path: '../assets/effects/elementanimations/waterball/WaterBall%20-%20Impact.png',
+                frameWidth: 64,
+                frameHeight: 64,
+                animations: {
+                    impact: { start: 0, end: 15, rate: 20 }
+                },
+                defaultScale: 1.2
+            },
+            'lightning-projectile': {
+                texture: 'lightning-projectile',
+                path: '../assets/effects/elementanimations/Thunder%20Projectile%201/5framesdims160x32.png',
+                frameWidth: 32,
+                frameHeight: 32,
+                animations: {
+                    travel: { start: 0, end: 4, rate: 12 }
+                },
+                defaultScale: 1.0
+            },
+            'lightning-impact': {
+                texture: 'lightning-impact',
+                path: '../assets/effects/elementanimations/Thunder%20Hit/5framesdims192x32.png',
+                frameWidth: 38,
+                frameHeight: 32,
+                animations: {
+                    hit: { start: 0, end: 4, rate: 20 }
+                },
+                defaultScale: 1.5
+            },
+            'earth-projectile': {
+                texture: 'earth-projectile',
+                path: '../assets/effects/elementanimations/earthprojectile/6framesx2framesdims288x64.png',
+                frameWidth: 48,
+                frameHeight: 32,
+                animations: {
+                    travel: { start: 0, end: 5, rate: 12 },
+                    impact: { start: 6, end: 11, rate: 18 }
+                },
+                defaultScale: 1.0
+            },
+            'wind-projectile': {
+                texture: 'wind-projectile',
+                path: '../assets/effects/elementanimations/windprojectile/proj3framesx2framesdims96x64.png',
+                frameWidth: 32,
+                frameHeight: 32,
+                animations: {
+                    travel: { start: 0, end: 5, rate: 12 }
+                },
+                defaultScale: 1.0
+            },
+            'wind-impact': {
+                texture: 'wind-impact',
+                path: '../assets/effects/elementanimations/windprojectile/hit3framesx2framesdims96x64.png',
+                frameWidth: 32,
+                frameHeight: 32,
+                animations: {
+                    hit: { start: 0, end: 5, rate: 18 }
+                },
+                defaultScale: 1.5
+            },
+            'firebolt': {
+                texture: 'firebolt',
+                path: '../assets/effects/elementanimations/firebolt/11framesdims528x48.png',
+                frameWidth: 48,
+                frameHeight: 48,
+                animations: {
+                    travel: { start: 0, end: 3, rate: 12 },
+                    impact: { start: 4, end: 10, rate: 20 }
+                },
+                defaultScale: 1.0
+            },
+            'ice-spike': {
+                texture: 'ice-spike-start1',
+                individualFrames: true,
+                framePattern: 'ice-spike-start',
+                frameCount: 3,
+                frameWidth: 32,
+                frameHeight: 48,
+                animations: {
+                    travel: { start: 1, end: 3, rate: 10 }
+                },
+                defaultScale: 1.0
+            },
+            'ice-spike-loop': {
+                texture: 'ice-spike-loop1',
+                individualFrames: true,
+                framePattern: 'ice-spike-loop',
+                frameCount: 4,
+                frameWidth: 32,
+                frameHeight: 48,
+                animations: {
+                    loop: { start: 1, end: 4, rate: 10 }
+                },
+                defaultScale: 1.0
+            },
+            'ice-spike-hit': {
+                texture: 'ice-spike-hit1',
+                individualFrames: true,
+                framePattern: 'ice-spike-hit',
+                frameCount: 8,
+                frameWidth: 48,
+                frameHeight: 48,
+                animations: {
+                    impact: { start: 1, end: 8, rate: 20 }
+                },
+                defaultScale: 1.3
+            },
+            'holy-impact': {
+                texture: 'holy-impact-1',
+                individualFrames: true,
+                framePattern: 'holy-impact-',
+                frameCount: 7,
+                frameWidth: 48,
+                frameHeight: 48,
+                animations: {
+                    impact: { start: 1, end: 7, rate: 20 }
+                },
+                defaultScale: 2.0
+            },
+            'archer-projectile': {
+                texture: 'archer-projectile',
+                isStaticImage: true,
+                path: '../assets/bosses/archerboss/projectile.png',
+                frameWidth: 32,
+                frameHeight: 32,
+                animations: {},
+                defaultScale: 1.0
+            },
+            'poison-spell': {
+                texture: 'poison-spell',
+                path: '../assets/effects/spells/poison-sheet.png',
+                frameWidth: 55,
+                frameHeight: 41,
+                animations: {
+                    active: { start: 0, end: 5, rate: 10 }
+                },
+                defaultScale: 0.75
+            },
+            'fire-spell': {
+                texture: 'fire-spell',
+                path: '../assets/effects/spells/fire1.png',
+                frameWidth: 32,
+                frameHeight: 32,
+                animations: {
+                    active: { start: 0, end: 3, rate: 10 }
+                },
+                defaultScale: 1.0
+            },
+            'arcane-spell': {
+                texture: 'arcane-spell',
+                path: '../assets/effects/spells/arcane1.png',
+                frameWidth: 32,
+                frameHeight: 32,
+                animations: {
+                    active: { start: 0, end: 3, rate: 10 }
+                },
+                defaultScale: 1.0
+            },
+            'water-spell': {
+                texture: 'water-spell',
+                path: '../assets/effects/spells/water1.png',
+                frameWidth: 32,
+                frameHeight: 32,
+                animations: {
+                    active: { start: 0, end: 3, rate: 10 }
+                },
+                defaultScale: 1.0
+            },
+            'lightning-spell': {
+                texture: 'lightning-spell',
+                path: '../assets/effects/spells/lightning1.png',
+                frameWidth: 32,
+                frameHeight: 32,
+                animations: {
+                    active: { start: 0, end: 3, rate: 10 }
+                },
+                defaultScale: 1.0
+            },
+            'earth-spell': {
+                texture: 'earth-spell',
+                path: '../assets/effects/spells/earth1.png',
+                frameWidth: 32,
+                frameHeight: 32,
+                animations: {
+                    active: { start: 0, end: 3, rate: 10 }
+                },
+                defaultScale: 1.0
+            },
+            'rock-spell': {
+                texture: 'rock-spell',
+                path: '../assets/effects/spells/rock1(6frames).PNG',
+                frameWidth: 32,
+                frameHeight: 30,
+                animations: {
+                    active: { start: 0, end: 5, rate: 10 }
+                },
+                defaultScale: 1.0
+            },
+            'storm-spell': {
+                texture: 'storm-spell',
+                path: '../assets/effects/spells/thunder1-17frames.PNG',
+                frameWidth: 64,
+                frameHeight: 68,
+                animations: {
+                    active: { start: 0, end: 16, rate: 15 }
+                },
+                defaultScale: 1.0
+            },
+            'volcano-spell': {
+                texture: 'volcano-spell',
+                path: '../assets/effects/spells/volcano1.PNG',
+                frameWidth: 64,
+                frameHeight: 64,
+                animations: {
+                    active: { start: 0, end: 3, rate: 10 }
+                },
+                defaultScale: 1.0
+            },
+            'meteor-spell': {
+                texture: 'meteor-spell',
+                path: '../assets/effects/spells/meteor1.PNG',
+                frameWidth: 32,
+                frameHeight: 38,
+                animations: {
+                    active: { start: 0, end: 3, rate: 10 }
+                },
+                defaultScale: 1.0
+            },
+            'gravity-spell': {
+                texture: 'gravity-spell',
+                path: '../assets/effects/spells/gravity1.PNG',
+                frameWidth: 64,
+                frameHeight: 59,
+                animations: {
+                    active: { start: 0, end: 3, rate: 10 }
+                },
+                defaultScale: 1.0
+            },
+            // Boss Projectiles
+            'archer-projectile': {
+                texture: 'archer-projectile',
+                path: '../assets/bosses/archerboss/projectile.png',
+                isStaticImage: true,
+                frameWidth: 32,
+                frameHeight: 32,
+                animations: {
+                    idle: { start: 0, end: 0, rate: 1 }
+                },
+                defaultScale: 1.2
+            },
+            'void-ball': {
+                texture: 'void-ball',
+                individualFrames: true,
+                framePattern: 'void-ball-',
+                frameCount: 3,
+                frameWidth: 64,
+                frameHeight: 64,
+                animations: {
+                    travel: { start: 1, end: 3, rate: 8 }
+                },
+                defaultScale: 1.0
+            },
+            'void-ball-destroyed': {
+                texture: 'projectile-destroyed-1',
+                individualFrames: true,
+                framePattern: 'projectile-destroyed-',
+                frameCount: 3,
+                frameWidth: 64,
+                frameHeight: 64,
+                animations: {
+                    destroyed: { start: 1, end: 3, rate: 12 }
+                },
+                defaultScale: 1.0
+            },
+            'boss-arm-projectile': {
+                texture: 'boss-arm-projectile',
+                path: '../assets/images/arm_projectile_glowing.png',
+                frameWidth: 100,
+                frameHeight: 100,
+                animations: {
+                    spin: { start: 0, end: 5, rate: 12 }
+                },
+                defaultScale: 1.0
+            },
             // Bosses
             archerBoss: {
                 texture: 'archer-boss-walk',
-                path: 'assets/bosses/archerboss/boss2archerwalk8frames.png',
+                path: '../assets/bosses/archerboss/boss2archerwalk8frames.png',
                 frameWidth: 63,
                 frameHeight: 54,
                 animations: {
                     walk: { start: 0, end: 7, rate: 10 },
                     attack: {
                         texture: 'archer-boss-shoot',
-                        path: 'assets/bosses/archerboss/boss2archershoot7frames.png',
+                        path: '../assets/bosses/archerboss/boss2archershoot7frames.png',
                         frameWidth: 64,
                         frameHeight: 54,
                         start: 0, end: 6, rate: 10
                     },
                     death: {
                         texture: 'archer-boss-death',
-                        path: 'assets/bosses/archerboss/boss2archerdeath8frames.png',
+                        path: '../assets/bosses/archerboss/boss2archerdeath8frames.png',
                         frameWidth: 63,
                         frameHeight: 54,
                         start: 0, end: 7, rate: 10
@@ -853,7 +1296,7 @@
             },
             obeliskBoss: {
                 texture: 'obelisk-boss',
-                path: 'obeliskBoss.png',
+                path: '../assets/images/obeliskBoss.png',
                 frameWidth: 100,
                 frameHeight: 100,
                 animations: {
@@ -864,13 +1307,23 @@
             // Removed obeliskIdle - it's not a boss
             voidkin: {
                 texture: 'voidkin',
-                path: 'voidkin15frames.png',
+                path: '../assets/images/voidkin15frames.png',
                 frameWidth: 224,
                 frameHeight: 240,
                 animations: {
                     walk: { start: 0, end: 14, rate: 10 }
                 },
                 defaultScale: 1.0
+            },
+            'demon-slime-boss': {
+                texture: 'demon-slime-idle',
+                path: '../assets/bosses/demonslime/boss_demon_slime_FREE_v1.0/boss_demon_slime_FREE_v1.0/spritesheets/demon_slime_FREE_v1.0_288x160_spritesheet.png',
+                frameWidth: 96,
+                frameHeight: 80,
+                animations: {
+                    walk: { start: 0, end: 2, rate: 8 }
+                },
+                defaultScale: 2.0
             },
             kingNothing: {
                 texture: 'king-nothing-run',
@@ -1055,7 +1508,7 @@
             },
             flyingdemon: {
                 texture: 'flyingdemon',
-                path: 'assets/bosses/flyingdemon/flamedemon4frames.png',
+                path: '../assets/bosses/flyingdemon/flamedemon4frames.png',
                 frameWidth: 81,
                 frameHeight: 71,
                 animations: {
@@ -1066,7 +1519,7 @@
             // Lava enemies
             fireslime: {
                 texture: 'slime-idle',
-                path: 'newenemies/blob/blob minion idle.png',
+                path: '../assets/newenemies/blob/blob%20minion%20idle.png',
                 frameWidth: 80,
                 frameHeight: 35,
                 animations: {
@@ -1077,7 +1530,7 @@
             },
             orangegolem: {
                 texture: 'golem-orange-walk',
-                path: 'Golem_1/Orange/No_Swoosh_VFX/Golem_1_walk.png',
+                path: '../assets/Golem_1/Orange/No_Swoosh_VFX/Golem_1_walk.png',
                 frameWidth: 90,
                 frameHeight: 64,
                 animations: {
@@ -1096,9 +1549,9 @@
                     attack: {
                         texture: 'wraith-attack',
                         path: 'assets/bosses/scythewraith/scythewraithattack8frames.png',
-                        frameWidth: 79.5,
+                        frameWidth: 78,  // 624/8 = 78 - corrected width
                         frameHeight: 68,
-                        start: 0, end: 7, rate: 12
+                        start: 0, end: 6, rate: 12  // 7 frames (0-6) instead of 8
                     },
                     death: {
                         texture: 'wraith-death',
@@ -1235,6 +1688,20 @@
         let gridGraphics = null;
         let savedData = {};
         
+        // Collision Map Mode variables
+        let editorMode = 'sprite'; // 'sprite' or 'collision'
+        let collisionShapes = [];
+        let selectedShape = null;
+        let collisionTool = 'rect'; // 'rect', 'circle', 'polygon', 'select'
+        let isDrawingShape = false;
+        let shapeStartPoint = null;
+        let polygonPoints = [];
+        let collisionGraphics = null;
+        let tempShapeGraphics = null;
+        let collisionBackground = null;
+        let collisionGridSize = 10;
+        let showCollisionGrid = true;
+        
         // Load saved data from localStorage
         function loadSavedData() {
             const saved = localStorage.getItem('enemySpriteData');
@@ -1303,6 +1770,12 @@
                 
                 // Load all enemy sprites
                 for (const [key, config] of Object.entries(enemyConfigs)) {
+                    // Skip sprites without path (they might be loaded elsewhere)
+                    if (!config.path && !config.individualFrames) {
+                        console.log(`Skipping ${key} - no path defined`);
+                        continue;
+                    }
+                    
                     // Handle bosses with individual frame images
                     if (config.individualFrames) {
                         // Load individual frames for bosses like Eyelor and Nekros
@@ -1317,8 +1790,25 @@
                                 framePath = `../assets/enemies/impclub/walk_${i}.png`;
                             } else if (key === 'axeimp') {
                                 framePath = `../assets/enemies/impaxe/walk_${i}.png`;
-                            } else {
+                            } else if (key === 'sorcerer') {
+                                framePath = `../assets/newenemies/sorcerer villain/sorcerer attack_Animation 1_${i-1}.png`;
+                            } else if (key === 'void-ball') {
+                                framePath = `../assets/bosses/Eyelor/Void Ball Projectilep/Void Ball Projectile${i}.png`;
+                            } else if (key === 'void-ball-destroyed') {
+                                framePath = `../assets/bosses/Eyelor/Void Ball Projectilep/Projectile Destroyed${i}.png`;
+                            } else if (key === 'ice-spike') {
+                                framePath = `../assets/effects/elementanimations/icespikemissle/VFX%201%20Start${i}.png`;
+                            } else if (key === 'ice-spike-loop') {
+                                framePath = `../assets/effects/elementanimations/icespikemissle/VFX%201%20Hit%20Ground${i}.png`;
+                            } else if (key === 'ice-spike-hit') {
+                                framePath = `../assets/effects/elementanimations/icespikemissle/VFX%201%20Hit${i}.png`;
+                            } else if (key === 'holy-impact') {
+                                framePath = `../assets/effects/elementanimations/holymissle/Holy%20VFX%2001%20Impact${i}.png`;
+                            } else if (config.path) {
                                 framePath = config.path.replace('1.png', `${i}.png`);
+                            } else {
+                                console.error(`No path defined for sprite: ${key}`);
+                                continue;
                             }
                             this.load.image(`${config.framePattern}${i}`, framePath);
                         }
@@ -1326,16 +1816,30 @@
                         // Load as single image for static bosses
                         assetsToLoad++;
                         this.load.image(config.texture, config.path);
-                    } else {
+                    } else if (config.path) {
                         // Load as spritesheet for animated enemies
+                        console.log(`Loading spritesheet: ${key} from ${config.path}`);
                         assetsToLoad++;
                         if (config.verticalSheet) {
                             // For vertical spritesheets, load each frame individually
+                            // Get the end frame from the first available animation
+                            let endFrame = 7; // default
+                            if (config.animations) {
+                                if (config.animations.walk) {
+                                    endFrame = config.animations.walk.end;
+                                } else {
+                                    // Find the first animation with an end frame
+                                    const firstAnim = Object.values(config.animations).find(anim => anim && typeof anim.end === 'number');
+                                    if (firstAnim) {
+                                        endFrame = firstAnim.end;
+                                    }
+                                }
+                            }
                             this.load.spritesheet(config.texture, config.path, {
                                 frameWidth: config.frameWidth,
                                 frameHeight: config.frameHeight,
                                 startFrame: 0,
-                                endFrame: (config.animations.walk.end || 7)
+                                endFrame: endFrame
                             });
                         } else {
                             this.load.spritesheet(config.texture, config.path, {
@@ -1410,15 +1914,15 @@
                                 let framePath;
                                 if (key === 'clubimp') {
                                     if (animName === 'fall') {
-                                        framePath = `impclub/fall_back_${i}.png`;
+                                        framePath = `../assets/enemies/impclub/fall_back_${i}.png`;
                                     } else if (animName === 'standup') {
-                                        framePath = `impclub/stand_up_${i}.png`;
+                                        framePath = `../assets/enemies/impclub/stand_up_${i}.png`;
                                     }
                                 } else if (key === 'axeimp') {
                                     if (animName === 'fall') {
-                                        framePath = `impaxe/fall_back_${i}.png`;
+                                        framePath = `../assets/enemies/impaxe/fall_back_${i}.png`;
                                     } else if (animName === 'standup') {
-                                        framePath = `impaxe/stand_up_${i}.png`;
+                                        framePath = `../assets/enemies/impaxe/stand_up_${i}.png`;
                                     }
                                 }
                                 if (framePath) {
@@ -1500,6 +2004,58 @@
                 
                 // Create animations (with error handling for missing textures)
                 for (const [key, config] of Object.entries(enemyConfigs)) {
+                    // Create all animations defined for this sprite
+                    for (const [animName, animConfig] of Object.entries(config.animations || {})) {
+                        const animKey = `${key}-${animName}`;
+                        
+                        // Skip if animation already exists or if it's a nested config (has texture property)
+                        if (this.anims.exists(animKey) || typeof animConfig !== 'object') {
+                            continue;
+                        }
+                        
+                        try {
+                            if (config.individualFrames) {
+                                // For sprites with individual frames
+                                const frames = [];
+                                const frameCount = animConfig.end - animConfig.start + 1;
+                                for (let i = animConfig.start; i <= animConfig.end; i++) {
+                                    frames.push({ key: `${config.framePattern}${i}` });
+                                }
+                                this.anims.create({
+                                    key: animKey,
+                                    frames: frames,
+                                    frameRate: animConfig.rate || 10,
+                                    repeat: animName === 'death' ? 0 : -1
+                                });
+                            } else if (animConfig.texture && this.textures.exists(animConfig.texture)) {
+                                // Animation has its own texture
+                                this.anims.create({
+                                    key: animKey,
+                                    frames: this.anims.generateFrameNumbers(animConfig.texture, {
+                                        start: animConfig.start,
+                                        end: animConfig.end
+                                    }),
+                                    frameRate: animConfig.rate || 10,
+                                    repeat: animName === 'death' ? 0 : -1
+                                });
+                            } else if (this.textures.exists(config.texture)) {
+                                // Animation uses the main texture
+                                this.anims.create({
+                                    key: animKey,
+                                    frames: this.anims.generateFrameNumbers(config.texture, {
+                                        start: animConfig.start,
+                                        end: animConfig.end
+                                    }),
+                                    frameRate: animConfig.rate || 10,
+                                    repeat: animName === 'death' ? 0 : -1
+                                });
+                            }
+                        } catch (e) {
+                            console.warn(`Failed to create ${animName} animation for ${key}:`, e);
+                        }
+                    }
+                    
+                    // Keep the old specific animation code for backwards compatibility
                     // Walk animation
                     if (config.animations.walk && !this.anims.exists(key + '-walk')) {
                         try {
@@ -1656,13 +2212,18 @@
             // Group enemies by category
             const categories = {
                 'Forest': ['mushroom', 'tree', 'giantfly', 'squirrel', 'redpanda'],
-                'Cave': ['golem', 'slime', 'kobold', 'brainmole', 'intellectdevourer'],
+                'Cave': ['golem', 'slime', 'kobold', 'brainmole', 'intellectdevourer', 'bloboid'],
                 'Desert': ['cobra', 'cactuse', 'armadillo', 'bat', 'darkbat', 'soul', 'fireworm', 'summoner'],
                 'Castle': ['castle-knight', 'castle-rogue', 'castle-soldier', 'castle-bladekeeper', 'castle-squire'],
                 'Grave': ['yellowskeleton', 'skeletonseeker', 'clubimp', 'axeimp', 'wraith', 'flyingdemon'],
-                'Lava': ['fireslime', 'orangegolem'],
-                'Bosses': ['archerBoss', 'obeliskBoss', 'voidkin', 'kingNothing', 'eyelor', 'nekros'],
-                'Homunculi (Player Characters)': ['wizard', 'orb', 'grim', 'blip']
+                'Lava': ['fireslime', 'orangegolem', 'sorcerer'],
+                'Bosses': ['archerBoss', 'obeliskBoss', 'voidkin', 'kingNothing', 'eyelor', 'nekros', 'demon-slime-boss'],
+                'Homunculi (Player Characters)': ['wizard', 'orb', 'grim', 'blip'],
+                'Element Symbols': ['element-symbols', 'element-symbols2', 'element-symbols3'],
+                'Spell Projectiles': ['firebolt', 'waterball-projectile', 'lightning-projectile', 'earth-projectile', 'wind-projectile', 'ice-spike', 'ice-spike-loop'],
+                'Spell Impact Effects': ['waterball-impact', 'lightning-impact', 'wind-impact', 'ice-spike-hit', 'holy-impact'],
+                'Spell Effects': ['poison-spell', 'fire-spell', 'water-spell', 'lightning-spell', 'earth-spell', 'arcane-spell', 'rock-spell', 'storm-spell', 'volcano-spell', 'meteor-spell', 'gravity-spell'],
+                'Boss Projectiles': ['archer-projectile', 'void-ball', 'void-ball-destroyed']
             };
             
             for (const [category, enemies] of Object.entries(categories)) {
@@ -1732,8 +2293,8 @@
                     // For bosses with individual frames, create sprite with first frame
                     currentSprite = editorScene.physics.add.sprite(400, 300, `${config.framePattern}1`);
                 } else if (config.isStaticImage) {
-                    // For static images
-                    currentSprite = editorScene.physics.add.sprite(400, 300, config.texture);
+                    // For static images - use image instead of sprite to avoid frame issues
+                    currentSprite = editorScene.physics.add.image(400, 300, config.texture);
                 } else {
                     // For spritesheets
                     currentSprite = editorScene.physics.add.sprite(400, 300, config.texture, 0);
@@ -1861,10 +2422,19 @@
                     }
                 }
                 
-                // Play walk animation if it exists
+                // Play walk animation if it exists, otherwise play first available animation
                 const walkKey = enemyType + '-walk';
                 if (editorScene.anims.exists(walkKey)) {
                     currentSprite.play(walkKey);
+                } else {
+                    // Find and play the first available animation for this sprite
+                    const availableAnims = Object.keys(config.animations || {});
+                    if (availableAnims.length > 0) {
+                        const firstAnimKey = enemyType + '-' + availableAnims[0];
+                        if (editorScene.anims.exists(firstAnimKey)) {
+                            currentSprite.play(firstAnimKey);
+                        }
+                    }
                 }
                 
                 // Update info panel
@@ -2187,26 +2757,29 @@
             // Clear existing buttons
             controlsDiv.innerHTML = '';
             
-            // Always add walk button
-            const walkBtn = document.createElement('button');
-            walkBtn.className = 'anim-btn active';
-            walkBtn.id = 'walk-btn';
-            walkBtn.textContent = 'Walk';
-            walkBtn.onclick = () => playAnimation('walk');
-            controlsDiv.appendChild(walkBtn);
-            
-            // Add buttons for other animations
+            // Add buttons for all animations
             if (config.animations) {
+                let firstButton = true;
                 for (const [animName, animConfig] of Object.entries(config.animations)) {
-                    if (animName === 'walk') continue;
-                    
                     const btn = document.createElement('button');
                     btn.className = 'anim-btn';
+                    if (firstButton) {
+                        btn.classList.add('active');
+                        firstButton = false;
+                    }
                     btn.id = animName + '-btn';
                     btn.textContent = animName.charAt(0).toUpperCase() + animName.slice(1);
                     btn.onclick = () => playAnimation(animName);
                     controlsDiv.appendChild(btn);
                 }
+            } else {
+                // If no animations defined, add a walk button as fallback
+                const walkBtn = document.createElement('button');
+                walkBtn.className = 'anim-btn active';
+                walkBtn.id = 'walk-btn';
+                walkBtn.textContent = 'Walk';
+                walkBtn.onclick = () => playAnimation('walk');
+                controlsDiv.appendChild(walkBtn);
             }
         }
         
@@ -2468,6 +3041,630 @@ if (typeof module !== 'undefined' && module.exports) {
             setTimeout(() => {
                 statusEl.style.display = 'none';
             }, 3000);
+        }
+        
+        // ============= COLLISION MAP MODE FUNCTIONS =============
+        
+        // Switch between sprite and collision modes
+        function switchMode(mode) {
+            editorMode = mode;
+            
+            // Update UI
+            document.getElementById('sprite-controls').style.display = mode === 'sprite' ? 'block' : 'none';
+            document.getElementById('collision-controls').style.display = mode === 'collision' ? 'block' : 'none';
+            
+            // Update button states
+            document.getElementById('sprite-mode-btn').className = mode === 'sprite' ? 'btn btn-primary' : 'btn';
+            document.getElementById('collision-mode-btn').className = mode === 'collision' ? 'btn btn-primary' : 'btn';
+            
+            // Clear/show appropriate graphics
+            if (editorScene) {
+                if (mode === 'collision') {
+                    // Hide sprite mode elements
+                    if (currentSprite) currentSprite.setVisible(false);
+                    if (currentShadow) currentShadow.setVisible(false);
+                    if (hitboxGraphics) hitboxGraphics.setVisible(false);
+                    if (shadowGraphics) shadowGraphics.setVisible(false);
+                    
+                    // Hide tile background and show collision background
+                    if (editorScene.tileBackground) editorScene.tileBackground.setVisible(false);
+                    if (collisionBackground) collisionBackground.setVisible(true);
+                    
+                    // Initialize collision graphics if needed
+                    if (!collisionGraphics) {
+                        collisionGraphics = editorScene.add.graphics();
+                        collisionGraphics.setDepth(10); // Above background
+                        tempShapeGraphics = editorScene.add.graphics();
+                        tempShapeGraphics.setDepth(11); // Above collision graphics
+                    }
+                    
+                    // Set up collision input handlers
+                    setupCollisionInput();
+                    
+                    // Redraw collision shapes
+                    redrawCollisionShapes();
+                } else {
+                    // Hide collision mode elements
+                    if (collisionGraphics) collisionGraphics.clear();
+                    if (tempShapeGraphics) tempShapeGraphics.clear();
+                    if (collisionBackground) collisionBackground.setVisible(false);
+                    
+                    // Show tile background and sprite mode elements
+                    if (editorScene.tileBackground) editorScene.tileBackground.setVisible(true);
+                    if (currentSprite) currentSprite.setVisible(true);
+                    if (currentShadow) currentShadow.setVisible(true);
+                    if (hitboxGraphics) hitboxGraphics.setVisible(true);
+                    if (shadowGraphics) shadowGraphics.setVisible(true);
+                    
+                    // Remove collision input handlers
+                    if (editorScene.input) {
+                        editorScene.input.off('pointerdown');
+                        editorScene.input.off('pointermove');
+                        editorScene.input.off('pointerup');
+                    }
+                }
+            }
+        }
+        
+        // Set collision drawing tool
+        function setCollisionTool(tool) {
+            collisionTool = tool;
+            
+            // Update button states
+            ['rect', 'circle', 'polygon', 'select'].forEach(t => {
+                const btn = document.getElementById(t + '-tool');
+                if (btn) {
+                    btn.className = t === tool ? 'btn btn-primary' : 'btn';
+                }
+            });
+            
+            // Reset polygon points if switching away from polygon
+            if (tool !== 'polygon') {
+                polygonPoints = [];
+                if (tempShapeGraphics) tempShapeGraphics.clear();
+            }
+        }
+        
+        // Load background image for collision map
+        function loadCollisionBackground(event) {
+            const file = event.target.files[0];
+            if (!file || !editorScene) return;
+            
+            console.log('Loading collision background:', file.name);
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const dataUrl = e.target.result;
+                
+                // Create an HTML image element first
+                const img = new Image();
+                img.onload = () => {
+                    console.log('Image dimensions:', img.width, 'x', img.height);
+                    
+                    // Remove old background if exists
+                    if (collisionBackground) {
+                        collisionBackground.destroy();
+                        collisionBackground = null;
+                    }
+                    
+                    // Hide tile background in collision mode
+                    if (editorScene.tileBackground) {
+                        editorScene.tileBackground.setVisible(false);
+                    }
+                    
+                    // Create texture directly from the HTML image element
+                    const textureName = 'collision-bg-' + Date.now();
+                    
+                    try {
+                        // Add the texture directly from the image element
+                        if (editorScene.textures.exists(textureName)) {
+                            editorScene.textures.remove(textureName);
+                        }
+                        
+                        // Create texture from HTML image
+                        editorScene.textures.addImage(textureName, img);
+                        
+                        console.log('Texture added successfully');
+                        
+                        // Create the background sprite immediately
+                        collisionBackground = editorScene.add.image(400, 300, textureName);
+                        
+                        // Set proper depth (above tile background but below shapes)
+                        collisionBackground.setDepth(5);
+                        collisionBackground.setVisible(true);
+                        collisionBackground.setAlpha(1);
+                        
+                        // Scale to fit if needed
+                        const maxWidth = 800;
+                        const maxHeight = 600;
+                        if (img.width > maxWidth || img.height > maxHeight) {
+                            const scale = Math.min(maxWidth / img.width, maxHeight / img.height);
+                            collisionBackground.setScale(scale);
+                            console.log('Scaled image to:', scale);
+                        }
+                        
+                        // Ensure collision graphics are above background
+                        if (!collisionGraphics) {
+                            collisionGraphics = editorScene.add.graphics();
+                        }
+                        collisionGraphics.setDepth(10);
+                        
+                        if (!tempShapeGraphics) {
+                            tempShapeGraphics = editorScene.add.graphics();
+                        }
+                        tempShapeGraphics.setDepth(11);
+                        
+                        console.log('Background created successfully');
+                        console.log('Position:', collisionBackground.x, collisionBackground.y);
+                        console.log('Visible:', collisionBackground.visible);
+                        console.log('Depth:', collisionBackground.depth);
+                        
+                        showStatus('Background loaded: ' + file.name);
+                        
+                    } catch (error) {
+                        console.error('Error creating texture:', error);
+                        showStatus('Error loading image: ' + error.message);
+                    }
+                };
+                
+                img.onerror = (error) => {
+                    console.error('Error loading image:', error);
+                    showStatus('Failed to load image');
+                };
+                
+                // Set the source to trigger loading
+                img.src = dataUrl;
+            };
+            
+            reader.onerror = (error) => {
+                console.error('Error reading file:', error);
+                showStatus('Failed to read file');
+            };
+            
+            reader.readAsDataURL(file);
+        }
+        
+        // Clear collision background
+        function clearCollisionBackground() {
+            if (collisionBackground) {
+                collisionBackground.destroy();
+                collisionBackground = null;
+            }
+            showStatus('Background cleared');
+        }
+        
+        // Setup collision input handlers
+        function setupCollisionInput() {
+            if (!editorScene) return;
+            
+            // Remove old listeners first
+            editorScene.input.off('pointerdown', onCollisionPointerDown);
+            editorScene.input.off('pointermove', onCollisionPointerMove);
+            editorScene.input.off('pointerup', onCollisionPointerUp);
+            
+            // Add new listeners
+            editorScene.input.on('pointerdown', onCollisionPointerDown);
+            editorScene.input.on('pointermove', onCollisionPointerMove);
+            editorScene.input.on('pointerup', onCollisionPointerUp);
+            
+            // Enable right-click context menu prevention
+            editorScene.input.mouse.disableContextMenu();
+            
+            // Add keyboard listeners for polygon mode
+            editorScene.input.keyboard.on('keydown-ENTER', () => {
+                if (collisionTool === 'polygon' && polygonPoints.length >= 3) {
+                    createPolygonShape();
+                    polygonPoints = [];
+                    tempShapeGraphics.clear();
+                    updatePolygonStatus('Polygon created! Ready for new polygon');
+                }
+            });
+            
+            editorScene.input.keyboard.on('keydown-ESC', () => {
+                if (collisionTool === 'polygon') {
+                    polygonPoints = [];
+                    tempShapeGraphics.clear();
+                    updatePolygonStatus('Polygon cancelled. Ready to draw');
+                }
+            });
+        }
+        
+        // Update polygon status display
+        function updatePolygonStatus(message) {
+            const statusEl = document.getElementById('polygon-status');
+            if (statusEl) {
+                statusEl.textContent = message;
+            }
+        }
+        
+        // Collision pointer down handler
+        function onCollisionPointerDown(pointer) {
+            const x = Math.round(pointer.x / collisionGridSize) * collisionGridSize;
+            const y = Math.round(pointer.y / collisionGridSize) * collisionGridSize;
+            
+            // Check for right-click
+            if (pointer.rightButtonDown()) {
+                if (collisionTool === 'polygon' && polygonPoints.length >= 3) {
+                    // Close polygon on right-click
+                    createPolygonShape();
+                    polygonPoints = [];
+                    tempShapeGraphics.clear();
+                    updatePolygonStatus('Polygon created! Ready for new polygon');
+                }
+                return;
+            }
+            
+            switch (collisionTool) {
+                case 'rect':
+                    shapeStartPoint = { x, y };
+                    isDrawingShape = true;
+                    break;
+                case 'circle':
+                    shapeStartPoint = { x, y };
+                    isDrawingShape = true;
+                    break;
+                case 'polygon':
+                    polygonPoints.push({ x, y });
+                    drawTempPolygon();
+                    updatePolygonStatus(`Added vertex ${polygonPoints.length}. Right-click or Enter to close`);
+                    break;
+                case 'select':
+                    selectShapeAt(x, y);
+                    if (selectedShape) {
+                        isDrawingShape = true;
+                        shapeStartPoint = { x: x - selectedShape.x, y: y - selectedShape.y };
+                        // Update rotation slider to match selected shape
+                        if (selectedShape.rotation !== undefined) {
+                            document.getElementById('shape-rotation').value = selectedShape.rotation * 180 / Math.PI;
+                            document.getElementById('rotation-val').textContent = Math.round(selectedShape.rotation * 180 / Math.PI);
+                        }
+                    }
+                    break;
+            }
+        }
+        
+        // Collision pointer move handler
+        function onCollisionPointerMove(pointer) {
+            if (!isDrawingShape) return;
+            
+            const x = Math.round(pointer.x / collisionGridSize) * collisionGridSize;
+            const y = Math.round(pointer.y / collisionGridSize) * collisionGridSize;
+            
+            tempShapeGraphics.clear();
+            
+            switch (collisionTool) {
+                case 'rect':
+                    drawTempRect(shapeStartPoint.x, shapeStartPoint.y, x, y);
+                    break;
+                case 'circle':
+                    const radius = Phaser.Math.Distance.Between(shapeStartPoint.x, shapeStartPoint.y, x, y);
+                    drawTempCircle(shapeStartPoint.x, shapeStartPoint.y, radius);
+                    break;
+                case 'select':
+                    if (selectedShape) {
+                        selectedShape.x = x - shapeStartPoint.x;
+                        selectedShape.y = y - shapeStartPoint.y;
+                        redrawCollisionShapes();
+                    }
+                    break;
+            }
+        }
+        
+        // Collision pointer up handler
+        function onCollisionPointerUp(pointer) {
+            if (!isDrawingShape && collisionTool !== 'polygon') return;
+            
+            const x = Math.round(pointer.x / collisionGridSize) * collisionGridSize;
+            const y = Math.round(pointer.y / collisionGridSize) * collisionGridSize;
+            
+            switch (collisionTool) {
+                case 'rect':
+                    createRectShape(shapeStartPoint.x, shapeStartPoint.y, x, y);
+                    break;
+                case 'circle':
+                    const radius = Phaser.Math.Distance.Between(shapeStartPoint.x, shapeStartPoint.y, x, y);
+                    createCircleShape(shapeStartPoint.x, shapeStartPoint.y, radius);
+                    break;
+            }
+            
+            isDrawingShape = false;
+            tempShapeGraphics.clear();
+        }
+        
+        // Create rectangle shape
+        function createRectShape(x1, y1, x2, y2) {
+            const shape = {
+                type: 'rect',
+                x: Math.min(x1, x2),
+                y: Math.min(y1, y2),
+                width: Math.abs(x2 - x1),
+                height: Math.abs(y2 - y1),
+                rotation: 0, // Start with no rotation
+                name: document.getElementById('shape-name').value || `Rect${collisionShapes.length}`,
+                shapeType: document.getElementById('shape-type').value,
+                bounce: parseFloat(document.getElementById('shape-bounce').value) / 100,
+                friction: parseFloat(document.getElementById('shape-friction').value) / 100
+            };
+            collisionShapes.push(shape);
+            redrawCollisionShapes();
+            updateShapeList();
+        }
+        
+        // Create circle shape
+        function createCircleShape(x, y, radius) {
+            const shape = {
+                type: 'circle',
+                x: x,
+                y: y,
+                radius: radius,
+                name: document.getElementById('shape-name').value || `Circle${collisionShapes.length}`,
+                shapeType: document.getElementById('shape-type').value,
+                bounce: parseFloat(document.getElementById('shape-bounce').value) / 100,
+                friction: parseFloat(document.getElementById('shape-friction').value) / 100
+            };
+            collisionShapes.push(shape);
+            redrawCollisionShapes();
+            updateShapeList();
+        }
+        
+        // Create polygon shape
+        function createPolygonShape() {
+            const shape = {
+                type: 'polygon',
+                points: [...polygonPoints],
+                x: polygonPoints[0].x,
+                y: polygonPoints[0].y,
+                name: document.getElementById('shape-name').value || `Polygon${collisionShapes.length}`,
+                shapeType: document.getElementById('shape-type').value,
+                bounce: parseFloat(document.getElementById('shape-bounce').value) / 100,
+                friction: parseFloat(document.getElementById('shape-friction').value) / 100
+            };
+            collisionShapes.push(shape);
+            redrawCollisionShapes();
+            updateShapeList();
+        }
+        
+        // Draw temporary rectangle
+        function drawTempRect(x1, y1, x2, y2) {
+            tempShapeGraphics.lineStyle(2, 0x00ff00, 1);
+            tempShapeGraphics.strokeRect(
+                Math.min(x1, x2),
+                Math.min(y1, y2),
+                Math.abs(x2 - x1),
+                Math.abs(y2 - y1)
+            );
+        }
+        
+        // Draw temporary circle
+        function drawTempCircle(x, y, radius) {
+            tempShapeGraphics.lineStyle(2, 0x00ff00, 1);
+            tempShapeGraphics.strokeCircle(x, y, radius);
+        }
+        
+        // Draw temporary polygon
+        function drawTempPolygon() {
+            if (polygonPoints.length === 0) return;
+            
+            tempShapeGraphics.clear();
+            tempShapeGraphics.lineStyle(2, 0x00ff00, 1);
+            tempShapeGraphics.beginPath();
+            tempShapeGraphics.moveTo(polygonPoints[0].x, polygonPoints[0].y);
+            
+            for (let i = 1; i < polygonPoints.length; i++) {
+                tempShapeGraphics.lineTo(polygonPoints[i].x, polygonPoints[i].y);
+            }
+            
+            tempShapeGraphics.strokePath();
+            
+            // Draw vertices
+            tempShapeGraphics.fillStyle(0x00ff00, 1);
+            polygonPoints.forEach(p => {
+                tempShapeGraphics.fillCircle(p.x, p.y, 3);
+            });
+        }
+        
+        // Redraw all collision shapes
+        function redrawCollisionShapes() {
+            if (!collisionGraphics) return;
+            
+            collisionGraphics.clear();
+            
+            collisionShapes.forEach(shape => {
+                const isSelected = shape === selectedShape;
+                const color = getShapeColor(shape.shapeType);
+                const alpha = isSelected ? 0.5 : 0.3;
+                
+                collisionGraphics.lineStyle(2, color, 1);
+                collisionGraphics.fillStyle(color, alpha);
+                
+                // Save transform state
+                collisionGraphics.save();
+                
+                // Apply rotation if shape has it
+                if (shape.rotation && shape.rotation !== 0) {
+                    // Calculate center point for rotation
+                    let centerX = shape.x;
+                    let centerY = shape.y;
+                    
+                    if (shape.type === 'rect') {
+                        centerX = shape.x + shape.width / 2;
+                        centerY = shape.y + shape.height / 2;
+                    }
+                    
+                    // Translate to center, rotate, then translate back
+                    collisionGraphics.translateCanvas(centerX, centerY);
+                    collisionGraphics.rotateCanvas(shape.rotation);
+                    collisionGraphics.translateCanvas(-centerX, -centerY);
+                }
+                
+                switch (shape.type) {
+                    case 'rect':
+                        collisionGraphics.fillRect(shape.x, shape.y, shape.width, shape.height);
+                        collisionGraphics.strokeRect(shape.x, shape.y, shape.width, shape.height);
+                        break;
+                    case 'circle':
+                        collisionGraphics.fillCircle(shape.x, shape.y, shape.radius);
+                        collisionGraphics.strokeCircle(shape.x, shape.y, shape.radius);
+                        break;
+                    case 'polygon':
+                        collisionGraphics.beginPath();
+                        collisionGraphics.moveTo(shape.points[0].x, shape.points[0].y);
+                        shape.points.forEach((p, i) => {
+                            if (i > 0) collisionGraphics.lineTo(p.x, p.y);
+                        });
+                        collisionGraphics.closePath();
+                        collisionGraphics.fillPath();
+                        collisionGraphics.strokePath();
+                        break;
+                }
+                
+                // Restore transform state
+                collisionGraphics.restore();
+            });
+        }
+        
+        // Update rotation of selected shape
+        function updateSelectedShapeRotation() {
+            if (!selectedShape) return;
+            
+            const rotationDegrees = parseFloat(document.getElementById('shape-rotation').value);
+            selectedShape.rotation = rotationDegrees * Math.PI / 180; // Convert to radians
+            
+            redrawCollisionShapes();
+        }
+        
+        // Get color based on shape type
+        function getShapeColor(shapeType) {
+            const colors = {
+                'wall': 0x0084ff,
+                'platform': 0x00ff00,
+                'trigger': 0xffff00,
+                'damage': 0xff0000,
+                'bounce': 0xff00ff
+            };
+            return colors[shapeType] || 0x0084ff;
+        }
+        
+        // Select shape at position
+        function selectShapeAt(x, y) {
+            selectedShape = null;
+            
+            for (let i = collisionShapes.length - 1; i >= 0; i--) {
+                const shape = collisionShapes[i];
+                let hit = false;
+                
+                switch (shape.type) {
+                    case 'rect':
+                        hit = x >= shape.x && x <= shape.x + shape.width &&
+                              y >= shape.y && y <= shape.y + shape.height;
+                        break;
+                    case 'circle':
+                        const dist = Phaser.Math.Distance.Between(x, y, shape.x, shape.y);
+                        hit = dist <= shape.radius;
+                        break;
+                    case 'polygon':
+                        hit = pointInPolygon(x, y, shape.points);
+                        break;
+                }
+                
+                if (hit) {
+                    selectedShape = shape;
+                    redrawCollisionShapes();
+                    updateShapeList();
+                    break;
+                }
+            }
+        }
+        
+        // Check if point is in polygon
+        function pointInPolygon(x, y, points) {
+            let inside = false;
+            for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+                const xi = points[i].x, yi = points[i].y;
+                const xj = points[j].x, yj = points[j].y;
+                
+                const intersect = ((yi > y) !== (yj > y))
+                    && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+        
+        // Update shape list UI
+        function updateShapeList() {
+            const list = document.getElementById('shape-list');
+            list.innerHTML = '';
+            
+            collisionShapes.forEach((shape, index) => {
+                const item = document.createElement('div');
+                item.style.cssText = 'padding: 5px; margin: 2px 0; background: rgba(255,255,255,0.1); border-radius: 3px; cursor: pointer;';
+                if (shape === selectedShape) {
+                    item.style.background = 'rgba(0,132,255,0.3)';
+                }
+                item.innerHTML = `${shape.name} (${shape.shapeType})`;
+                item.onclick = () => {
+                    selectedShape = shape;
+                    redrawCollisionShapes();
+                    updateShapeList();
+                };
+                list.appendChild(item);
+            });
+        }
+        
+        // Delete selected shape
+        function deleteSelectedShape() {
+            if (!selectedShape) return;
+            
+            const index = collisionShapes.indexOf(selectedShape);
+            if (index > -1) {
+                collisionShapes.splice(index, 1);
+                selectedShape = null;
+                redrawCollisionShapes();
+                updateShapeList();
+            }
+        }
+        
+        // Clear all shapes
+        function clearAllShapes() {
+            if (confirm('Clear all collision shapes?')) {
+                collisionShapes = [];
+                selectedShape = null;
+                redrawCollisionShapes();
+                updateShapeList();
+            }
+        }
+        
+        // Export collision map
+        function exportCollisionMap() {
+            const data = {
+                background: collisionBackground ? collisionBackground.texture.key : null,
+                shapes: collisionShapes,
+                gridSize: collisionGridSize
+            };
+            
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'collision-map.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showStatus('Collision map exported');
+        }
+        
+        // Save collision map to game
+        function saveCollisionToGame() {
+            // Save to a specific location in your game
+            const data = {
+                shapes: collisionShapes,
+                gridSize: collisionGridSize
+            };
+            
+            // You can modify this to save to your server or specific location
+            localStorage.setItem('gameCollisionMap', JSON.stringify(data));
+            showStatus('Collision map saved to game');
         }
         
         // Initialize
