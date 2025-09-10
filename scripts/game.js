@@ -489,10 +489,40 @@ class LoadingScene extends Phaser.Scene {
             frameHeight: 41
         });
         
-        // XP gem sprite sheet with 9 frames
-        this.load.spritesheet('xp-gem', 'assets/images/xpgem.PNG', {
-            frameWidth: 193,
-            frameHeight: 233
+        // Load new gem spritesheets (4 frames each)
+        this.load.spritesheet('blue-gem', 'assets/Coin_Gems/bluegem.png', {
+            frameWidth: 16,
+            frameHeight: 16
+        });
+        this.load.spritesheet('green-gem', 'assets/Coin_Gems/greengem.png', {
+            frameWidth: 16,
+            frameHeight: 16
+        });
+        this.load.spritesheet('red-gem', 'assets/Coin_Gems/redgem.png', {
+            frameWidth: 16,
+            frameHeight: 16
+        });
+        this.load.spritesheet('yellow-gem', 'assets/Coin_Gems/yellowgem.png', {
+            frameWidth: 16,
+            frameHeight: 16
+        });
+        this.load.spritesheet('silver-gem', 'assets/Coin_Gems/silvergem.png', {
+            frameWidth: 16,
+            frameHeight: 16
+        });
+        
+        // Load coin spritesheets for essence replacement (4 frames each)
+        this.load.spritesheet('gold-coin', 'assets/Coin_Gems/goldcoin.png', {
+            frameWidth: 16,
+            frameHeight: 16
+        });
+        this.load.spritesheet('silver-coin', 'assets/Coin_Gems/silvercoin.png', {
+            frameWidth: 16,
+            frameHeight: 16
+        });
+        this.load.spritesheet('red-coin', 'assets/Coin_Gems/redcoin.png', {
+            frameWidth: 16,
+            frameHeight: 16
         });
         
         // Cave obstacle assets
@@ -1301,6 +1331,67 @@ class TitleScene extends Phaser.Scene {
     }
 
     update() {
+        // Draw debug hitbox visualization
+        if (this.hitboxDebugGraphics && this.debugHitboxInfo && this.wizard) {
+            this.hitboxDebugGraphics.clear();
+            
+            const info = this.debugHitboxInfo;
+            const wizard = this.wizard;
+            
+            // Draw sprite frame bounds (white)
+            this.hitboxDebugGraphics.lineStyle(1, 0xffffff, 0.5);
+            const spriteLeft = wizard.x - (info.frameWidth * info.originX);
+            const spriteTop = wizard.y - (info.frameHeight * info.originY);
+            this.hitboxDebugGraphics.strokeRect(spriteLeft, spriteTop, info.frameWidth, info.frameHeight);
+            
+            // Draw physics body (green - actual current position)
+            this.hitboxDebugGraphics.lineStyle(3, 0x00ff00, 1);
+            const bodyLeft = wizard.body.x;
+            const bodyTop = wizard.body.y;
+            this.hitboxDebugGraphics.strokeRect(bodyLeft, bodyTop, wizard.body.width, wizard.body.height);
+            
+            // Draw expected hitbox position from editor (red - where it SHOULD be)
+            this.hitboxDebugGraphics.lineStyle(2, 0xff0000, 0.8);
+            const expectedLeft = spriteLeft + info.config.offsetX;
+            const expectedTop = spriteTop + info.config.offsetY;
+            this.hitboxDebugGraphics.strokeRect(expectedLeft, expectedTop, info.config.width, info.config.height);
+            
+            // Draw origin cross (yellow)
+            this.hitboxDebugGraphics.lineStyle(1, 0xffff00, 1);
+            this.hitboxDebugGraphics.moveTo(wizard.x - 5, wizard.y);
+            this.hitboxDebugGraphics.lineTo(wizard.x + 5, wizard.y);
+            this.hitboxDebugGraphics.moveTo(wizard.x, wizard.y - 5);
+            this.hitboxDebugGraphics.lineTo(wizard.x, wizard.y + 5);
+            
+            // Add text showing current character and formula
+            if (!this.debugText) {
+                this.debugText = this.add.text(10, 100, '', {
+                    fontSize: '14px',
+                    color: '#ffffff',
+                    backgroundColor: '#000000',
+                    padding: { x: 5, y: 5 }
+                });
+                this.debugText.setDepth(1000);
+                this.debugText.setScrollFactor(0);
+            }
+            
+            this.debugText.setText([
+                `Character: ${info.character}`,
+                `Scale: ${info.scale}`,
+                `Origin: (${info.originX}, ${info.originY})`,
+                `Frame: ${info.frameWidth}x${info.frameHeight}`,
+                ``,
+                `Press 1-4 to test formulas:`,
+                `1: Raw offset`,
+                `2: Half offset (current)`,
+                `3: Origin-adjusted`,
+                `4: Scale-adjusted`,
+                ``,
+                `Green = Actual hitbox`,
+                `Red = Editor expected position`
+            ]);
+        }
+        
         // Always try to update gamepad reference
         if (this.input.gamepad && this.input.gamepad.total > 0) {
             const pad = this.input.gamepad.getPad(0);
@@ -8564,6 +8655,12 @@ class GameScene extends Phaser.Scene {
         console.log('Creating background for stage:', this.stage);
         this.createStageBackground();
         console.log('Stage background created');
+        
+        // Initialize Hitbox Config BEFORE creating player
+        if (typeof hitboxConfig !== 'undefined') {
+            hitboxConfig.load();
+            console.log('Hitbox config loaded before player creation');
+        }
 
         console.log('Creating wizard sprite');
         // Set initial position based on stage
@@ -8653,8 +8750,13 @@ class GameScene extends Phaser.Scene {
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
                 const config = hitboxConfig.hitboxes[this.p2Character] || hitboxConfig.hitboxes['wizard'];
                 if (config) {
+                    // Use scale-adjusted formula to match P1
+                    const scale = this.wizard2.scaleX;
+                    const adjustedOffsetX = config.offsetX / scale;
+                    const adjustedOffsetY = config.offsetY / scale;
+                    
                     this.wizard2.body.setSize(config.width, config.height);
-                    this.wizard2.body.setOffset(config.offsetX, config.offsetY);
+                    this.wizard2.body.setOffset(adjustedOffsetX, adjustedOffsetY);
                 } else {
                     // Fallback to default
                     this.wizard2.body.setSize(20, 30);
@@ -8719,11 +8821,104 @@ class GameScene extends Phaser.Scene {
         // Apply hitbox configuration from hitbox-config.js if available
         if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
             const config = hitboxConfig.hitboxes[this.p1Character] || hitboxConfig.hitboxes['wizard'];
+            console.log(`Applying hitbox for P1 character '${this.p1Character}':`, config);
             if (config) {
+                // Convert editor's top-left based offset to center-based offset for sprites with centered origin
+                // Editor calculates offset from top-left (0,0), but Phaser applies from sprite's anchor point
+                const frameWidth = this.wizard.frame.width;
+                const frameHeight = this.wizard.frame.height;
+                const originX = this.wizard.originX;
+                const originY = this.wizard.originY;
+                
+                // Deep debugging to understand the coordinate systems
+                const scale = this.wizard.scaleX;
+                
+                // Test different approaches
+                const halfOffset = {
+                    x: config.offsetX * 0.5,
+                    y: config.offsetY * 0.5
+                };
+                
+                const originAdjusted = {
+                    x: config.offsetX - (frameWidth * originX),
+                    y: config.offsetY - (frameHeight * originY)
+                };
+                
+                const scaleAdjusted = {
+                    x: config.offsetX / scale,
+                    y: config.offsetY / scale
+                };
+                
+                // Use scale-adjusted formula - this accounts for sprite scaling
+                const adjustedOffsetX = config.offsetX / scale;
+                const adjustedOffsetY = config.offsetY / scale;
+                
+                // Log the final calculation
+                console.log(`P1 ${this.p1Character}: Hitbox ${config.width}x${config.height}, Scale ${scale}, Offset adjusted from (${config.offsetX}, ${config.offsetY}) to (${adjustedOffsetX.toFixed(1)}, ${adjustedOffsetY.toFixed(1)})`);
+                
                 this.wizard.body.setSize(config.width, config.height);
-                this.wizard.body.setOffset(config.offsetX, config.offsetY);
+                this.wizard.body.setOffset(adjustedOffsetX, adjustedOffsetY);
+                
+                // Create visual debug overlay for hitbox (for ALL characters in debug mode)
+                if (DEBUG_MODE) {
+                    // Remove old debug graphics if exists
+                    if (this.hitboxDebugGraphics) {
+                        this.hitboxDebugGraphics.destroy();
+                    }
+                    
+                    this.hitboxDebugGraphics = this.add.graphics();
+                    this.hitboxDebugGraphics.setDepth(999);
+                    
+                    // Store all the different calculation methods for testing
+                    this.debugHitboxInfo = {
+                        character: this.p1Character,
+                        config: config,
+                        frameWidth: frameWidth,
+                        frameHeight: frameHeight,
+                        scale: scale,
+                        originX: originX,
+                        originY: originY,
+                        // Different offset calculations to test
+                        calculations: {
+                            raw: { x: config.offsetX, y: config.offsetY },
+                            half: { x: halfOffset.x, y: halfOffset.y },
+                            originAdjusted: { x: originAdjusted.x, y: originAdjusted.y },
+                            scaleAdjusted: { x: scaleAdjusted.x, y: scaleAdjusted.y },
+                            current: { x: adjustedOffsetX, y: adjustedOffsetY }
+                        }
+                    };
+                    
+                    // Add keyboard shortcuts to test different formulas
+                    this.input.keyboard.on('keydown-ONE', () => {
+                        const calc = this.debugHitboxInfo.calculations.raw;
+                        this.wizard.body.setOffset(calc.x, calc.y);
+                        console.log('Using RAW offset:', calc);
+                    });
+                    
+                    this.input.keyboard.on('keydown-TWO', () => {
+                        const calc = this.debugHitboxInfo.calculations.half;
+                        this.wizard.body.setOffset(calc.x, calc.y);
+                        console.log('Using HALF offset:', calc);
+                    });
+                    
+                    this.input.keyboard.on('keydown-THREE', () => {
+                        const calc = this.debugHitboxInfo.calculations.originAdjusted;
+                        this.wizard.body.setOffset(calc.x, calc.y);
+                        console.log('Using ORIGIN-ADJUSTED offset:', calc);
+                    });
+                    
+                    this.input.keyboard.on('keydown-FOUR', () => {
+                        const calc = this.debugHitboxInfo.calculations.scaleAdjusted;
+                        this.wizard.body.setOffset(calc.x, calc.y);
+                        console.log('Using SCALE-ADJUSTED offset:', calc);
+                    });
+                }
+                console.log(`Frame: ${frameWidth}x${frameHeight}, Origin: (${originX}, ${originY})`);
+                console.log(`Editor offset (from top-left): (${config.offsetX}, ${config.offsetY})`);
+                console.log(`Game offset (from origin): (${adjustedOffsetX.toFixed(1)}, ${adjustedOffsetY.toFixed(1)})`)
             } else {
                 // Fallback to default
+                console.log('No hitbox config found, using defaults');
                 this.wizard.body.setSize(20, 30);
                 this.wizard.body.setOffset(30, 25);
             }
@@ -9503,12 +9698,26 @@ class GameScene extends Phaser.Scene {
             repeat: -1  // Loop for the cloud effect
         });
         
-        // Create XP gem animation
-        createAnimIfNotExists({
-            key: 'xp-gem-anim',
-            frames: this.anims.generateFrameNumbers('xp-gem', { start: 0, end: 8 }),
-            frameRate: 10,
-            repeat: -1
+        // Create gem animations (4 frames each)
+        const gemTypes = ['blue-gem', 'green-gem', 'red-gem', 'yellow-gem', 'silver-gem'];
+        gemTypes.forEach(gemType => {
+            createAnimIfNotExists({
+                key: `${gemType}-anim`,
+                frames: this.anims.generateFrameNumbers(gemType, { start: 0, end: 3 }),
+                frameRate: 8,
+                repeat: -1
+            });
+        });
+        
+        // Create coin animations (4 frames each)
+        const coinTypes = ['gold-coin', 'silver-coin', 'red-coin'];
+        coinTypes.forEach(coinType => {
+            createAnimIfNotExists({
+                key: `${coinType}-anim`,
+                frames: this.anims.generateFrameNumbers(coinType, { start: 0, end: 3 }),
+                frameRate: 8,
+                repeat: -1
+            });
         });
 
         // Create lightning spell animation
@@ -11689,10 +11898,7 @@ class GameScene extends Phaser.Scene {
         this.toggleIndicatorsKey = this.input.keyboard.addKey('I');
         this.indicatorsVisible = true;
         
-        // Initialize Hitbox Config
-        if (typeof hitboxConfig !== 'undefined') {
-            hitboxConfig.load();
-        }
+        // Hitbox Config already loaded before player creation
         
         // Initialize Hitbox Editor
         if (typeof HitboxEditor !== 'undefined') {
@@ -18619,6 +18825,12 @@ class GameScene extends Phaser.Scene {
                     const waveBonus = Math.floor(this.currentWave / 2); // +1 XP every 2 waves
                     const xpValue = baseXP + waveBonus;
                     this.dropJewel(deathX, deathY, xpValue, 0.075);
+                    
+                    // Drop essence coins (30% chance)
+                    if (Math.random() < 0.3) {
+                        const coinValue = 1 + Math.floor(this.currentWave / 5); // +1 essence every 5 waves
+                        this.dropCoin(deathX + 15, deathY, coinValue, 1.5);
+                    }
 
                     // Item drop chances - now as standalone items
                     const dropRoll = Math.random();
@@ -18669,6 +18881,14 @@ class GameScene extends Phaser.Scene {
                         const offsetY = (Math.random() - 0.5) * 40;
                         this.dropJewel(deathX + offsetX, deathY + offsetY, xpValue, 0.075);
                     }
+                    
+                    // Elite enemies always drop essence coins
+                    const eliteCoinValue = 3 + Math.floor(this.currentWave / 3); // Higher value coins
+                    for (let i = 0; i < 2; i++) { // Drop 2 coins
+                        const offsetX = (Math.random() - 0.5) * 30;
+                        const offsetY = (Math.random() - 0.5) * 30;
+                        this.dropCoin(deathX + offsetX, deathY + offsetY, eliteCoinValue, 1.8);
+                    }
 
                     // Elite enemies always drop a reward chest
                     this.dropRewardChest(deathX, deathY);
@@ -18712,6 +18932,14 @@ class GameScene extends Phaser.Scene {
                         const offsetX = (Math.random() - 0.5) * 40;
                         const offsetY = (Math.random() - 0.5) * 40;
                         this.dropJewel(deathX + offsetX, deathY + offsetY, xpValue, 0.10); // Scaled XP, larger size
+                    }
+                    
+                    // Elite golems drop lots of essence coins
+                    const coinValue = 5 + Math.floor(this.currentWave / 3);
+                    for (let i = 0; i < 3; i++) { // Drop 3 coins
+                        const offsetX = (Math.random() - 0.5) * 50;
+                        const offsetY = (Math.random() - 0.5) * 50;
+                        this.dropCoin(deathX + offsetX, deathY + offsetY, coinValue, 2.0);
                     }
                 } else {
                     // Regular golem drops valuable gems - XP scales with wave
@@ -24955,30 +25183,67 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    dropJewel(x, y, xpValue = 2, scale = 0.075) {
-        // Use animated XP gem sprite
-        const jewel = this.physics.add.sprite(x, y, 'xp-gem');
-        if (this.anims.exists('xp-gem-anim')) {
-            jewel.play('xp-gem-anim');
+    dropJewel(x, y, xpValue = 2, scale = 1.0) {
+        // Choose gem type based on XP value
+        let gemType;
+        if (xpValue >= 10) {
+            gemType = 'yellow-gem'; // Gold/yellow for highest value
+        } else if (xpValue >= 7) {
+            gemType = 'red-gem'; // Red for high value
+        } else if (xpValue >= 5) {
+            gemType = 'silver-gem'; // Silver for medium-high
+        } else if (xpValue >= 3) {
+            gemType = 'green-gem'; // Green for medium
+        } else {
+            gemType = 'blue-gem'; // Blue for low value
+        }
+        
+        // Create animated gem sprite
+        const jewel = this.physics.add.sprite(x, y, gemType);
+        const animKey = `${gemType}-anim`;
+        if (this.anims.exists(animKey)) {
+            jewel.play(animKey);
         }
         jewel.setDepth(25);
-        jewel.setScale(scale);
+        jewel.setScale(1.0); // Always use original size for 16x16 gems
         jewel.body.setVelocity(0, 0);
-        jewel.body.setSize(60, 60); // Larger collision box for proximity collection
+        jewel.body.setSize(12, 12); // Collision box for 16x16 sprites
         
         // Store XP value on the jewel
         jewel.xpValue = xpValue;
-        
-        // Add tint based on value
-        if (xpValue >= 10) {
-            jewel.setTint(0xffff00); // Gold for high value
-        } else if (xpValue >= 5) {
-            jewel.setTint(0x00ffff); // Cyan for medium value
-        }
-
 
         this.jewels.add(jewel);
         return jewel;
+    }
+    
+    dropCoin(x, y, value = 1, scale = 1.0) {
+        // Choose coin type based on value
+        let coinType;
+        if (value >= 10) {
+            coinType = 'gold-coin'; // Gold for highest value
+        } else if (value >= 5) {
+            coinType = 'red-coin'; // Red for medium value
+        } else {
+            coinType = 'silver-coin'; // Silver for low value
+        }
+        
+        // Create animated coin sprite
+        const coin = this.physics.add.sprite(x, y, coinType);
+        const animKey = `${coinType}-anim`;
+        if (this.anims.exists(animKey)) {
+            coin.play(animKey);
+        }
+        coin.setDepth(25);
+        coin.setScale(1.0); // Always use original size for 16x16 coins
+        coin.body.setVelocity(0, 0);
+        coin.body.setSize(12, 12); // Collision box for 16x16 sprites
+        
+        // Store coin value
+        coin.coinValue = value;
+        
+        // Add to jewels group for now (can create separate coins group later)
+        this.jewels.add(coin);
+        return coin;
     }
 
     dropMuffin(x, y) {
@@ -25067,23 +25332,53 @@ class GameScene extends Phaser.Scene {
         // Mark as being processed immediately
         jewel.isDestroying = true;
         
-        // Add XP - use jewel's stored value or default
-        const baseXP = jewel.xpValue || 2;
-        const xpGain = Math.ceil(baseXP * this.difficultyMultiplier);
-        this.playerXP += xpGain;
-        // Track item collection (itemsCollected is now a number, not an object)
-        this.itemsCollected++;
-
-        // Chance to award talent points (10% base chance, increases with difficulty)
-        const talentChance = 0.10 * this.difficultyMultiplier;
-        if (Math.random() < talentChance) {
-            const talentGain = Math.ceil(Math.random() * 2); // 1-2 talent points
+        // Check if this is a coin (has coinValue) or a gem (has xpValue)
+        if (jewel.coinValue !== undefined) {
+            // This is a coin - grant essence
+            const essenceGain = jewel.coinValue;
             const currentPoints = parseInt(localStorage.getItem('talentPoints') || '0');
-            const newPoints = currentPoints + talentGain;
+            const newPoints = currentPoints + essenceGain;
             localStorage.setItem('talentPoints', newPoints.toString());
             
-            // Visual feedback for talent point gain
-            const talentText = this.add.text(wizard.x, wizard.y - 30, `+${talentGain} Essence!`, {
+            // Visual feedback for essence gain
+            const essenceText = this.add.text(wizard.x, wizard.y - 30, `+${essenceGain} Essence!`, {
+                fontSize: '20px',
+                color: '#ffdd00', // Gold color for coins
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 3
+            });
+            essenceText.setOrigin(0.5);
+            essenceText.setDepth(150);
+            
+            this.tweens.add({
+                targets: essenceText,
+                y: wizard.y - 70,
+                alpha: 0,
+                duration: 1500,
+                onComplete: () => essenceText.destroy()
+            });
+            
+            // Track collection
+            this.itemsCollected++;
+        } else {
+            // This is a gem - grant XP
+            const baseXP = jewel.xpValue || 2;
+            const xpGain = Math.ceil(baseXP * this.difficultyMultiplier);
+            this.playerXP += xpGain;
+            // Track item collection (itemsCollected is now a number, not an object)
+            this.itemsCollected++;
+        }
+
+        // Small chance to award bonus essence from gems (5% base chance)
+        if (jewel.xpValue !== undefined && Math.random() < 0.05 * this.difficultyMultiplier) {
+            const bonusEssence = 1;
+            const currentPoints = parseInt(localStorage.getItem('talentPoints') || '0');
+            const newPoints = currentPoints + bonusEssence;
+            localStorage.setItem('talentPoints', newPoints.toString());
+            
+            // Visual feedback for bonus essence
+            const talentText = this.add.text(wizard.x, wizard.y - 30, `+${bonusEssence} Essence!`, {
                 fontSize: '20px',
                 color: '#ff00ff',
                 fontStyle: 'bold',
@@ -44992,7 +45287,7 @@ class GameScene extends Phaser.Scene {
         
         // Create narrow dungeon layout (similar to Spireland but with cave tiles)
         const dungeonWidth = 3000;
-        const dungeonHeight = 600; // Narrow height
+        const dungeonHeight = 1200; // Doubled height for more room
         
         // Store dungeon tiles for cleanup
         this.dungeonTiles = [];

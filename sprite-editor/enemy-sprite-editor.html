@@ -1488,6 +1488,7 @@
                 
                 // Create grid graphics
                 gridGraphics = this.add.graphics();
+                gridGraphics.setDepth(1); // Ensure grid is visible above background
                 gridGraphics.setVisible(false);
                 drawGrid();
                 
@@ -1932,7 +1933,8 @@
             const frameHeight = currentSprite.frame.height;
             
             // Calculate offset to center the hitbox
-            // The game uses origin (0,0) so we calculate offset from top-left corner
+            // IMPORTANT: body.setOffset is always from the sprite frame's top-left corner,
+            // regardless of the sprite's origin setting (which is 0.5, 0.5 in both editor and game)
             const offsetX = (frameWidth - width) / 2;
             const offsetY = (frameHeight - height) / 2;
             
@@ -1943,7 +1945,13 @@
             // Update the hitbox
             updateHitbox();
             
-            showStatus('Hitbox centered on sprite');
+            // Debug info
+            console.log(`Centered hitbox for ${currentEnemy}:`);
+            console.log(`  Frame: ${frameWidth}x${frameHeight}`);
+            console.log(`  Hitbox: ${width}x${height}`);
+            console.log(`  Calculated offset: (${Math.round(offsetX)}, ${Math.round(offsetY)})`);
+            
+            showStatus(`Hitbox centered: offset (${Math.round(offsetX)}, ${Math.round(offsetY)})`);
         }
         
         // Update hitbox display

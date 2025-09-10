@@ -81,7 +81,7 @@ const server = http.createServer((req, res) => {
                 config = { ...spriteConfig };
             }
             
-            // Also load scales from hitbox-config.js
+            // Also load scales and hitboxes from hitbox-config.js
             if (fs.existsSync(HITBOX_CONFIG_FILE)) {
                 const hitboxContent = fs.readFileSync(HITBOX_CONFIG_FILE, 'utf8');
                 
@@ -99,6 +99,26 @@ const server = http.createServer((req, res) => {
                                 config[enemy].scale = parseFloat(scale);
                             }
                         });
+                    }
+                }
+                
+                // Extract hitboxes object
+                const hitboxesMatch = hitboxContent.match(/hitboxes:\s*\{([\s\S]*?)\n\s*\},/);
+                if (hitboxesMatch) {
+                    const hitboxesText = hitboxesMatch[1];
+                    // Match entries like 'blip': { width: 18, height: 18, offsetX: 23, offsetY: 11 }
+                    const hitboxPattern = /'([^']+)':\s*\{\s*width:\s*(\d+),\s*height:\s*(\d+),\s*offsetX:\s*([\d.-]+),\s*offsetY:\s*([\d.-]+)/g;
+                    let match;
+                    while ((match = hitboxPattern.exec(hitboxesText)) !== null) {
+                        const [, enemy, width, height, offsetX, offsetY] = match;
+                        if (!config[enemy]) config[enemy] = {};
+                        config[enemy].hitbox = {
+                            width: parseInt(width),
+                            height: parseInt(height),
+                            offsetX: parseFloat(offsetX),
+                            offsetY: parseFloat(offsetY)
+                        };
+                        console.log(`Loaded hitbox for ${enemy}:`, config[enemy].hitbox);
                     }
                 }
             }

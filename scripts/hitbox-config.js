@@ -68,8 +68,8 @@ if (typeof hitboxConfig === 'undefined') {
         // Grave enemies
         yellowskeleton: { width: 40, height: 50, offsetX: 28, offsetY: 14 },
         skeletonseeker: { width: 60, height: 80, offsetX: 30, offsetY: 40 },
-        clubimp: { width: 30, height: 40, offsetX: 15, offsetY: 10 },
-        axeimp: { width: 30, height: 40, offsetX: 15, offsetY: 10 },
+        clubimp: { width: 22, height: 30, offsetX: 37, offsetY: 36 },
+        axeimp: { width: 22, height: 32, offsetX: 100, offsetY: 100 },
         wraith: { width: 40, height: 50, offsetX: 12, offsetY: 7 },
         flyingdemon: { width: 50, height: 40, offsetX: 7, offsetY: 12 },
         
@@ -90,7 +90,7 @@ if (typeof hitboxConfig === 'undefined') {
         'kingNothing': { width: 90, height: 110, offsetX: 45, offsetY: 20 },
         
         // Homunculi characters
-        'blip': { width: 18, height: 18, offsetX: 48, offsetY: 30 },
+        'blip': { width: 18, height: 18, offsetX: 50, offsetY: 36 },
         'orb': { width: 30, height: 30, offsetX: 17, offsetY: 17 },
         'wizard': { width: 40, height: 50, offsetX: 20, offsetY: 15 },
         'grim': { width: 40, height: 50, offsetX: 20, offsetY: 15 }
@@ -100,7 +100,7 @@ if (typeof hitboxConfig === 'undefined') {
     shadows: {
         // Default shadow settings
         default: { width: 40, height: 12, offsetX: 0, offsetY: 30, alpha: 0.5 },
-        blip: { width: 81, height: 30, offsetX: 0, offsetY: 30, alpha: 0.5 },
+        blip: { width: 81, height: 30, offsetX: -4, offsetY: 30, alpha: 0.3 },
         
         // Forest enemies
         mushroom: { width: 50, height: 15, offsetX: 0, offsetY: 20, alpha: 0.5 },
@@ -111,19 +111,19 @@ if (typeof hitboxConfig === 'undefined') {
         
         // Larger enemies have bigger shadows
         golem: { width: 60, height: 18, offsetX: 0, offsetY: 40, alpha: 0.6 },
-        'golem-blue': { width: 60, height: 18, offsetX: 0, offsetY: 40, alpha: 0.6 },
-        'golem-orange': { width: 60, height: 18, offsetX: 0, offsetY: 40, alpha: 0.6 },
-        'castle-knight': { width: 35, height: 12, offsetX: 0, offsetY: 35, alpha: 0.5 },
-        'castle-rogue': { width: 35, height: 12, offsetX: 0, offsetY: 35, alpha: 0.5 },
-        'castle-soldier': { width: 35, height: 12, offsetX: 0, offsetY: 35, alpha: 0.5 },
-        'castle-bladekeeper': { width: 40, height: 14, offsetX: 0, offsetY: 38, alpha: 0.5 },
-        'castle-squire': { width: 35, height: 12, offsetX: 0, offsetY: 35, alpha: 0.5 },
+        'golem-blue': { width: 60, height: 50, offsetX: 15, offsetY: 10 },
+        'golem-orange': { width: 60, height: 50, offsetX: 15, offsetY: 10 },
+        'castle-knight': { width: 30, height: 45, offsetX: 15, offsetY: 20 },
+        'castle-rogue': { width: 30, height: 45, offsetX: 15, offsetY: 20 },
+        'castle-soldier': { width: 30, height: 45, offsetX: 17, offsetY: 20 },
+        'castle-bladekeeper': { width: 40, height: 55, offsetX: 12, offsetY: 15 },
+        'castle-squire': { width: 30, height: 45, offsetX: 17, offsetY: 20 },
         
         // Grave enemies shadows
         yellowskeleton: { width: 35, height: 12, offsetX: 0, offsetY: 35, alpha: 0.5 },
         skeletonseeker: { width: 40, height: 14, offsetX: 0, offsetY: 40, alpha: 0.5 },
-        clubimp: { width: 28, height: 10, offsetX: 0, offsetY: 30, alpha: 0.5 },
-        axeimp: { width: 28, height: 10, offsetX: 0, offsetY: 30, alpha: 0.5 },
+        clubimp: { width: 22, height: 30, offsetX: 37, offsetY: 36 },
+        axeimp: { width: 22, height: 32, offsetX: 100, offsetY: 100 },
         wraith: { width: 35, height: 10, offsetX: 0, offsetY: 35, alpha: 0.4 },
         
         // Desert enemies shadows
@@ -154,14 +154,14 @@ if (typeof hitboxConfig === 'undefined') {
         flyingdemon: { width: 45, height: 12, offsetX: 0, offsetY: 55, alpha: 0.3 },
         
         // Bosses have large shadows
-        'obelisk-boss': { width: 120, height: 30, offsetX: 0, offsetY: 80, alpha: 0.6 },
+        'obelisk-boss': { width: 150, height: 200, offsetX: 75, offsetY: 50 },
         'sand-obelisk-boss': { width: 120, height: 30, offsetX: 0, offsetY: 80, alpha: 0.6 },
-        'demon-slime-boss': { width: 80, height: 20, offsetX: 0, offsetY: 50, alpha: 0.6 },
-        'eyelor': { width: 90, height: 25, offsetX: 0, offsetY: 60, alpha: 0.5 },
-        'nekros': { width: 70, height: 20, offsetX: 0, offsetY: 55, alpha: 0.6 },
-        'voidkin': { width: 60, height: 18, offsetX: 0, offsetY: 50, alpha: 0.6 },
-        'kingNothing': { width: 70, height: 20, offsetX: 0, offsetY: 55, alpha: 0.6 },
-        'archer-boss': { width: 50, height: 15, offsetX: 0, offsetY: 45, alpha: 0.5 }
+        'demon-slime-boss': { width: 80, height: 80, offsetX: 40, offsetY: 40 },
+        'eyelor': { width: 100, height: 100, offsetX: 50, offsetY: 50 },
+        'nekros': { width: 80, height: 100, offsetX: 40, offsetY: 30 },
+        'voidkin': { width: 70, height: 90, offsetX: 35, offsetY: 20 },
+        'kingNothing': { width: 90, height: 110, offsetX: 45, offsetY: 20 },
+        'archer-boss': { width: 60, height: 80, offsetX: 45, offsetY: 40 }
     },
     
     // Helper function to get scale configuration
@@ -182,8 +182,17 @@ if (typeof hitboxConfig === 'undefined') {
         const config = this.hitboxes[enemyType];
         if (config) {
             console.log(`Applying hitbox for ${enemyType}:`, config);
+            
+            // Use scale-adjusted formula - divide offset by sprite scale
+            // This ensures the hitbox appears in the same position as in the editor
+            const scale = enemy.scaleX || 1;
+            const adjustedOffsetX = config.offsetX / scale;
+            const adjustedOffsetY = config.offsetY / scale;
+            
             enemy.body.setSize(config.width, config.height);
-            enemy.body.setOffset(config.offsetX, config.offsetY);
+            enemy.body.setOffset(adjustedOffsetX, adjustedOffsetY);
+            
+            console.log(`  Scale: ${scale}, Adjusted offset: (${adjustedOffsetX.toFixed(1)}, ${adjustedOffsetY.toFixed(1)})`);
             return true;
         }
         console.log(`No hitbox config found for ${enemyType}`);
