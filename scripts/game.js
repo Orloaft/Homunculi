@@ -289,6 +289,8 @@ class LoadingScene extends Phaser.Scene {
         this.load.image('wave-orb', 'assets/effects/orbs/waveorb.png');
         this.load.image('vortex-orb', 'assets/effects/orbs/vortex.png');
         this.load.image('tornado-orb', 'assets/effects/orbs/tornado.png');
+        this.load.image('snowball-orb', 'assets/effects/orbs/snowball.png');
+        this.load.image('illusion-orb', 'assets/effects/orbs/homunculus.png');
         this.load.image('star-orb', 'assets/effects/orbs/starorb.png');
         this.load.image('zodiac-orb', 'assets/effects/orbs/zodiacorb.png');
         this.load.image('hex-orb', 'assets/effects/orbs/hexorb.png');
@@ -612,8 +614,30 @@ class LoadingScene extends Phaser.Scene {
             this.load.image(`crystal-frame-${i}`, `assets/effects/spells/crystalframe${i}.PNG`);
         }
         
+        // Load ghost missile death animation frames
+        for (let i = 1; i <= 16; i++) {
+            this.load.image(`ghost-missile-${i}`, `assets/effects/elementanimations/ghostmissle/Dark VFX 2 (48x64)${i}.png`);
+        }
+        
+        // Load death missile hex animation frames
+        for (let i = 1; i <= 17; i++) {
+            this.load.image(`death-missile-${i}`, `assets/effects/elementanimations/deathmissle/Dark VFX 1 (40x32)${i}.png`);
+        }
+        
         // Load rock spell animation (6 frames launch + 6 frames impact)
         this.load.spritesheet('rock-smash', 'assets/effects/elementanimations/earthrocksmash/6framesx2framesdims288x96.png', {
+            frameWidth: 288 / 6,  // 48 pixels per frame
+            frameHeight: 96 / 2   // 48 pixels per row
+        });
+        
+        // Load snowball spell animation (6 frames launch + 6 frames impact)
+        this.load.spritesheet('snowball-smash', 'assets/effects/elementanimations/snowball/6framesx2framesdims288x96-export.png', {
+            frameWidth: 288 / 6,  // 48 pixels per frame
+            frameHeight: 96 / 2   // 48 pixels per row
+        });
+        
+        // Load magmaball spell animation (6 frames launch + 6 frames impact)
+        this.load.spritesheet('magmaball-smash', 'assets/effects/elementanimations/magmaball/6framesx2framesdims288x96-export.png', {
             frameWidth: 288 / 6,  // 48 pixels per frame
             frameHeight: 96 / 2   // 48 pixels per row
         });
@@ -1864,7 +1888,7 @@ class TitleScene extends Phaser.Scene {
         const allElements = ['none', 'fire', 'water', 'earth', 'rock', 'air', 'lightning', 'holy', 'arcane', 
                             'dust', 'lava', 'steam', 'poison', 'volcano', 'ice', 'meteor', 'mud', 
                             'storm', 'thunder', 'crystal', 'death', 'time', 'sand', 'gravity', 'sun', 'smoke', 'blast',
-                            'wave', 'vortex', 'tornado', 'star', 'zodiac', 'hex', 'venom', 'moon', 'nature', 'life', 'metal',
+                            'wave', 'vortex', 'tornado', 'snowball', 'star', 'zodiac', 'hex', 'venom', 'moon', 'nature', 'life', 'metal',
                             'philosopherstone', 'halo', 'rook', 'bishop', 'knight', 'queen', 'king', 'saturn', 'pawn', 'joker'];
         const elements = allElements;
         const savedElement = localStorage.getItem('startElement') || 'none';
@@ -8761,19 +8785,21 @@ class GameScene extends Phaser.Scene {
             crystal: { frame: 0, color: 0xffaaff, name: 'Crystal', sheet: 'crystal-orb', isImage: true },
 
             // Updated to use new orb images
-            death: { frame: 0, color: 0x333333, name: 'Death', sheet: 'death-orb', isImage: true, fireRate: 6000 },
+            death: { frame: 0, color: 0x333333, name: 'Death', sheet: 'death-orb', isImage: true, fireRate: 30000 },
             time: { frame: 0, color: 0xffd700, name: 'Time', sheet: 'time-orb', isImage: true },
             sand: { frame: 0, color: 0xf4a460, name: 'Sand', sheet: 'sand-orb', isImage: true },
-            gravity: { frame: 0, color: 0x4b0082, name: 'Gravity', sheet: 'gravity-orb', isImage: true },
+            gravity: { frame: 0, color: 0x4b0082, name: 'Gravity', sheet: 'gravity-orb', isImage: true, fireRate: 6000 },
             sun: { frame: 0, color: 0xffeb3b, name: 'Sun', sheet: 'sun-orb', isImage: true, fireRate: 999999 },
             smoke: { frame: 0, color: 0x696969, name: 'Smoke', sheet: 'smoke-orb', isImage: true, fireRate: 1500 },
             blast: { frame: 0, color: 0xff6600, name: 'Blast', sheet: 'blast-orb', isImage: true, fireRate: 2000 },
             wave: { frame: 0, color: 0x00bcd4, name: 'Wave', sheet: 'wave-orb', isImage: true },
             vortex: { frame: 0, color: 0x0066cc, name: 'Vortex', sheet: 'vortex-orb', isImage: true, fireRate: 3000 },
             tornado: { frame: 0, color: 0x708090, name: 'Tornado', sheet: 'tornado-orb', isImage: true, fireRate: 2500 },
+            snowball: { frame: 0, color: 0xADD8E6, name: 'Snowball', sheet: 'snowball-orb', isImage: true, fireRate: 1500 },
+            illusion: { frame: 0, color: 0x9966ff, name: 'Illusion', sheet: 'illusion-orb', isImage: true, fireRate: 3000 },
             star: { frame: 0, color: 0xffffff, name: 'Star', sheet: 'star-orb', isImage: true },
             zodiac: { frame: 0, color: 0xffd700, name: 'Zodiac', sheet: 'zodiac-orb', isImage: true },
-            hex: { frame: 0, color: 0x9932cc, name: 'Hex', sheet: 'hex-orb', isImage: true },
+            hex: { frame: 0, color: 0x9932cc, name: 'Hex', sheet: 'hex-orb', isImage: true, fireRate: 6000 },
             venom: { frame: 2, color: 0x8b00ff, name: 'Venom', sheet: 'element-symbols2', fireRate: 2000 }, // No new orb for venom
             moon: { frame: 0, color: 0xe0e0e0, name: 'Moon', sheet: 'moon-orb', isImage: true, fireRate: 12000 },
             nature: { frame: 0, color: 0x00ff00, name: 'Nature', sheet: 'nature-orb', isImage: true },
@@ -10089,6 +10115,44 @@ class GameScene extends Phaser.Scene {
             });
         }
         
+        // Create snowball spell animations
+        if (!this.anims.exists('snowball-launch-anim')) {
+            createAnimIfNotExists({
+                key: 'snowball-launch-anim',
+                frames: this.anims.generateFrameNumbers('snowball-smash', { start: 0, end: 5 }),
+                frameRate: 12,
+                repeat: 0
+            });
+        }
+        
+        if (!this.anims.exists('snowball-impact-anim')) {
+            createAnimIfNotExists({
+                key: 'snowball-impact-anim',
+                frames: this.anims.generateFrameNumbers('snowball-smash', { start: 6, end: 11 }),
+                frameRate: 15,
+                repeat: 0
+            });
+        }
+        
+        // Create magmaball spell animations
+        if (!this.anims.exists('magmaball-launch-anim')) {
+            createAnimIfNotExists({
+                key: 'magmaball-launch-anim',
+                frames: this.anims.generateFrameNumbers('magmaball-smash', { start: 0, end: 5 }),
+                frameRate: 12,
+                repeat: 0
+            });
+        }
+        
+        if (!this.anims.exists('magmaball-impact-anim')) {
+            createAnimIfNotExists({
+                key: 'magmaball-impact-anim',
+                frames: this.anims.generateFrameNumbers('magmaball-smash', { start: 6, end: 11 }),
+                frameRate: 15,
+                repeat: 0
+            });
+        }
+        
         // Create crystal spell animation from individual frames
         createAnimIfNotExists({
             key: 'crystal-spell-anim',
@@ -10101,6 +10165,57 @@ class GameScene extends Phaser.Scene {
             ],
             frameRate: 10,
             repeat: 0
+        });
+        
+        // Create ghost missile death animation
+        createAnimIfNotExists({
+            key: 'ghost-missile-anim',
+            frames: [
+                { key: 'ghost-missile-1' },
+                { key: 'ghost-missile-2' },
+                { key: 'ghost-missile-3' },
+                { key: 'ghost-missile-4' },
+                { key: 'ghost-missile-5' },
+                { key: 'ghost-missile-6' },
+                { key: 'ghost-missile-7' },
+                { key: 'ghost-missile-8' },
+                { key: 'ghost-missile-9' },
+                { key: 'ghost-missile-10' },
+                { key: 'ghost-missile-11' },
+                { key: 'ghost-missile-12' },
+                { key: 'ghost-missile-13' },
+                { key: 'ghost-missile-14' },
+                { key: 'ghost-missile-15' },
+                { key: 'ghost-missile-16' }
+            ],
+            frameRate: 12,
+            repeat: 0
+        });
+        
+        // Create death missile hex animation
+        createAnimIfNotExists({
+            key: 'death-missile-anim',
+            frames: [
+                { key: 'death-missile-1' },
+                { key: 'death-missile-2' },
+                { key: 'death-missile-3' },
+                { key: 'death-missile-4' },
+                { key: 'death-missile-5' },
+                { key: 'death-missile-6' },
+                { key: 'death-missile-7' },
+                { key: 'death-missile-8' },
+                { key: 'death-missile-9' },
+                { key: 'death-missile-10' },
+                { key: 'death-missile-11' },
+                { key: 'death-missile-12' },
+                { key: 'death-missile-13' },
+                { key: 'death-missile-14' },
+                { key: 'death-missile-15' },
+                { key: 'death-missile-16' },
+                { key: 'death-missile-17' }
+            ],
+            frameRate: 15,
+            repeat: -1  // Loop animation
         });
         
         // Create smoke cloud animation
@@ -10125,7 +10240,7 @@ class GameScene extends Phaser.Scene {
         createAnimIfNotExists({
             key: 'gravity-spell-anim',
             frames: this.anims.generateFrameNumbers('gravity-spell', { start: 0, end: 17 }),
-            frameRate: 12,
+            frameRate: 9, // Slowed down by 25% (from 12 to 9)
             repeat: 0
         });
         
@@ -11481,7 +11596,7 @@ class GameScene extends Phaser.Scene {
                 // Fusion elements
                 'ice', 'lava', 'steam', 'poison', 'volcano', 'meteor', 'mud', 
                 'storm', 'thunder', 'crystal', 'death', 'time', 'sand', 'gravity',
-                'sun', 'moon', 'smoke', 'blast', 'wave', 'vortex', 'tornado', 'star', 'zodiac',
+                'sun', 'moon', 'smoke', 'blast', 'wave', 'vortex', 'tornado', 'snowball', 'star', 'zodiac',
                 'hex', 'venom', 'nature', 'life', 'metal', 'rock', 'dust', 'holy',
                 'philosopherstone', 'halo',
                 // Chess passive orbs
@@ -20205,6 +20320,11 @@ class GameScene extends Phaser.Scene {
     }
 
     getClosestPlayerTo(x, y) {
+        // If there's an active illusion, enemies should target it instead
+        if (this.activeIllusion && this.activeIllusion.active) {
+            return this.activeIllusion;
+        }
+        
         // In multiplayer, return the closest player to the given position
         if (this.multiplayerEnabled && this.wizard2 && this.wizard2.active) {
             const distToP1 = Phaser.Math.Distance.Between(x, y, this.wizard.x, this.wizard.y);
@@ -26839,7 +26959,7 @@ class GameScene extends Phaser.Scene {
                     this.createPoisonMines(slotIndex, elementTier);
                     break;
                 case 'volcano':
-                    this.createVolcanicEruption(elementTier);
+                    this.createVolcanicEruption(slotIndex, elementTier);
                     break;
                 case 'wave':
                     this.createWaveSpell(elementTier);
@@ -26849,6 +26969,12 @@ class GameScene extends Phaser.Scene {
                     break;
                 case 'tornado':
                     this.createTornadoSpell(slotIndex, elementTier);
+                    break;
+                case 'snowball':
+                    this.fireSnowballProjectile(slotIndex, elementTier);
+                    break;
+                case 'illusion':
+                    this.createIllusionDecoy(slotIndex, elementTier);
                     break;
                 case 'sand':
                     this.createSandSpell(elementTier);
@@ -26866,7 +26992,7 @@ class GameScene extends Phaser.Scene {
                     this.createMoonSpell();
                     break;
                 case 'death':
-                    this.createDeathSpell();
+                    this.createDeathSpell(slotIndex, elementTier);
                     break;
                 case 'blast':
                     this.createBlastSpell(slotIndex, elementTier);
@@ -26881,7 +27007,7 @@ class GameScene extends Phaser.Scene {
                     this.createZodiacSpell();
                     break;
                 case 'hex':
-                    this.createHexSpell();
+                    this.createHexSpell(slotIndex, elementTier);
                     break;
                 case 'venom':
                     this.createVenomSpell(slotIndex, elementTier);
@@ -27021,7 +27147,7 @@ class GameScene extends Phaser.Scene {
                     this.createMoonSpell();
                     break;
                 case 'death':
-                    this.createDeathSpell();
+                    this.createDeathSpell(slotIndex, elementTier);
                     break;
                 case 'blast':
                     this.createBlastSpell(slotIndex, elementTier);
@@ -29772,7 +29898,7 @@ class GameScene extends Phaser.Scene {
 
     // New element abilities
     fireRockProjectile(slotIndex = 0, elementTier = 1) {
-        // Rock element - lobs a heavy stone with 3D effect
+        // Rock element - lobs heavy stones with 3D effect
         
         // Get slot buffs
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
@@ -29793,9 +29919,34 @@ class GameScene extends Phaser.Scene {
             'down-right': Math.PI / 4
         };
         
-        const angle = directionAngles[direction] !== undefined ? directionAngles[direction] : Math.PI / 2;
+        const baseAngle = directionAngles[direction] !== undefined ? directionAngles[direction] : Math.PI / 2;
         
-        // Calculate target position for the rock
+        // Number of rocks increases with tier (1 at tier 1, up to 5 at tier 5)
+        const rockCount = Math.min(elementTier, 5);
+        
+        // Fan spread angle (wider spread for more rocks)
+        const spreadAngle = rockCount > 1 ? Math.PI / 4 : 0; // 45 degree total spread
+        
+        // Calculate damage per rock (slightly reduced for multiple rocks)
+        const damageMultiplier = rockCount > 1 ? (1 - (rockCount - 1) * 0.1) : 1; // 10% reduction per extra rock
+        const baseDamage = 25 * slotBuff.damageMultiplier * tierDamageScale * damageMultiplier;
+        
+        // Create each rock with slight delay between them
+        for (let i = 0; i < rockCount; i++) {
+            // Calculate angle offset for fan pattern
+            const angleOffset = rockCount > 1 ? 
+                (i - (rockCount - 1) / 2) * (spreadAngle / (rockCount - 1)) : 0;
+            const rockAngle = baseAngle + angleOffset;
+            
+            // Stagger the launch slightly for visual effect
+            this.time.delayedCall(i * 50, () => {
+                this.createSingleRock(rockAngle, baseDamage, slotBuff);
+            });
+        }
+    }
+    
+    createSingleRock(angle, damage, slotBuff) {
+        // Calculate target position for this rock
         const distance = 250; // Distance to throw
         const targetX = this.wizard.x + Math.cos(angle) * distance;
         const targetY = this.wizard.y + Math.sin(angle) * distance;
@@ -29816,7 +29967,6 @@ class GameScene extends Phaser.Scene {
         rock.body.enable = false; // Disable until impact
         
         // Rock properties
-        const damage = 25 * slotBuff.damageMultiplier * tierDamageScale;
         rock.damage = damage;
         rock.element = 'rock';
         rock.stuns = true;
@@ -29941,6 +30091,231 @@ class GameScene extends Phaser.Scene {
                 
                 // Rotate rock as it flies
                 rock.rotation += 0.15;
+            },
+            repeat: -1
+        });
+    }
+    
+    fireSnowballProjectile(slotIndex = 0, elementTier = 1) {
+        // Snowball element - lobs freezing snowballs with 3D effect
+        
+        // Get slot buffs
+        const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
+        
+        // Apply tier damage scaling
+        const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
+        
+        // Get player's facing direction
+        const direction = this.wizard.lastDirection || 'down';
+        const directionAngles = {
+            'up': -Math.PI / 2,
+            'down': Math.PI / 2,
+            'left': Math.PI,
+            'right': 0,
+            'up-left': -3 * Math.PI / 4,
+            'up-right': -Math.PI / 4,
+            'down-left': 3 * Math.PI / 4,
+            'down-right': Math.PI / 4
+        };
+        
+        const baseAngle = directionAngles[direction] !== undefined ? directionAngles[direction] : Math.PI / 2;
+        
+        // Number of snowballs increases with tier (1 at tier 1, up to 5 at tier 5)
+        const snowballCount = Math.min(elementTier, 5);
+        
+        // Fan spread angle (wider spread for more snowballs)
+        const spreadAngle = snowballCount > 1 ? Math.PI / 4 : 0; // 45 degree total spread
+        
+        // Calculate damage per snowball (50% of rock damage, with reduction for multiple)
+        const damageMultiplier = snowballCount > 1 ? (1 - (snowballCount - 1) * 0.1) : 1;
+        const baseDamage = 12.5 * slotBuff.damageMultiplier * tierDamageScale * damageMultiplier; // Half of rock's 25
+        
+        // Create each snowball with slight delay between them
+        for (let i = 0; i < snowballCount; i++) {
+            // Calculate angle offset for fan pattern
+            const angleOffset = snowballCount > 1 ? 
+                (i - (snowballCount - 1) / 2) * (spreadAngle / (snowballCount - 1)) : 0;
+            const snowballAngle = baseAngle + angleOffset;
+            
+            // Stagger the launch slightly for visual effect
+            this.time.delayedCall(i * 50, () => {
+                this.createSingleSnowball(snowballAngle, baseDamage, slotBuff);
+            });
+        }
+    }
+    
+    createSingleSnowball(angle, damage, slotBuff) {
+        // Calculate target position for this snowball
+        const distance = 250; // Distance to throw
+        const targetX = this.wizard.x + Math.cos(angle) * distance;
+        const targetY = this.wizard.y + Math.sin(angle) * distance;
+        
+        // Create the snowball projectile
+        const snowball = this.add.sprite(this.wizard.x, this.wizard.y, 'snowball-smash');
+        snowball.setDepth(10);
+        snowball.setScale(0.8);
+        snowball.play('snowball-launch-anim');
+        
+        // Create shadow for 3D effect (lighter color for snow)
+        const shadow = this.add.ellipse(snowball.x, snowball.y, 30, 15, 0x4444ff, 0.2);
+        shadow.setDepth(1);
+        
+        // Physics for collision detection (will be positioned during arc)
+        this.physics.add.existing(snowball);
+        snowball.body.setCircle(20);
+        snowball.body.enable = false; // Disable until impact
+        
+        // Snowball properties
+        snowball.damage = damage;
+        snowball.element = 'snowball';
+        snowball.freezes = true;
+        snowball.freezeDuration = 2000; // 2 second freeze
+        
+        // Calculate arc trajectory
+        const flightDuration = 800; // 0.8 seconds
+        const maxHeight = 150; // Maximum height of arc
+        
+        // Variables for parabolic motion
+        let flightTime = 0;
+        const startX = this.wizard.x;
+        const startY = this.wizard.y;
+        
+        // Create the arc motion
+        const arcMotion = this.time.addEvent({
+            delay: 16, // ~60 FPS
+            callback: () => {
+                if (!snowball.active) {
+                    arcMotion.destroy();
+                    return;
+                }
+                
+                flightTime += 16;
+                const progress = flightTime / flightDuration;
+                
+                if (progress >= 1) {
+                    // Impact!
+                    arcMotion.destroy();
+                    
+                    // Enable physics body at impact location
+                    snowball.body.enable = true;
+                    snowball.body.x = targetX - 20;
+                    snowball.body.y = targetY - 20;
+                    
+                    // Play impact animation
+                    snowball.play('snowball-impact-anim');
+                    
+                    // Create impact shockwave (icy blue)
+                    const shockwave = this.add.circle(targetX, targetY, 10, 0xADD8E6, 0.5);
+                    shockwave.setDepth(9);
+                    this.tweens.add({
+                        targets: shockwave,
+                        scale: { from: 1, to: 3 },
+                        alpha: { from: 0.5, to: 0 },
+                        duration: 300,
+                        onComplete: () => shockwave.destroy()
+                    });
+                    
+                    // Create ice particles
+                    for (let j = 0; j < 5; j++) {
+                        const particle = this.add.circle(
+                            targetX + (Math.random() - 0.5) * 40,
+                            targetY + (Math.random() - 0.5) * 40,
+                            3,
+                            0xFFFFFF,
+                            0.8
+                        );
+                        particle.setDepth(9);
+                        
+                        this.tweens.add({
+                            targets: particle,
+                            y: particle.y - 30,
+                            alpha: 0,
+                            duration: 500,
+                            onComplete: () => particle.destroy()
+                        });
+                    }
+                    
+                    // Deal damage to enemies in area
+                    const impactRadius = 60;
+                    this.enemies.children.entries.forEach(enemy => {
+                        if (enemy && enemy.active) {
+                            const dist = Phaser.Math.Distance.Between(targetX, targetY, enemy.x, enemy.y);
+                            if (dist <= impactRadius) {
+                                // Apply damage
+                                enemy.health -= snowball.damage;
+                                this.showDamageNumber(enemy.x, enemy.y - 30, snowball.damage, '#ADD8E6');
+                                
+                                // Apply freeze effect
+                                if (snowball.freezes && !enemy.frozen) {
+                                    enemy.frozen = true;
+                                    enemy.frozenEndTime = this.time.now + snowball.freezeDuration;
+                                    enemy.setTint(0x88CCFF);
+                                    
+                                    // Store original velocity and stop movement
+                                    if (enemy.body) {
+                                        enemy.originalVelocity = { x: enemy.body.velocity.x, y: enemy.body.velocity.y };
+                                        enemy.body.setVelocity(0, 0);
+                                    }
+                                    
+                                    // Show freeze text
+                                    this.showDamageNumber(enemy.x, enemy.y - 50, 'FROZEN!', '#88CCFF');
+                                    
+                                    // Remove freeze after duration
+                                    this.time.delayedCall(snowball.freezeDuration, () => {
+                                        if (enemy && enemy.active) {
+                                            enemy.frozen = false;
+                                            if (enemy.body && enemy.originalVelocity) {
+                                                enemy.body.setVelocity(enemy.originalVelocity.x, enemy.originalVelocity.y);
+                                            }
+                                            // Only clear tint if not affected by other status
+                                            if (!enemy.burning && !enemy.stunned && !enemy.muddy && !enemy.petrified) {
+                                                enemy.clearTint();
+                                            }
+                                        }
+                                    });
+                                }
+                                
+                                // Check if enemy died
+                                if (enemy.health <= 0) {
+                                    this.killEnemy(enemy);
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Destroy shadow
+                    shadow.destroy();
+                    
+                    // Destroy snowball after impact animation
+                    snowball.once('animationcomplete-snowball-impact-anim', () => {
+                        snowball.destroy();
+                    });
+                    
+                    return;
+                }
+                
+                // Calculate position along arc
+                snowball.x = startX + (targetX - startX) * progress;
+                snowball.y = startY + (targetY - startY) * progress;
+                
+                // Add parabolic height (3D effect)
+                const heightOffset = Math.sin(progress * Math.PI) * maxHeight;
+                snowball.y -= heightOffset;
+                
+                // Scale snowball for 3D illusion (bigger when higher)
+                const scaleMultiplier = 1 + (heightOffset / maxHeight) * 0.3;
+                snowball.setScale(0.8 * scaleMultiplier);
+                
+                // Update shadow position and scale
+                shadow.x = startX + (targetX - startX) * progress;
+                shadow.y = startY + (targetY - startY) * progress;
+                // Shadow gets smaller and more transparent when snowball is higher
+                const shadowScale = 1 - (heightOffset / maxHeight) * 0.5;
+                shadow.setScale(shadowScale, shadowScale * 0.5);
+                shadow.setAlpha(0.2 * shadowScale);
+                
+                // Rotate snowball as it flies (slower than rock)
+                snowball.rotation += 0.1;
             },
             repeat: -1
         });
@@ -31722,85 +32097,411 @@ class GameScene extends Phaser.Scene {
         this.projectiles.add(projectile);
     }
 
-    createVolcanicEruption(elementTier = 1) {
-        // Create multiple volcano eruptions at random positions around the wizard
-        const volcanoCount = 5; // Number of volcanoes to spawn
-        const radius = 150; // Max distance from wizard
+    createVolcanicEruption(slotIndex = 0, elementTier = 1) {
+        // Volcano spell - lobs magma balls in random directions that explode on impact
         
-        for (let i = 0; i < volcanoCount; i++) {
-            // Random angle and distance
-            const angle = Math.random() * Math.PI * 2;
-            const distance = 50 + Math.random() * (radius - 50);
-            
-            // Calculate position
-            const x = this.wizard.x + Math.cos(angle) * distance;
-            const y = this.wizard.y + Math.sin(angle) * distance;
-            
-            // Create volcano sprite
-            const volcano = this.physics.add.sprite(x, y, 'volcano-spell');
-            volcano.element = 'volcano';
-            
-            // Apply tier damage scaling
-            const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
-            volcano.damage = 6 * tierDamageScale; // Heavy damage
-            volcano.burnDuration = 3000; // 3 seconds burn
-            volcano.burnEnemy = true; // Enable burn effect
-            volcano.body.setCollideWorldBounds(false);
-            volcano.body.setSize(48, 48); // Set collision box size
-            volcano.setDepth(5);
-            volcano.setScale(0.75); // Adjusted for 64x64 frames
-            
-            // Play animation
-            if (this.anims.exists('volcano-spell-anim')) {
-                volcano.play('volcano-spell-anim');
+        // Check for chess piece modifiers
+        let hasJoker = false;
+        let hasAnyRook = false;
+        let hasAnyBishop = false;
+        
+        // Check all passive slots for joker and chess pieces
+        for (let i = 4; i < 8; i++) {
+            if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
+                hasJoker = true;
             }
-            
-            // Make it static (doesn't move)
-            volcano.body.setVelocity(0, 0);
-            volcano.body.setImmovable(true);
-            
-            // Add to projectiles group for collision detection
-            this.projectiles.add(volcano);
-            
-            // Add burn effect on hit
-            volcano.burnEnemy = true;
-            
-            // Fade in effect with fire glow
-            volcano.setAlpha(0);
-            volcano.setTint(0xff6600); // Orange glow
-            this.tweens.add({
-                targets: volcano,
-                alpha: 1,
-                duration: 300,
-                ease: 'Power2'
+            if (this.chargeSlots && this.chargeSlots[i] === 'rook') {
+                hasAnyRook = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'bishop') {
+                hasAnyBishop = true;
+            }
+        }
+        
+        // Determine what modifiers to apply
+        let hasRookModifier = false;
+        let hasBishopModifier = false;
+        
+        if (hasJoker) {
+            hasRookModifier = hasAnyRook;
+            hasBishopModifier = hasAnyBishop;
+            if (!hasAnyRook && !hasAnyBishop) {
+                hasRookModifier = true;
+                hasBishopModifier = true;
+            }
+        } else {
+            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
+            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+        }
+        
+        // Get slot buffs
+        const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
+        
+        // Apply tier damage scaling
+        const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
+        
+        // Number of magma balls increases with tier (1 at tier 1, up to 5 at tier 5)
+        const baseCount = Math.min(elementTier, 5);
+        
+        // Calculate damage per magma ball (similar to rock spell damage with some reduction for explosion)
+        let damageMultiplier = baseCount > 1 ? (1 - (baseCount - 1) * 0.1) : 1;
+        const baseDamage = 20 * slotBuff.damageMultiplier * tierDamageScale * damageMultiplier;
+        
+        // Calculate directions based on chess modifiers
+        const distance = 200 + Math.random() * 100; // Random distance 200-300
+        let angles = [];
+        
+        if (hasRookModifier && hasBishopModifier) {
+            // All 8 directions with reduced damage
+            angles = [
+                0,                      // Right
+                Math.PI * 0.25,        // Down-Right
+                Math.PI * 0.5,         // Down
+                Math.PI * 0.75,        // Down-Left
+                Math.PI,               // Left
+                Math.PI * 1.25,        // Up-Left
+                Math.PI * 1.5,         // Up
+                Math.PI * 1.75         // Up-Right
+            ];
+            damageMultiplier *= 0.5; // Reduce damage when firing in all directions
+        } else if (hasRookModifier) {
+            // Cardinal directions
+            angles = [
+                0,              // Right
+                Math.PI * 0.5,  // Down
+                Math.PI,        // Left
+                Math.PI * 1.5   // Up
+            ];
+            damageMultiplier *= 0.75; // Reduce damage when firing in 4 directions
+        } else if (hasBishopModifier) {
+            // Diagonal directions
+            angles = [
+                Math.PI * 0.25,  // Down-Right
+                Math.PI * 0.75,  // Down-Left
+                Math.PI * 1.25,  // Up-Left
+                Math.PI * 1.75   // Up-Right
+            ];
+            damageMultiplier *= 0.75; // Reduce damage when firing in 4 directions
+        } else {
+            // Random directions based on tier
+            for (let i = 0; i < baseCount; i++) {
+                angles.push(Math.random() * Math.PI * 2);
+            }
+        }
+        
+        // Adjust final damage
+        const finalDamage = baseDamage * damageMultiplier;
+        
+        // Create magma balls for each angle
+        angles.forEach((angle, i) => {
+            // Stagger the launch slightly for visual effect
+            this.time.delayedCall(i * 100, () => {
+                this.createSingleMagmaBall(angle, finalDamage, slotBuff, elementTier);
             });
-            
-            // Create expanding damage area effect
-            const damageArea = this.add.circle(x, y, 30, 0xff4400, 0.3);
-            damageArea.setDepth(4);
-            this.tweens.add({
-                targets: damageArea,
-                scale: { from: 1, to: 2 },
-                alpha: { from: 0.3, to: 0 },
-                duration: 500,
-                repeat: 5,
-                onComplete: () => damageArea.destroy()
-            });
-            
-            // Destroy after 4 seconds
-            this.time.delayedCall(4000, () => {
-                if (volcano.active) {
-                    // Fade out before destroying
+        });
+    }
+    
+    createSingleMagmaBall(angle, damage, slotBuff, elementTier) {
+        // Calculate target position for this magma ball
+        const distance = 200 + Math.random() * 100; // Random distance 200-300
+        const targetX = this.wizard.x + Math.cos(angle) * distance;
+        const targetY = this.wizard.y + Math.sin(angle) * distance;
+        
+        // Create the magma ball projectile
+        const magma = this.add.sprite(this.wizard.x, this.wizard.y, 'magmaball-smash');
+        magma.setDepth(10);
+        magma.setScale(0.9);
+        magma.play('magmaball-launch-anim');
+        
+        // Create shadow for 3D effect (orange-red for lava)
+        const shadow = this.add.ellipse(magma.x, magma.y, 30, 15, 0xFF4500, 0.3);
+        shadow.setDepth(1);
+        
+        // Physics for collision detection (will be positioned during arc)
+        this.physics.add.existing(magma);
+        magma.body.setCircle(20);
+        magma.body.enable = false; // Disable until impact
+        
+        // Magma ball properties
+        magma.damage = damage;
+        magma.element = 'volcano';
+        magma.elementTier = elementTier;
+        
+        // Calculate arc trajectory
+        const flightDuration = 600 + Math.random() * 400; // 0.6-1.0 seconds
+        const maxHeight = 120 + Math.random() * 60; // Variable height
+        
+        // Variables for parabolic motion
+        let flightTime = 0;
+        const startX = this.wizard.x;
+        const startY = this.wizard.y;
+        
+        // Add fire trail particles during flight
+        const particleTimer = this.time.addEvent({
+            delay: 50,
+            callback: () => {
+                if (magma.active) {
+                    const particle = this.add.circle(magma.x, magma.y, 2, 0xFF6600, 0.8);
+                    particle.setDepth(magma.depth - 1);
                     this.tweens.add({
-                        targets: volcano,
+                        targets: particle,
                         alpha: 0,
-                        scale: 0.5,
+                        scale: 0,
                         duration: 300,
-                        onComplete: () => volcano.destroy()
+                        onComplete: () => particle.destroy()
                     });
                 }
-            });
+            },
+            repeat: -1
+        });
+        
+        // Create the arc motion
+        const arcMotion = this.time.addEvent({
+            delay: 16, // ~60 FPS
+            callback: () => {
+                if (!magma.active) {
+                    arcMotion.destroy();
+                    particleTimer.destroy();
+                    return;
+                }
+                
+                flightTime += 16;
+                const progress = flightTime / flightDuration;
+                
+                if (progress >= 1) {
+                    // Impact!
+                    arcMotion.destroy();
+                    particleTimer.destroy();
+                    
+                    // Play impact animation
+                    magma.play('magmaball-impact-anim');
+                    
+                    // Create blast explosion at impact location
+                    const blast = this.add.sprite(targetX, targetY, 'blast-spell');
+                    blast.setScale(2 + elementTier * 0.3);
+                    blast.setDepth(100);
+                    blast.play('blast-spell-anim');
+                    
+                    // Set up animation event for when damage phase starts (frame 9)
+                    blast.on('animationupdate', (anim, frame) => {
+                        if (frame.index >= 9 && !blast.damageDealt) {
+                            blast.damageDealt = true;
+                            
+                            // Deal damage to enemies in radius
+                            const damageRadius = 80 + elementTier * 10;
+                            const blastDamage = damage * 0.75; // Blast does 75% of impact damage
+                            
+                            // Visual explosion effect
+                            const explosionCircle = this.add.circle(targetX, targetY, damageRadius, 0xff6600, 0.3);
+                            explosionCircle.setDepth(99);
+                            this.tweens.add({
+                                targets: explosionCircle,
+                                alpha: 0,
+                                scale: 1.5,
+                                duration: 300,
+                                onComplete: () => explosionCircle.destroy()
+                            });
+                            
+                            // Damage enemies
+                            this.enemies.children.entries.forEach(enemy => {
+                                if (enemy && enemy.active) {
+                                    const dist = Phaser.Math.Distance.Between(targetX, targetY, enemy.x, enemy.y);
+                                    if (dist <= damageRadius) {
+                                        // Apply damage
+                                        enemy.health -= blastDamage;
+                                        this.showDamageNumber(enemy.x, enemy.y - 30, blastDamage, '#ff6600');
+                                        
+                                        // Apply burn effect
+                                        if (!enemy.burning) {
+                                            enemy.burning = true;
+                                            enemy.burnDamage = 3 + elementTier;
+                                            enemy.burnMagnitude = enemy.burnDamage;
+                                            enemy.setTint(0xff6600);
+                                            
+                                            // Burn damage over time
+                                            const burnInterval = this.time.addEvent({
+                                                delay: 500,
+                                                repeat: 5,
+                                                callback: () => {
+                                                    if (enemy && enemy.active && enemy.burning) {
+                                                        enemy.health -= enemy.burnDamage;
+                                                        this.showDamageNumber(enemy.x, enemy.y - 20, enemy.burnDamage, '#ff4400');
+                                                        if (enemy.health <= 0) {
+                                                            this.killEnemy(enemy);
+                                                        }
+                                                    }
+                                                }
+                                            });
+                                            
+                                            // Remove burn after duration
+                                            this.time.delayedCall(3000, () => {
+                                                if (enemy && enemy.active) {
+                                                    enemy.burning = false;
+                                                    enemy.burnMagnitude = 0;
+                                                    burnInterval.destroy();
+                                                    if (!enemy.frozen && !enemy.stunned && !enemy.muddy) {
+                                                        enemy.clearTint();
+                                                    }
+                                                }
+                                            });
+                                        }
+                                        
+                                        // Check if enemy died
+                                        if (enemy.health <= 0) {
+                                            this.killEnemy(enemy);
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    });
+                    
+                    // Clean up after blast animation
+                    blast.on('animationcomplete', () => {
+                        blast.destroy();
+                    });
+                    
+                    // Destroy shadow
+                    shadow.destroy();
+                    
+                    // Destroy magma ball after impact animation
+                    magma.once('animationcomplete-magmaball-impact-anim', () => {
+                        magma.destroy();
+                    });
+                    
+                    return;
+                }
+                
+                // Calculate position along arc
+                magma.x = startX + (targetX - startX) * progress;
+                magma.y = startY + (targetY - startY) * progress;
+                
+                // Add parabolic height (3D effect)
+                const heightOffset = Math.sin(progress * Math.PI) * maxHeight;
+                magma.y -= heightOffset;
+                
+                // Scale magma for 3D illusion
+                const scaleMultiplier = 1 + (heightOffset / maxHeight) * 0.4;
+                magma.setScale(0.9 * scaleMultiplier);
+                
+                // Update shadow position and scale
+                shadow.x = startX + (targetX - startX) * progress;
+                shadow.y = startY + (targetY - startY) * progress;
+                const shadowScale = 1 - (heightOffset / maxHeight) * 0.5;
+                shadow.setScale(shadowScale, shadowScale * 0.5);
+                shadow.setAlpha(0.3 * shadowScale);
+                
+                // Rotate magma ball as it flies
+                magma.rotation += 0.2;
+            },
+            repeat: -1
+        });
+    }
+    
+    // Old volcano implementation removed - replaced with new lobbing magma ball version
+    
+    createIllusionDecoy(slotIndex = 0, elementTier = 1) {
+        // Illusion spell - creates a semi-transparent copy of the player that distracts enemies
+        
+        // Get slot buffs
+        const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
+        
+        // Calculate decoy duration based on tier (1.5 seconds per tier level)
+        const duration = elementTier * 1500; // 1.5s at tier 1, up to 7.5s at tier 5
+        
+        // Create the illusion copy at player position
+        const illusion = this.add.sprite(this.wizard.x, this.wizard.y, 'wizard');
+        illusion.setAlpha(0.5); // Semi-transparent
+        illusion.setTint(0x9966ff); // Purple tint to show it's magical
+        illusion.setDepth(this.wizard.depth);
+        illusion.setScale(this.wizard.scaleX, this.wizard.scaleY);
+        
+        // Copy player's current animation frame
+        if (this.wizard.anims && this.wizard.anims.currentFrame) {
+            illusion.setTexture(this.wizard.anims.currentFrame.textureKey, this.wizard.anims.currentFrame.textureFrame);
         }
+        
+        // Add physics to the illusion for enemy targeting
+        this.physics.add.existing(illusion);
+        illusion.body.setSize(this.wizard.body.width, this.wizard.body.height);
+        
+        // Mark as decoy for enemy AI
+        illusion.isIllusion = true;
+        illusion.health = 999999; // Can't be killed
+        
+        // Set active illusion for enemy targeting (don't replace wizard)
+        this.activeIllusion = illusion;
+        
+        // Visual effect on spawn
+        const spawnEffect = this.add.circle(illusion.x, illusion.y, 5, 0x9966ff, 0.8);
+        spawnEffect.setDepth(illusion.depth + 1);
+        this.tweens.add({
+            targets: spawnEffect,
+            scale: 10,
+            alpha: 0,
+            duration: 500,
+            onComplete: () => spawnEffect.destroy()
+        });
+        
+        // Add slight movement to make it look alive
+        const movePattern = this.time.addEvent({
+            delay: 200,
+            callback: () => {
+                if (illusion && illusion.active) {
+                    // Small random movements
+                    const moveX = (Math.random() - 0.5) * 20;
+                    const moveY = (Math.random() - 0.5) * 20;
+                    
+                    this.tweens.add({
+                        targets: illusion,
+                        x: illusion.x + moveX,
+                        y: illusion.y + moveY,
+                        duration: 200,
+                        ease: 'Linear'
+                    });
+                }
+            },
+            repeat: duration / 200
+        });
+        
+        // Flicker effect as it starts to fade
+        const flickerTime = duration - 500;
+        this.time.delayedCall(flickerTime, () => {
+            if (illusion && illusion.active) {
+                this.tweens.add({
+                    targets: illusion,
+                    alpha: { from: 0.5, to: 0.2 },
+                    duration: 100,
+                    yoyo: true,
+                    repeat: 4
+                });
+            }
+        });
+        
+        // Destroy illusion after duration
+        this.time.delayedCall(duration, () => {
+            // Clear active illusion reference
+            this.activeIllusion = null;
+            
+            // Stop movement pattern
+            if (movePattern) movePattern.destroy();
+            
+            // Dispel effect
+            if (illusion && illusion.active) {
+                const dispelEffect = this.add.circle(illusion.x, illusion.y, 30, 0x9966ff, 0.6);
+                dispelEffect.setDepth(illusion.depth + 1);
+                this.tweens.add({
+                    targets: dispelEffect,
+                    scale: 0,
+                    alpha: 0,
+                    duration: 300,
+                    onComplete: () => dispelEffect.destroy()
+                });
+                
+                // Destroy the illusion
+                illusion.destroy();
+            }
+        });
     }
 
     createWaveSpell(elementTier = 1) {
@@ -32484,8 +33185,45 @@ class GameScene extends Phaser.Scene {
         // Apply tier damage scaling only
         const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
         
-        // Create gravity singularity at wizard position
-        const gravity = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'gravity-spell');
+        // Calculate position behind player based on facing direction
+        const direction = this.wizard.lastDirection || 'down';
+        const distance = 200; // Distance behind player (doubled from 100)
+        let gravityX = this.wizard.x;
+        let gravityY = this.wizard.y;
+        
+        switch(direction) {
+            case 'up':
+                gravityY += distance; // Behind when facing up
+                break;
+            case 'down':
+                gravityY -= distance; // Behind when facing down
+                break;
+            case 'left':
+                gravityX += distance; // Behind when facing left
+                break;
+            case 'right':
+                gravityX -= distance; // Behind when facing right
+                break;
+            case 'up-left':
+                gravityX += distance * 0.707;
+                gravityY += distance * 0.707;
+                break;
+            case 'up-right':
+                gravityX -= distance * 0.707;
+                gravityY += distance * 0.707;
+                break;
+            case 'down-left':
+                gravityX += distance * 0.707;
+                gravityY -= distance * 0.707;
+                break;
+            case 'down-right':
+                gravityX -= distance * 0.707;
+                gravityY -= distance * 0.707;
+                break;
+        }
+        
+        // Create gravity singularity behind wizard
+        const gravity = this.physics.add.sprite(gravityX, gravityY, 'gravity-spell');
         gravity.setScale(4); // Fixed scale
         gravity.setDepth(20);
         
@@ -32499,14 +33237,14 @@ class GameScene extends Phaser.Scene {
         
         // Create pull effect and damage
         const pullInterval = this.time.addEvent({
-            delay: 100, // Check every 100ms
+            delay: 50, // Check every 50ms for smoother pulling
             callback: () => {
                 if (!gravity.active) {
                     pullInterval.destroy();
                     return;
                 }
                 
-                const pullRadius = 200; // Fixed pull radius
+                const pullRadius = 250; // Increased pull radius
                 const damageRadius = 80; // Fixed damage radius
                 
                 this.enemies.children.entries.forEach(enemy => {
@@ -32517,19 +33255,32 @@ class GameScene extends Phaser.Scene {
                         gravity.x, gravity.y
                     );
                     
-                    // Pull enemies towards center
-                    if (dist < pullRadius && dist > 20) {
+                    // Pull enemies towards center with stronger force
+                    if (dist < pullRadius) {
                         const angle = Phaser.Math.Angle.Between(
                             enemy.x, enemy.y,
                             gravity.x, gravity.y
                         );
-                        const pullForce = (pullRadius - dist) / pullRadius * 300; // Fixed pull force
                         
-                        // Apply pull force
-                        enemy.setVelocity(
-                            Math.cos(angle) * pullForce,
-                            Math.sin(angle) * pullForce
-                        );
+                        // Pull force that increases as enemies get closer (reduced by 50%)
+                        const pullStrength = 1 - (dist / pullRadius); // 0 to 1 based on distance
+                        const pullForce = 50 + (pullStrength * 200); // 50-250 force (reduced by 50%)
+                        
+                        // Apply pull force directly to position for guaranteed pull
+                        const pullX = Math.cos(angle) * pullForce * 0.016; // Frame time adjustment
+                        const pullY = Math.sin(angle) * pullForce * 0.016;
+                        
+                        // Move enemy towards gravity center
+                        enemy.x += pullX;
+                        enemy.y += pullY;
+                        
+                        // Also set velocity for physics interactions (using reduced pull force)
+                        if (enemy.body) {
+                            enemy.setVelocity(
+                                Math.cos(angle) * pullForce,
+                                Math.sin(angle) * pullForce
+                            );
+                        }
                     }
                     
                     // Damage enemies in center (only once)
@@ -34757,160 +35508,256 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    createHexSpell() {
-        // Hex element - curse nearby enemies to deal no damage
-        const hexRadius = 200; // Radius to hex enemies
-        const hexDuration = 8000; // 8 seconds hex duration
+    createHexSpell(slotIndex = 0, elementTier = 1) {
+        // Hex element - homing projectile that passes through enemies applying strong poison
+        // Duration increases by 1 second per tier
         
-        // Check if on cooldown
-        if (this.hexSpellCooldown) {
-            return;
-        }
+        // Find nearest enemy to target
+        let nearestEnemy = null;
+        let nearestDist = Infinity;
         
-        // Set cooldown
-        this.hexSpellCooldown = true;
-        const cooldownDuration = this.hasteActive ? 12800 : 16000; // 16 second cooldown (12.8s with haste)
-        this.time.delayedCall(cooldownDuration, () => {
-            this.hexSpellCooldown = false;
-        });
-        
-        // Visual activation effect
-        const hexCircle = this.add.circle(this.wizard.x, this.wizard.y, 100, 0x9932cc, 0.4);
-        hexCircle.setDepth(5);
-        
-        // Create hex symbols around the circle
-        const hexSymbols = [];
-        for (let i = 0; i < 6; i++) {
-            const angle = (Math.PI * 2 / 6) * i;
-            const x = this.wizard.x + Math.cos(angle) * 80;
-            const y = this.wizard.y + Math.sin(angle) * 80;
-            
-            const symbol = this.add.text(x, y, '⬢', {
-                fontSize: '32px',
-                color: '#9932cc'
-            });
-            symbol.setOrigin(0.5);
-            symbol.setDepth(5);
-            hexSymbols.push(symbol);
-        }
-        
-        // Activation animation
-        this.tweens.add({
-            targets: hexCircle,
-            scale: { from: 0, to: 2 },
-            alpha: { from: 0.8, to: 0 },
-            duration: 1000,
-            ease: 'Power2'
-        });
-        
-        // Rotate hex symbols
-        hexSymbols.forEach((symbol, index) => {
-            this.tweens.add({
-                targets: symbol,
-                angle: 360,
-                scale: { from: 0.5, to: 1.5 },
-                alpha: { from: 1, to: 0 },
-                duration: 1000,
-                delay: index * 100,
-                onComplete: () => symbol.destroy()
-            });
-        });
-        
-        // Expand hex circle to show area of effect
-        this.tweens.add({
-            targets: hexCircle,
-            scale: { from: 0, to: hexRadius / 50 }, // Scale to match radius
-            alpha: { from: 0.8, to: 0 },
-            duration: 1000,
-            ease: 'Power2',
-            onComplete: () => hexCircle.destroy()
-        });
-        
-        // Find all active enemies that aren't already hexed
-        const validEnemies = this.enemies.children.entries.filter(enemy => 
-            enemy.active && !enemy.isDying && !enemy.isHexed
-        );
-        
-        if (validEnemies.length > 0) {
-            // Pick a random enemy from valid enemies
-            const randomEnemy = Phaser.Math.RND.pick(validEnemies);
-            
-            // Apply hex to the random enemy
-            this.applyHexCurse(randomEnemy, hexDuration);
-            
-            // Create hex projectile effect
-            const dist = Phaser.Math.Distance.Between(randomEnemy.x, randomEnemy.y, this.wizard.x, this.wizard.y);
-            const hexBolt = this.add.graphics();
-            hexBolt.lineStyle(3, 0x9932cc, 0.8);
-            hexBolt.beginPath();
-            hexBolt.moveTo(this.wizard.x, this.wizard.y);
-            
-            // Create wavy line to enemy
-            const points = 10;
-            for (let i = 0; i <= points; i++) {
-                const t = i / points;
-                const x = this.wizard.x + (randomEnemy.x - this.wizard.x) * t;
-                const y = this.wizard.y + (randomEnemy.y - this.wizard.y) * t;
-                const wave = Math.sin(t * Math.PI * 4) * 10;
-                const perpX = -(randomEnemy.y - this.wizard.y) / dist * wave;
-                const perpY = (randomEnemy.x - this.wizard.x) / dist * wave;
-                hexBolt.lineTo(x + perpX, y + perpY);
+        this.enemies.children.entries.forEach(enemy => {
+            if (enemy.active && !enemy.isDying) {
+                const dist = Phaser.Math.Distance.Between(this.wizard.x, this.wizard.y, enemy.x, enemy.y);
+                if (dist < nearestDist) {
+                    nearestDist = dist;
+                    nearestEnemy = enemy;
+                }
             }
-            hexBolt.strokePath();
-            hexBolt.setDepth(6);
-            
-            // Fade out hex bolt
-            this.tweens.add({
-                targets: hexBolt,
-                alpha: 0,
-                duration: 500,
-                onComplete: () => hexBolt.destroy()
-            });
-            
-            // Area of effect - hex adjacent enemies
-            const aoeRadius = 80; // Small radius for adjacent enemies
-            
-            // Visual effect for AoE
-            const aoeCircle = this.add.circle(randomEnemy.x, randomEnemy.y, aoeRadius, 0x9932cc, 0.3);
-            aoeCircle.setDepth(4);
-            
-            this.tweens.add({
-                targets: aoeCircle,
-                scale: { from: 0, to: 1 },
-                alpha: { from: 0.6, to: 0 },
-                duration: 800,
-                ease: 'Power2',
-                onComplete: () => aoeCircle.destroy()
-            });
-            
-            // Hex all enemies within AoE radius of the target
-            this.enemies.children.entries.forEach(enemy => {
-                if (enemy.active && !enemy.isDying && !enemy.isHexed && enemy !== randomEnemy) {
-                    const distFromTarget = Phaser.Math.Distance.Between(enemy.x, enemy.y, randomEnemy.x, randomEnemy.y);
-                    if (distFromTarget < aoeRadius) {
-                        // Apply hex to adjacent enemy
-                        this.applyHexCurse(enemy, hexDuration);
-                        
-                        // Small visual effect for adjacent hexes
-                        const miniHex = this.add.text(enemy.x, enemy.y - 20, '⬢', {
-                            fontSize: '20px',
-                            color: '#9932cc'
-                        });
-                        miniHex.setOrigin(0.5);
-                        miniHex.setDepth(5);
-                        
-                        this.tweens.add({
-                            targets: miniHex,
-                            y: enemy.y - 40,
-                            alpha: 0,
-                            scale: 1.5,
-                            duration: 1000,
-                            onComplete: () => miniHex.destroy()
-                        });
+        });
+        
+        // If no enemies, fire in facing direction
+        if (!nearestEnemy) {
+            const angle = this.getDirectionAngle(this.wizard.lastDirection || 'down');
+            nearestEnemy = {
+                x: this.wizard.x + Math.cos(angle) * 400,
+                y: this.wizard.y + Math.sin(angle) * 400
+            };
+        }
+        
+        // Create hex projectile
+        const hexProjectile = this.add.sprite(this.wizard.x, this.wizard.y, 'death-missile-1');
+        hexProjectile.setDepth(10);
+        hexProjectile.setScale(1.5);
+        hexProjectile.setTint(0x9932cc); // Purple tint for hex
+        hexProjectile.play('death-missile-anim');
+        
+        // Physics for the projectile
+        this.physics.add.existing(hexProjectile);
+        hexProjectile.body.setCircle(15);
+        
+        // Track which enemies have been poisoned
+        const poisonedEnemies = new Set();
+        
+        // Projectile properties
+        const baseSpeed = 200;
+        const turnSpeed = 3; // Radians per second
+        let currentTarget = nearestEnemy;
+        hexProjectile.lifespan = 5000 + (elementTier * 1000); // Base 5 seconds + 1 second per tier
+        
+        // Strong poison properties
+        const poisonDamage = 8; // Strong poison damage per tick
+        const poisonDuration = 6000; // 6 seconds
+        const poisonTickRate = 500; // Damage every 0.5 seconds
+        
+        // Homing and pass-through update loop
+        const homingUpdate = this.time.addEvent({
+            delay: 16, // ~60 FPS
+            callback: () => {
+                if (!hexProjectile.active) {
+                    homingUpdate.destroy();
+                    return;
+                }
+                
+                // Check lifespan
+                hexProjectile.lifespan -= 16;
+                if (hexProjectile.lifespan <= 0) {
+                    hexProjectile.destroy();
+                    homingUpdate.destroy();
+                    return;
+                }
+                
+                // Find new target if current is dead or too far
+                if (!currentTarget || !currentTarget.active || 
+                    (currentTarget.x && Phaser.Math.Distance.Between(hexProjectile.x, hexProjectile.y, currentTarget.x, currentTarget.y) > 500)) {
+                    
+                    // Find nearest unpoisoned enemy
+                    let newTarget = null;
+                    let nearestDist = Infinity;
+                    
+                    this.enemies.children.entries.forEach(enemy => {
+                        if (enemy.active && !enemy.isDying && !poisonedEnemies.has(enemy)) {
+                            const dist = Phaser.Math.Distance.Between(hexProjectile.x, hexProjectile.y, enemy.x, enemy.y);
+                            if (dist < nearestDist && dist < 300) { // Only target enemies within 300 pixels
+                                nearestDist = dist;
+                                newTarget = enemy;
+                            }
+                        }
+                    });
+                    
+                    currentTarget = newTarget;
+                }
+                
+                // Homing behavior (similar to lost soul projectile)
+                if (currentTarget) {
+                    const angleToTarget = Phaser.Math.Angle.Between(
+                        hexProjectile.x, hexProjectile.y,
+                        currentTarget.x, currentTarget.y
+                    );
+                    
+                    // Get current velocity angle
+                    const currentAngle = Math.atan2(hexProjectile.body.velocity.y, hexProjectile.body.velocity.x);
+                    
+                    // Calculate angle difference
+                    let angleDiff = angleToTarget - currentAngle;
+                    
+                    // Normalize angle difference to [-PI, PI]
+                    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                    
+                    // Apply turn speed limit
+                    const maxTurn = turnSpeed * 0.016; // Convert to per-frame
+                    angleDiff = Phaser.Math.Clamp(angleDiff, -maxTurn, maxTurn);
+                    
+                    // New angle
+                    const newAngle = currentAngle + angleDiff;
+                    
+                    // Set velocity
+                    hexProjectile.body.setVelocity(
+                        Math.cos(newAngle) * baseSpeed,
+                        Math.sin(newAngle) * baseSpeed
+                    );
+                    
+                    // Rotate sprite to face direction (sprite faces right by default)
+                    hexProjectile.rotation = newAngle;
+                } else {
+                    // No target, continue in current direction
+                    if (!hexProjectile.body.velocity.x && !hexProjectile.body.velocity.y) {
+                        // Initial velocity if stationary
+                        const angle = Math.random() * Math.PI * 2;
+                        hexProjectile.body.setVelocity(
+                            Math.cos(angle) * baseSpeed,
+                            Math.sin(angle) * baseSpeed
+                        );
+                        hexProjectile.rotation = angle;
+                    } else {
+                        // Update rotation based on current velocity (sprite faces right by default)
+                        const currentAngle = Math.atan2(hexProjectile.body.velocity.y, hexProjectile.body.velocity.x);
+                        hexProjectile.rotation = currentAngle;
                     }
                 }
-            });
-        }
+                
+                // Check collision with enemies (pass-through and poison)
+                this.enemies.children.entries.forEach(enemy => {
+                    if (enemy.active && !enemy.isDying && !poisonedEnemies.has(enemy)) {
+                        const dist = Phaser.Math.Distance.Between(
+                            hexProjectile.x, hexProjectile.y,
+                            enemy.x, enemy.y
+                        );
+                        
+                        if (dist < 30) { // Hit radius
+                            // Mark as poisoned
+                            poisonedEnemies.add(enemy);
+                            
+                            // Apply strong poison
+                            if (!enemy.hexPoisoned) {
+                                enemy.hexPoisoned = true;
+                                enemy.hexPoisonDamage = poisonDamage;
+                                
+                                // Visual effect
+                                enemy.setTint(0x663399); // Dark purple tint
+                                
+                                // Poison damage over time
+                                const poisonInterval = this.time.addEvent({
+                                    delay: poisonTickRate,
+                                    callback: () => {
+                                        if (enemy && enemy.active) {
+                                            enemy.health -= poisonDamage;
+                                            
+                                            // Show damage number
+                                            this.showDamageNumber(enemy.x, enemy.y - 20, poisonDamage, '#663399');
+                                            
+                                            // Poison particle effect
+                                            const poisonParticle = this.add.circle(
+                                                enemy.x + (Math.random() - 0.5) * 20,
+                                                enemy.y + (Math.random() - 0.5) * 20,
+                                                3, 0x663399, 0.8
+                                            );
+                                            poisonParticle.setDepth(enemy.depth + 1);
+                                            
+                                            this.tweens.add({
+                                                targets: poisonParticle,
+                                                y: poisonParticle.y - 20,
+                                                alpha: 0,
+                                                scale: 0,
+                                                duration: 500,
+                                                onComplete: () => poisonParticle.destroy()
+                                            });
+                                            
+                                            // Check if enemy died
+                                            if (enemy.health <= 0) {
+                                                if (enemy.body) enemy.body.enable = false;
+                                                this.killEnemy(enemy);
+                                                poisonInterval.destroy();
+                                            }
+                                        }
+                                    },
+                                    repeat: poisonDuration / poisonTickRate - 1
+                                });
+                                
+                                // Clear poison after duration
+                                this.time.delayedCall(poisonDuration, () => {
+                                    if (enemy && enemy.active) {
+                                        enemy.hexPoisoned = false;
+                                        poisonInterval.destroy();
+                                        
+                                        // Clear tint if no other effects
+                                        if (!enemy.frozen && !enemy.stunned && !enemy.poisoned && 
+                                            !enemy.burning && !enemy.wet && !enemy.muddy) {
+                                            enemy.clearTint();
+                                        }
+                                    }
+                                });
+                            }
+                            
+                            // Create pass-through effect
+                            const passEffect = this.add.circle(enemy.x, enemy.y, 20, 0x9932cc, 0.6);
+                            passEffect.setDepth(enemy.depth + 1);
+                            this.tweens.add({
+                                targets: passEffect,
+                                scale: 2,
+                                alpha: 0,
+                                duration: 300,
+                                onComplete: () => passEffect.destroy()
+                            });
+                        }
+                    }
+                });
+                
+                // Leave trail particles
+                if (Math.random() < 0.3) {
+                    const trail = this.add.circle(hexProjectile.x, hexProjectile.y, 4, 0x9932cc, 0.6);
+                    trail.setDepth(hexProjectile.depth - 1);
+                    this.tweens.add({
+                        targets: trail,
+                        alpha: 0,
+                        scale: 0,
+                        duration: 500,
+                        onComplete: () => trail.destroy()
+                    });
+                }
+            },
+            repeat: -1
+        });
+        
+        // Destroy projectile after lifespan
+        const totalLifespan = 5000 + (elementTier * 1000);
+        this.time.delayedCall(totalLifespan, () => {
+            if (hexProjectile.active) {
+                hexProjectile.destroy();
+                homingUpdate.destroy();
+            }
+        });
     }
 
     createVenomSpell(slotIndex = 0, elementTier = 1) {
@@ -36014,9 +36861,11 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    createDeathSpell() {
-        // Death element - creates an area that instantly kills enemies with 25% or less health
+    createDeathSpell(slotIndex = 0, elementTier = 1) {
+        // Death element - deals (10 * tier) damage + 10% max health to all enemies in AOE
+        // For each kill, reduces cooldown by (1 * tier) seconds
         const deathRadius = 200;
+        let killCount = 0;
         
         // Create death zone visual
         const deathZone = this.add.circle(this.wizard.x, this.wizard.y, deathRadius, 0x000000, 0.2);
@@ -36026,33 +36875,6 @@ class GameScene extends Phaser.Scene {
         // Add inner death circle
         const innerCircle = this.add.circle(this.wizard.x, this.wizard.y, deathRadius * 0.6, 0x220022, 0.3);
         innerCircle.setDepth(2);
-        
-        // Create skull particles effect
-        const skullParticles = [];
-        for (let i = 0; i < 8; i++) {
-            const angle = (Math.PI * 2 / 8) * i;
-            const x = this.wizard.x + Math.cos(angle) * (deathRadius * 0.8);
-            const y = this.wizard.y + Math.sin(angle) * (deathRadius * 0.8);
-            
-            // Create skull marker
-            const skull = this.add.text(x, y, '💀', {
-                fontSize: '24px'
-            });
-            skull.setOrigin(0.5);
-            skull.setDepth(3);
-            skullParticles.push(skull);
-            
-            // Floating animation
-            this.tweens.add({
-                targets: skull,
-                y: y - 10,
-                alpha: { from: 0.8, to: 0.3 },
-                duration: 1000,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
-        }
         
         // Dark pulse animation
         this.tweens.add({
@@ -36069,101 +36891,109 @@ class GameScene extends Phaser.Scene {
             scale: { from: 1, to: 1.05 },
             duration: 800,
             yoyo: true,
-            repeat: -1,
-            delay: 500
+            repeat: 2
         });
         
-        // Death effect - check for low health enemies
-        const deathCheck = this.time.addEvent({
-            delay: 100, // Check every 0.1 seconds
-            callback: () => {
-                if (!deathZone.active) {
-                    deathCheck.destroy();
-                    return;
-                }
-                
-                this.enemies.children.entries.forEach(enemy => {
-                    if (enemy.active && !enemy.deathMarked) {
-                        const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
-                        if (dist < deathRadius) {
-                            // Check if enemy health is 25% or less
-                            const maxHealth = enemy.maxHealth || enemy.health;
-                            const healthPercent = enemy.health / maxHealth;
-                            
-                            if (healthPercent <= 0.25) {
-                                // Mark for death
-                                enemy.deathMarked = true;
-                                
-                                // Death animation on enemy
-                                enemy.setTint(0x000000);
-                                
-                                // Create death effect at enemy position
-                                const deathEffect = this.add.text(enemy.x, enemy.y, '☠️', {
-                                    fontSize: '32px'
-                                });
-                                deathEffect.setOrigin(0.5);
-                                deathEffect.setDepth(10);
-                                
-                                // Animate death effect
-                                this.tweens.add({
-                                    targets: deathEffect,
-                                    y: enemy.y - 40,
-                                    scale: { from: 0.5, to: 1.5 },
-                                    alpha: { from: 1, to: 0 },
-                                    duration: 800,
-                                    onComplete: () => deathEffect.destroy()
-                                });
-                                
-                                // Soul extraction effect
-                                const soul = this.add.circle(enemy.x, enemy.y, 10, 0x9933ff, 0.8);
-                                soul.setDepth(5);
-                                
-                                this.tweens.add({
-                                    targets: soul,
-                                    x: this.wizard.x,
-                                    y: this.wizard.y,
-                                    scale: { from: 1, to: 0 },
-                                    duration: 600,
-                                    ease: 'Power2',
-                                    onComplete: () => {
-                                        soul.destroy();
-                                        // Kill enemy after soul extraction
-                                        if (enemy.active) {
-                                            this.killEnemy(enemy);
-                                        }
-                                    }
-                                });
-                            } else if (healthPercent <= 0.35) {
-                                // Visual warning for enemies close to death threshold
-                                if (!enemy.deathWarned) {
-                                    enemy.deathWarned = true;
-                                    enemy.setTint(0x660066);
-                                    this.time.delayedCall(200, () => {
-                                        if (enemy.active && !enemy.deathMarked) {
-                                            enemy.clearTint();
-                                            enemy.deathWarned = false;
-                                        }
-                                    });
-                                }
+        // Deal damage to all enemies in radius
+        this.enemies.children.entries.forEach(enemy => {
+            if (enemy.active && !enemy.isDying) {
+                const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
+                if (dist < deathRadius) {
+                    // Calculate damage: (10 * tier) base + 10% of max health
+                    const maxHealth = enemy.maxHealth || enemy.health;
+                    const damage = (10 * elementTier) + Math.ceil(maxHealth * 0.1);
+                    
+                    // Deal damage
+                    enemy.health -= damage;
+                    
+                    // Show damage number
+                    this.showDamageNumber(enemy.x, enemy.y - 20, damage, '#330033');
+                    
+                    // Check if enemy died
+                    if (enemy.health <= 0) {
+                        killCount++;
+                        
+                        // Play ghost missile animation at enemy position
+                        const ghostMissile = this.add.sprite(enemy.x, enemy.y, 'ghost-missile-1');
+                        ghostMissile.setDepth(100);
+                        ghostMissile.setScale(1.5);
+                        ghostMissile.play('ghost-missile-anim');
+                        
+                        // Soul extraction effect
+                        const soul = this.add.circle(enemy.x, enemy.y, 10, 0x9933ff, 0.8);
+                        soul.setDepth(5);
+                        
+                        this.tweens.add({
+                            targets: soul,
+                            x: this.wizard.x,
+                            y: this.wizard.y,
+                            scale: { from: 1, to: 0 },
+                            duration: 600,
+                            ease: 'Power2',
+                            onComplete: () => {
+                                soul.destroy();
                             }
+                        });
+                        
+                        // Destroy ghost missile animation when complete
+                        ghostMissile.once('animationcomplete', () => {
+                            ghostMissile.destroy();
+                        });
+                        
+                        // Kill the enemy
+                        if (enemy.body) {
+                            enemy.body.enable = false;
                         }
+                        this.killEnemy(enemy);
+                    } else {
+                        // Apply death tint to damaged enemies
+                        enemy.setTint(0x660066);
+                        this.time.delayedCall(500, () => {
+                            if (enemy.active && !enemy.frozen && !enemy.stunned && !enemy.poisoned && 
+                                !enemy.slowed && !enemy.burning && !enemy.wet && !enemy.sandSlowed) {
+                                enemy.clearTint();
+                            }
+                        });
                     }
-                });
-            },
-            repeat: 39 // Lasts 4 seconds total (40 checks * 0.1s)
+                }
+            }
         });
+        
+        // Reduce cooldown based on kills
+        if (killCount > 0) {
+            // Find death element in charge slots and reduce its cooldown
+            for (let i = 0; i < 4; i++) {
+                if (this.chargeSlots && this.chargeSlots[i] === 'death') {
+                    // Reduce the cooldown by (1 * tier) seconds per kill
+                    const reductionAmount = killCount * elementTier * 1000; // Convert to milliseconds
+                    
+                    // Update the last fire time to simulate cooldown reduction
+                    if (!this.lastElementFireTimes) {
+                        this.lastElementFireTimes = {};
+                    }
+                    
+                    const currentTime = this.time.now;
+                    const elementKey = `slot_${i}_death`;
+                    
+                    if (this.lastElementFireTimes[elementKey]) {
+                        // Move the last fire time back by the reduction amount
+                        this.lastElementFireTimes[elementKey] -= reductionAmount;
+                        console.log(`Death spell cooldown reduced by ${killCount * elementTier} seconds`);
+                    }
+                    break;
+                }
+            }
+        }
         
         // Fade out and cleanup
-        this.time.delayedCall(3500, () => {
+        this.time.delayedCall(2000, () => {
             this.tweens.add({
-                targets: [deathZone, innerCircle, ...skullParticles],
+                targets: [deathZone, innerCircle],
                 alpha: 0,
                 duration: 500,
                 onComplete: () => {
                     deathZone.destroy();
                     innerCircle.destroy();
-                    skullParticles.forEach(skull => skull.destroy());
-                    deathCheck.destroy();
                 }
             });
         });
@@ -40163,6 +40993,7 @@ class GameScene extends Phaser.Scene {
             'earth+lightning': 'gravity',
             'arcane+earth': 'gravity',
             'arcane+water': 'poison',
+            'air+arcane': 'illusion',
             'arcane+poison': 'life',
             'earth+poison': 'life',
             'lightning+poison': 'life',
