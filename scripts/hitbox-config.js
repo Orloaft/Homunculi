@@ -25,7 +25,12 @@ if (typeof hitboxConfig === 'undefined') {
         'blip': 2.4,
         
         // Add any enemy-specific scales here,
-        'cactuse': 10.8
+        'cactuse': 4.8,
+        'castle-knight': 1.4,
+        'castle-rogue': 1.8,
+        'castle-soldier': 1.4,
+        'castle-bladekeeper': 1.1,
+        'castle-squire': 1.5
     },
     
     // Hitbox configurations for each enemy type
@@ -59,11 +64,11 @@ if (typeof hitboxConfig === 'undefined') {
         summoner: { width: 80, height: 100, offsetX: 40, offsetY: 20 },
         
         // Castle enemies
-        'castle-knight': { width: 30, height: 45, offsetX: 15, offsetY: 20 },
-        'castle-rogue': { width: 30, height: 45, offsetX: 15, offsetY: 20 },
-        'castle-soldier': { width: 30, height: 45, offsetX: 17, offsetY: 20 },
-        'castle-bladekeeper': { width: 40, height: 55, offsetX: 12, offsetY: 15 },
-        'castle-squire': { width: 30, height: 45, offsetX: 17, offsetY: 20 },
+        'castle-knight': { width: 30, height: 45, offsetX: 100, offsetY: 100 },
+        'castle-rogue': { width: 30, height: 30, offsetX: 27, offsetY: 4 },
+        'castle-soldier': { width: 30, height: 45, offsetX: 79, offsetY: 72 },
+        'castle-bladekeeper': { width: 40, height: 55, offsetX: 100, offsetY: 89 },
+        'castle-squire': { width: 30, height: 45, offsetX: 80, offsetY: 80 },
         
         // Grave enemies
         yellowskeleton: { width: 40, height: 50, offsetX: 28, offsetY: 14 },
@@ -107,6 +112,7 @@ if (typeof hitboxConfig === 'undefined') {
     shadows: {
         // Default shadow settings
         default: { width: 40, height: 12, offsetX: 0, offsetY: 30, alpha: 0.5 },
+        'castle-bladekeeper': { width: 40, height: 12, offsetX: 0, offsetY: 72, alpha: 0.5 },
         blip: { width: 81, height: 30, offsetX: -4, offsetY: 30, alpha: 0.3 },
         
         // Forest enemies
@@ -120,11 +126,11 @@ if (typeof hitboxConfig === 'undefined') {
         golem: { width: 60, height: 18, offsetX: 0, offsetY: 40, alpha: 0.6 },
         'golem-blue': { width: 60, height: 50, offsetX: 15, offsetY: 10 },
         'golem-orange': { width: 60, height: 50, offsetX: 15, offsetY: 10 },
-        'castle-knight': { width: 30, height: 45, offsetX: 15, offsetY: 20 },
-        'castle-rogue': { width: 30, height: 45, offsetX: 15, offsetY: 20 },
-        'castle-soldier': { width: 30, height: 45, offsetX: 17, offsetY: 20 },
-        'castle-bladekeeper': { width: 40, height: 55, offsetX: 12, offsetY: 15 },
-        'castle-squire': { width: 30, height: 45, offsetX: 17, offsetY: 20 },
+        'castle-knight': { width: 30, height: 45, offsetX: 100, offsetY: 100 },
+        'castle-rogue': { width: 30, height: 30, offsetX: 27, offsetY: 4 },
+        'castle-soldier': { width: 30, height: 45, offsetX: 79, offsetY: 72 },
+        'castle-bladekeeper': { width: 40, height: 55, offsetX: 100, offsetY: 89 },
+        'castle-squire': { width: 30, height: 45, offsetX: 80, offsetY: 80 },
         
         // Grave enemies shadows
         yellowskeleton: { width: 35, height: 12, offsetX: 0, offsetY: 35, alpha: 0.5 },

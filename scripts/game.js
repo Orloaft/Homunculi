@@ -138,6 +138,7 @@ class LoadingScene extends Phaser.Scene {
         this.load.image('cactus', 'assets/images/cactuse.png');
         this.load.image('tombstone', 'assets/images/tombstone.png');
         this.load.image('skullfloor-tile', 'assets/images/skullfloor.png');
+        this.load.image('water-tile', 'assets/images/waterfloor.png');
         
         // Load castle obstacles
         this.load.image('castle-bookshelf', 'assets/obstacles/castleobstacles/bookshelf_1.png');
@@ -165,6 +166,7 @@ class LoadingScene extends Phaser.Scene {
         this.load.image('knight-orb', 'assets/effects/orbs/knight.png');
         this.load.image('king-orb', 'assets/effects/orbs/king.png');
         this.load.image('saturn-orb', 'assets/effects/orbs/saturn.png');
+        this.load.image('pawn-orb', 'assets/effects/orbs/pawn.png');
         
         // Load hitbox editor and config
         this.load.script('hitbox-editor', 'scripts/HitboxEditor.js');
@@ -224,6 +226,9 @@ class LoadingScene extends Phaser.Scene {
         // Load background music
         this.load.audio('bgm', 'assets/audio/homonculibgm.mp3');
         this.load.audio('bgm2', 'assets/audio/bgm2.mp3');
+        
+        // Load sound effects
+        this.load.audio('danger-warning', 'sfx/dangersound.wav');
         this.load.audio('stageselect-bgm', 'assets/audio/VGMA%20Challenge%2008(stageselect).ogg');
         this.load.audio('title-bgm', 'assets/audio/Ludum%20Dare%2028%2003(title).ogg');
         this.load.audio('forestland-bgm', 'assets/audio/Sketchbook%202024-08-07(forestland).ogg');
@@ -271,6 +276,7 @@ class LoadingScene extends Phaser.Scene {
         this.load.image('meteor-orb', 'assets/effects/orbs/meteororb.png');
         this.load.image('mud-orb', 'assets/effects/orbs/mudorb.png');
         this.load.image('storm-orb', 'assets/effects/orbs/stormorb.png');
+        this.load.image('tempest-orb', 'assets/effects/orbs/tempest.png');
         this.load.image('crystal-orb', 'assets/effects/orbs/crystalorb.png');
         this.load.image('death-orb', 'assets/effects/orbs/deathorb.png');
         this.load.image('time-orb', 'assets/effects/orbs/timeorb.png');
@@ -288,6 +294,7 @@ class LoadingScene extends Phaser.Scene {
         this.load.image('catalyst-orb', 'assets/effects/orbs/catalystorb.png');
         this.load.image('holy-orb', 'assets/effects/orbs/holyorb.png');
         this.load.image('philosopher-orb', 'assets/effects/orbs/philosopherorb.png');
+        this.load.image('blast-orb', 'assets/effects/orbs/blast.png');
 
         // Load slime sprites
         for (let i = 0; i < 4; i++) {
@@ -414,6 +421,12 @@ class LoadingScene extends Phaser.Scene {
         this.load.spritesheet('lightning-impact', 'assets/effects/elementanimations/Thunder%20Hit/5framesdims192x32.png', {
             frameWidth: 38,  // 192 / 5 frames (38.4 rounded to 38)
             frameHeight: 32
+        });
+        
+        // Thunder Strike animation for Thunder spell
+        this.load.spritesheet('thunder-strike', 'assets/effects/elementanimations/Thunder Strike/12framesdims832x64.png', {
+            frameWidth: 832 / 12,  // Exactly 69.333... per frame
+            frameHeight: 64
         });
         
         // Holy projectile animations
@@ -595,6 +608,24 @@ class LoadingScene extends Phaser.Scene {
         this.load.spritesheet('storm-spell', 'assets/effects/spells/thunder1-17frames.PNG', {
             frameWidth: 64, // 1088 ÷ 17 frames
             frameHeight: 68
+        });
+        
+        // Load blast spell sprite sheet (fire sphere animation)
+        this.load.spritesheet('blast-spell', 'assets/effects/elementanimations/fire sphere/18framesdims864x48.png', {
+            frameWidth: 48, // 864 ÷ 18 frames
+            frameHeight: 48
+        });
+        
+        // Load air explosion sprite sheets
+        // startup3framesx3framesdims96x96.png = 3x3 grid, 96x96 total size
+        this.load.spritesheet('air-explosion-startup', 'assets/effects/elementanimations/air explosion/startup3framesx3framesdims96x96.png', {
+            frameWidth: 32, // 96 ÷ 3 columns = 32px per frame
+            frameHeight: 32 // 96 ÷ 3 rows = 32px per frame
+        });
+        // 4framex3framesdims128x96.png = 4 columns x 3 rows = 12 frames total
+        this.load.spritesheet('air-explosion-damage', 'assets/effects/elementanimations/air explosion/4framex3framesdims128x96.png', {
+            frameWidth: 32, // 128 ÷ 4 columns = 32px per frame
+            frameHeight: 32 // 96 ÷ 3 rows = 32px per frame
         });
 
         // Load individual air spell frames
@@ -1323,6 +1354,93 @@ class TitleScene extends Phaser.Scene {
             storyButton.setColor('#ffdd44');
         });
         
+        // Multiplayer toggle button - bottom right corner
+        this.multiplayerEnabled = false; // Start with single player
+        const multiplayerButton = this.add.text(750, 560, '1 PLAYER', {
+            fontSize: '20px',
+            color: '#ffffff',
+            backgroundColor: '#000000',
+            padding: { x: 15, y: 8 }
+        }).setOrigin(1, 1);
+        multiplayerButton.setInteractive({ useHandCursor: true });
+        multiplayerButton.setAlpha(0); // Start invisible
+        
+        // Fade in multiplayer button
+        this.tweens.add({
+            targets: multiplayerButton,
+            alpha: 1,
+            duration: 1000,
+            delay: 3000,
+            ease: 'Power2'
+        });
+        
+        // Toggle function for multiplayer
+        const toggleMultiplayer = () => {
+            this.multiplayerEnabled = !this.multiplayerEnabled;
+            if (this.multiplayerEnabled) {
+                multiplayerButton.setText('2 PLAYERS');
+                multiplayerButton.setColor('#00ff00');
+                multiplayerButton.setBackgroundColor('#002200');
+                
+                // Show P2 indicator
+                if (!this.p2Indicator) {
+                    this.p2Indicator = this.add.text(400, 450, 'CO-OP MODE ENABLED', {
+                        fontSize: '16px',
+                        color: '#00ff00',
+                        backgroundColor: '#000000',
+                        padding: { x: 10, y: 5 }
+                    }).setOrigin(0.5);
+                    this.p2Indicator.setAlpha(0);
+                    
+                    this.tweens.add({
+                        targets: this.p2Indicator,
+                        alpha: 1,
+                        duration: 300
+                    });
+                }
+            } else {
+                multiplayerButton.setText('1 PLAYER');
+                multiplayerButton.setColor('#ffffff');
+                multiplayerButton.setBackgroundColor('#000000');
+                
+                // Hide P2 indicator
+                if (this.p2Indicator) {
+                    this.tweens.add({
+                        targets: this.p2Indicator,
+                        alpha: 0,
+                        duration: 300,
+                        onComplete: () => {
+                            this.p2Indicator.destroy();
+                            this.p2Indicator = null;
+                        }
+                    });
+                }
+            }
+        };
+        
+        multiplayerButton.on('pointerover', () => {
+            if (!this.multiplayerEnabled) {
+                multiplayerButton.setColor('#ffdd44');
+            } else {
+                multiplayerButton.setColor('#44ff44');
+            }
+        });
+        
+        multiplayerButton.on('pointerout', () => {
+            if (!this.multiplayerEnabled) {
+                multiplayerButton.setColor('#ffffff');
+            } else {
+                multiplayerButton.setColor('#00ff00');
+            }
+        });
+        
+        multiplayerButton.on('pointerdown', () => {
+            toggleMultiplayer();
+        });
+        
+        // Store reference to multiplayer button for keyboard controls
+        this.multiplayerButton = multiplayerButton;
+        
         storyButton.on('pointerout', () => {
             storyButton.setColor('#ffffff');
         });
@@ -1397,6 +1515,13 @@ class TitleScene extends Phaser.Scene {
         
         // Use on() instead of once() and manage it manually
         this.input.keyboard.on('keydown-SPACE', this.spaceKeyHandler);
+        
+        // Add M key handler for multiplayer toggle
+        this.input.keyboard.on('keydown-M', () => {
+            if (!this.isTransitioning && toggleMultiplayer) {
+                toggleMultiplayer();
+            }
+        });
 
         // Enable gamepad support
         if (this.input.gamepad.total > 0) {
@@ -1700,12 +1825,12 @@ class TitleScene extends Phaser.Scene {
             color: '#ffffff'
         }).setOrigin(0, 0.5);
         
-        // Get all available elements from the game scene
+        // Get all available elements from the game scene (including all chess passive orbs)
         const allElements = ['none', 'fire', 'water', 'earth', 'rock', 'air', 'lightning', 'holy', 'arcane', 
                             'dust', 'lava', 'steam', 'poison', 'volcano', 'ice', 'meteor', 'mud', 
                             'storm', 'crystal', 'death', 'time', 'sand', 'gravity', 'sun', 'smoke', 
                             'wave', 'star', 'zodiac', 'hex', 'venom', 'moon', 'nature', 'life', 
-                            'philosopherstone', 'halo', 'rook', 'bishop', 'joker'];
+                            'philosopherstone', 'halo', 'rook', 'bishop', 'knight', 'queen', 'king', 'saturn', 'joker'];
         const elements = allElements;
         const savedElement = localStorage.getItem('startElement') || 'none';
         let currentElementIndex = elements.indexOf(savedElement);
@@ -1842,20 +1967,23 @@ class TitleScene extends Phaser.Scene {
         }).setOrigin(0, 0.5);
         
         // Density mode options
-        const densityModes = ['sparse', 'normal', 'dense', 'swarm'];
+        const densityModes = ['beginner', 'sparse', 'normal', 'dense', 'swarm'];
         const densityDescriptions = {
+            'beginner': '10% enemies (very easy)',
             'sparse': '25% enemies (easier)',
             'normal': '50% enemies (standard)',
             'dense': '75% enemies (harder)',
             'swarm': '100% enemies (chaos!)'
         };
         const densityColors = {
+            'beginner': '#00ffff',
             'sparse': '#00ff00',
             'normal': '#ffffff',
             'dense': '#ff8800',
             'swarm': '#ff0000'
         };
         const densityMultipliers = {
+            'beginner': 0.1,
             'sparse': 0.25,
             'normal': 0.5,
             'dense': 0.75,
@@ -1864,7 +1992,7 @@ class TitleScene extends Phaser.Scene {
         
         const currentDensity = localStorage.getItem('enemyDensity') || 'normal';
         let currentDensityIndex = densityModes.indexOf(currentDensity);
-        if (currentDensityIndex === -1) currentDensityIndex = 1; // Default to normal
+        if (currentDensityIndex === -1) currentDensityIndex = 2; // Default to normal (index 2 now)
         
         // Create dial display
         const densityDialBg = this.add.rectangle(130, 0, 120, 35, 0x444444);
@@ -2564,7 +2692,8 @@ class TitleScene extends Phaser.Scene {
                     this.titleMusic = null;
                 }
                 this.scene.start('StageSelectScene', {
-                    fromTitle: true
+                    fromTitle: true,
+                    multiplayerEnabled: this.multiplayerEnabled // Pass multiplayer state
                 });
             }
         });
@@ -2596,6 +2725,12 @@ class StageSelectScene extends Phaser.Scene {
         
         // Always reset detail view state when initializing the scene
         this.detailViewActive = false;
+        
+        // Receive multiplayer state from title screen
+        if (data && data.multiplayerEnabled !== undefined) {
+            this.multiplayerEnabled = data.multiplayerEnabled;
+            console.log('StageSelectScene: Multiplayer enabled =', this.multiplayerEnabled);
+        }
         
         // Check if we should show character selection
         if (data && data.fromTitle) {
@@ -2754,13 +2889,19 @@ class StageSelectScene extends Phaser.Scene {
             this.inputEnabled = true;
         });
         
-        // Initialize multiplayer state
+        // Initialize multiplayer state (will be overridden by init() if passed from title)
         this.multiplayerEnabled = false;
         this.player2Connected = false;
         this.multiplayerUI = null; // Reset UI reference
         
         // Check for gamepads immediately to show multiplayer UI
         this.checkForMultipleGamepads();
+        
+        // If multiplayer was enabled from title screen, show it as active
+        if (this.multiplayerEnabled) {
+            this.player2Connected = true;
+            // Will show UI when detail view is active
+        }
         
         // Create voidkin animation
         if (!this.anims.exists('voidkin-idle')) {
@@ -3901,13 +4042,16 @@ class StageSelectScene extends Phaser.Scene {
         const bg = this.add.rectangle(0, 0, 180, 60, 0x000000, 0.8);
         bg.setStrokeStyle(2, 0x00ff00);
         
-        const text = this.add.text(0, -10, 'P2 READY!', {
+        // Check if multiplayer is already enabled (from title screen)
+        const isAlreadyEnabled = this.multiplayerEnabled;
+        
+        const text = this.add.text(0, -10, isAlreadyEnabled ? '2P MODE' : 'P2 READY!', {
             fontSize: '20px',
             color: '#00ff00',
             fontStyle: 'bold'
         }).setOrigin(0.5);
         
-        const subtext = this.add.text(0, 10, 'Press START or M', {
+        const subtext = this.add.text(0, 10, isAlreadyEnabled ? 'ACTIVE' : 'Press START or M', {
             fontSize: '14px',
             color: '#ffffff'
         }).setOrigin(0.5);
@@ -3915,16 +4059,22 @@ class StageSelectScene extends Phaser.Scene {
         this.multiplayerUI.add([bg, text, subtext]);
         this.multiplayerUI.setDepth(1000);
         
-        // Pulsing effect
-        this.tweens.add({
-            targets: bg,
-            scaleX: { from: 1, to: 1.1 },
-            scaleY: { from: 1, to: 1.1 },
-            duration: 1000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
+        // Only add pulsing effect if not already enabled
+        if (!isAlreadyEnabled) {
+            // Pulsing effect
+            this.tweens.add({
+                targets: bg,
+                scaleX: { from: 1, to: 1.1 },
+                scaleY: { from: 1, to: 1.1 },
+                duration: 1000,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        } else {
+            // Already enabled - show solid border
+            bg.setStrokeStyle(3, 0x00ff00);
+        }
     }
     
     hideMultiplayerOption() {
@@ -4630,11 +4780,14 @@ class StageSelectScene extends Phaser.Scene {
                     0: 'forest',
                     1: 'cave',
                     2: 'sand',
-                    3: 'lava',
-                    4: 'grave',
-                    5: 'castle',
-                    6: 'spire',
-                    7: 'void'
+                    3: 'swamp',
+                    4: 'snow',
+                    5: 'ocean',
+                    6: 'lava',
+                    7: 'grave',
+                    8: 'castle',
+                    9: 'spire',
+                    10: 'void'
                 };
                 let stageName = stageMapping[index] || 'forest';
                 
@@ -8398,6 +8551,7 @@ class GameScene extends Phaser.Scene {
         // Set enemy density multiplier
         const enemyDensity = localStorage.getItem('enemyDensity') || 'normal';
         const densityMultipliers = {
+            'beginner': 0.1,
             'sparse': 0.25,
             'normal': 0.5,
             'dense': 0.75,
@@ -8405,10 +8559,12 @@ class GameScene extends Phaser.Scene {
         };
         this.enemyDensityMultiplier = densityMultipliers[enemyDensity] || 0.5;
         
-        // Reset game state
-        console.log('Initializing player health. maxHealth:', this.maxHealth);
-        this.playerHealth = this.maxHealth; // Start with full health
-        console.log('Player health set to:', this.playerHealth);
+        // Reset game state - ALWAYS reset max health to default
+        this.maxHealth = 200; // Always reset to base value (doubled from 100)
+        this.playerHealth = 200; // Start with full health
+        this.playerInvulnerableUntil = 0; // Reset invulnerability timer
+        this.invulnerable = false; // Reset invulnerability flag
+        console.log('Reset health values - maxHealth:', this.maxHealth, 'playerHealth:', this.playerHealth);
         this.gameStarted = false; // Will be set to true after countdown
         console.log('GameScene created, gameStarted set to false');
         this.charges = []; // Start with no charges
@@ -8566,6 +8722,7 @@ class GameScene extends Phaser.Scene {
             meteor: { frame: 0, color: 0xff8800, name: 'Meteor', sheet: 'meteor-orb', isImage: true, fireRate: 1500 },
             mud: { frame: 0, color: 0x664422, name: 'Mud', sheet: 'mud-orb', isImage: true },
             storm: { frame: 0, color: 0xffff00, name: 'Storm', sheet: 'storm-orb', isImage: true },
+            thunder: { frame: 0, color: 0x9966ff, name: 'Thunder', sheet: 'tempest-orb', isImage: true, fireRate: 2000 },
             crystal: { frame: 0, color: 0xffaaff, name: 'Crystal', sheet: 'crystal-orb', isImage: true },
 
             // Updated to use new orb images
@@ -8575,6 +8732,7 @@ class GameScene extends Phaser.Scene {
             gravity: { frame: 0, color: 0x4b0082, name: 'Gravity', sheet: 'gravity-orb', isImage: true },
             sun: { frame: 0, color: 0xffeb3b, name: 'Sun', sheet: 'sun-orb', isImage: true, fireRate: 999999 },
             smoke: { frame: 0, color: 0x696969, name: 'Smoke', sheet: 'smoke-orb', isImage: true, fireRate: 1500 },
+            blast: { frame: 0, color: 0xff6600, name: 'Blast', sheet: 'blast-orb', isImage: true, fireRate: 2000 },
             wave: { frame: 0, color: 0x00bcd4, name: 'Wave', sheet: 'wave-orb', isImage: true },
             star: { frame: 0, color: 0xffffff, name: 'Star', sheet: 'star-orb', isImage: true },
             zodiac: { frame: 0, color: 0xffd700, name: 'Zodiac', sheet: 'zodiac-orb', isImage: true },
@@ -8588,6 +8746,11 @@ class GameScene extends Phaser.Scene {
             metal: { frame: 0, color: 0xc0c0c0, name: 'Metal', sheet: 'metal-orb', isImage: true, fireRate: 10000 }, // 10 second cooldown
             rook: { frame: 0, color: 0x8b7355, name: 'Rook', sheet: 'rook-orb', isImage: true, fireRate: 999999 }, // Passive element, doesn't fire directly
             bishop: { frame: 0, color: 0x9b59b6, name: 'Bishop', sheet: 'bishop-orb', isImage: true, fireRate: 999999 }, // Passive element, doesn't fire directly
+            knight: { frame: 0, color: 0xffa500, name: 'Knight', sheet: 'knight-orb', isImage: true, fireRate: 999999 }, // Passive element, halves cooldown (doubles fire rate)
+            queen: { frame: 0, color: 0xffd700, name: 'Queen', sheet: 'queen-orb', isImage: true, fireRate: 999999 }, // Passive element, multi-directional cast
+            king: { frame: 0, color: 0xdc143c, name: 'King', sheet: 'king-orb', isImage: true, fireRate: 999999 }, // Passive element, damage boost modifier
+            pawn: { frame: 0, color: 0x708090, name: 'Pawn', sheet: 'pawn-orb', isImage: true, fireRate: 999999 }, // Passive element, double-shot modifier
+            saturn: { frame: 0, color: 0xffa500, name: 'Saturn', sheet: 'saturn-orb', isImage: true, fireRate: 999999 }, // Passive element, makes projectiles orbit
             joker: { frame: 0, color: 0x800080, name: 'Joker', sheet: 'joker-orb', isImage: true, fireRate: 999999 } // Passive element, applies all chess modifiers
         };
 
@@ -8603,13 +8766,13 @@ class GameScene extends Phaser.Scene {
             // Basic fusions
             'fire+water': 'steam',
             'fire+earth': 'lava',
-            'fire+air': 'smoke',
+            'fire+air': 'blast',
             'water+earth': 'mud',
             'water+air': 'ice',
             'water+lightning': 'storm',
             'earth+air': 'dust',
             'earth+lightning': 'crystal',
-            'air+lightning': 'storm',
+            'air+lightning': 'thunder',
             'fire+lightning': 'meteor',
             
             // Advanced fusions
@@ -8906,6 +9069,7 @@ class GameScene extends Phaser.Scene {
             this.wizard2.health = 200; // Doubled from 100
             this.wizard2.maxHealth = 200; // Doubled from 100
             this.wizard2.invulnerable = false;
+            this.wizard2.invulnerableUntil = 0; // Reset invulnerability timer
             
             // Play initial idle animation for P2
             if (this.animationsReady && this.anims.exists('wizard-idle-loop-p2')) {
@@ -9228,6 +9392,9 @@ class GameScene extends Phaser.Scene {
         this.dungeonEnemies = this.physics.add.group();
         this.dungeonWaveTimer = null;
         this.dungeonSpawnTimer = null;
+        
+        // Initialize danger warning system
+        this.dangerWarnings = [];
         
         // Create obelisk direction indicator
         this.obeliskIndicator = this.add.triangle(0, 0, 0, 0, 15, 10, 0, 20, 0x00ffff);
@@ -9971,6 +10138,28 @@ class GameScene extends Phaser.Scene {
             frames: this.anims.generateFrameNumbers('obelisk-idle', { start: 0, end: 13 }),
             frameRate: 8,
             repeat: -1
+        });
+        
+        // Create blast spell animation with 18 frames
+        createAnimIfNotExists({
+            key: 'blast-spell-anim',
+            frames: this.anims.generateFrameNumbers('blast-spell', { start: 0, end: 17 }),
+            frameRate: 12, // Moderate framerate for explosion effect
+            repeat: 0
+        });
+        
+        // Create air explosion animations
+        createAnimIfNotExists({
+            key: 'air-explosion-startup',
+            frames: this.anims.generateFrameNumbers('air-explosion-startup', { start: 0, end: 8 }), // 3x3 = 9 frames
+            frameRate: 18, // Fast startup
+            repeat: 0
+        });
+        createAnimIfNotExists({
+            key: 'air-explosion-damage',
+            frames: this.anims.generateFrameNumbers('air-explosion-damage', { start: 0, end: 11 }), // 4x3 = 12 frames
+            frameRate: 12, // Slower for damage phase
+            repeat: 0
         });
         
         // Activation effect animation
@@ -11230,9 +11419,9 @@ class GameScene extends Phaser.Scene {
             title.setScrollFactor(0);
             title.setDepth(501);
 
-            // For debugging - use fixed elements including philosopher stone
-            const selectedElements = ['fire', 'water', 'earth', 'philosopherstone'];
-            console.log('Using fixed elements for testing:', selectedElements);
+            // Starting element selection - includes all chess passive orbs
+            const selectedElements = ['fire', 'water', 'earth', 'knight', 'rook', 'bishop', 'queen', 'king', 'saturn'];
+            console.log('Starting element options:', selectedElements);
 
             // Create element cards using chest UI style
             const buttons = [];
@@ -11546,8 +11735,8 @@ class GameScene extends Phaser.Scene {
         if (!this.chargeSlots) {
             this.chargeSlots = new Array(8).fill(null);
         }
-        // Check if it's a chess piece element (rook/bishop/joker)
-        if (element === 'rook' || element === 'bishop' || element === 'joker') {
+        // Check if it's a chess piece element (rook/bishop/joker/saturn/knight/queen/king)
+        if (element === 'rook' || element === 'bishop' || element === 'joker' || element === 'saturn' || element === 'knight' || element === 'queen' || element === 'king') {
             // Place chess pieces in passive slot 4 (first passive slot)
             this.chargeSlots[4] = element;
             this.charges = []; // Don't add to charges array since it's passive-only
@@ -11717,6 +11906,8 @@ class GameScene extends Phaser.Scene {
             tileName = 'lava-tile';
         } else if (this.stage === 'sand') {
             tileName = 'desert-tile';
+        } else if (this.stage === 'ocean') {
+            tileName = 'water-tile';
         } else if (this.stage === 'grave') {
             tileName = 'skullfloor-tile';
         } else if (this.stage === 'castle') {
@@ -11763,6 +11954,9 @@ class GameScene extends Phaser.Scene {
         } else if (this.stage === 'sand') {
             // Create sand dunes and heat effects
             this.createSandEffects();
+        } else if (this.stage === 'ocean') {
+            // Create ocean effects
+            this.createOceanEffects();
         }
         // Cave and lava stages have no decorations for now
         
@@ -11854,6 +12048,79 @@ class GameScene extends Phaser.Scene {
             // Add slightly darker shadow
             const shadow = this.add.ellipse(x + 10, y + 5, radius * 2, radius, 0xB8956A, 0.2);
             shadow.setDepth(-9);
+        }
+    }
+    
+    createOceanEffects() {
+        // Create a cool blue ambient color overlay
+        this.cameras.main.setBackgroundColor('#1a4d66');
+        
+        // Create wave shimmer effect
+        this.waveShimmer = this.add.graphics();
+        this.waveShimmer.setDepth(-5);
+        this.waveShimmer.setAlpha(0.15);
+        
+        // Add water bubble particles effect
+        this.bubbleParticles = [];
+        this.createBubbleParticles();
+        
+        // Create occasional coral/seaweed decorations using sprites or shapes
+        for (let i = 0; i < 15; i++) {
+            const x = Phaser.Math.Between(100, 3900);
+            const y = Phaser.Math.Between(100, 2060);
+            
+            // Create seaweed-like decoration using ellipses
+            const seaweed = this.add.ellipse(x, y, 20, 80, 0x2d5a3d, 0.4);
+            seaweed.setDepth(-8);
+            
+            // Add gentle swaying animation
+            this.tweens.add({
+                targets: seaweed,
+                x: x + Phaser.Math.Between(-10, 10),
+                duration: Phaser.Math.Between(3000, 5000),
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+        
+        // Create coral decorations
+        for (let i = 0; i < 10; i++) {
+            const x = Phaser.Math.Between(100, 3900);
+            const y = Phaser.Math.Between(100, 2060);
+            const radius = Phaser.Math.Between(30, 60);
+            
+            const coral = this.add.circle(x, y, radius, 0xff6b6b, 0.3);
+            coral.setDepth(-8);
+        }
+    }
+    
+    createBubbleParticles() {
+        // Create floating bubble particles
+        for (let i = 0; i < 20; i++) {
+            const x = Phaser.Math.Between(0, 4000);
+            const y = Phaser.Math.Between(0, 2160);
+            
+            const bubble = this.add.circle(x, y, Phaser.Math.Between(3, 8), 0xffffff, 0.2);
+            bubble.setDepth(-6);
+            
+            // Animate bubbles floating upward
+            this.tweens.add({
+                targets: bubble,
+                y: bubble.y - 300,
+                x: bubble.x + Phaser.Math.Between(-50, 50),
+                alpha: 0,
+                duration: Phaser.Math.Between(4000, 8000),
+                ease: 'Sine.easeInOut',
+                repeat: -1,
+                onRepeat: () => {
+                    bubble.x = Phaser.Math.Between(0, 4000);
+                    bubble.y = Phaser.Math.Between(2000, 2160);
+                    bubble.alpha = 0.2;
+                }
+            });
+            
+            this.bubbleParticles.push(bubble);
         }
     }
     
@@ -13007,8 +13274,9 @@ class GameScene extends Phaser.Scene {
             this.setupSpireland();
         }
         
-        // Spawn dungeon gate for non-spire stages
-        if (this.stage !== 'spire' && this.stage !== 'nexus') {
+        // Spawn dungeon gate for non-spire stages in single player mode
+        // In co-op mode, it will spawn when a player dies
+        if (this.stage !== 'spire' && this.stage !== 'nexus' && !this.multiplayerEnabled) {
             this.spawnDungeonGate();
         }
         
@@ -14259,8 +14527,8 @@ class GameScene extends Phaser.Scene {
                     this.wizard.x, this.wizard.y
                 );
                 
-                // Update arrow rotation
-                arrow.rotation = angle;
+                // Update arrow rotation (add 90 degrees since arrow sprite points up)
+                arrow.rotation = angle + Math.PI / 2;
                 arrow.angle = angle; // Update stored angle for teleport
                 
                 // Update velocity to track player
@@ -14912,12 +15180,15 @@ class GameScene extends Phaser.Scene {
             return { velocityX, velocityY, moving, usingGamepad };
         };
 
-        // Handle P1 movement
-        const p1Movement = handleWizardMovement(this.wizard, false);
-        let velocityX = p1Movement.velocityX;
-        let velocityY = p1Movement.velocityY;
-        let moving = p1Movement.moving;
-        let usingGamepad = p1Movement.usingGamepad;
+        // Handle P1 movement if P1 is alive
+        let velocityX = 0, velocityY = 0, moving = false, usingGamepad = false;
+        if (this.playerHealth > 0) {
+            const p1Movement = handleWizardMovement(this.wizard, false);
+            velocityX = p1Movement.velocityX;
+            velocityY = p1Movement.velocityY;
+            moving = p1Movement.moving;
+            usingGamepad = p1Movement.usingGamepad;
+        }
 
         // Initialize direction tracking if needed
         if (!this.wizard.directionBuffer) {
@@ -14925,8 +15196,8 @@ class GameScene extends Phaser.Scene {
             this.wizard.lastStableDirection = this.wizard.lastDirection || 'down';
         }
 
-        // Only update direction from keyboard if not using gamepad
-        if (!usingGamepad && moving) {
+        // Only update direction from keyboard if not using gamepad and P1 is alive
+        if (!usingGamepad && moving && this.playerHealth > 0) {
             const prevDirection = this.wizard.lastDirection;
             let currentDirection = null;
 
@@ -15135,18 +15406,69 @@ class GameScene extends Phaser.Scene {
             }
         };
 
-        // Apply movement to P1
-        applyWizardMovement(this.wizard, velocityX, velocityY, moving, false);
+        // Apply movement to P1 if alive
+        if (this.playerHealth > 0) {
+            applyWizardMovement(this.wizard, velocityX, velocityY, moving, false);
+        }
 
-        // Handle P2 movement if multiplayer is enabled
-        if (this.multiplayerEnabled && this.wizard2) {
+        // Handle P2 movement if multiplayer is enabled and P2 is alive
+        if (this.multiplayerEnabled && this.wizard2 && this.wizard2.health > 0) {
             const p2Movement = handleWizardMovement(this.wizard2, true);
             applyWizardMovement(this.wizard2, p2Movement.velocityX, p2Movement.velocityY, p2Movement.moving, true);
             
-            // Update camera to follow midpoint between players
+            // Update camera to follow midpoint between players or surviving player
             if (this.cameraTarget) {
-                const midX = (this.wizard.x + this.wizard2.x) / 2;
-                const midY = (this.wizard.y + this.wizard2.y) / 2;
+                let midX, midY;
+                
+                // Check if either player is dead
+                const p1Dead = this.playerHealth <= 0;
+                const p2Dead = this.wizard2.health <= 0;
+                
+                if (p1Dead && !p2Dead) {
+                    // P1 is dead, follow P2 only
+                    midX = this.wizard2.x;
+                    midY = this.wizard2.y;
+                    // Hide P1's body
+                    if (this.wizard.visible) {
+                        this.wizard.setVisible(false);
+                        this.wizard.body.enable = false;
+                    }
+                    // Spawn dungeon gate if not already spawned and not in spire/nexus
+                    if (!this.dungeonGate && this.stage !== 'spire' && this.stage !== 'nexus' && !this.inDungeon) {
+                        this.spawnDungeonGate();
+                    }
+                } else if (p2Dead && !p1Dead) {
+                    // P2 is dead, follow P1 only
+                    midX = this.wizard.x;
+                    midY = this.wizard.y;
+                    // Hide P2's body
+                    if (this.wizard2.visible) {
+                        this.wizard2.setVisible(false);
+                        this.wizard2.body.enable = false;
+                    }
+                    // Spawn dungeon gate if not already spawned and not in spire/nexus
+                    if (!this.dungeonGate && this.stage !== 'spire' && this.stage !== 'nexus' && !this.inDungeon) {
+                        this.spawnDungeonGate();
+                    }
+                } else if (!p1Dead && !p2Dead) {
+                    // Both alive, follow midpoint
+                    midX = (this.wizard.x + this.wizard2.x) / 2;
+                    midY = (this.wizard.y + this.wizard2.y) / 2;
+                    // Make sure both are visible if they were hidden
+                    if (!this.wizard.visible) {
+                        this.wizard.setVisible(true);
+                        this.wizard.body.enable = true;
+                    }
+                    if (!this.wizard2.visible) {
+                        this.wizard2.setVisible(true);
+                        this.wizard2.body.enable = true;
+                    }
+                } else {
+                    // Both dead, keep current position
+                    midX = this.cameraTarget.x;
+                    midY = this.cameraTarget.y;
+                }
+                
                 this.cameraTarget.setPosition(midX, midY);
                 
                 // Also ensure camera target stays within world bounds if they exist
@@ -15226,8 +15548,8 @@ class GameScene extends Phaser.Scene {
             // Only check first 4 slots (active slots)
             for (let slotIndex = 0; slotIndex < 4; slotIndex++) {
                 const element = this.chargeSlots[slotIndex];
-                // Skip passive elements like rook, bishop, and joker
-                if (element && element !== 'rook' && element !== 'bishop' && element !== 'joker') {
+                // Skip passive elements (chess orbs don't fire directly)
+                if (element && element !== 'rook' && element !== 'bishop' && element !== 'knight' && element !== 'queen' && element !== 'king' && element !== 'saturn' && element !== 'pawn' && element !== 'joker') {
                     const elementConfig = this.elementConfig[element];
                     const fireRate = (elementConfig.fireRate || 1000) / this.speedMultiplier; // Apply hyper mode multiplier
 
@@ -15263,8 +15585,8 @@ class GameScene extends Phaser.Scene {
                 // Only check first 4 slots (active slots)
                 for (let slotIndex = 0; slotIndex < 4; slotIndex++) {
                     const element = this.wizard2.chargeSlots[slotIndex];
-                    // Skip passive elements like rook and bishop
-                    if (element && element !== 'rook' && element !== 'bishop') {
+                    // Skip passive elements (chess orbs don't fire directly)
+                    if (element && element !== 'rook' && element !== 'bishop' && element !== 'knight' && element !== 'queen' && element !== 'king' && element !== 'joker') {
                         const elementConfig = this.elementConfig[element];
                         const fireRate = (elementConfig.fireRate || 1000) / this.speedMultiplier;
 
@@ -15335,13 +15657,71 @@ class GameScene extends Phaser.Scene {
             // Check distance for teleportation/destruction BEFORE culling check
             const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
             
-            // Destroy enemy if extremely far away (beyond 1000 pixels) to prevent accumulation
+            // Handle bosses differently - they should pursue and only teleport after being off-screen for a while
+            if (enemy.isBoss || enemy.isObeliskBoss) {
+                // Check if boss is off-screen
+                const camera = this.cameras.main;
+                const viewportPadding = 100; // Extra padding to consider "off-screen"
+                const isOffScreen = enemy.x < camera.scrollX - viewportPadding || 
+                                   enemy.x > camera.scrollX + camera.width + viewportPadding ||
+                                   enemy.y < camera.scrollY - viewportPadding || 
+                                   enemy.y > camera.scrollY + camera.height + viewportPadding;
+                
+                if (isOffScreen) {
+                    // Track how long boss has been off-screen
+                    if (!enemy.offScreenTime) {
+                        enemy.offScreenTime = this.time.now;
+                    }
+                    
+                    // Only teleport if boss has been off-screen for 3+ seconds and is far away
+                    const offScreenDuration = this.time.now - enemy.offScreenTime;
+                    if (offScreenDuration > 3000 && distance > 800) {
+                        // Teleport boss just outside viewport
+                        const viewportWidth = camera.width;
+                        const viewportHeight = camera.height;
+                        const spawnMargin = 150; // Spawn further out for bosses
+                        
+                        // Calculate spawn position based on player direction
+                        const angle = Phaser.Math.Angle.Between(this.wizard.x, this.wizard.y, enemy.x, enemy.y);
+                        const side = Math.floor((angle + Math.PI) / (Math.PI / 2)) % 4;
+                        
+                        switch (side) {
+                            case 0: // Right
+                                enemy.x = camera.scrollX + viewportWidth + spawnMargin;
+                                enemy.y = this.wizard.y;
+                                break;
+                            case 1: // Bottom
+                                enemy.x = this.wizard.x;
+                                enemy.y = camera.scrollY + viewportHeight + spawnMargin;
+                                break;
+                            case 2: // Left
+                                enemy.x = camera.scrollX - spawnMargin;
+                                enemy.y = this.wizard.y;
+                                break;
+                            case 3: // Top
+                                enemy.x = this.wizard.x;
+                                enemy.y = camera.scrollY - spawnMargin;
+                                break;
+                        }
+                        
+                        enemy.offScreenTime = null; // Reset timer
+                    }
+                } else {
+                    // Boss is on-screen, reset off-screen timer
+                    enemy.offScreenTime = null;
+                }
+                
+                // Skip rest of enemy AI for bosses
+                continue;
+            }
+            
+            // Destroy regular enemy if extremely far away (beyond 1000 pixels) to prevent accumulation
             if (distance > 1000 && !enemy.isDying) {
                 enemy.destroy();
                 continue;
             }
             
-            // Teleport enemy if too far from wizard (beyond 500 pixels) - but not if dying
+            // Teleport regular enemy if too far from wizard (beyond 500 pixels) - but not if dying
             if (distance > 500 && !enemy.isDying) {
                 // Teleport to outside viewport
                 const camera = this.cameras.main;
@@ -15369,11 +15749,6 @@ class GameScene extends Phaser.Scene {
                         enemy.y = camera.scrollY + Phaser.Math.Between(0, viewportHeight);
                         break;
                 }
-            }
-            
-            // Skip bosses - they have their own AI
-            if (enemy.isBoss) {
-                continue;
             }
             
             // Skip enemies that are far off-screen (culling)
@@ -16453,7 +16828,7 @@ class GameScene extends Phaser.Scene {
             'ice': { elements: ['water', 'air'], description: 'Freezes enemies solid' },
             'poison': { elements: ['water', 'arcane'], description: 'Drops poison mines for continuous damage' },
             'storm': { elements: ['lightning', 'air'], description: 'Chain lightning between enemies' },
-            'smoke': { elements: ['fire', 'air'], description: 'Creates obscuring smoke clouds' },
+            'blast': { elements: ['fire', 'air'], description: 'Delayed explosion dealing heavy damage' },
             
             // Advanced fusions
             'volcano': { elements: ['lava', 'fire'], description: 'Erupts projectiles in all directions' },
@@ -17465,7 +17840,7 @@ class GameScene extends Phaser.Scene {
             
             if (element) {
                 // Check if it's a passive orb (slots 4-7) or regular element
-                const passiveOrbs = ['joker', 'rook', 'bishop', 'queen', 'knight', 'king', 'saturn'];
+                const passiveOrbs = ['joker', 'rook', 'bishop', 'queen', 'knight', 'king', 'saturn', 'pawn'];
                 const isPassiveOrb = passiveOrbs.includes(element);
                 
                 if (isPassiveOrb) {
@@ -20441,6 +20816,21 @@ class GameScene extends Phaser.Scene {
             } else {  // Removed sorcerer, spawn more mushrooms instead
                 enemyType = 'mushroom'; // 25% - cactus/desert plants
             }
+        } else if (this.stage === 'ocean') {
+            // Ocean enemies: water-themed creatures
+            if (rand < 0.25) {
+                enemyType = 'soul'; // 25% - water spirits/souls
+            } else if (rand < 0.45) {
+                enemyType = 'slime'; // 20% - water slimes
+            } else if (rand < 0.60) {
+                enemyType = 'bloboid'; // 15% - jellyfish-like blobs
+            } else if (rand < 0.75) {
+                enemyType = 'darkbat'; // 15% - flying fish/bats
+            } else if (rand < 0.90) {
+                enemyType = 'intellectdevourer'; // 15% - sea creatures
+            } else {
+                enemyType = 'wraith'; // 10% - water wraiths
+            }
         } else if (this.stage === 'grave') {
             // Grave enemies: yellow skeletons, skeleton seekers, lost souls, club imps and axe imps
             if (rand < 0.30) {
@@ -20754,7 +21144,7 @@ class GameScene extends Phaser.Scene {
             
             enemy.health = 5; // Reduced by 50% from 9
             enemy.maxHealth = enemy.health;
-            enemy.moveSpeed = 50; // Reduced by 58% total (was 72)
+            enemy.moveSpeed = 40; // Reduced by 20% from 50
             enemy.damage = 15; // Base enemy damage
             enemy.damage = 1; // Default damage
             enemy.play('enemy-walking');
@@ -20781,7 +21171,7 @@ class GameScene extends Phaser.Scene {
                 bat.body.setSize(60, 40);
                 bat.body.setOffset(45, 55);
             }
-            bat.moveSpeed = 92; // Reduced to match spawnEnemy
+            bat.moveSpeed = 74; // Reduced by 20% from 92
             bat.isFlying = true;
             this.addEnemyToGroup(bat);
             bat.play('bat-flying');
@@ -20797,7 +21187,7 @@ class GameScene extends Phaser.Scene {
             mushroom.health = 5; // Increased by 50%
             mushroom.maxHealth = mushroom.health;
             mushroom.enemyType = 'mushroom';
-            mushroom.moveSpeed = 59; // Reduced to match spawnEnemy
+            mushroom.moveSpeed = 47; // Reduced by 20% from 59
             // Apply hitbox from config or use defaults
             if (!this.applyHitboxConfig(mushroom, 'mushroom')) {
                 mushroom.body.setSize(80, 30);  // Adjusted height for smaller sprite
@@ -20816,7 +21206,7 @@ class GameScene extends Phaser.Scene {
             giantfly.health = 4; // Low-medium health, flies are fragile
             giantfly.maxHealth = giantfly.health;
             giantfly.enemyType = 'giantfly';
-            giantfly.moveSpeed = 70; // Fast flying enemy
+            giantfly.moveSpeed = 56; // Reduced by 20% from 70
             giantfly.damage = 15; // Medium damage
             giantfly.isFlying = true; // Flies can go over obstacles
             // Play animation if it exists
@@ -20843,7 +21233,7 @@ class GameScene extends Phaser.Scene {
             squirrel.health = 5; // Medium health
             squirrel.maxHealth = squirrel.health;
             squirrel.enemyType = 'squirrel';
-            squirrel.moveSpeed = 65; // Fast and nimble
+            squirrel.moveSpeed = 52; // Reduced by 20% from 65
             squirrel.damage = 12; // Lower damage but quick
             // Play animation if it exists
             if (this.anims.exists('squirrel-walking')) {
@@ -20868,7 +21258,7 @@ class GameScene extends Phaser.Scene {
             redpanda.health = 7; // Medium-high health
             redpanda.maxHealth = redpanda.health;
             redpanda.enemyType = 'redpanda';
-            redpanda.moveSpeed = 50; // Slower but tankier
+            redpanda.moveSpeed = 40; // Reduced by 20% from 50
             redpanda.damage = 18; // Higher damage
             // Play animation if it exists
             if (this.anims.exists('redpanda-walking')) {
@@ -20888,7 +21278,7 @@ class GameScene extends Phaser.Scene {
             fireworm.health = 3; // Increased by 50%
             fireworm.maxHealth = fireworm.health;
             fireworm.enemyType = 'fireworm';
-            fireworm.moveSpeed = 76; // Reduced to match spawnEnemy
+            fireworm.moveSpeed = 61; // Reduced by 20% from 76
             // Apply hitbox from config or use defaults
             if (!this.applyHitboxConfig(fireworm, 'fireworm')) {
                 fireworm.body.setSize(70, 50);
@@ -20903,7 +21293,7 @@ class GameScene extends Phaser.Scene {
             summoner.health = 12; // Increased by 50%
             summoner.maxHealth = summoner.health;
             summoner.enemyType = 'summoner';
-            summoner.moveSpeed = 25; // Reduced to match spawnEnemy
+            summoner.moveSpeed = 20; // Reduced by 20% from 25
             summoner.play('summoner-walking');
             // Apply hitbox from config or use defaults
             if (!this.applyHitboxConfig(summoner, 'summoner')) {
@@ -20922,7 +21312,7 @@ class GameScene extends Phaser.Scene {
             soul.health = 6; // Increased by 50%
             soul.maxHealth = soul.health;
             soul.enemyType = 'soul';
-            soul.moveSpeed = 50; // Reduced to match spawnEnemy
+            soul.moveSpeed = 40; // Reduced by 20% from 50
             soul.play(isGrave ? 'soul-moving-grave' : 'soul-moving');
             // Apply hitbox from config or use defaults
             if (!this.applyHitboxConfig(soul, 'soul')) {
@@ -20949,7 +21339,7 @@ class GameScene extends Phaser.Scene {
             bloboid.health = 8; // Increased by 50%
             bloboid.maxHealth = bloboid.health;
             bloboid.enemyType = 'bloboid';
-            bloboid.moveSpeed = 42; // Reduced to match spawnEnemy
+            bloboid.moveSpeed = 34; // Reduced by 20% from 42
             bloboid.play('bloboid-walking');
             // Apply hitbox from config or use defaults
             if (!this.applyHitboxConfig(bloboid, 'bloboid')) {
@@ -20969,7 +21359,7 @@ class GameScene extends Phaser.Scene {
             slime.health = 4; // Increased by 50%
             slime.maxHealth = slime.health;
             slime.enemyType = 'slime';
-            slime.moveSpeed = 38; // Reduced to match spawnEnemy
+            slime.moveSpeed = 30; // Reduced by 20% from 38
             slime.play('slime-idle');
             // Apply hitbox from config or use defaults
             if (!this.applyHitboxConfig(slime, 'slime')) {
@@ -20985,7 +21375,7 @@ class GameScene extends Phaser.Scene {
             slime.health = 5; // Slightly more health than regular slime
             slime.maxHealth = slime.health;
             slime.enemyType = 'fireslime';
-            slime.moveSpeed = 38; // Reduced to match normal slime
+            slime.moveSpeed = 30; // Reduced by 20% from 38
             slime.play('slime-idle');
             // Apply hitbox from config or use defaults
             if (!this.applyHitboxConfig(slime, 'fireslime')) {
@@ -21009,7 +21399,7 @@ class GameScene extends Phaser.Scene {
             golem.maxHealth = golem.health;
             golem.enemyType = 'golem';
             golem.golemColor = golemColor;
-            golem.moveSpeed = 34; // Reduced to match spawnEnemy
+            golem.moveSpeed = 27; // Reduced by 20% from 34
             golem.play(`golem-${golemColor}-walk`);
             // Apply hitbox from config or use defaults
             if (!this.applyHitboxConfig(golem, 'golem')) {
@@ -21026,7 +21416,7 @@ class GameScene extends Phaser.Scene {
             golem.maxHealth = golem.health;
             golem.enemyType = 'golem';
             golem.golemColor = 'orange';
-            golem.moveSpeed = 34; // Reduced to match spawnEnemy
+            golem.moveSpeed = 27; // Reduced by 20% from 34
             golem.play('golem-orange-walk');
             // Apply hitbox from config or use defaults
             if (!this.applyHitboxConfig(golem, 'golem')) {
@@ -21048,7 +21438,7 @@ class GameScene extends Phaser.Scene {
             imp.health = 5;
             imp.maxHealth = imp.health;
             imp.enemyType = 'clubimp';
-            imp.moveSpeed = 65;
+            imp.moveSpeed = 52; // Reduced by 20% from 65
             imp.damage = 20;
             imp.hasRevived = false;
             imp.isReviving = false;
@@ -21070,7 +21460,7 @@ class GameScene extends Phaser.Scene {
             imp.health = 4;
             imp.maxHealth = imp.health;
             imp.enemyType = 'axeimp';
-            imp.moveSpeed = 75;
+            imp.moveSpeed = 60; // Reduced by 20% from 75
             imp.damage = 25;
             imp.hasRevived = false;
             imp.isReviving = false;
@@ -21093,7 +21483,7 @@ class GameScene extends Phaser.Scene {
             kobold.health = 6;
             kobold.maxHealth = kobold.health;
             kobold.enemyType = 'kobold';
-            kobold.moveSpeed = 60;
+            kobold.moveSpeed = 48; // Reduced by 20% from 60
             kobold.damage = 15;
             kobold.play('kobold-walk');
             // Apply hitbox from config or use defaults
@@ -21109,7 +21499,7 @@ class GameScene extends Phaser.Scene {
             darkbat.health = 3;
             darkbat.maxHealth = darkbat.health;
             darkbat.enemyType = 'darkbat';
-            darkbat.moveSpeed = 100;
+            darkbat.moveSpeed = 80; // Reduced by 20% from 100
             darkbat.damage = 12;
             darkbat.play('dark-bat-fly');
             // Apply hitbox from config or use defaults
@@ -21127,7 +21517,7 @@ class GameScene extends Phaser.Scene {
             brainmole.health = 5; // Medium health
             brainmole.maxHealth = brainmole.health;
             brainmole.enemyType = 'brainmole';
-            brainmole.moveSpeed = 45; // Slow burrowing enemy
+            brainmole.moveSpeed = 36; // Reduced by 20% from 45
             brainmole.damage = 20; // High damage for psychic attacks
             brainmole.play('brainmole-walking');
             // Apply hitbox from config or use defaults
@@ -21143,7 +21533,7 @@ class GameScene extends Phaser.Scene {
             devourer.health = 8; // High health for a brain creature
             devourer.maxHealth = devourer.health;
             devourer.enemyType = 'intellectdevourer';
-            devourer.moveSpeed = 55; // Medium speed
+            devourer.moveSpeed = 44; // Reduced by 20% from 55
             devourer.damage = 25; // Very high damage - dangerous enemy
             devourer.play('intellectdevourer-walking');
             // Apply hitbox from config or use defaults
@@ -21160,7 +21550,7 @@ class GameScene extends Phaser.Scene {
             wraith.health = 10; // High health for undead creature
             wraith.maxHealth = wraith.health;
             wraith.enemyType = 'wraith';
-            wraith.moveSpeed = 40; // Slow but menacing
+            wraith.moveSpeed = 32; // Reduced by 20% from 40
             wraith.damage = 30; // High damage
             wraith.play('wraith-walking');
             // Apply hitbox from config or use defaults
@@ -21182,7 +21572,7 @@ class GameScene extends Phaser.Scene {
             demon.health = 8;
             demon.maxHealth = demon.health;
             demon.enemyType = 'flyingdemon';
-            demon.moveSpeed = 70;
+            demon.moveSpeed = 56; // Reduced by 20% from 70
             demon.damage = 20;
             demon.play('flying-demon-fly');
             // Apply hitbox from config or use defaults
@@ -21202,7 +21592,7 @@ class GameScene extends Phaser.Scene {
             skeleton.health = 4;
             skeleton.maxHealth = skeleton.health;
             skeleton.enemyType = 'yellowskeleton';
-            skeleton.moveSpeed = 45;
+            skeleton.moveSpeed = 36; // Reduced by 20% from 45
             skeleton.damage = 15;
             skeleton.play('skeleton-yellow-walking');
             // Apply hitbox from config or use defaults
@@ -21219,7 +21609,7 @@ class GameScene extends Phaser.Scene {
             seeker.maxHealth = seeker.health;
             seeker.enemyType = 'skeletonseeker';
             seeker.moveSpeed = 0; // Starts stationary
-            seeker.normalSpeed = 65; // Speed after spawning
+            seeker.normalSpeed = 52; // Reduced by 20% from 65
             seeker.damage = 20;
             seeker.isSpawning = true;
             seeker.hasActivated = false;
@@ -21242,7 +21632,7 @@ class GameScene extends Phaser.Scene {
             knight.health = 8;
             knight.maxHealth = knight.health;
             knight.enemyType = 'castle-knight';
-            knight.moveSpeed = 45;
+            knight.moveSpeed = 36; // Reduced by 20% from 45
             knight.damage = 25;
             
             // Create run animation if not exists
@@ -21267,7 +21657,7 @@ class GameScene extends Phaser.Scene {
             rogue.health = 5;
             rogue.maxHealth = rogue.health;
             rogue.enemyType = 'castle-rogue';
-            rogue.moveSpeed = 70; // Faster than knights
+            rogue.moveSpeed = 56; // Reduced by 20% from 70
             rogue.damage = 18;
             
             // Create run animation if not exists
@@ -21292,7 +21682,7 @@ class GameScene extends Phaser.Scene {
             bladekeeper.health = 12;
             bladekeeper.maxHealth = bladekeeper.health;
             bladekeeper.enemyType = 'castle-bladekeeper';
-            bladekeeper.moveSpeed = 35;
+            bladekeeper.moveSpeed = 28; // Reduced by 20% from 35
             bladekeeper.damage = 35;
             
             // Create run animation from individual frames if not exists
@@ -21321,7 +21711,7 @@ class GameScene extends Phaser.Scene {
             soldier.health = 10;
             soldier.maxHealth = soldier.health;
             soldier.enemyType = 'castle-soldier';
-            soldier.moveSpeed = 40;
+            soldier.moveSpeed = 32; // Reduced by 20% from 40
             soldier.damage = 30;
             
             // Create walk animation if not exists
@@ -21346,7 +21736,7 @@ class GameScene extends Phaser.Scene {
             squire.health = 4;
             squire.maxHealth = squire.health;
             squire.enemyType = 'castle-squire';
-            squire.moveSpeed = 55;
+            squire.moveSpeed = 44; // Reduced by 20% from 55
             squire.damage = 15;
             
             // Create run animation if not exists
@@ -21376,7 +21766,7 @@ class GameScene extends Phaser.Scene {
             cobra.health = 6; // Medium health
             cobra.maxHealth = cobra.health;
             cobra.enemyType = 'cobra';
-            cobra.moveSpeed = 60; // Fast moving
+            cobra.moveSpeed = 48; // Reduced by 20% from 60
             cobra.damage = 20; // High damage - venomous bite
             cobra.play('cobra-walking');
             
@@ -21405,7 +21795,7 @@ class GameScene extends Phaser.Scene {
             cactuse.health = 8; // High health - tough desert plant
             cactuse.maxHealth = cactuse.health;
             cactuse.enemyType = 'cactuse';
-            cactuse.moveSpeed = 35; // Slow moving
+            cactuse.moveSpeed = 28; // Reduced by 20% from 35
             cactuse.damage = 15; // Medium damage
             cactuse.play('cactuse-walking');
             
@@ -21426,7 +21816,7 @@ class GameScene extends Phaser.Scene {
             armadillo.health = 10; // High health - armored
             armadillo.maxHealth = armadillo.health;
             armadillo.enemyType = 'armadillo';
-            armadillo.moveSpeed = 45; // Medium speed normally
+            armadillo.moveSpeed = 36; // Reduced by 20% from 45
             armadillo.damage = 18; // Medium-high damage
             armadillo.play('armadillo-walking');
             
@@ -21441,7 +21831,7 @@ class GameScene extends Phaser.Scene {
             armadillo.rollCooldown = 4000; // 4 seconds between rolls
             armadillo.lastRollTime = 0;
             armadillo.rollDuration = 2000; // 2 seconds of rolling
-            armadillo.rollSpeed = 120; // Fast when rolling
+            armadillo.rollSpeed = 96; // Reduced by 20% from 120
             armadillo.normalSpeed = armadillo.moveSpeed;
             
             this.addEnemyToGroup(armadillo);
@@ -23319,7 +23709,7 @@ class GameScene extends Phaser.Scene {
         tower.interactionRadius = 100;
         
         // Random passive orb reward
-        const passiveOrbs = ['joker', 'rook', 'bishop', 'queen', 'knight', 'king', 'saturn'];
+        const passiveOrbs = ['joker', 'rook', 'bishop', 'queen', 'knight', 'king', 'saturn', 'pawn'];
         tower.reward = Phaser.Utils.Array.GetRandom(passiveOrbs);
         tower.healthCost = 0.2 + Math.random() * 0.2; // 20-40% of max health
         
@@ -23552,18 +23942,21 @@ class GameScene extends Phaser.Scene {
     
     acceptBloodTowerOffer(tower, wizard) {
         // Prevent multiple accepts
-        if (this.bloodTowerAccepting) {
-            console.log('Blood tower already being accepted, ignoring duplicate call');
+        if (this.bloodTowerAccepting || tower.activated) {
+            console.log('Blood tower already activated or being accepted, ignoring duplicate call');
             return;
         }
         this.bloodTowerAccepting = true;
+        
+        // Mark tower as activated IMMEDIATELY to prevent any re-triggering
+        tower.activated = true;
         
         // Get proper health values
         const oldMaxHealth = wizard.playerNumber === 2 ? (wizard.maxHealth || 100) : this.maxHealth;
         const healthCost = Math.floor(oldMaxHealth * tower.healthCost);
         const newMaxHealth = oldMaxHealth - healthCost;
         
-        // Reduce maximum health
+        // Reduce maximum health ONLY ONCE
         if (wizard.playerNumber === 2) {
             wizard.maxHealth = newMaxHealth;
             // If current health exceeds new max, reduce to new max
@@ -23633,8 +24026,7 @@ class GameScene extends Phaser.Scene {
         // Grant passive orb reward
         this.grantPassiveOrb(tower.reward, wizard);
         
-        // Mark tower as used
-        tower.activated = true;
+        // Tower already marked as activated at the start of this function
         if (tower.glowTween) tower.glowTween.stop();
         tower.setAlpha(0.5);
         if (tower.particles) tower.particles.destroy();
@@ -25077,8 +25469,13 @@ class GameScene extends Phaser.Scene {
             projectile.onHitEnemy(enemy);
         }
         
-        // Destroy projectile unless it's a piercing type or pass-through type
-        if (!projectile.isPiercing && !projectile.passThroughEnemies) {
+        // Handle bouncing projectiles (Storm)
+        if (projectile.isBouncing && projectile.bounceToNextEnemy) {
+            // Trigger bounce to next enemy
+            projectile.bounceToNextEnemy();
+        }
+        // Destroy projectile unless it's a piercing type, pass-through type, or bouncing type
+        else if (!projectile.isPiercing && !projectile.passThroughEnemies && !projectile.isBouncing) {
             // Use safe destroy method to clean up particles and timers
             this.safeDestroyProjectile(projectile);
         }
@@ -25783,22 +26180,22 @@ class GameScene extends Phaser.Scene {
             // Show chest reward selection directly on level up
             // BUT NOT if we're already in a chest selection (e.g., got level up FROM a chest)
             if (!this.chestSelectionActive && !this.chestOpening) {
-                // In multiplayer, alternate between players for level ups
+                // In multiplayer, BOTH players get level up rewards
                 if (this.multiplayerEnabled) {
-                    // Determine which player should get this level up
-                    const shouldP1LevelUp = this.playerLevel % 2 === 1; // P1 gets odd levels (1, 3, 5...)
-                    
-                    // Give level up to the appropriate player (only if they're alive)
-                    if (shouldP1LevelUp) {
-                        if (this.wizard && this.playerHealth > 0) {
-                            this.menuControllingPlayer = 1;
-                            this.openChest(this.wizard, null);
-                        }
-                    } else {
+                    // Both players get the reward, but we need to queue them
+                    // First, give to P1 if alive
+                    if (this.wizard && this.playerHealth > 0) {
+                        this.menuControllingPlayer = 1;
+                        this.openChest(this.wizard, null);
+                        
+                        // Queue P2's reward to open after P1 finishes
                         if (this.wizard2 && this.playerHealthP2 > 0) {
-                            this.menuControllingPlayer = 2;
-                            this.openChest(this.wizard2, null);
+                            this.pendingP2LevelUpReward = true;
                         }
+                    } else if (this.wizard2 && this.playerHealthP2 > 0) {
+                        // If only P2 is alive, give directly to P2
+                        this.menuControllingPlayer = 2;
+                        this.openChest(this.wizard2, null);
                     }
                 } else {
                     // Single player - normal level up
@@ -25892,6 +26289,7 @@ class GameScene extends Phaser.Scene {
         orb.element = element;
         orb.setDepth(25);
         orb.body.setVelocity(0, 0);
+        orb.body.setImmovable(true); // Make orb immovable to prevent physics pushing
         orb.body.setSize(60, 60); // Set collision box size
         orb.setScale(0.1); // Double the size of dropped elements
         orb.setAlpha(1); // Ensure full opacity
@@ -26252,9 +26650,32 @@ class GameScene extends Phaser.Scene {
     setSpellCooldown(spellType, cooldownMs, chargeIndex = null) {
         const now = this.time.now;
         const cooldownKey = chargeIndex !== null ? `${spellType}_${chargeIndex}` : spellType;
+        
+        // Check if knight modifier is active for this slot (halves cooldown)
+        let finalCooldown = cooldownMs;
+        if (chargeIndex !== null) {
+            const hasKnightModifier = this.chargeSlots && this.chargeSlots[4 + chargeIndex] === 'knight';
+            
+            // Check for joker with knight
+            let hasJoker = false;
+            let hasAnyKnight = false;
+            for (let i = 4; i < 8; i++) {
+                if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
+                    hasJoker = true;
+                }
+                if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
+                    hasAnyKnight = true;
+                }
+            }
+            
+            if (hasKnightModifier || (hasJoker && hasAnyKnight)) {
+                finalCooldown = cooldownMs / 2; // Halve the cooldown
+                console.log(`Knight modifier active: cooldown reduced from ${cooldownMs}ms to ${finalCooldown}ms`);
+            }
+        }
 
         // Set spell-specific cooldown
-        this.spellCooldowns.set(cooldownKey, now + cooldownMs);
+        this.spellCooldowns.set(cooldownKey, now + finalCooldown);
 
         // Set a small global cooldown to prevent spell spam (100ms)
         this.globalSpellCooldown = now + 100;
@@ -26364,8 +26785,8 @@ class GameScene extends Phaser.Scene {
                 case 'death':
                     this.createDeathSpell();
                     break;
-                case 'smoke':
-                    this.createSmokeSpell();
+                case 'blast':
+                    this.createBlastSpell(slotIndex, elementTier);
                     break;
                 case 'sun':
                     this.createSunSpell();
@@ -26393,6 +26814,9 @@ class GameScene extends Phaser.Scene {
                     break;
                 case 'storm':
                     this.createStormSpell(slotIndex, elementTier);
+                    break;
+                case 'thunder':
+                    this.createThunderSpell(slotIndex, elementTier);
                     break;
                 case 'holy':
                     this.createHolySpell();
@@ -26422,8 +26846,7 @@ class GameScene extends Phaser.Scene {
                     break;
             }
         } else if (linkedElements.length === 2) {
-            // Two element combo
-            this.fireTwoElementCombo(linkedElements);
+            // Two element combo - no longer used
         } else if (linkedElements.length === 3) {
             // Three element combo
             this.fireThreeElementCombo(linkedElements);
@@ -26517,8 +26940,8 @@ class GameScene extends Phaser.Scene {
                 case 'death':
                     this.createDeathSpell();
                     break;
-                case 'smoke':
-                    this.createSmokeSpell();
+                case 'blast':
+                    this.createBlastSpell(slotIndex, elementTier);
                     break;
                 case 'sun':
                     this.createSunSpell();
@@ -26531,8 +26954,7 @@ class GameScene extends Phaser.Scene {
                     break;
             }
         } else if (currentGroup.length === 2) {
-            // Two-element combos
-            this.fireTwoElementCombo(currentGroup);
+            // Two-element combos - no longer used
         } else if (currentGroup.length === 3) {
             // Three-element combos
             this.fireThreeElementCombo(currentGroup);
@@ -26545,86 +26967,8 @@ class GameScene extends Phaser.Scene {
         this.currentChargeIndex = (this.currentChargeIndex + 1) % this.chargeGroups.length;
     }
 
-    fireTwoElementCombo(elements) {
-        const combo = elements.sort().join('-');
-
-        switch (combo) {
-            case 'arcane-arcane':
-                // Double arcane projectiles targeting same enemy
-                this.fireDoubleArcane();
-                break;
-            case 'fire-fire':
-                // Double-sized fire spell
-                this.fireFireProjectile(elements);
-                break;
-            case 'fire-lightning':
-                // Explosive lightning bolt
-                this.fireExplosiveLightning();
-                break;
-            case 'fire-water':
-                // Steam cloud that damages and slows
-                this.createSteamCloud();
-                break;
-            case 'fire-earth':
-                // Meteor strike
-                this.fireMeteor();
-                break;
-            case 'lightning-water':
-                // Chain lightning
-                this.fireChainLightning();
-                break;
-            case 'earth-lightning':
-                // Magnetic pull
-                this.createMagneticField();
-                break;
-            case 'earth-water':
-                // Mud trap
-                this.createMudTrap();
-                break;
-            case 'moon-star':
-                // Zodiac spell - bouncing projectiles with light trails
-                this.createZodiacSpell();
-                break;
-            case 'arcane-poison':
-                // Hex element - curse enemies to deal no damage
-                this.createHexSpell();
-                break;
-            case 'crystal-poison':
-                // Venom element - piercing spines that apply poison
-                this.createVenomSpell();
-                break;
-            case 'death-life':
-                // Philosopher Stone - grants level up every 45 seconds
-                this.createPhilosopherStone();
-                break;
-            case 'holy-water':
-                // Halo - holy water aura that damages nearby enemies
-                this.createHaloAura();
-                break;
-            default:
-                // Fallback to firing single element of first type
-                const element = elements[0];
-                switch (element) {
-                    case 'fire':
-                        this.fireFireProjectile(currentGroup, this.charges);
-                        break;
-                    case 'water':
-                        this.createWaterOrb();
-                        break;
-                    case 'lightning':
-                        this.fireLightningProjectile();
-                        break;
-                    case 'earth':
-                        this.fireEarthSpike();
-                        break;
-                    default:
-                        // For new elements, use their basic attack
-                        this.fireBasicElementProjectile(element);
-                        break;
-                }
-        }
-    }
-
+    // Legacy two-element combo system removed - using fusion system instead
+    
     fireThreeElementCombo(elements) {
         const combo = elements.sort().join('-');
 
@@ -26718,7 +27062,6 @@ class GameScene extends Phaser.Scene {
         // 1. This slot has Saturn directly, OR
         // 2. Joker is active AND Saturn is equipped anywhere
         if (hasSaturnModifier || (hasJoker && hasAnySaturn)) {
-            console.log('Saturn modifier active - orbital projectiles');
             return true;
         }
         
@@ -26765,6 +27108,7 @@ class GameScene extends Phaser.Scene {
         let hasAnyBishop = false;
         let hasAnyQueen = false;
         let hasAnyKnight = false;
+        let hasAnyPawn = false;
         
         // Check all passive slots for joker and chess pieces
         for (let i = 4; i < 8; i++) {
@@ -26782,6 +27126,9 @@ class GameScene extends Phaser.Scene {
             }
             if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
                 hasAnyKnight = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'pawn') {
+                hasAnyPawn = true;
             }
         }
         
@@ -26811,6 +27158,14 @@ class GameScene extends Phaser.Scene {
                     queenDirections.forEach((dir, index) => {
                         const projectile = projectileCreator(dir);
                         console.log(`Joker-Queen projectile ${index}: created`);
+                        
+                        // If knight is also active with joker, double the projectiles
+                        if (hasAnyKnight) {
+                            this.time.delayedCall(50, () => {
+                                projectileCreator(dir);
+                                console.log(`Joker-Knight-Queen double projectile ${index}: created`);
+                            });
+                        }
                     });
                     modifiersApplied = true;
                 } else {
@@ -26828,6 +27183,21 @@ class GameScene extends Phaser.Scene {
                         rookDirections.forEach((dir, index) => {
                             const projectile = projectileCreator(dir);
                             console.log(`Joker-Rook projectile ${index}: created`);
+                            
+                            // If pawn is also active with joker, double the projectiles  
+                            if (hasAnyPawn) {
+                                const proj2 = projectileCreator(dir);
+                                // Offset the projectiles slightly
+                                if (projectile && proj2) {
+                                    const perpAngle = Math.atan2(dir.y, dir.x) + Math.PI / 2;
+                                    const offset = 10;
+                                    projectile.x += Math.cos(perpAngle) * offset;
+                                    projectile.y += Math.sin(perpAngle) * offset;
+                                    proj2.x -= Math.cos(perpAngle) * offset;
+                                    proj2.y -= Math.sin(perpAngle) * offset;
+                                }
+                                console.log(`Joker-Pawn-Rook double projectile ${index}: created`);
+                            }
                         });
                         modifiersApplied = true;
                     }
@@ -26846,6 +27216,21 @@ class GameScene extends Phaser.Scene {
                         bishopDirections.forEach((dir, index) => {
                             const projectile = projectileCreator(dir);
                             console.log(`Joker-Bishop projectile ${index}: created`);
+                            
+                            // If pawn is also active with joker, double the projectiles
+                            if (hasAnyPawn) {
+                                const proj2 = projectileCreator(dir);
+                                // Offset the projectiles slightly
+                                if (projectile && proj2) {
+                                    const perpAngle = Math.atan2(dir.y, dir.x) + Math.PI / 2;
+                                    const offset = 10;
+                                    projectile.x += Math.cos(perpAngle) * offset;
+                                    projectile.y += Math.sin(perpAngle) * offset;
+                                    proj2.x -= Math.cos(perpAngle) * offset;
+                                    proj2.y -= Math.sin(perpAngle) * offset;
+                                }
+                                console.log(`Joker-Pawn-Bishop double projectile ${index}: created`);
+                            }
                         });
                         modifiersApplied = true;
                     }
@@ -26861,17 +27246,32 @@ class GameScene extends Phaser.Scene {
                 return modifiersApplied;
             };
             
-            // Apply knight modifier if present (double cast)
+            // Apply pawn modifier if present (double projectiles)
+            if (hasAnyPawn && !hasAnyQueen && !hasAnyRook && !hasAnyBishop) {
+                console.log('Applying pawn modifier via joker - double projectiles');
+                
+                // Fire two projectiles side by side
+                const proj1 = projectileCreator();
+                const proj2 = projectileCreator();
+                
+                // Offset them perpendicular to travel direction
+                if (proj1 && proj2) {
+                    const angle = Phaser.Math.Angle.Between(0, 0, proj1.body.velocity.x, proj1.body.velocity.y);
+                    const perpAngle = angle + Math.PI / 2;
+                    const offset = 15;
+                    
+                    proj1.x += Math.cos(perpAngle) * offset;
+                    proj1.y += Math.sin(perpAngle) * offset;
+                    proj2.x -= Math.cos(perpAngle) * offset;
+                    proj2.y -= Math.sin(perpAngle) * offset;
+                }
+                
+                return true;
+            }
+            
+            // Knight modifier affects cooldown (handled elsewhere)
             if (hasAnyKnight) {
-                console.log('Applying knight modifier via joker - double cast');
-                const result = createProjectiles();
-                
-                // Second cast after delay
-                this.time.delayedCall(200, () => {
-                    createProjectiles();
-                });
-                
-                return result;
+                console.log('Knight modifier active via joker - cooldown halved');
             }
             
             return createProjectiles();
@@ -26882,6 +27282,7 @@ class GameScene extends Phaser.Scene {
         const hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
         const hasQueenModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'queen';
         const hasKnightModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'knight';
+        const hasPawnModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'pawn';
         
         // Helper function for the actual cast
         const performCast = () => {
@@ -26902,6 +27303,14 @@ class GameScene extends Phaser.Scene {
                 queenDirections.forEach((dir, index) => {
                     const projectile = projectileCreator(dir);
                     console.log(`Queen projectile ${index}: created`);
+                    
+                    // If pawn is also active, fire a second projectile in same direction
+                    if (hasPawnModifier) {
+                        this.time.delayedCall(50, () => {
+                            projectileCreator(dir);
+                            console.log(`Pawn-Queen double projectile ${index}: created`);
+                        });
+                    }
                 });
                 
                 return true; // Modifier was handled
@@ -26918,6 +27327,14 @@ class GameScene extends Phaser.Scene {
                 rookDirections.forEach((dir, index) => {
                     const projectile = projectileCreator(dir);
                     console.log(`Rook projectile ${index}: created`);
+                    
+                    // If pawn is also active, fire a second projectile in same direction
+                    if (hasPawnModifier) {
+                        this.time.delayedCall(50, () => {
+                            projectileCreator(dir);
+                            console.log(`Pawn-Rook double projectile ${index}: created`);
+                        });
+                    }
                 });
                 
                 return true; // Modifier was handled
@@ -26934,6 +27351,14 @@ class GameScene extends Phaser.Scene {
                 bishopDirections.forEach((dir, index) => {
                     const projectile = projectileCreator(dir);
                     console.log(`Bishop projectile ${index}: created`);
+                    
+                    // If pawn is also active, fire a second projectile in same direction
+                    if (hasPawnModifier) {
+                        this.time.delayedCall(50, () => {
+                            projectileCreator(dir);
+                            console.log(`Pawn-Bishop double projectile ${index}: created`);
+                        });
+                    }
                 });
                 
                 return true; // Modifier was handled
@@ -26942,18 +27367,43 @@ class GameScene extends Phaser.Scene {
             return false; // No directional modifier
         };
         
-        // Knight modifier - cast spell twice with delay
-        if (hasKnightModifier) {
-            console.log('Knight modifier active - double cast');
-            // First cast
+        // Pawn modifier - fire two projectiles in quick succession
+        if (hasPawnModifier) {
+            console.log('Pawn modifier active - double projectile');
+            
+            // Perform the cast (which may include directional modifiers)
             const result = performCast();
             
-            // Second cast after delay
-            this.time.delayedCall(200, () => {
-                performCast();
-            });
+            // If no directional modifier was applied, fire a double shot
+            if (!result) {
+                // Fire first projectile
+                const proj1 = projectileCreator();
+                
+                // Fire second projectile with slight offset
+                const proj2 = projectileCreator();
+                
+                // Offset the projectiles slightly to create side-by-side effect
+                if (proj1 && proj2) {
+                    // Get perpendicular direction for offset
+                    const angle = Phaser.Math.Angle.Between(0, 0, proj1.body.velocity.x, proj1.body.velocity.y);
+                    const perpAngle = angle + Math.PI / 2;
+                    const offset = 15; // pixels apart
+                    
+                    proj1.x += Math.cos(perpAngle) * offset;
+                    proj1.y += Math.sin(perpAngle) * offset;
+                    proj2.x -= Math.cos(perpAngle) * offset;
+                    proj2.y -= Math.sin(perpAngle) * offset;
+                }
+                
+                return true; // Indicate we handled it
+            }
             
             return result;
+        }
+        
+        // Knight modifier affects cooldown (handled elsewhere)
+        if (hasKnightModifier) {
+            console.log('Knight modifier active - cooldown halved');
         }
         
         return performCast();
@@ -26974,12 +27424,80 @@ class GameScene extends Phaser.Scene {
             ? allCharges.filter(e => e === 'fire').length
             : currentGroup.filter(e => e === 'fire').length;
         
-        // Check for chess piece modifiers in passive slots
+        // Define the projectile creator function for chess modifiers
+        const createFireProjectile = (direction = null) => {
+            const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'firebolt');
+            projectile.element = 'fire';
+            projectile.damage = (2 + fireCount * 0.5) * slotBuff.damageMultiplier * tierDamageScale * kingMultiplier;
+            projectile.burnMagnitude = 3;
+            projectile.slotIndex = slotIndex;
+            projectile.body.setCollideWorldBounds(false);
+            projectile.setDepth(5);
+            projectile.setScale(1.0 + (fireCount - 1) * 0.2);
+            
+            this.projectiles.add(projectile);
+            
+            if (this.anims.exists('firebolt-travel')) {
+                projectile.play('firebolt-travel');
+            }
+            
+            // Set velocity based on direction or auto-aim
+            const speed = 380 * slotBuff.speedMultiplier * this.speedMultiplier;
+            if (direction) {
+                projectile.body.setVelocity(direction.x * speed, direction.y * speed);
+            } else {
+                // Auto-aim at nearest enemy
+                let nearestEnemy = null;
+                let minDistance = Infinity;
+                this.enemies.children.entries.forEach(enemy => {
+                    if (enemy.active && !enemy.isDying) {
+                        const distance = Phaser.Math.Distance.Between(this.wizard.x, this.wizard.y, enemy.x, enemy.y);
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            nearestEnemy = enemy;
+                        }
+                    }
+                });
+                
+                if (nearestEnemy && minDistance < 500) {
+                    const angle = Phaser.Math.Angle.Between(this.wizard.x, this.wizard.y, nearestEnemy.x, nearestEnemy.y);
+                    projectile.body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+                } else {
+                    const directions = {
+                        up: { x: 0, y: -speed },
+                        down: { x: 0, y: speed },
+                        left: { x: -speed, y: 0 },
+                        right: { x: speed, y: 0 }
+                    };
+                    const dir = directions[this.wizard.lastDirection] || directions.down;
+                    projectile.body.setVelocity(dir.x, dir.y);
+                }
+            }
+            
+            return projectile;
+        };
+        
+        // Use the chess modifier system (includes knight double-cast)
+        const modifierHandled = this.handleChessModifiers(slotIndex, createFireProjectile);
+        
+        // If chess modifiers handled it, we're done
+        if (modifierHandled) {
+            return;
+        }
+        
+        // The chess modifier system above handles all modifiers including knight double-cast
+        // The old duplicate code below is kept for reference but skipped
+        return this.fireFireProjectileNormal(currentGroup, allCharges, slotIndex, elementTier, slotBuff, tierDamageScale, kingMultiplier, fireCount);
+    }
+    
+    fireFireProjectileNormal(currentGroup, allCharges, slotIndex, elementTier, slotBuff, tierDamageScale, kingMultiplier, fireCount) {
+        // Old chess modifier code - now handled by handleChessModifiers
         let hasJoker = false;
         let hasAnyRook = false;
         let hasAnyBishop = false;
         let hasAnyQueen = false;
         let hasAnyKnight = false;
+        let hasAnyPawn = false;
         
         // Check all passive slots for joker and chess pieces
         for (let i = 4; i < 8; i++) {
@@ -26997,6 +27515,9 @@ class GameScene extends Phaser.Scene {
             }
             if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
                 hasAnyKnight = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'pawn') {
+                hasAnyPawn = true;
             }
         }
         
@@ -27446,12 +27967,17 @@ class GameScene extends Phaser.Scene {
         const angle = directionAngles[direction] || 0;
         waterProjectile.setRotation(angle);
         
-        // Destroy after 2 seconds if it hasn't hit anything
-        this.time.delayedCall(2000, () => {
-            if (waterProjectile.active) {
-                waterProjectile.destroy();
-            }
-        });
+        // Check for Saturn modifier - make projectile orbit instead of fly straight
+        if (this.hasSaturnModifier(slotIndex)) {
+            this.makeProjectileOrbit(waterProjectile, 100, 3); // 100 pixel radius, 3 rad/s speed
+        } else {
+            // Normal projectile - destroy after 2 seconds
+            this.time.delayedCall(2000, () => {
+                if (waterProjectile.active) {
+                    waterProjectile.destroy();
+                }
+            });
+        }
 
         console.log('Water projectile created and fired with velocity:', dir);
     }
@@ -27470,6 +27996,7 @@ class GameScene extends Phaser.Scene {
         let hasAnyBishop = false;
         let hasAnyQueen = false;
         let hasAnyKnight = false;
+        let hasAnyPawn = false;
         
         // Check all passive slots for joker and chess pieces
         for (let i = 4; i < 8; i++) {
@@ -27487,6 +28014,9 @@ class GameScene extends Phaser.Scene {
             }
             if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
                 hasAnyKnight = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'pawn') {
+                hasAnyPawn = true;
             }
         }
         
@@ -27715,12 +28245,17 @@ class GameScene extends Phaser.Scene {
         const angle = directionAngles[direction] || 0;
         projectile.setRotation(angle);
         
-        // Destroy after 1.5 seconds
-        this.time.delayedCall(1500, () => {
-            if (projectile.active) {
-                projectile.destroy();
-            }
-        });
+        // Check for Saturn modifier - make projectile orbit instead of fly straight
+        if (this.hasSaturnModifier(slotIndex)) {
+            this.makeProjectileOrbit(projectile, 100, 3); // 100 pixel radius, 3 rad/s speed
+        } else {
+            // Normal projectile - destroy after 1.5 seconds
+            this.time.delayedCall(1500, () => {
+                if (projectile.active) {
+                    projectile.destroy();
+                }
+            });
+        }
     }
 
     setLightningOrbVelocity(orb, target) {
@@ -27823,19 +28358,11 @@ class GameScene extends Phaser.Scene {
     }
 
     fireAirProjectile(slotIndex = 0, elementTier = 1) {
-        // Get slot buffs
-        const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
-        
-        // Apply tier damage scaling
-        const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
-        
-        // Check for chess piece modifiers in passive slots (don't use handleChessModifiers helper)
-        // First check if any passive slot has joker
+        // Air spell converted to explosion-based spell similar to blast
+        // Check for chess piece modifiers
         let hasJoker = false;
         let hasAnyRook = false;
         let hasAnyBishop = false;
-        let hasAnyQueen = false;
-        let hasAnyKnight = false;
         
         // Check all passive slots for joker and chess pieces
         for (let i = 4; i < 8; i++) {
@@ -27848,27 +28375,18 @@ class GameScene extends Phaser.Scene {
             if (this.chargeSlots && this.chargeSlots[i] === 'bishop') {
                 hasAnyBishop = true;
             }
-            if (this.chargeSlots && this.chargeSlots[i] === 'queen') {
-                hasAnyQueen = true;
-            }
-            if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
-                hasAnyKnight = true;
-            }
         }
         
         // Determine what modifiers to apply
         let hasRookModifier = false;
         let hasBishopModifier = false;
         
-        if (hasJoker && (hasAnyRook || hasAnyBishop || hasAnyQueen || hasAnyKnight)) {
-            // Joker applies all chess modifiers that are equipped
-            // Queen overrides rook and bishop
-            if (hasAnyQueen) {
+        if (hasJoker) {
+            hasRookModifier = hasAnyRook;
+            hasBishopModifier = hasAnyBishop;
+            if (!hasAnyRook && !hasAnyBishop) {
                 hasRookModifier = true;
                 hasBishopModifier = true;
-            } else {
-                hasRookModifier = hasAnyRook;
-                hasBishopModifier = hasAnyBishop;
             }
         } else {
             // Normal check for this slot's modifier
@@ -27876,215 +28394,159 @@ class GameScene extends Phaser.Scene {
             hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
         }
         
+        // Function to create a single air explosion
+        const createAirExplosion = (targetX, targetY, damageMultiplier = 1) => {
+            // Create startup animation sprite
+            const startupSprite = this.add.sprite(targetX, targetY, 'air-explosion-startup');
+            startupSprite.setScale((1.5 + elementTier * 0.3) * damageMultiplier);
+            startupSprite.setDepth(100);
+            
+            // Play startup animation
+            startupSprite.play('air-explosion-startup');
+            
+            // When startup completes, create damage phase
+            startupSprite.once('animationcomplete', () => {
+                startupSprite.destroy();
+                
+                // Create damage phase sprite
+                const damageSprite = this.add.sprite(targetX, targetY, 'air-explosion-damage');
+                damageSprite.setScale((1.5 + elementTier * 0.3) * damageMultiplier);
+                damageSprite.setDepth(100);
+                
+                // Play damage animation
+                damageSprite.play('air-explosion-damage');
+                
+                // Deal damage immediately when damage phase starts
+                const damageRadius = 50 + elementTier * 8; // Smaller than blast
+                const damage = Math.floor((100 + elementTier * 30) * 0.15 * damageMultiplier); // Reduced by 50% (from 0.3 to 0.15)
+                const pushForce = 300 * damageMultiplier; // Knockback force
+                
+                // Visual effect circle
+                const effectCircle = this.add.circle(targetX, targetY, damageRadius, 0x88ccff, 0.3);
+                effectCircle.setDepth(99);
+                this.tweens.add({
+                    targets: effectCircle,
+                    alpha: 0,
+                    scale: 1.3,
+                    duration: 200,
+                    onComplete: () => effectCircle.destroy()
+                });
+                
+                // Damage and push enemies
+                if (this.enemies && this.enemies.children) {
+                    this.enemies.children.entries.forEach(enemy => {
+                        if (enemy && enemy.active) {
+                            const dist = Phaser.Math.Distance.Between(targetX, targetY, enemy.x, enemy.y);
+                            if (dist <= damageRadius) {
+                                // Deal damage
+                                if (enemy.health) {
+                                    enemy.health -= damage;
+                                    this.showDamageNumber(enemy.x, enemy.y - 30, damage, '#88ccff');
+                                    
+                                    // Apply knockback
+                                    if (enemy.body) {
+                                        const angle = Phaser.Math.Angle.Between(targetX, targetY, enemy.x, enemy.y);
+                                        const pushX = Math.cos(angle) * pushForce;
+                                        const pushY = Math.sin(angle) * pushForce;
+                                        enemy.body.setVelocity(pushX, pushY);
+                                        
+                                        // Reset velocity after knockback
+                                        this.time.delayedCall(300, () => {
+                                            if (enemy && enemy.active && enemy.body) {
+                                                enemy.body.setVelocity(0, 0);
+                                            }
+                                        });
+                                    }
+                                    
+                                    // Check if enemy died
+                                    if (enemy.health <= 0) {
+                                        this.killEnemy(enemy);
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // Clean up damage sprite after animation
+                damageSprite.once('animationcomplete', () => {
+                    damageSprite.destroy();
+                });
+            });
+        };
+        
+        // Calculate positions based on chess modifiers
+        const distance = 150; // Closer than blast
+        
         if (hasRookModifier && hasBishopModifier) {
-            console.log('Both rook and bishop modifiers active for air projectile');
-            // Fire 8 projectiles in all directions
-            const speed = 350 * slotBuff.speedMultiplier * this.speedMultiplier;
-            const diagonalSpeed = speed / Math.sqrt(2);
-            const allDirections = [
-                { x: 0, y: -speed },                      // Up
-                { x: diagonalSpeed, y: -diagonalSpeed },  // Up-Right
-                { x: speed, y: 0 },                       // Right
-                { x: diagonalSpeed, y: diagonalSpeed },   // Down-Right
-                { x: 0, y: speed },                       // Down
-                { x: -diagonalSpeed, y: diagonalSpeed },  // Down-Left
-                { x: -speed, y: 0 },                      // Left
-                { x: -diagonalSpeed, y: -diagonalSpeed }  // Up-Left
+            // All 8 directions
+            const positions = [
+                { x: this.wizard.x, y: this.wizard.y - distance },                    // Up
+                { x: this.wizard.x + distance, y: this.wizard.y },                    // Right
+                { x: this.wizard.x, y: this.wizard.y + distance },                    // Down
+                { x: this.wizard.x - distance, y: this.wizard.y },                    // Left
+                { x: this.wizard.x + distance * 0.707, y: this.wizard.y - distance * 0.707 }, // Up-Right
+                { x: this.wizard.x + distance * 0.707, y: this.wizard.y + distance * 0.707 }, // Down-Right
+                { x: this.wizard.x - distance * 0.707, y: this.wizard.y + distance * 0.707 }, // Down-Left
+                { x: this.wizard.x - distance * 0.707, y: this.wizard.y - distance * 0.707 }  // Up-Left
             ];
-            
-            allDirections.forEach((dir, index) => {
-                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'wind-projectile');
-                projectile.element = 'air';
-                projectile.damage = 2 * slotBuff.damageMultiplier * tierDamageScale * 0.5; // Reduced for balance
-                projectile.pushForce = 400;
-                projectile.slotIndex = slotIndex;
-                projectile.body.setCollideWorldBounds(false);
-                projectile.setDepth(5);
-                projectile.setScale(0.9);
-                
-                // Play animation
-                projectile.play('wind-travel');
-                
-                // Add to projectiles group
-                this.projectiles.add(projectile);
-                
-                // Set velocity
-                projectile.body.setVelocity(dir.x, dir.y);
-                projectile.body.enable = true;
-                
-                console.log(`All-direction air projectile ${index}: velocity set to x:${dir.x}, y:${dir.y}`);
-                
-                // Rotate projectile based on direction
-                const angles = [-Math.PI/2, -Math.PI/4, 0, Math.PI/4, Math.PI/2, 3*Math.PI/4, Math.PI, -3*Math.PI/4];
-                projectile.setRotation(angles[index]);
-                
-                // Cleanup
-                this.time.delayedCall(2000, () => {
-                    if (projectile.active) {
-                        projectile.destroy();
-                    }
-                });
-            });
-            
-            return; // Exit early
+            positions.forEach(pos => createAirExplosion(pos.x, pos.y, 0.5));
         } else if (hasRookModifier) {
-            console.log('Rook modifier active for air projectile');
-            // Fire 4 projectiles in cardinal directions (rook pattern)
-            const speed = 350 * slotBuff.speedMultiplier * this.speedMultiplier;
-            const rookDirections = [
-                { x: 0, y: -speed },    // Up
-                { x: 0, y: speed },     // Down
-                { x: -speed, y: 0 },    // Left
-                { x: speed, y: 0 }      // Right
+            // Cardinal directions
+            const positions = [
+                { x: this.wizard.x, y: this.wizard.y - distance },  // Up
+                { x: this.wizard.x + distance, y: this.wizard.y },  // Right
+                { x: this.wizard.x, y: this.wizard.y + distance },  // Down
+                { x: this.wizard.x - distance, y: this.wizard.y }   // Left
             ];
-            
-            rookDirections.forEach((dir, index) => {
-                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'wind-projectile');
-                projectile.element = 'air';
-                projectile.damage = 2 * slotBuff.damageMultiplier * tierDamageScale * 0.75;
-                projectile.pushForce = 400;
-                projectile.slotIndex = slotIndex;
-                projectile.body.setCollideWorldBounds(false);
-                projectile.setDepth(5);
-                projectile.setScale(1.0);
-                
-                // Play animation
-                projectile.play('wind-travel');
-                
-                // Add to projectiles group
-                this.projectiles.add(projectile);
-                
-                // Set velocity
-                projectile.body.setVelocity(dir.x, dir.y);
-                projectile.body.enable = true;
-                
-                console.log(`Rook air projectile ${index}: velocity set to x:${dir.x}, y:${dir.y}`);
-                
-                // Rotate projectile based on direction
-                const angles = [-Math.PI/2, Math.PI/2, Math.PI, 0]; // Up, Down, Left, Right
-                projectile.setRotation(angles[index]);
-                
-                // Cleanup
-                this.time.delayedCall(2000, () => {
-                    if (projectile.active) {
-                        projectile.destroy();
-                    }
-                });
-            });
-            
-            return; // Exit early
+            positions.forEach(pos => createAirExplosion(pos.x, pos.y, 0.75));
         } else if (hasBishopModifier) {
-            console.log('Bishop modifier active for air projectile');
-            // Fire 4 projectiles in diagonal directions (bishop pattern)
-            const speed = 350 * slotBuff.speedMultiplier * this.speedMultiplier;
-            const diagonalSpeed = speed / Math.sqrt(2);
-            const bishopDirections = [
-                { x: diagonalSpeed, y: -diagonalSpeed },   // Up-Right
-                { x: -diagonalSpeed, y: -diagonalSpeed },  // Up-Left
-                { x: diagonalSpeed, y: diagonalSpeed },    // Down-Right
-                { x: -diagonalSpeed, y: diagonalSpeed }    // Down-Left
+            // Diagonal directions
+            const positions = [
+                { x: this.wizard.x + distance * 0.707, y: this.wizard.y - distance * 0.707 }, // Up-Right
+                { x: this.wizard.x + distance * 0.707, y: this.wizard.y + distance * 0.707 }, // Down-Right
+                { x: this.wizard.x - distance * 0.707, y: this.wizard.y + distance * 0.707 }, // Down-Left
+                { x: this.wizard.x - distance * 0.707, y: this.wizard.y - distance * 0.707 }  // Up-Left
             ];
-            
-            bishopDirections.forEach((dir, index) => {
-                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'wind-projectile');
-                projectile.element = 'air';
-                projectile.damage = 2 * slotBuff.damageMultiplier * tierDamageScale * 0.75;
-                projectile.pushForce = 400;
-                projectile.slotIndex = slotIndex;
-                projectile.body.setCollideWorldBounds(false);
-                projectile.setDepth(5);
-                projectile.setScale(1.0);
-                
-                // Play animation
-                projectile.play('wind-travel');
-                
-                // Add to projectiles group
-                this.projectiles.add(projectile);
-                
-                // Set velocity
-                projectile.body.setVelocity(dir.x, dir.y);
-                projectile.body.enable = true;
-                
-                console.log(`Bishop air projectile ${index}: velocity set to x:${dir.x}, y:${dir.y}`);
-                
-                // Rotate projectile based on direction
-                const angles = [-Math.PI/4, -3*Math.PI/4, Math.PI/4, 3*Math.PI/4]; // UR, UL, DR, DL
-                projectile.setRotation(angles[index]);
-                
-                // Cleanup
-                this.time.delayedCall(2000, () => {
-                    if (projectile.active) {
-                        projectile.destroy();
-                    }
-                });
-            });
-            
-            return; // Exit early
-        }
-        
-        // Normal single air projectile
-        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'wind-projectile');
-        projectile.element = 'air';
-        projectile.damage = 2 * slotBuff.damageMultiplier * tierDamageScale;
-        projectile.pushForce = 400; // Push force for knockback
-        projectile.slotIndex = slotIndex;
-        projectile.body.setCollideWorldBounds(false);
-        projectile.setDepth(5);
-        projectile.setScale(1.3);
-        
-        // Play travel animation
-        projectile.play('wind-travel');
-        
-        // Add to projectiles group
-        this.projectiles.add(projectile);
-        
-        // Directional firing (exactly like water/earth)
-        const speed = 350 * slotBuff.speedMultiplier * this.speedMultiplier;
-        const diagonalSpeed = speed / Math.sqrt(2);
-        
-        const directions = {
-            up: { x: 0, y: -speed },
-            down: { x: 0, y: speed },
-            left: { x: -speed, y: 0 },
-            right: { x: speed, y: 0 },
-            'up-left': { x: -diagonalSpeed, y: -diagonalSpeed },
-            'up-right': { x: diagonalSpeed, y: -diagonalSpeed },
-            'down-left': { x: -diagonalSpeed, y: diagonalSpeed },
-            'down-right': { x: diagonalSpeed, y: diagonalSpeed }
-        };
-        
-        const direction = this.wizard.lastDirection || 'down';
-        const dir = directions[direction];
-        
-        if (!dir) {
-            console.error(`Invalid direction: ${direction}`);
-            const fallbackDir = directions['down'];
-            projectile.setVelocity(fallbackDir.x, fallbackDir.y);
+            positions.forEach(pos => createAirExplosion(pos.x, pos.y, 0.75));
         } else {
-            projectile.setVelocity(dir.x, dir.y);
-        }
-        
-        // Rotate projectile to match direction
-        const directionAngles = {
-            'up': -Math.PI / 2,
-            'down': Math.PI / 2,
-            'left': Math.PI,
-            'right': 0,
-            'up-left': -3 * Math.PI / 4,
-            'up-right': -Math.PI / 4,
-            'down-left': 3 * Math.PI / 4,
-            'down-right': Math.PI / 4
-        };
-        
-        const angle = directionAngles[direction] || 0;
-        projectile.setRotation(angle);
-        
-        // Destroy after 2 seconds
-        this.time.delayedCall(2000, () => {
-            if (projectile.active) {
-                projectile.destroy();
+            // Single air explosion in direction player is facing
+            const direction = this.wizard.lastDirection || 'down';
+            let targetX = this.wizard.x;
+            let targetY = this.wizard.y;
+            
+            switch(direction) {
+                case 'up':
+                    targetY -= distance;
+                    break;
+                case 'down':
+                    targetY += distance;
+                    break;
+                case 'left':
+                    targetX -= distance;
+                    break;
+                case 'right':
+                    targetX += distance;
+                    break;
+                case 'up-left':
+                    targetX -= distance * 0.707;
+                    targetY -= distance * 0.707;
+                    break;
+                case 'up-right':
+                    targetX += distance * 0.707;
+                    targetY -= distance * 0.707;
+                    break;
+                case 'down-left':
+                    targetX -= distance * 0.707;
+                    targetY += distance * 0.707;
+                    break;
+                case 'down-right':
+                    targetX += distance * 0.707;
+                    targetY += distance * 0.707;
+                    break;
             }
-        });
+            createAirExplosion(targetX, targetY, 1);
+        }
     }
     
     // Kept for compatibility but simplified
@@ -28184,6 +28646,7 @@ class GameScene extends Phaser.Scene {
         let hasAnyBishop = false;
         let hasAnyQueen = false;
         let hasAnyKnight = false;
+        let hasAnyPawn = false;
         
         // Check all passive slots for joker and chess pieces
         for (let i = 4; i < 8; i++) {
@@ -28201,6 +28664,9 @@ class GameScene extends Phaser.Scene {
             }
             if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
                 hasAnyKnight = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'pawn') {
+                hasAnyPawn = true;
             }
         }
         
@@ -28458,6 +28924,7 @@ class GameScene extends Phaser.Scene {
         let hasAnyBishop = false;
         let hasAnyQueen = false;
         let hasAnyKnight = false;
+        let hasAnyPawn = false;
         
         // Check all passive slots for joker and chess pieces
         for (let i = 4; i < 8; i++) {
@@ -28475,6 +28942,9 @@ class GameScene extends Phaser.Scene {
             }
             if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
                 hasAnyKnight = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'pawn') {
+                hasAnyPawn = true;
             }
         }
         
@@ -28760,6 +29230,7 @@ class GameScene extends Phaser.Scene {
         let hasAnyBishop = false;
         let hasAnyQueen = false;
         let hasAnyKnight = false;
+        let hasAnyPawn = false;
         
         // Check all passive slots for joker and chess pieces
         for (let i = 4; i < 8; i++) {
@@ -28777,6 +29248,9 @@ class GameScene extends Phaser.Scene {
             }
             if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
                 hasAnyKnight = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'pawn') {
+                hasAnyPawn = true;
             }
         }
         
@@ -29521,6 +29995,7 @@ class GameScene extends Phaser.Scene {
         let hasAnyBishop = false;
         let hasAnyQueen = false;
         let hasAnyKnight = false;
+        let hasAnyPawn = false;
         
         // Check all passive slots for joker and chess pieces
         for (let i = 4; i < 8; i++) {
@@ -29538,6 +30013,9 @@ class GameScene extends Phaser.Scene {
             }
             if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
                 hasAnyKnight = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'pawn') {
+                hasAnyPawn = true;
             }
         }
         
@@ -29624,7 +30102,9 @@ class GameScene extends Phaser.Scene {
             'down-left': 3 * Math.PI / 4,
             'down-right': Math.PI / 4
         };
-        const angle = directionMap[this.wizard.lastDirection] || directionMap['down'];
+        
+        const direction = this.wizard.lastDirection || 'down';
+        const angle = directionMap[direction] !== undefined ? directionMap[direction] : directionMap['down'];
         
         // Create single boomerang
         this.createArcaneBoomerang(angle, tierDamageScale, slotIndex);
@@ -32045,6 +32525,212 @@ class GameScene extends Phaser.Scene {
         });
     }
     
+    createBlastSpell(slotIndex = 0, elementTier = 1) {
+        // Check for chess piece modifiers
+        let hasJoker = false;
+        let hasAnyRook = false;
+        let hasAnyBishop = false;
+        
+        // Check all passive slots for joker and chess pieces
+        for (let i = 4; i < 8; i++) {
+            if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
+                hasJoker = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'rook') {
+                hasAnyRook = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'bishop') {
+                hasAnyBishop = true;
+            }
+        }
+        
+        // Determine what modifiers to apply
+        let hasRookModifier = false;
+        let hasBishopModifier = false;
+        
+        if (hasJoker) {
+            hasRookModifier = hasAnyRook;
+            hasBishopModifier = hasAnyBishop;
+            if (!hasAnyRook && !hasAnyBishop) {
+                hasRookModifier = true;
+                hasBishopModifier = true;
+            }
+        } else {
+            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
+            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+        }
+        
+        // Function to create a single blast explosion
+        const createBlastExplosion = (targetX, targetY, damageMultiplier = 1) => {
+            // Create the blast explosion sprite
+            const blast = this.add.sprite(targetX, targetY, 'blast-spell');
+            blast.setScale((2 + elementTier * 0.5) * damageMultiplier); // Scale based on tier and multiplier
+            blast.setDepth(100);
+            
+            // Store reference for damage calculation
+            blast.elementTier = elementTier;
+            blast.damageDealt = false;
+            blast.burnDamage = Math.floor((3 + elementTier) * damageMultiplier);
+            blast.burnDuration = 3000;
+            blast.damageMultiplier = damageMultiplier;
+            
+            // Play the animation
+            blast.play('blast-spell-anim');
+            
+            // Set up animation event for when damage phase starts (frame 9)
+            blast.on('animationupdate', (anim, frame) => {
+                if (frame.index >= 9 && !blast.damageDealt) {
+                    blast.damageDealt = true;
+                    
+                    // Deal damage to enemies in radius (reduced by 70%)
+                    const damageRadius = 60 + elementTier * 10; // Much smaller radius
+                    const damage = Math.floor((150 + elementTier * 50) * 0.3 * damageMultiplier); // 30% of original damage
+                    
+                    // Visual explosion effect
+                    const explosionCircle = this.add.circle(targetX, targetY, damageRadius, 0xff6600, 0.3);
+                    explosionCircle.setDepth(99);
+                    this.tweens.add({
+                        targets: explosionCircle,
+                        alpha: 0,
+                        scale: 1.5,
+                        duration: 300,
+                        onComplete: () => explosionCircle.destroy()
+                    });
+                    
+                    // Damage enemies
+                    if (this.enemies && this.enemies.children) {
+                        this.enemies.children.entries.forEach(enemy => {
+                            if (enemy && enemy.active) {
+                                const dist = Phaser.Math.Distance.Between(targetX, targetY, enemy.x, enemy.y);
+                                if (dist <= damageRadius) {
+                                    // Deal damage
+                                    if (enemy.health) {
+                                        enemy.health -= damage;
+                                        this.showDamageNumber(enemy.x, enemy.y - 30, damage, '#ff6600');
+                                        
+                                        // Apply burn effect
+                                        if (!enemy.burning) {
+                                            enemy.burning = true;
+                                            enemy.burnDamage = blast.burnDamage;
+                                            enemy.setTint(0xff6600);
+                                            
+                                            // Burn damage over time
+                                            const burnInterval = this.time.addEvent({
+                                                delay: 500,
+                                                repeat: 5,
+                                                callback: () => {
+                                                    if (enemy && enemy.active && enemy.burning) {
+                                                        enemy.health -= enemy.burnDamage;
+                                                        this.showDamageNumber(enemy.x, enemy.y - 20, enemy.burnDamage, '#ff4400');
+                                                        if (enemy.health <= 0 && enemy.active) {
+                                                            this.killEnemy(enemy);
+                                                        }
+                                                    }
+                                                }
+                                            });
+                                            
+                                            // Clear burn after duration
+                                            this.time.delayedCall(blast.burnDuration, () => {
+                                                if (enemy && enemy.active) {
+                                                    enemy.burning = false;
+                                                    enemy.clearTint();
+                                                    if (burnInterval) burnInterval.destroy();
+                                                }
+                                            });
+                                        }
+                                        
+                                        // Check if enemy died
+                                        if (enemy.health <= 0) {
+                                            this.killEnemy(enemy);
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+            
+            // Clean up after animation
+            blast.on('animationcomplete', () => {
+                blast.destroy();
+            });
+        };
+        
+        // Calculate positions based on chess modifiers
+        const distance = 200;
+        
+        if (hasRookModifier && hasBishopModifier) {
+            // All 8 directions
+            const positions = [
+                { x: this.wizard.x, y: this.wizard.y - distance },                    // Up
+                { x: this.wizard.x + distance, y: this.wizard.y },                    // Right
+                { x: this.wizard.x, y: this.wizard.y + distance },                    // Down
+                { x: this.wizard.x - distance, y: this.wizard.y },                    // Left
+                { x: this.wizard.x + distance * 0.707, y: this.wizard.y - distance * 0.707 }, // Up-Right
+                { x: this.wizard.x + distance * 0.707, y: this.wizard.y + distance * 0.707 }, // Down-Right
+                { x: this.wizard.x - distance * 0.707, y: this.wizard.y + distance * 0.707 }, // Down-Left
+                { x: this.wizard.x - distance * 0.707, y: this.wizard.y - distance * 0.707 }  // Up-Left
+            ];
+            positions.forEach(pos => createBlastExplosion(pos.x, pos.y, 0.5));
+        } else if (hasRookModifier) {
+            // Cardinal directions
+            const positions = [
+                { x: this.wizard.x, y: this.wizard.y - distance },  // Up
+                { x: this.wizard.x + distance, y: this.wizard.y },  // Right
+                { x: this.wizard.x, y: this.wizard.y + distance },  // Down
+                { x: this.wizard.x - distance, y: this.wizard.y }   // Left
+            ];
+            positions.forEach(pos => createBlastExplosion(pos.x, pos.y, 0.75));
+        } else if (hasBishopModifier) {
+            // Diagonal directions
+            const positions = [
+                { x: this.wizard.x + distance * 0.707, y: this.wizard.y - distance * 0.707 }, // Up-Right
+                { x: this.wizard.x + distance * 0.707, y: this.wizard.y + distance * 0.707 }, // Down-Right
+                { x: this.wizard.x - distance * 0.707, y: this.wizard.y + distance * 0.707 }, // Down-Left
+                { x: this.wizard.x - distance * 0.707, y: this.wizard.y - distance * 0.707 }  // Up-Left
+            ];
+            positions.forEach(pos => createBlastExplosion(pos.x, pos.y, 0.75));
+        } else {
+            // Single blast in direction player is facing
+            const direction = this.wizard.lastDirection || 'down';
+            let targetX = this.wizard.x;
+            let targetY = this.wizard.y;
+            
+            switch(direction) {
+                case 'up':
+                    targetY -= distance;
+                    break;
+                case 'down':
+                    targetY += distance;
+                    break;
+                case 'left':
+                    targetX -= distance;
+                    break;
+                case 'right':
+                    targetX += distance;
+                    break;
+                case 'up-left':
+                    targetX -= distance * 0.707;
+                    targetY -= distance * 0.707;
+                    break;
+                case 'up-right':
+                    targetX += distance * 0.707;
+                    targetY -= distance * 0.707;
+                    break;
+                case 'down-left':
+                    targetX -= distance * 0.707;
+                    targetY += distance * 0.707;
+                    break;
+                case 'down-right':
+                    targetX += distance * 0.707;
+                    targetY += distance * 0.707;
+                    break;
+            }
+            createBlastExplosion(targetX, targetY, 1);
+        }
+    }
+    
     createSteamSpell() {
         // Steam spell - creates horizontal pressured steam jets
         const steamWidth = 200; // Reduced by 75% (was 800)
@@ -33583,6 +34269,7 @@ class GameScene extends Phaser.Scene {
         let hasAnyBishop = false;
         let hasAnyQueen = false;
         let hasAnyKnight = false;
+        let hasAnyPawn = false;
         
         // Check all passive slots for joker and chess pieces
         for (let i = 4; i < 8; i++) {
@@ -33600,6 +34287,9 @@ class GameScene extends Phaser.Scene {
             }
             if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
                 hasAnyKnight = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'pawn') {
+                hasAnyPawn = true;
             }
         }
         
@@ -34196,7 +34886,7 @@ class GameScene extends Phaser.Scene {
     }
 
     createStormSpell(slotIndex = 0, elementTier = 1) {
-        // Storm element - shoots piercing projectile that pushes enemies
+        // Storm element - shoots bouncing projectile that chains between enemies
         
         // Get slot buffs
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
@@ -34204,12 +34894,16 @@ class GameScene extends Phaser.Scene {
         // Apply tier damage scaling
         const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
         
+        // Calculate bounces based on tier (2 base + 1 per tier)
+        const maxBounces = 2 + elementTier;
+        
         // Check for chess piece modifiers in passive slots
         let hasJoker = false;
         let hasAnyRook = false;
         let hasAnyBishop = false;
         let hasAnyQueen = false;
         let hasAnyKnight = false;
+        let hasAnyPawn = false;
         
         // Check all passive slots for joker and chess pieces
         for (let i = 4; i < 8; i++) {
@@ -34227,6 +34921,9 @@ class GameScene extends Phaser.Scene {
             }
             if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
                 hasAnyKnight = true;
+            }
+            if (this.chargeSlots && this.chargeSlots[i] === 'pawn') {
+                hasAnyPawn = true;
             }
         }
         
@@ -34251,8 +34948,8 @@ class GameScene extends Phaser.Scene {
         }
         
         const projectileSpeed = 400 * slotBuff.speedMultiplier * this.speedMultiplier;
-        const damage = 2 * slotBuff.damageMultiplier * tierDamageScale;
-        const knockbackForce = 1200;
+        const damage = 15 * slotBuff.damageMultiplier * tierDamageScale;
+        const knockbackForce = 800;
         
         // Create animation if it doesn't exist
         if (!this.anims.exists('storm-projectile')) {
@@ -34281,8 +34978,10 @@ class GameScene extends Phaser.Scene {
             storm.element = 'storm';
             storm.damage = damage * damageMultiplier;
             storm.knockbackForce = knockbackForce;
-            storm.isPiercing = true; // Pierce through enemies
-            storm.hitEnemies = new Set(); // Track hit enemies to prevent multiple hits
+            storm.isBouncing = true; // Bouncing projectile
+            storm.bouncesRemaining = maxBounces;
+            storm.hitEnemies = new Set(); // Track hit enemies to prevent hitting same enemy twice in a row
+            storm.lastHitEnemy = null; // Track last hit enemy
             
             // Add to projectiles group first
             this.projectiles.add(storm);
@@ -34320,8 +35019,71 @@ class GameScene extends Phaser.Scene {
             // Store trail for cleanup
             storm.trailInterval = trailInterval;
             
-            // Auto-destroy after 2 seconds
-            this.time.delayedCall(2000, () => {
+            // Custom collision handler for bouncing
+            storm.bounceToNextEnemy = () => {
+                if (storm.bouncesRemaining <= 0 || !storm.active) {
+                    if (storm.trailInterval) {
+                        storm.trailInterval.destroy();
+                    }
+                    storm.destroy();
+                    return;
+                }
+                
+                // Find nearest enemy that hasn't been hit yet (or wasn't the last one hit)
+                let nearestEnemy = null;
+                let nearestDistance = Infinity;
+                
+                this.enemies.children.entries.forEach(enemy => {
+                    if (enemy.active && enemy !== storm.lastHitEnemy) {
+                        const distance = Phaser.Math.Distance.Between(storm.x, storm.y, enemy.x, enemy.y);
+                        if (distance < nearestDistance && distance < 400) { // Max bounce range of 400 pixels
+                            nearestDistance = distance;
+                            nearestEnemy = enemy;
+                        }
+                    }
+                });
+                
+                if (nearestEnemy) {
+                    // Bounce to next enemy
+                    storm.bouncesRemaining--;
+                    storm.lastHitEnemy = nearestEnemy;
+                    
+                    // Calculate new direction
+                    const newAngle = Phaser.Math.Angle.Between(storm.x, storm.y, nearestEnemy.x, nearestEnemy.y);
+                    const newVelocityX = Math.cos(newAngle) * projectileSpeed * 1.2; // Slightly faster after bounce
+                    const newVelocityY = Math.sin(newAngle) * projectileSpeed * 1.2;
+                    
+                    storm.setVelocity(newVelocityX, newVelocityY);
+                    storm.setRotation(newAngle);
+                    
+                    // Visual bounce effect
+                    const bounceEffect = this.add.circle(storm.x, storm.y, 20, 0x00ffff, 0.8);
+                    bounceEffect.setDepth(6);
+                    this.tweens.add({
+                        targets: bounceEffect,
+                        scale: { from: 0.5, to: 2 },
+                        alpha: { from: 0.8, to: 0 },
+                        duration: 200,
+                        onComplete: () => bounceEffect.destroy()
+                    });
+                } else {
+                    // No more enemies to bounce to
+                    storm.bouncesRemaining = 0;
+                    
+                    // Continue in current direction for a bit then destroy
+                    this.time.delayedCall(500, () => {
+                        if (storm.active) {
+                            if (storm.trailInterval) {
+                                storm.trailInterval.destroy();
+                            }
+                            storm.destroy();
+                        }
+                    });
+                }
+            };
+            
+            // Auto-destroy after 5 seconds (increased from 2)
+            this.time.delayedCall(5000, () => {
                 if (storm.active) {
                     if (storm.trailInterval) {
                         storm.trailInterval.destroy();
@@ -34329,6 +35091,8 @@ class GameScene extends Phaser.Scene {
                     storm.destroy();
                 }
             });
+            
+            return storm;
         };
         
         // Determine directions to fire based on modifiers
@@ -34374,16 +35138,221 @@ class GameScene extends Phaser.Scene {
             });
         } else {
             // Fire single projectile in player's facing direction
-            let angle = 0;
-            switch(this.wizard.lastDirection) {
-                case 'up': angle = -Math.PI/2; break;
-                case 'down': angle = Math.PI/2; break;
-                case 'left': angle = Math.PI; break;
-                case 'right': angle = 0; break;
-                default: angle = 0;
-            }
+            const direction = this.wizard.lastDirection || 'down';
+            
+            // Use same direction mapping as arcane spell for consistency
+            const directionMap = {
+                'up': -Math.PI / 2,
+                'down': Math.PI / 2,
+                'left': Math.PI,
+                'right': 0,
+                'up-left': -3 * Math.PI / 4,
+                'up-right': -Math.PI / 4,
+                'down-left': 3 * Math.PI / 4,
+                'down-right': Math.PI / 4
+            };
+            
+            const angle = directionMap[direction] !== undefined ? directionMap[direction] : directionMap['down'];
             createStormProjectile(angle, 1);
         }
+    }
+    
+    createThunderSpell(slotIndex = 0, elementTier = 1) {
+        // Thunder element - targets a random enemy in viewport and strikes with thunder
+        
+        // Get slot buffs
+        const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
+        
+        // Apply tier damage scaling
+        const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
+        
+        // Calculate damage with modifiers
+        const kingMultiplier = this.getKingDamageMultiplier(slotIndex);
+        const damage = 25 * slotBuff.damageMultiplier * tierDamageScale * kingMultiplier;
+        const stunDuration = 500; // 0.5 seconds stun
+        
+        // Find all enemies in viewport
+        const viewportBounds = this.cameras.main.worldView;
+        const enemiesInView = this.enemies.children.entries.filter(enemy => {
+            return enemy.active && 
+                   enemy.x >= viewportBounds.x && 
+                   enemy.x <= viewportBounds.x + viewportBounds.width &&
+                   enemy.y >= viewportBounds.y && 
+                   enemy.y <= viewportBounds.y + viewportBounds.height;
+        });
+        
+        if (enemiesInView.length === 0) {
+            // No enemies in view, create visual effect at player position instead
+            this.createThunderStrikeEffect(this.wizard.x, this.wizard.y);
+            return;
+        }
+        
+        // Select a random enemy
+        const targetEnemy = Phaser.Utils.Array.GetRandom(enemiesInView);
+        
+        // Create thunder strike animation at enemy position
+        this.createThunderStrikeEffect(targetEnemy.x, targetEnemy.y, () => {
+            // Apply damage when animation hits
+            if (targetEnemy.active) {
+                // Deal damage
+                if (targetEnemy.isBoss) {
+                    targetEnemy.health -= damage;
+                    if (targetEnemy.health <= 0) {
+                        this.handleBossDeath(targetEnemy);
+                    }
+                } else {
+                    targetEnemy.health -= damage;
+                    if (targetEnemy.health <= 0) {
+                        this.killEnemy(targetEnemy);
+                    } else {
+                        // Apply stun effect
+                        this.stunEnemy(targetEnemy, stunDuration);
+                    }
+                }
+                
+                // Visual feedback
+                this.showDamageNumber(targetEnemy.x, targetEnemy.y, damage, '#ffdd00');
+                
+                // Flash effect
+                targetEnemy.setTint(0xffff00);
+                this.time.delayedCall(100, () => {
+                    if (targetEnemy.active) {
+                        targetEnemy.clearTint();
+                    }
+                });
+            }
+        });
+        
+        // Handle chess modifiers - strike multiple enemies
+        const hasQueenModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'queen';
+        const hasPawnModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'pawn';
+        
+        // Check for joker
+        let hasJoker = false;
+        for (let i = 4; i < 8; i++) {
+            if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
+                hasJoker = true;
+                break;
+            }
+        }
+        
+        // Strike additional enemies if modifiers are active
+        let additionalTargets = 0;
+        if (hasQueenModifier || (hasJoker && this.chargeSlots.includes('queen'))) {
+            additionalTargets = 3; // Strike 4 total enemies
+        } else if (hasPawnModifier || (hasJoker && this.chargeSlots.includes('pawn'))) {
+            additionalTargets = 1; // Strike 2 total enemies
+        }
+        
+        if (additionalTargets > 0) {
+            // Get other enemies excluding the first target
+            const otherEnemies = enemiesInView.filter(e => e !== targetEnemy);
+            const additionalEnemies = Phaser.Utils.Array.Shuffle(otherEnemies).slice(0, additionalTargets);
+            
+            // Strike each additional enemy with a slight delay
+            additionalEnemies.forEach((enemy, index) => {
+                this.time.delayedCall(100 * (index + 1), () => {
+                    this.createThunderStrikeEffect(enemy.x, enemy.y, () => {
+                        if (enemy.active) {
+                            // Deal damage
+                            if (enemy.isBoss) {
+                                enemy.health -= damage * 0.7; // Slightly less damage for additional strikes
+                            } else {
+                                enemy.health -= damage * 0.7;
+                                if (enemy.health <= 0) {
+                                    this.killEnemy(enemy);
+                                } else {
+                                    this.stunEnemy(enemy, stunDuration);
+                                }
+                            }
+                            
+                            // Visual feedback
+                            this.showDamageNumber(enemy.x, enemy.y, Math.floor(damage * 0.7), '#ffdd00');
+                            enemy.setTint(0xffff00);
+                            this.time.delayedCall(100, () => {
+                                if (enemy.active) {
+                                    enemy.clearTint();
+                                }
+                            });
+                        }
+                    });
+                });
+            });
+        }
+    }
+    
+    createThunderStrikeEffect(x, y, onHitCallback) {
+        // Create thunder strike animation if it doesn't exist
+        if (!this.anims.exists('thunder-strike-anim')) {
+            this.anims.create({
+                key: 'thunder-strike-anim',
+                frames: this.anims.generateFrameNumbers('thunder-strike', { start: 0, end: 11 }),
+                frameRate: 24,
+                repeat: 0
+            });
+        }
+        
+        // Create thunder strike sprite
+        const strike = this.add.sprite(x, y, 'thunder-strike');
+        strike.setDepth(9);
+        strike.setScale(1.5);
+        
+        // Play animation
+        strike.play('thunder-strike-anim');
+        
+        // Call damage callback at the right moment (midway through animation)
+        this.time.delayedCall(250, () => {
+            if (onHitCallback) {
+                onHitCallback();
+            }
+        });
+        
+        // Destroy after animation completes
+        strike.once('animationcomplete', () => {
+            strike.destroy();
+        });
+    }
+    
+    stunEnemy(enemy, duration) {
+        if (!enemy || !enemy.active || enemy.isStunned) return;
+        
+        enemy.isStunned = true;
+        enemy.stunEndTime = this.time.now + duration;
+        
+        // Store original velocity
+        const originalVelocityX = enemy.body.velocity.x;
+        const originalVelocityY = enemy.body.velocity.y;
+        
+        // Stop enemy movement
+        enemy.setVelocity(0, 0);
+        
+        // Visual stun indicator
+        const stunIndicator = this.add.text(enemy.x, enemy.y - 30, '💫', {
+            fontSize: '20px'
+        });
+        stunIndicator.setDepth(10);
+        
+        // Tween the stun indicator
+        this.tweens.add({
+            targets: stunIndicator,
+            y: enemy.y - 40,
+            alpha: { from: 1, to: 0.3 },
+            duration: 250,
+            yoyo: true,
+            repeat: duration / 500
+        });
+        
+        // Remove stun after duration
+        this.time.delayedCall(duration, () => {
+            if (enemy.active) {
+                enemy.isStunned = false;
+                // Restore movement if enemy is still alive
+                if (enemy.active && enemy.body) {
+                    enemy.setVelocity(originalVelocityX, originalVelocityY);
+                }
+            }
+            stunIndicator.destroy();
+        });
     }
 
     createDeathSpell() {
@@ -38529,8 +39498,8 @@ class GameScene extends Phaser.Scene {
             'earth+water': 'mud',
             'air+earth': 'sand',
             'air+water': 'ice',
-            'air+fire': 'storm',
-            'air+lightning': 'storm',
+            'air+fire': 'blast',
+            'air+lightning': 'thunder',
             'lightning+water': 'storm',
             'earth+lightning': 'gravity',
             'arcane+earth': 'gravity',
@@ -39282,6 +40251,18 @@ class GameScene extends Phaser.Scene {
         // Reset menu controlling player in multiplayer
         if (this.multiplayerEnabled) {
             this.menuControllingPlayer = null;
+        }
+        
+        // Check if P2 has a pending level up reward
+        if (this.pendingP2LevelUpReward && this.wizard2 && this.playerHealthP2 > 0) {
+            this.pendingP2LevelUpReward = false;
+            // Give P2 their level up reward after a short delay
+            this.time.delayedCall(500, () => {
+                if (!this.chestSelectionActive && !this.chestOpening) {
+                    this.menuControllingPlayer = 2;
+                    this.openChest(this.wizard2, null);
+                }
+            });
         }
         
         // resumeGame already called above, no need to call again
@@ -40609,6 +41590,11 @@ class GameScene extends Phaser.Scene {
         // Similar to damagePlayer but for P2
         if (this.wizard2.invulnerable || this.godMode || this.wizard2.health <= 0 || this.isPaused || this.chestSelectionActive) return;
         
+        // Vampire Survivors-style invulnerability frames for P2
+        if (this.wizard2.invulnerableUntil && this.time.now < this.wizard2.invulnerableUntil) {
+            return; // Still invulnerable from recent damage
+        }
+        
         // Apply damage
         this.wizard2.health -= damage;
         if (this.wizard2.health < 0) this.wizard2.health = 0;
@@ -40616,37 +41602,42 @@ class GameScene extends Phaser.Scene {
         // Update health bar
         this.updateHealthBar();
         
-        // Flash effect
-        this.wizard2.setTint(0xff0000);
-        this.time.delayedCall(200, () => {
-            if (this.wizard2 && this.wizard2.active) this.wizard2.clearTint();
+        // Vampire Survivors-style invulnerability period (0.5 seconds) for P2
+        const invulnerabilityDuration = 500; // milliseconds
+        this.wizard2.invulnerableUntil = this.time.now + invulnerabilityDuration;
+        this.wizard2.invulnerable = true;
+        
+        // Visual feedback - flashing effect
+        const flashInterval = 50; // Flash every 50ms
+        const flashCount = Math.floor(invulnerabilityDuration / (flashInterval * 2));
+        
+        for (let i = 0; i < flashCount; i++) {
+            // Flash to red
+            this.time.delayedCall(i * flashInterval * 2, () => {
+                if (this.wizard2 && this.wizard2.active) {
+                    this.wizard2.setTint(0xff0000);
+                }
+            });
+            
+            // Flash back to normal
+            this.time.delayedCall(i * flashInterval * 2 + flashInterval, () => {
+                if (this.wizard2 && this.wizard2.active) {
+                    this.wizard2.clearTint();
+                }
+            });
+        }
+        
+        // Clear invulnerability after duration
+        this.time.delayedCall(invulnerabilityDuration, () => {
+            if (this.wizard2 && this.wizard2.active) {
+                this.wizard2.invulnerable = false;
+                this.wizard2.invulnerableUntil = 0;
+                this.wizard2.clearTint(); // Ensure tint is cleared
+            }
         });
         
         // Show damage number
-        const damageText = this.add.text(this.wizard2.x, this.wizard2.y - 30, `-${damage}`, {
-            fontSize: '20px',
-            color: '#ff0000',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 2
-        });
-        damageText.setOrigin(0.5);
-        damageText.setDepth(150);
-        
-        this.tweens.add({
-            targets: damageText,
-            y: damageText.y - 30,
-            alpha: 0,
-            duration: 1000,
-            ease: 'Power2',
-            onComplete: () => damageText.destroy()
-        });
-        
-        // Make P2 invulnerable for a short time
-        this.wizard2.invulnerable = true;
-        this.time.delayedCall(1000, () => {
-            if (this.wizard2) this.wizard2.invulnerable = false;
-        });
+        this.showDamageNumber(this.wizard2.x, this.wizard2.y - 30, damage, '#ff0000');
         
         // Check if P2 died
         if (this.wizard2.health <= 0) {
@@ -40699,6 +41690,12 @@ class GameScene extends Phaser.Scene {
     damagePlayer(damage, source = null) {
         if (this.invulnerable || this.godMode || this.playerHealth <= 0 || this.isPaused || this.chestSelectionActive) return;
         
+        // Vampire Survivors-style invulnerability frames
+        // Check if player is in temporary invulnerability period
+        if (this.playerInvulnerableUntil && this.time.now < this.playerInvulnerableUntil) {
+            return; // Still invulnerable from recent damage
+        }
+        
         // Check for butterfly protection
         if (this.butterflyProtection && this.butterflyProtection.active && this.butterflyProtection.charges > 0) {
             // Consume one charge
@@ -40729,31 +41726,33 @@ class GameScene extends Phaser.Scene {
             }
             
             // Update indicator
-            if (this.butterflyIndicator) {
+            if (this.butterflyIndicator && this.butterflyIndicator.setText) {
                 this.butterflyIndicator.setText(`🦋 x${this.butterflyProtection.charges}`);
                 this.butterflyIndicator.x = this.wizard.x;
                 this.butterflyIndicator.y = this.wizard.y - 70;
             }
             
-            // Show damage blocked text
-            const blockedText = this.add.text(this.wizard.x, this.wizard.y - 30, 'BLOCKED!', {
-                fontSize: '20px',
-                color: '#44ffff',
-                fontStyle: 'bold',
-                stroke: '#000000',
-                strokeThickness: 3
-            });
-            blockedText.setOrigin(0.5);
-            blockedText.setDepth(150);
-            
-            this.tweens.add({
-                targets: blockedText,
-                y: this.wizard.y - 60,
-                alpha: 0,
-                duration: 1000,
-                ease: 'Power2',
-                onComplete: () => blockedText.destroy()
-            });
+            // Show damage blocked text (only if wizard exists)
+            if (this.wizard) {
+                const blockedText = this.add.text(this.wizard.x, this.wizard.y - 30, 'BLOCKED!', {
+                    fontSize: '20px',
+                    color: '#44ffff',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 3
+                });
+                blockedText.setOrigin(0.5);
+                blockedText.setDepth(150);
+                
+                this.tweens.add({
+                    targets: blockedText,
+                    y: this.wizard.y - 60,
+                    alpha: 0,
+                    duration: 1000,
+                    ease: 'Power2',
+                    onComplete: () => blockedText.destroy()
+                });
+            }
             
             // Check if protection ended
             if (this.butterflyProtection.charges <= 0) {
@@ -40792,23 +41791,25 @@ class GameScene extends Phaser.Scene {
             // Reduce incoming damage by 50%
             damage = Math.floor(damage * 0.5);
             
-            // Visual feedback for damage reduction
-            const reductionText = this.add.text(this.wizard.x, this.wizard.y - 60, 'REDUCED!', {
-                fontSize: '14px',
-                color: '#c0c0c0',
-                fontStyle: 'bold'
-            });
-            reductionText.setOrigin(0.5);
-            reductionText.setDepth(150);
-            
-            this.tweens.add({
-                targets: reductionText,
-                y: reductionText.y - 20,
-                alpha: 0,
-                duration: 800,
-                ease: 'Power2',
-                onComplete: () => reductionText.destroy()
-            });
+            // Visual feedback for damage reduction (only if wizard exists)
+            if (this.wizard) {
+                const reductionText = this.add.text(this.wizard.x, this.wizard.y - 60, 'REDUCED!', {
+                    fontSize: '14px',
+                    color: '#c0c0c0',
+                    fontStyle: 'bold'
+                });
+                reductionText.setOrigin(0.5);
+                reductionText.setDepth(150);
+                
+                this.tweens.add({
+                    targets: reductionText,
+                    y: reductionText.y - 20,
+                    alpha: 0,
+                    duration: 800,
+                    ease: 'Power2',
+                    onComplete: () => reductionText.destroy()
+                });
+            }
         }
         
         console.log('Player taking damage:', damage, 'Current health:', this.playerHealth, '-> New health:', this.playerHealth - damage);
@@ -40816,21 +41817,42 @@ class GameScene extends Phaser.Scene {
         this.updateHealthBar();
         this.updateWizardHealthBar();
         
-        // Flash red
-        this.wizard.setTint(0xff0000);
-        this.time.delayedCall(200, () => {
+        // Vampire Survivors-style invulnerability period (0.5 seconds)
+        const invulnerabilityDuration = 500; // milliseconds
+        this.playerInvulnerableUntil = this.time.now + invulnerabilityDuration;
+        this.invulnerable = true;
+        
+        // Visual feedback - flashing effect
+        const flashInterval = 50; // Flash every 50ms
+        const flashCount = Math.floor(invulnerabilityDuration / (flashInterval * 2));
+        
+        for (let i = 0; i < flashCount; i++) {
+            // Flash to red
+            this.time.delayedCall(i * flashInterval * 2, () => {
+                if (this.wizard && this.wizard.active) {
+                    this.wizard.setTint(0xff0000);
+                }
+            });
+            
+            // Flash back to normal
+            this.time.delayedCall(i * flashInterval * 2 + flashInterval, () => {
+                if (this.wizard && this.wizard.active) {
+                    this.wizard.clearTint();
+                }
+            });
+        }
+        
+        // Clear invulnerability after duration
+        this.time.delayedCall(invulnerabilityDuration, () => {
             if (this.wizard && this.wizard.active) {
-                this.wizard.clearTint();
+                this.invulnerable = false;
+                this.playerInvulnerableUntil = 0;
+                this.wizard.clearTint(); // Ensure tint is cleared
             }
         });
         
-        // Set invulnerability
-        this.invulnerable = true;
-        this.addScaledDelay(1000, () => {
-            if (this.wizard && this.wizard.active) {
-                this.invulnerable = false;
-            }
-        });
+        // Show damage number
+        this.showDamageNumber(this.wizard.x, this.wizard.y - 30, damage, '#ff0000');
         
         // Check for death
         if (this.playerHealth <= 0) {
@@ -41019,6 +42041,7 @@ class GameScene extends Phaser.Scene {
         // Adjust boss health based on enemy density setting
         const baseHealth = 2700;
         const densityMultipliers = {
+            'beginner': 0.1, // 270 health
             'sparse': 0.25,  // 675 health
             'normal': 0.5,   // 1350 health
             'dense': 0.75,   // 2025 health
@@ -41030,7 +42053,7 @@ class GameScene extends Phaser.Scene {
         boss.health = Math.floor(baseHealth * healthMultiplier);
         boss.maxHealth = boss.health;
         boss.isBoss = true;
-        boss.moveSpeed = 25; // Slow movement speed for walk mode
+        boss.moveSpeed = 20; // Reduced by 20% from 25
         boss.isObeliskBoss = true; // Mark as obelisk boss for rune interaction
         
         // Mode switching properties (similar to Nekros)
@@ -41133,9 +42156,9 @@ class GameScene extends Phaser.Scene {
         const boss = this.physics.add.sprite(bossX, bossY, 'archer-boss-walk', 0);
         boss.enemyType = 'archer-boss';
         
-        // Apply saved scale or use default
+        // Apply saved scale or use default (scaled up 50% from 1.5 to 2.25)
         if (!this.applySavedScale(boss, 'archer-boss')) {
-            boss.setScale(1.5); // Make boss slightly larger
+            boss.setScale(2.25); // Make boss 50% larger than before
         }
         
         // Adjust boss health based on enemy density setting
@@ -41152,7 +42175,7 @@ class GameScene extends Phaser.Scene {
         boss.health = Math.floor(baseHealth * healthMultiplier);
         boss.maxHealth = boss.health;
         boss.isBoss = true;
-        boss.moveSpeed = 35; // Faster than Obelisk
+        boss.moveSpeed = 28; // Reduced by 20% from 35
         boss.isArcherBoss = true; // Mark as archer boss
         
         // Apply hitbox configuration (enemyType already set to 'archer-boss')
@@ -41295,6 +42318,7 @@ class GameScene extends Phaser.Scene {
         // Adjust boss health for sand stage
         const baseHealth = 4500;
         const densityMultipliers = {
+            'beginner': 0.1,
             'sparse': 0.25,
             'normal': 0.5,
             'dense': 0.75,
@@ -41307,7 +42331,7 @@ class GameScene extends Phaser.Scene {
         boss.maxHealth = boss.health;
         boss.isBoss = true;
         boss.isEyelor = true;
-        boss.moveSpeed = 70;
+        boss.moveSpeed = 56; // Reduced by 20% from 70
         
         // Eyelor specific properties
         boss.projectileSpeed = 200;
@@ -41463,43 +42487,33 @@ class GameScene extends Phaser.Scene {
         // Don't play attack animation during charge, just tint
         this.boss.setTint(0xffff00);
         
-        // Create targeting laser
-        const targetingLaser = this.add.rectangle(
+        // Calculate target position
+        const angle = Phaser.Math.Angle.Between(
             this.boss.x, this.boss.y,
-            1000, 10,
-            0xff0000, 0.3
+            this.wizard.x, this.wizard.y
         );
-        targetingLaser.setOrigin(0, 0.5);
-        targetingLaser.setDepth(90);
         
-        // Update targeting
-        const laserUpdate = this.time.addEvent({
-            delay: 50,
-            callback: () => {
-                if (!this.boss || !this.wizard || !targetingLaser.active) return;
-                
-                const angle = Phaser.Math.Angle.Between(
-                    this.boss.x, this.boss.y,
-                    this.wizard.x, this.wizard.y
-                );
-                targetingLaser.x = this.boss.x;
-                targetingLaser.y = this.boss.y;
-                targetingLaser.rotation = angle;
-            },
-            loop: true
-        });
-        
-        // Fire beam after charge time
-        this.time.delayedCall(this.boss.beamChargeTime * 1000 / this.speedMultiplier, () => {
-            if (!this.boss || !this.boss.active) return;
-            
-            laserUpdate.destroy();
-            targetingLaser.destroy();
-            this.boss.clearTint();
-            this.boss.isCharging = false;
-            this.boss.isFiringBeam = true;
-            // Play attack animation when actually firing
-            this.boss.play('eyelor-attack');
+        // Use line danger warning system instead of red rectangle
+        const laserWarning = this.createLineDangerWarning(
+            this.boss,
+            { x: this.boss.x + Math.cos(angle) * 1000, y: this.boss.y + Math.sin(angle) * 1000 },
+            {
+                width: 80, // Width of the warning line
+                length: 1000, // Length of the beam
+                duration: this.boss.beamChargeTime * 1000, // Warning duration
+                color: 0xffff00, // Yellow warning color
+                pulseSpeed: 100,
+                fadeIn: 200,
+                followSource: true, // Follow the boss
+                onComplete: () => {
+                    // This fires when the warning ends
+                    if (!this.boss || !this.boss.active) return;
+                    
+                    this.boss.clearTint();
+                    this.boss.isCharging = false;
+                    this.boss.isFiringBeam = true;
+                    // Play attack animation when actually firing
+                    this.boss.play('eyelor-attack');
             
             // Create massive eye beam
             const beam = this.physics.add.sprite(this.boss.x, this.boss.y, 'void-ball-1');
@@ -41559,20 +42573,22 @@ class GameScene extends Phaser.Scene {
                 }
             );
             
-            // Animate beam for 2 seconds
-            this.time.delayedCall(2000 / this.speedMultiplier, () => {
-                if (beam && beam.active) {
-                    beam.destroy();
+                    // Animate beam for 2 seconds
+                    this.time.delayedCall(2000 / this.speedMultiplier, () => {
+                        if (beam && beam.active) {
+                            beam.destroy();
+                        }
+                        if (beamOverlap) {
+                            beamOverlap.destroy();
+                        }
+                        if (this.boss) {
+                            this.boss.isFiringBeam = false;
+                            this.boss.play('eyelor-move');
+                        }
+                    });
                 }
-                if (beamOverlap) {
-                    beamOverlap.destroy();
-                }
-                if (this.boss) {
-                    this.boss.isFiringBeam = false;
-                    this.boss.play('eyelor-move');
-                }
-            });
-        });
+            }
+        );
     }
     
     performEyelorProjectileBurst() {
@@ -41614,11 +42630,17 @@ class GameScene extends Phaser.Scene {
                 projectile.body.enable = true;
                 projectile.body.setSize(20, 20);
                 
-                // Ensure projectile speed is set - use higher base speed
-                const speed = 300 * this.speedMultiplier;
+                // Make projectiles homing like Lost Soul projectiles
+                projectile.isHoming = true;
+                projectile.homingSpeed = 200 * this.speedMultiplier; // Speed for homing
+                projectile.homingTarget = this.wizard; // Target the player
+                projectile.isEnemyProjectile = true;
+                
+                // Set initial velocity towards player
+                const initialSpeed = 250 * this.speedMultiplier;
                 projectile.setVelocity(
-                    Math.cos(angle) * speed,
-                    Math.sin(angle) * speed
+                    Math.cos(angle) * initialSpeed,
+                    Math.sin(angle) * initialSpeed
                 );
                 
                 projectile.damage = 30;
@@ -41960,6 +42982,7 @@ class GameScene extends Phaser.Scene {
         // Adjust boss health for grave stage
         const baseHealth = 5000;
         const densityMultipliers = {
+            'beginner': 0.1,
             'sparse': 0.25,
             'normal': 0.5,
             'dense': 0.75,
@@ -41971,7 +42994,7 @@ class GameScene extends Phaser.Scene {
         boss.health = Math.floor(baseHealth * healthMultiplier);
         boss.maxHealth = boss.health;
         boss.isBoss = true;
-        boss.moveSpeed = 30; // Base walking speed
+        boss.moveSpeed = 24; // Reduced by 20% from 30
         boss.isNekros = true;
         
         // Apply hitbox configuration
@@ -42121,6 +43144,7 @@ class GameScene extends Phaser.Scene {
         // Adjust boss health based on enemy density setting
         const baseHealth = 10000;
         const densityMultipliers = {
+            'beginner': 0.1,
             'sparse': 0.25,
             'normal': 0.5,
             'dense': 0.75,
@@ -42133,7 +43157,7 @@ class GameScene extends Phaser.Scene {
         boss.maxHealth = boss.health;
         boss.isBoss = true;
         boss.isDemonSlime = true;
-        boss.moveSpeed = 25; // Slow but deadly
+        boss.moveSpeed = 20; // Reduced by 20% from 25
         
         // Apply hitbox configuration (enemyType already set to 'demon-slime-boss')
         this.applyHitboxConfig(boss, boss.enemyType);
@@ -42358,39 +43382,40 @@ class GameScene extends Phaser.Scene {
         this.boss.isLeaping = true;
         this.boss.setVelocity(0, 0);
         
-        // Telegraphing
-        this.boss.setTint(0xff0000);
-        const warningCircle = this.add.circle(this.wizard.x, this.wizard.y, 100, 0xff0000, 0.3);
-        warningCircle.setDepth(5);
-        
         // Store target position
         const targetX = this.wizard.x;
         const targetY = this.wizard.y;
         
-        // Jump animation delay
-        this.time.delayedCall(500 / this.speedMultiplier, () => {
-            if (!this.boss || !this.boss.active) return;
-            
-            this.boss.clearTint();
-            warningCircle.destroy();
-            
-            // Calculate leap trajectory
-            const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, targetX, targetY);
-            const distance = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, targetX, targetY);
-            const leapSpeed = Math.min(distance * 2, 800) * this.speedMultiplier;
-            
-            // Leap towards target
-            this.boss.setVelocity(
-                Math.cos(angle) * leapSpeed,
-                Math.sin(angle) * leapSpeed
-            );
-            
-            // Create shadow effect
-            const shadow = this.add.ellipse(this.boss.x, this.boss.y + 20, 100, 50, 0x000000, 0.5);
-            shadow.setDepth(0);
-            
-            // Land after a short time
-            this.time.delayedCall(600 / this.speedMultiplier, () => {
+        // Use circle danger warning system
+        const warning = this.createDangerWarning({
+            x: targetX,
+            y: targetY,
+            type: 'circle',
+            radius: 100,
+            duration: 500 / this.speedMultiplier,
+            color: 0xff0000,
+            pulseSpeed: 100,
+            fadeIn: 100,
+            onComplete: () => {
+                if (!this.boss || !this.boss.active) return;
+                
+                // Calculate leap trajectory
+                const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, targetX, targetY);
+                const distance = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, targetX, targetY);
+                const leapSpeed = Math.min(distance * 2, 800) * this.speedMultiplier;
+                
+                // Leap towards target
+                this.boss.setVelocity(
+                    Math.cos(angle) * leapSpeed,
+                    Math.sin(angle) * leapSpeed
+                );
+                
+                // Create shadow effect
+                const shadow = this.add.ellipse(this.boss.x, this.boss.y + 20, 100, 50, 0x000000, 0.5);
+                shadow.setDepth(0);
+                
+                // Land after a short time
+                this.time.delayedCall(600 / this.speedMultiplier, () => {
                 if (!this.boss || !this.boss.active) return;
                 
                 // Impact!
@@ -42463,7 +43488,8 @@ class GameScene extends Phaser.Scene {
                 
                 // Resume normal animation
                 this.boss.play('demon-slime-idle');
-            });
+                });
+            }
         });
     }
     
@@ -43138,18 +44164,6 @@ class GameScene extends Phaser.Scene {
             this.boss.body.moves = false;
         }
         
-        // Telegraph laser (visual only, no physics) - wider and more animated
-        const laserWarning = this.add.rectangle(this.boss.x, this.boss.y, 40, 1200, 0xff0000, 0.3);
-        laserWarning.setOrigin(0.5, 0); // Origin at top-center so it extends from boss
-        laserWarning.setDepth(9); // Below other objects
-        
-        // Create pulsing outline effect
-        const laserWarningOutline = this.add.rectangle(this.boss.x, this.boss.y, 50, 1200);
-        laserWarningOutline.setOrigin(0.5, 0);
-        laserWarningOutline.setDepth(8);
-        laserWarningOutline.setStrokeStyle(4, 0xffaa00, 0.8);
-        laserWarningOutline.setFillStyle(0xff0000, 0.1);
-        
         // Aim at player with slight prediction
         if (!this.wizard || !this.wizard.active) return;
         
@@ -43159,62 +44173,83 @@ class GameScene extends Phaser.Scene {
         const predictedX = this.wizard.x + (playerVelX * predictTime);
         const predictedY = this.wizard.y + (playerVelY * predictTime);
         
-        const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, predictedX, predictedY);
-        // Fix rotation - remove the + Math.PI / 2 that was causing opposite direction
-        laserWarning.rotation = angle;
-        laserWarningOutline.rotation = angle;
+        const baseAngle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, predictedX, predictedY);
         
-        // Animated warning with growing width and intense flashing
-        this.tweens.add({
-            targets: [laserWarning, laserWarningOutline],
-            scaleX: { from: 1, to: 1.5 },
-            duration: 800,
-            ease: 'Power2'
-        });
+        // Calculate number of lasers based on missing health (every 25% missing adds a laser)
+        const healthPercent = this.boss.health / this.boss.maxHealth;
+        const missingHealthPercent = 1 - healthPercent;
+        const additionalLasers = Math.floor(missingHealthPercent / 0.25); // 0, 1, 2, or 3 additional lasers
+        const totalLasers = 1 + additionalLasers; // 1-4 lasers total
         
-        // Warning flash with delay before damage
-        const warningTween = this.tweens.add({
-            targets: laserWarning,
-            alpha: { from: 0.3, to: 1 },
-            duration: 150,
-            yoyo: true,
-            repeat: 4, // More flashes for better warning
-            ease: 'Power2',
-            onComplete: () => {
-                laserWarning.destroy();
-                laserWarningOutline.destroy();
+        // Calculate fan spread based on number of lasers
+        const fanSpread = Math.PI / 6; // 30 degrees total spread
+        const angleStep = totalLasers > 1 ? fanSpread / (totalLasers - 1) : 0;
+        const startAngle = baseAngle - (fanSpread / 2);
+        
+        // Fire lasers in succession with slight delay
+        for (let i = 0; i < totalLasers; i++) {
+            const laserAngle = totalLasers > 1 ? startAngle + (angleStep * i) : baseAngle;
+            
+            // Delay each laser slightly for dramatic effect
+            this.time.delayedCall(i * 150, () => {
+                if (!this.boss || !this.boss.active || this.isPaused || this.chestOpening || this.chestSelectionActive) return;
+                
+                // Calculate predicted position for this specific laser
+                const laserPredictedX = this.wizard.x + (playerVelX * (predictTime + i * 0.1));
+                const laserPredictedY = this.wizard.y + (playerVelY * (predictTime + i * 0.1));
+                
+                this.fireSingleLaser(laserAngle, laserPredictedX, laserPredictedY, i === 0);
+            });
+        }
+    }
+    
+    fireSingleLaser(angle, predictedX, predictedY, isFirstLaser) {
+        // Use the new danger warning system for laser telegraph
+        const laserWarning = this.createLineDangerWarning(
+            this.boss,
+            { x: this.boss.x + Math.cos(angle) * 1400, y: this.boss.y + Math.sin(angle) * 1400 },
+            {
+                width: 100, // Wider warning to better match actual laser hitbox (300px scaled)
+                length: 1400, // Extended length to cover full screen
+                duration: 800, // Slightly shorter warning for multiple lasers
+                color: 0xff6600, // Orange-red color
+                pulseSpeed: 80,
+                fadeIn: 100,
+                onComplete: () => {
                 
                 // Don't fire laser if game is paused
                 if (this.isPaused || this.chestOpening || this.chestSelectionActive) {
                     return;
                 }
                 
-                // Boss is now firing laser - vulnerable state
-                this.boss.isChargingLaser = false;
-                this.boss.isFiringLaser = true;
-                this.boss.vulnerabilityMultiplier = 2.0; // 200% damage during laser
-                
-                // Add visual indicator for vulnerability
-                if (!this.boss.vulnerableIndicator) {
-                    this.boss.vulnerableIndicator = this.add.text(this.boss.x, this.boss.y - 100, 'VULNERABLE!', {
-                        fontSize: '24px',
-                        color: '#ffff00',
-                        fontStyle: 'bold',
-                        stroke: '#ff0000',
-                        strokeThickness: 4
-                    });
-                    this.boss.vulnerableIndicator.setOrigin(0.5);
-                    this.boss.vulnerableIndicator.setDepth(151);
+                // Boss is now firing laser - vulnerable state (only set on first laser)
+                if (isFirstLaser) {
+                    this.boss.isChargingLaser = false;
+                    this.boss.isFiringLaser = true;
+                    this.boss.vulnerabilityMultiplier = 2.0; // 200% damage during laser
                     
-                    // Pulsing effect
-                    this.tweens.add({
-                        targets: this.boss.vulnerableIndicator,
-                        scale: { from: 1, to: 1.3 },
-                        alpha: { from: 0.8, to: 1 },
-                        duration: 300,
-                        yoyo: true,
-                        repeat: -1
-                    });
+                    // Add visual indicator for vulnerability
+                    if (!this.boss.vulnerableIndicator) {
+                        this.boss.vulnerableIndicator = this.add.text(this.boss.x, this.boss.y - 100, 'VULNERABLE!', {
+                            fontSize: '24px',
+                            color: '#ffff00',
+                            fontStyle: 'bold',
+                            stroke: '#ff0000',
+                            strokeThickness: 4
+                        });
+                        this.boss.vulnerableIndicator.setOrigin(0.5);
+                        this.boss.vulnerableIndicator.setDepth(151);
+                        
+                        // Pulsing effect
+                        this.tweens.add({
+                            targets: this.boss.vulnerableIndicator,
+                            scale: { from: 1, to: 1.3 },
+                            alpha: { from: 0.8, to: 1 },
+                            duration: 300,
+                            yoyo: true,
+                            repeat: -1
+                        });
+                    }
                 }
                 
                 // Fire actual laser
@@ -43229,11 +44264,11 @@ class GameScene extends Phaser.Scene {
                 // Add to projectiles group for rune collision detection
                 this.projectiles.add(laser);
                 // Calculate distance for laser length
-                const distance = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, predictedX, predictedY);
+                const distance = 1400; // Fixed long distance
                 // Scale laser to reach far beyond predicted position
                 laser.setScale(Math.max(3, (distance + 300) / 300), 2); // Wider and longer laser
                 laser.setOrigin(0.157, 0.5); // Origin adjusted for 47px offset (47/300 = 0.157)
-                laser.rotation = angle; // Direct angle to predicted position
+                laser.rotation = angle; // Direct angle
                 
                 // Position laser at boss center
                 // The laser sprite has 47px of empty space on the left, but setOrigin already handles this
@@ -43245,33 +44280,46 @@ class GameScene extends Phaser.Scene {
                 laser.isLaser = true;
                 laser.isPausable = true; // Mark as pausable
                 
-                // Store laser reference for pause handling
+                // Store laser reference for pause handling (only store last one)
                 this.activeBossLaser = laser;
                 
                 // Laser stays active slightly longer for more danger
                 const laserTimer = this.time.delayedCall(1200, () => { // Increased from 1000ms
                     if (laser && laser.active) {
                         laser.destroy();
-                        this.activeBossLaser = null;
+                        if (this.activeBossLaser === laser) {
+                            this.activeBossLaser = null;
+                        }
                     }
                     
-                    // End vulnerability state
-                    if (this.boss) {
-                        this.boss.isFiringLaser = false;
-                        this.boss.vulnerabilityMultiplier = 1.0;
+                    // End vulnerability state only after the first laser finishes
+                    if (isFirstLaser && this.boss) {
+                        // Delay ending vulnerability to account for all lasers
+                        const healthPercent = this.boss.health / this.boss.maxHealth;
+                        const missingHealthPercent = 1 - healthPercent;
+                        const additionalLasers = Math.floor(missingHealthPercent / 0.25);
+                        const totalLasers = 1 + additionalLasers;
+                        const totalDelay = (totalLasers - 1) * 150; // Account for staggered laser timing
                         
-                        // Remove vulnerability indicator
-                        if (this.boss.vulnerableIndicator) {
-                            this.boss.vulnerableIndicator.destroy();
-                            this.boss.vulnerableIndicator = null;
-                        }
-                        
-                        // Keep boss stationary for 1 second after laser
-                        this.boss.postLaserCooldown = true;
-                        this.boss.setVelocity(0, 0);
-                        this.time.delayedCall(1000, () => {
+                        this.time.delayedCall(totalDelay, () => {
                             if (this.boss) {
-                                this.boss.postLaserCooldown = false;
+                                this.boss.isFiringLaser = false;
+                                this.boss.vulnerabilityMultiplier = 1.0;
+                                
+                                // Remove vulnerability indicator
+                                if (this.boss.vulnerableIndicator) {
+                                    this.boss.vulnerableIndicator.destroy();
+                                    this.boss.vulnerableIndicator = null;
+                                }
+                                
+                                // Keep boss stationary for 1 second after all lasers
+                                this.boss.postLaserCooldown = true;
+                                this.boss.setVelocity(0, 0);
+                                this.time.delayedCall(1000, () => {
+                                    if (this.boss) {
+                                        this.boss.postLaserCooldown = false;
+                                    }
+                                });
                             }
                         });
                     }
@@ -43371,6 +44419,9 @@ class GameScene extends Phaser.Scene {
         shield.setStrokeStyle(3, 0x00ffff);
         shield.setDepth(11);
         
+        // Store shield reference on boss for cleanup
+        this.boss.activeShield = shield;
+        
         // Make boss immune during shield
         this.boss.immuneTime = 4000;
         this.boss.setTint(0x00ffff);
@@ -43387,12 +44438,28 @@ class GameScene extends Phaser.Scene {
             loop: true
         });
         
+        // Store timer reference for cleanup
+        this.boss.activeShieldTimer = shieldTimer;
+        
         // Remove shield after duration
-        this.time.delayedCall(4000, () => {
-            shield.destroy();
-            shieldTimer.remove();
-            this.boss.shieldActive = false;
+        const shieldCleanup = this.time.delayedCall(4000, () => {
+            if (shield && !shield.destroyed) {
+                shield.destroy();
+            }
+            if (shieldTimer && !shieldTimer.destroyed) {
+                shieldTimer.remove();
+            }
+            // Only set shieldActive if boss still exists
+            if (this.boss && !this.boss.destroyed) {
+                this.boss.shieldActive = false;
+                this.boss.activeShield = null;
+                this.boss.activeShieldTimer = null;
+                this.boss.activeShieldCleanup = null;
+            }
         });
+        
+        // Store cleanup timer reference
+        this.boss.activeShieldCleanup = shieldCleanup;
     }
     
     bossPhaseTwoTransition() {
@@ -43418,7 +44485,7 @@ class GameScene extends Phaser.Scene {
         });
         
         // Increase boss speed
-        this.boss.moveSpeed = 75;
+        this.boss.moveSpeed = 60; // Reduced by 20% from 75
     }
     
     bossPhaseThreeTransition() {
@@ -43444,7 +44511,7 @@ class GameScene extends Phaser.Scene {
         });
         
         // Increase boss speed and add permanent glow
-        this.boss.moveSpeed = 105;
+        this.boss.moveSpeed = 84; // Reduced by 20% from 105
         this.boss.setTint(0xff6666);
     }
     
@@ -43663,7 +44730,7 @@ class GameScene extends Phaser.Scene {
                 this.boss.modeChangeTime = this.boss.flyModeTime; // Set next change time
                 this.boss.bombardmentCount = 0;
                 this.boss.play('nekros-fly');
-                this.boss.moveSpeed = 100; // Faster in flight
+                this.boss.moveSpeed = 80; // Reduced by 20% from 100
                 
                 // Visual effect for mode change - use arcane spell as flash
                 const flash = this.add.sprite(this.boss.x, this.boss.y, 'arcane-spell');
@@ -43690,7 +44757,7 @@ class GameScene extends Phaser.Scene {
                 this.boss.modeChangeTime = this.boss.walkModeTime; // Set next change time
                 this.boss.barrageFiredCount = 0;
                 this.boss.play('nekros-walk');
-                this.boss.moveSpeed = 30; // Normal walking speed
+                this.boss.moveSpeed = 24; // Reduced by 20% from 30
                 this.boss.clearTint();
                 
                 // Add "VULNERABLE" text above boss
@@ -44396,7 +45463,7 @@ class GameScene extends Phaser.Scene {
     fireArcherArrow(x, y, angle, isTracking = false) {
         // Create arrow projectile
         const arrow = this.physics.add.sprite(x, y, 'archer-projectile');
-        arrow.setScale(1.2);
+        arrow.setScale(1.5); // Scaled up 25% from 1.2
         arrow.setDepth(20);
         arrow.damage = 25; // High damage arrows
         arrow.fromBoss = true;
@@ -44404,8 +45471,8 @@ class GameScene extends Phaser.Scene {
         arrow.teleportPlayer = true; // Flag for teleport mechanic
         arrow.isTracking = isTracking; // Whether this is a tracking arrow
         
-        // Set arrow rotation to match direction
-        arrow.rotation = angle;
+        // Set arrow rotation to match direction (add 90 degrees since arrow sprite points up)
+        arrow.rotation = angle + Math.PI / 2;
         
         // Store angle for teleport calculation
         arrow.angle = angle;
@@ -44471,8 +45538,8 @@ class GameScene extends Phaser.Scene {
                         Math.sin(angleToBoss) * ricochetSpeed
                     );
                     
-                    // Update rotation
-                    arrow.rotation = angleToBoss;
+                    // Update rotation (add 90 degrees since arrow sprite points up)
+                    arrow.rotation = angleToBoss + Math.PI / 2;
                     
                     // Change tint to show it's ricocheted
                     arrow.setTint(0x00ff00); // Green tint
@@ -44621,7 +45688,7 @@ class GameScene extends Phaser.Scene {
         });
         
         // Increase boss speed
-        this.boss.moveSpeed = 45;
+        this.boss.moveSpeed = 36; // Reduced by 20% from 45
     }
     
     archerPhaseThreeTransition() {
@@ -44645,11 +45712,29 @@ class GameScene extends Phaser.Scene {
         });
         
         // Increase boss speed and add permanent purple glow
-        this.boss.moveSpeed = 55;
+        this.boss.moveSpeed = 44; // Reduced by 20% from 55
         this.boss.setTint(0xff88ff);
     }
     
     handleBossDeath(boss) {
+        // Clean up any active shield effects
+        if (boss.shieldActive) {
+            boss.shieldActive = false;
+            // Cancel any pending shield-related timers
+            if (boss.activeShieldTimer) {
+                boss.activeShieldTimer.remove();
+                boss.activeShieldTimer = null;
+            }
+            if (boss.activeShield) {
+                boss.activeShield.destroy();
+                boss.activeShield = null;
+            }
+            if (boss.activeShieldCleanup) {
+                boss.activeShieldCleanup.remove();
+                boss.activeShieldCleanup = null;
+            }
+        }
+        
         // Fade out and stop boss music
         if (this.bossMusic && this.bossMusic.isPlaying) {
             this.tweens.add({
@@ -44716,6 +45801,15 @@ class GameScene extends Phaser.Scene {
             boss.isDead = true;
             boss.anims.stop();
             boss.play('eyelor-death');
+        } else if (boss.isDemonSlime || boss.enemyType === 'demon-slime-boss') {
+            // Stop Demon Slime AI timer to prevent animation changes
+            if (this.bossAITimer) {
+                this.bossAITimer.destroy();
+                this.bossAITimer = null;
+            }
+            boss.isDead = true;
+            boss.anims.stop();
+            boss.play('demon-slime-death');
         } else {
             boss.play('obelisk-death');
         }
@@ -44996,7 +46090,7 @@ class GameScene extends Phaser.Scene {
         this.boss.isDying = false;
         this.boss.isInvulnerable = false;
         this.boss.attackCooldown = 0;
-        this.boss.moveSpeed = 50;
+        this.boss.moveSpeed = 40; // Reduced by 20% from 50
         this.boss.voidZones = [];
         
         // Set up physics
@@ -45064,11 +46158,11 @@ class GameScene extends Phaser.Scene {
         
         if (this.boss.phase === 1 && healthPercent <= 0.66) {
             this.boss.phase = 2;
-            this.boss.moveSpeed = 75;
+            this.boss.moveSpeed = 60; // Reduced by 20% from 75
             this.showBossPhaseText('PHASE II - THE VOID AWAKENS');
         } else if (this.boss.phase === 2 && healthPercent <= 0.33) {
             this.boss.phase = 3;
-            this.boss.moveSpeed = 100;
+            this.boss.moveSpeed = 80; // Reduced by 20% from 100
             this.showBossPhaseText('PHASE III - EMBRACE NOTHINGNESS');
         }
         
@@ -46206,7 +47300,37 @@ class GameScene extends Phaser.Scene {
         if (this.savedStageState) {
             // Restore player position
             this.wizard.setPosition(this.savedStageState.playerX, this.savedStageState.playerY);
-            if (this.wizard2) {
+            
+            // In co-op mode, resurrect dead players
+            if (this.multiplayerEnabled && this.wizard2) {
+                // Position P2 next to P1
+                this.wizard2.setPosition(this.savedStageState.playerX + 50, this.savedStageState.playerY);
+                
+                // Resurrect P1 if dead
+                if (this.playerHealth <= 0) {
+                    this.playerHealth = this.maxHealth / 2; // Resurrect with half health
+                    this.wizard.setVisible(true);
+                    this.wizard.body.enable = true;
+                    console.log('P1 resurrected with', this.playerHealth, 'health');
+                }
+                
+                // Resurrect P2 if dead
+                if (this.wizard2.health <= 0) {
+                    this.wizard2.health = this.wizard2.maxHealth / 2; // Resurrect with half health
+                    this.wizard2.setVisible(true);
+                    this.wizard2.body.enable = true;
+                    console.log('P2 resurrected with', this.wizard2.health, 'health');
+                }
+                
+                // Hide the dungeon gate and arrow after resurrection
+                if (this.dungeonGate) {
+                    this.dungeonGate.destroy();
+                    this.dungeonGate = null;
+                }
+                if (this.dungeonArrow) {
+                    this.dungeonArrow.setVisible(false);
+                }
+            } else if (this.wizard2) {
                 this.wizard2.setPosition(this.savedStageState.playerX, this.savedStageState.playerY);
             }
             
@@ -46376,6 +47500,271 @@ class GameScene extends Phaser.Scene {
         
         console.log('GameScene shutdown - cleaned up resources');
     }
+    
+    // Danger Warning System - Creates visual indicators for incoming attacks
+    // Similar to Vampire Survivors' danger zones
+    // Usage examples:
+    //   Circle AOE: this.createDangerWarning({ x: 100, y: 100, type: 'circle', radius: 80, duration: 1500 })
+    //   Rectangle zone: this.createDangerWarning({ x: 100, y: 100, type: 'rectangle', width: 200, height: 100 })
+    //   Laser line: this.createLineDangerWarning(source, target, { width: 60, duration: 1000 })
+    createDangerWarning(config) {
+        const defaults = {
+            x: 0,
+            y: 0,
+            type: 'circle', // 'circle', 'rectangle', 'line'
+            radius: 50, // for circle
+            width: 100, // for rectangle/line
+            height: 100, // for rectangle
+            length: 500, // for line
+            angle: 0, // rotation angle
+            duration: 1000, // warning duration before damage
+            color: 0xff0000, // warning color
+            pulseSpeed: 100, // pulse animation speed
+            fadeIn: 100, // fade in duration
+            onComplete: null, // callback when warning expires
+            followTarget: null, // object to follow
+            predictMovement: false, // predict target movement
+            predictTime: 0.3, // prediction time in seconds
+            playSound: true // whether to play danger sound
+        };
+        
+        const settings = { ...defaults, ...config };
+        
+        // Play danger warning sound
+        if (settings.playSound && this.sound) {
+            this.sound.play('danger-warning', { volume: 0.5 });
+        }
+        const warning = {};
+        
+        // Create the appropriate shape
+        if (settings.type === 'circle') {
+            warning.outer = this.add.circle(settings.x, settings.y, settings.radius);
+            warning.outer.setStrokeStyle(4, settings.color, 0.8);
+            warning.outer.setFillStyle(settings.color, 0.1);
+            warning.outer.setDepth(8);
+            
+            warning.inner = this.add.circle(settings.x, settings.y, settings.radius * 0.9);
+            warning.inner.setFillStyle(settings.color, 0.2);
+            warning.inner.setDepth(9);
+            
+        } else if (settings.type === 'rectangle') {
+            warning.outer = this.add.rectangle(settings.x, settings.y, settings.width, settings.height);
+            warning.outer.setStrokeStyle(4, settings.color, 0.8);
+            warning.outer.setFillStyle(settings.color, 0.1);
+            warning.outer.setDepth(8);
+            warning.outer.setRotation(settings.angle);
+            
+            warning.inner = this.add.rectangle(settings.x, settings.y, settings.width * 0.9, settings.height * 0.9);
+            warning.inner.setFillStyle(settings.color, 0.2);
+            warning.inner.setDepth(9);
+            warning.inner.setRotation(settings.angle);
+            
+        } else if (settings.type === 'line') {
+            // Line warning (like laser)
+            warning.outer = this.add.rectangle(settings.x, settings.y, settings.width, settings.length);
+            warning.outer.setOrigin(0.5, 0); // Origin at start of line
+            warning.outer.setStrokeStyle(4, settings.color, 0.8);
+            warning.outer.setFillStyle(settings.color, 0.1);
+            warning.outer.setDepth(8);
+            // Subtract PI/2 because rectangles point up by default, but angles are calculated from right (0 degrees)
+            warning.outer.setRotation(settings.angle - Math.PI / 2);
+            
+            warning.inner = this.add.rectangle(settings.x, settings.y, settings.width * 0.8, settings.length);
+            warning.inner.setOrigin(0.5, 0);
+            warning.inner.setFillStyle(settings.color, 0.2);
+            warning.inner.setDepth(9);
+            // Subtract PI/2 because rectangles point up by default, but angles are calculated from right (0 degrees)
+            warning.inner.setRotation(settings.angle - Math.PI / 2);
+        }
+        
+        // Store settings for updates
+        warning.settings = settings;
+        warning.startTime = this.time.now;
+        
+        // Fade in effect
+        if (settings.fadeIn > 0) {
+            warning.outer.setAlpha(0);
+            warning.inner.setAlpha(0);
+            
+            this.tweens.add({
+                targets: [warning.outer, warning.inner],
+                alpha: 1,
+                duration: settings.fadeIn,
+                ease: 'Power2'
+            });
+        }
+        
+        // Pulsing animation
+        this.tweens.add({
+            targets: warning.inner,
+            alpha: { from: 0.2, to: 0.6 },
+            duration: settings.pulseSpeed,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Growing effect for circles
+        if (settings.type === 'circle') {
+            this.tweens.add({
+                targets: [warning.outer, warning.inner],
+                scale: { from: 0.9, to: 1.1 },
+                duration: settings.duration,
+                ease: 'Power2'
+            });
+        }
+        
+        // Flashing intensifies near the end
+        const flashDelay = settings.duration - 300;
+        if (flashDelay > 0) {
+            this.time.delayedCall(flashDelay, () => {
+                if (warning.outer && warning.outer.active) {
+                    this.tweens.add({
+                        targets: [warning.outer, warning.inner],
+                        alpha: { from: 0.3, to: 1 },
+                        duration: 50,
+                        yoyo: true,
+                        repeat: 5,
+                        ease: 'Power2'
+                    });
+                }
+            });
+        }
+        
+        // Handle follow target
+        if (settings.followTarget) {
+            warning.updateEvent = this.time.addEvent({
+                delay: 16, // Update every frame (~60fps)
+                callback: () => {
+                    if (!settings.followTarget || !settings.followTarget.active) {
+                        this.removeDangerWarning(warning);
+                        return;
+                    }
+                    
+                    let targetX = settings.followTarget.x;
+                    let targetY = settings.followTarget.y;
+                    
+                    // Predict movement if enabled
+                    if (settings.predictMovement && settings.followTarget.body) {
+                        targetX += settings.followTarget.body.velocity.x * settings.predictTime;
+                        targetY += settings.followTarget.body.velocity.y * settings.predictTime;
+                    }
+                    
+                    if (warning.outer) {
+                        warning.outer.setPosition(targetX, targetY);
+                    }
+                    if (warning.inner) {
+                        warning.inner.setPosition(targetX, targetY);
+                    }
+                },
+                loop: true
+            });
+        }
+        
+        // Auto-remove after duration
+        warning.destroyTimer = this.time.delayedCall(settings.duration, () => {
+            this.removeDangerWarning(warning);
+            if (settings.onComplete) {
+                settings.onComplete();
+            }
+        });
+        
+        // Add to tracking array
+        this.dangerWarnings.push(warning);
+        
+        return warning;
+    }
+    
+    // Create a line warning that tracks from source to target
+    createLineDangerWarning(source, target, config = {}) {
+        const angle = Phaser.Math.Angle.Between(source.x, source.y, target.x, target.y);
+        const distance = Phaser.Math.Distance.Between(source.x, source.y, target.x, target.y);
+        
+        return this.createDangerWarning({
+            x: source.x,
+            y: source.y,
+            type: 'line',
+            width: config.width || 60,
+            length: config.length || distance + 200,
+            angle: angle,
+            duration: config.duration || 1000,
+            color: config.color || 0xff0000,
+            followTarget: config.followSource ? source : null,
+            ...config
+        });
+    }
+    
+    // Remove a specific danger warning
+    removeDangerWarning(warning) {
+        if (!warning) return;
+        
+        // Destroy visual elements
+        if (warning.outer) warning.outer.destroy();
+        if (warning.inner) warning.inner.destroy();
+        
+        // Clear timers and events
+        if (warning.destroyTimer) warning.destroyTimer.destroy();
+        if (warning.updateEvent) warning.updateEvent.destroy();
+        
+        // Remove from tracking array
+        const index = this.dangerWarnings.indexOf(warning);
+        if (index > -1) {
+            this.dangerWarnings.splice(index, 1);
+        }
+    }
+    
+    // Clear all danger warnings
+    clearAllDangerWarnings() {
+        [...this.dangerWarnings].forEach(warning => {
+            this.removeDangerWarning(warning);
+        });
+        this.dangerWarnings = [];
+    }
+    
+    // Example: Create AOE explosion warning at position
+    createExplosionWarning(x, y, radius = 100, delay = 1500) {
+        return this.createDangerWarning({
+            x: x,
+            y: y,
+            type: 'circle',
+            radius: radius,
+            duration: delay,
+            color: 0xff4400,
+            pulseSpeed: 100,
+            fadeIn: 200,
+            onComplete: () => {
+                // After warning, create actual explosion damage
+                // This is where you'd add explosion effects and damage logic
+                this.cameras.main.shake(200, 0.01);
+                
+                // Check for damage to players in radius
+                const distToP1 = Phaser.Math.Distance.Between(x, y, this.wizard.x, this.wizard.y);
+                if (distToP1 <= radius) {
+                    this.takeDamage(this.wizard, 30);
+                }
+                
+                if (this.wizard2) {
+                    const distToP2 = Phaser.Math.Distance.Between(x, y, this.wizard2.x, this.wizard2.y);
+                    if (distToP2 <= radius) {
+                        this.takeDamage(this.wizard2, 30);
+                    }
+                }
+            }
+        });
+    }
+    
+    // Example: Create multiple danger zones for barrage attacks
+    createBarrageWarning(targetX, targetY, count = 5, spread = 150) {
+        for (let i = 0; i < count; i++) {
+            const offsetX = Phaser.Math.Between(-spread, spread);
+            const offsetY = Phaser.Math.Between(-spread, spread);
+            const delay = 1000 + (i * 200); // Stagger the warnings
+            
+            this.time.delayedCall(i * 200, () => {
+                this.createExplosionWarning(targetX + offsetX, targetY + offsetY, 60, delay);
+            });
+        }
+    }
 }
 
 // Enhanced Boss Cutscene System
@@ -46415,22 +47804,9 @@ class BossCutsceneSystem {
             });
         }
         
-        // Skip on SPACE
+        // Skip on SPACE (but don't show hint)
         this.skipKey = this.scene.input.keyboard.addKey('SPACE');
         this.skipKey.once('down', () => this.skipCutscene());
-        
-        // Show skip hint
-        const skipHint = this.scene.add.text(400, 550, 'Press SPACE to skip', {
-            fontSize: '16px',
-            color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 3
-        });
-        skipHint.setOrigin(0.5);
-        skipHint.setScrollFactor(0);
-        skipHint.setDepth(905);
-        skipHint.setAlpha(0.7);
-        this.currentElements.push(skipHint);
         
         // Play specific cutscene
         switch(bossType) {
@@ -46458,37 +47834,42 @@ class BossCutsceneSystem {
     }
 
     playObeliskCutscene() {
-        // Ancient awakening theme
-        this.scene.cameras.main.shake(2000, 0.02);
+        this.showBossTitleImage('AWAKENED OBELISK', 0xff6666);
+    }
+    
+    playNekrosCutscene() {
+        this.showBossTitleImage('NEKROS', 0x8a2be2);
+    }
+    
+    playEyelorCutscene() {
+        this.showBossTitleImage('EYELOR', 0xff9900);
+    }
+    
+    playDemonSlimeCutscene() {
+        this.showBossTitleImage('DEMON SLIME', 0xff4400);
+    }
+    
+    playArcherCutscene() {
+        this.showBossTitleImage('ARCANE ARCHER', 0xff00ff);
+    }
+    
+    playKingNothingCutscene() {
+        this.showBossTitleImage('KING NOTHING', 0x666666);
+    }
+    
+    playSimpleCutscene(bossType) {
+        this.showBossTitleImage(bossType.toUpperCase(), 0xffffff);
+    }
+    
+    showBossTitleImage(bossName, color) {
+        // Calculate position between XP bar and screen center
+        // XP bar is typically at y=50, screen center is 300
+        const titleY = 175; // Midpoint between 50 and 300
         
-        const overlay = this.scene.add.rectangle(400, 300, 800, 600, 0x000000, 0);
-        overlay.setScrollFactor(0);
-        overlay.setDepth(900);
-        this.currentElements.push(overlay);
-        
-        this.scene.tweens.add({
-            targets: overlay,
-            alpha: 0.8,
-            duration: 1000
-        });
-        
-        // Ancient seal text
-        const ancientText = this.scene.add.text(400, 200, 'THE ANCIENT SEAL HAS BEEN BROKEN', {
-            fontSize: '28px',
-            color: '#ff6666',
-            fontFamily: 'serif',
-            stroke: '#000000',
-            strokeThickness: 4
-        });
-        ancientText.setOrigin(0.5);
-        ancientText.setScrollFactor(0);
-        ancientText.setDepth(901);
-        ancientText.setAlpha(0);
-        this.currentElements.push(ancientText);
-        
-        const title = this.scene.add.text(400, 300, 'AWAKENED OBELISK', {
-            fontSize: '64px',
-            color: '#ff0000',
+        // Simple title display without additional text
+        const title = this.scene.add.text(400, titleY, bossName, {
+            fontSize: '72px',
+            color: color,
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 8
@@ -46499,574 +47880,72 @@ class BossCutsceneSystem {
         title.setScale(0);
         this.currentElements.push(title);
         
-        const subtitle = this.scene.add.text(400, 370, 'Guardian of Forbidden Knowledge', {
-            fontSize: '24px',
-            color: '#ffaaaa',
-            fontStyle: 'italic',
-            stroke: '#000000',
-            strokeThickness: 4
-        });
-        subtitle.setOrigin(0.5);
-        subtitle.setScrollFactor(0);
-        subtitle.setDepth(901);
-        subtitle.setAlpha(0);
-        this.currentElements.push(subtitle);
-        
-        // Boss dialogue
-        const dialogue = this.scene.add.text(400, 450, '"Your presence disturbs my eternal slumber..."', {
-            fontSize: '20px',
-            color: '#ffcccc',
-            fontStyle: 'italic',
-            stroke: '#000000',
-            strokeThickness: 3
-        });
-        dialogue.setOrigin(0.5);
-        dialogue.setScrollFactor(0);
-        dialogue.setDepth(901);
-        dialogue.setAlpha(0);
-        this.currentElements.push(dialogue);
-        
-        // Animate
-        this.scene.tweens.add({
-            targets: ancientText,
-            alpha: 1,
-            duration: 500,
-            delay: 200
-        });
-        
+        // Animate title appearance
         this.scene.tweens.add({
             targets: title,
             scale: 1,
             duration: 800,
-            delay: 700,
             ease: 'Back.easeOut'
         });
         
-        this.scene.tweens.add({
-            targets: subtitle,
-            alpha: 1,
-            duration: 500,
-            delay: 1200
-        });
-        
-        this.scene.tweens.add({
-            targets: dialogue,
-            alpha: 1,
-            duration: 500,
-            delay: 1700
-        });
-        
-        this.scene.time.delayedCall(4000, () => {
-            this.scene.tweens.add({
-                targets: this.currentElements,
-                alpha: 0,
-                duration: 1000,
-                onComplete: () => this.endCutscene()
-            });
-        });
-    }
-
-    playNekrosCutscene() {
-        // Death theme with purple fog
-        const fog = this.scene.add.rectangle(400, 300, 800, 600, 0x4b0082, 0);
-        fog.setScrollFactor(0);
-        fog.setDepth(900);
-        this.currentElements.push(fog);
-        
-        this.scene.tweens.add({
-            targets: fog,
-            alpha: 0.4,
-            duration: 1500
-        });
-        
-        const title = this.scene.add.text(400, 300, 'NEKROS', {
-            fontSize: '72px',
-            color: '#8a2be2',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 8
-        });
-        title.setOrigin(0.5);
-        title.setScrollFactor(0);
-        title.setDepth(901);
-        title.setAlpha(0);
-        this.currentElements.push(title);
-        
-        const subtitle = this.scene.add.text(400, 380, 'Death Knight of the Forsaken', {
-            fontSize: '26px',
-            color: '#cc99ff',
-            fontStyle: 'italic',
-            stroke: '#000000',
-            strokeThickness: 4
-        });
-        subtitle.setOrigin(0.5);
-        subtitle.setScrollFactor(0);
-        subtitle.setDepth(901);
-        subtitle.setAlpha(0);
-        this.currentElements.push(subtitle);
-        
-        // Boss dialogue
-        const dialogue = this.scene.add.text(400, 450, '"Death comes for all... especially you."', {
-            fontSize: '20px',
-            color: '#e6ccff',
-            fontStyle: 'italic',
-            stroke: '#000000',
-            strokeThickness: 3
-        });
-        dialogue.setOrigin(0.5);
-        dialogue.setScrollFactor(0);
-        dialogue.setDepth(901);
-        dialogue.setAlpha(0);
-        this.currentElements.push(dialogue);
-        
-        this.scene.tweens.add({
-            targets: [title, subtitle],
-            alpha: 1,
-            duration: 1000,
-            delay: 500
-        });
-        
-        this.scene.tweens.add({
-            targets: dialogue,
-            alpha: 1,
-            duration: 500,
-            delay: 1200
-        });
-        
-        this.scene.time.delayedCall(3500, () => {
-            this.scene.tweens.add({
-                targets: this.currentElements,
-                alpha: 0,
-                duration: 1000,
-                onComplete: () => this.endCutscene()
-            });
-        });
-    }
-
-    playEyelorCutscene() {
-        // Desert eye theme
-        const overlay = this.scene.add.rectangle(400, 300, 800, 600, 0xffcc66, 0);
-        overlay.setScrollFactor(0);
-        overlay.setDepth(900);
-        this.currentElements.push(overlay);
-        
-        this.scene.tweens.add({
-            targets: overlay,
-            alpha: 0.3,
-            duration: 1000
-        });
-        
-        const title = this.scene.add.text(400, 300, 'EYELOR', {
-            fontSize: '64px',
-            color: '#ff9900',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 8
-        });
-        title.setOrigin(0.5);
-        title.setScrollFactor(0);
-        title.setDepth(901);
-        title.setAlpha(0);
-        this.currentElements.push(title);
-        
-        const subtitle = this.scene.add.text(400, 370, 'The Desert\'s Watchful Gaze', {
-            fontSize: '24px',
-            color: '#ffcc99',
-            fontStyle: 'italic',
-            stroke: '#000000',
-            strokeThickness: 4
-        });
-        subtitle.setOrigin(0.5);
-        subtitle.setScrollFactor(0);
-        subtitle.setDepth(901);
-        subtitle.setAlpha(0);
-        this.currentElements.push(subtitle);
-        
-        // Boss dialogue
-        const dialogue = this.scene.add.text(400, 440, '"I see all... including your demise."', {
-            fontSize: '20px',
-            color: '#ffe6cc',
-            fontStyle: 'italic',
-            stroke: '#000000',
-            strokeThickness: 3
-        });
-        dialogue.setOrigin(0.5);
-        dialogue.setScrollFactor(0);
-        dialogue.setDepth(901);
-        dialogue.setAlpha(0);
-        this.currentElements.push(dialogue);
-        
-        this.scene.tweens.add({
-            targets: [title, subtitle],
-            alpha: 1,
-            duration: 1000,
-            delay: 500
-        });
-        
-        this.scene.tweens.add({
-            targets: dialogue,
-            alpha: 1,
-            duration: 500,
-            delay: 1200
-        });
-        
-        this.scene.time.delayedCall(3500, () => {
-            this.scene.tweens.add({
-                targets: this.currentElements,
-                alpha: 0,
-                duration: 1000,
-                onComplete: () => this.endCutscene()
-            });
-        });
-    }
-
-    playDemonSlimeCutscene() {
-        // Lava theme
-        const overlay = this.scene.add.rectangle(400, 300, 800, 600, 0xff0000, 0);
-        overlay.setScrollFactor(0);
-        overlay.setDepth(899);
-        this.currentElements.push(overlay);
-        
-        this.scene.tweens.add({
-            targets: overlay,
-            alpha: 0.3,
-            duration: 1500
-        });
-        
-        const title = this.scene.add.text(400, 350, 'DEMON SLIME', {
-            fontSize: '64px',
-            color: '#ff4400',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 8
-        });
-        title.setOrigin(0.5);
-        title.setScrollFactor(0);
-        title.setDepth(901);
-        title.y = 600;
-        this.currentElements.push(title);
-        
-        const subtitle = this.scene.add.text(400, 420, 'Lord of Molten Fury', {
-            fontSize: '24px',
-            color: '#ff8800',
-            fontStyle: 'italic',
-            stroke: '#000000',
-            strokeThickness: 4
-        });
-        subtitle.setOrigin(0.5);
-        subtitle.setScrollFactor(0);
-        subtitle.setDepth(901);
-        subtitle.y = 670;
-        this.currentElements.push(subtitle);
-        
-        // Boss dialogue
-        const dialogue = this.scene.add.text(400, 490, '"Burn in the eternal flames!"', {
-            fontSize: '20px',
-            color: '#ffccaa',
-            fontStyle: 'italic',
-            stroke: '#000000',
-            strokeThickness: 3
-        });
-        dialogue.setOrigin(0.5);
-        dialogue.setScrollFactor(0);
-        dialogue.setDepth(901);
-        dialogue.y = 740;
-        this.currentElements.push(dialogue);
-        
-        // Rise from lava
-        this.scene.tweens.add({
-            targets: title,
-            y: 350,
-            duration: 2000,
-            delay: 500,
-            ease: 'Power2.easeOut'
-        });
-        
-        this.scene.tweens.add({
-            targets: subtitle,
-            y: 420,
-            duration: 2000,
-            delay: 800,
-            ease: 'Power2.easeOut'
-        });
-        
-        this.scene.tweens.add({
-            targets: dialogue,
-            y: 490,
-            duration: 2000,
-            delay: 1100,
-            ease: 'Power2.easeOut'
-        });
-        
-        this.scene.time.delayedCall(4000, () => {
-            this.scene.tweens.add({
-                targets: this.currentElements,
-                alpha: 0,
-                duration: 1000,
-                onComplete: () => this.endCutscene()
-            });
-        });
-    }
-
-    playArcherCutscene() {
-        // Mystical archer theme
-        const overlay = this.scene.add.rectangle(400, 300, 800, 600, 0x9900ff, 0);
-        overlay.setScrollFactor(0);
-        overlay.setDepth(900);
-        this.currentElements.push(overlay);
-        
-        this.scene.tweens.add({
-            targets: overlay,
-            alpha: 0.3,
-            duration: 1000
-        });
-        
-        const title = this.scene.add.text(400, 300, 'ARCANE ARCHER', {
-            fontSize: '56px',
-            color: '#ff00ff',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 8
-        });
-        title.setOrigin(0.5);
-        title.setScrollFactor(0);
-        title.setDepth(902);
-        title.setAlpha(0);
-        this.currentElements.push(title);
-        
-        const subtitle = this.scene.add.text(400, 360, 'Master of the Mystical Bow', {
-            fontSize: '24px',
-            color: '#ff99ff',
-            fontStyle: 'italic',
-            stroke: '#000000',
-            strokeThickness: 4
-        });
-        subtitle.setOrigin(0.5);
-        subtitle.setScrollFactor(0);
-        subtitle.setDepth(902);
-        subtitle.setAlpha(0);
-        this.currentElements.push(subtitle);
-        
-        // Boss dialogue
-        const dialogue = this.scene.add.text(400, 430, '"My arrows never miss their mark!"', {
-            fontSize: '20px',
-            color: '#ffccff',
-            fontStyle: 'italic',
-            stroke: '#000000',
-            strokeThickness: 3
-        });
-        dialogue.setOrigin(0.5);
-        dialogue.setScrollFactor(0);
-        dialogue.setDepth(902);
-        dialogue.setAlpha(0);
-        this.currentElements.push(dialogue);
-        
-        this.scene.tweens.add({
-            targets: [title, subtitle],
-            alpha: 1,
-            duration: 1000,
-            delay: 500
-        });
-        
-        this.scene.tweens.add({
-            targets: dialogue,
-            alpha: 1,
-            duration: 500,
-            delay: 1200
-        });
-        
-        this.scene.time.delayedCall(3500, () => {
-            this.scene.tweens.add({
-                targets: this.currentElements,
-                alpha: 0,
-                duration: 1000,
-                onComplete: () => this.endCutscene()
-            });
-        });
-    }
-
-    playKingNothingCutscene() {
-        // Void expansion theme
-        const voidCenter = this.scene.add.circle(400, 300, 10, 0x000000);
-        voidCenter.setScrollFactor(0);
-        voidCenter.setDepth(900);
-        this.currentElements.push(voidCenter);
-        
-        // Expand void
-        this.scene.tweens.add({
-            targets: voidCenter,
-            scaleX: 80,
-            scaleY: 80,
-            duration: 2000,
-            ease: 'Power2.easeOut'
-        });
-        
-        // Crown appears floating
-        const crown = this.scene.add.text(400, 150, '👑', {
-            fontSize: '64px'
-        });
-        crown.setOrigin(0.5);
-        crown.setScrollFactor(0);
-        crown.setDepth(902);
-        crown.setAlpha(0);
-        this.currentElements.push(crown);
-        
-        // Title
-        const title = this.scene.add.text(400, 300, 'KING NOTHING', {
-            fontSize: '72px',
-            color: '#000000',
-            fontStyle: 'bold',
-            stroke: '#9900ff',
-            strokeThickness: 8
-        });
-        title.setOrigin(0.5);
-        title.setScrollFactor(0);
-        title.setDepth(901);
-        title.setAlpha(0);
-        this.currentElements.push(title);
-        
-        // Subtitle
-        const subtitle = this.scene.add.text(400, 380, 'Ruler of the Void', {
-            fontSize: '28px',
-            color: '#666666',
-            fontStyle: 'italic',
-            stroke: '#000000',
-            strokeThickness: 4
-        });
-        subtitle.setOrigin(0.5);
-        subtitle.setScrollFactor(0);
-        subtitle.setDepth(901);
-        subtitle.setAlpha(0);
-        this.currentElements.push(subtitle);
-        
-        // Boss dialogue
-        const dialogue = this.scene.add.text(400, 450, '"From nothing you came, to nothing you shall return..."', {
-            fontSize: '20px',
-            color: '#9999ff',
-            fontStyle: 'italic',
-            stroke: '#000000',
-            strokeThickness: 3
-        });
-        dialogue.setOrigin(0.5);
-        dialogue.setScrollFactor(0);
-        dialogue.setDepth(901);
-        dialogue.setAlpha(0);
-        this.currentElements.push(dialogue);
-        
-        // Animate crown floating
-        this.scene.tweens.add({
-            targets: crown,
-            alpha: 1,
-            y: 180,
-            duration: 1000,
-            delay: 500,
-            ease: 'Sine.easeInOut'
-        });
-        
-        // Crown rotation
-        this.scene.tweens.add({
-            targets: crown,
-            rotation: Math.PI * 2,
-            duration: 4000,
-            repeat: -1
-        });
-        
-        // Show text
-        this.scene.tweens.add({
-            targets: [title, subtitle],
-            alpha: 1,
-            duration: 1000,
-            delay: 1000
-        });
-        
-        this.scene.tweens.add({
-            targets: dialogue,
-            alpha: 1,
-            duration: 500,
-            delay: 1700
-        });
-        
-        // End cutscene
-        this.scene.time.delayedCall(4000, () => {
-            this.scene.tweens.add({
-                targets: this.currentElements,
-                alpha: 0,
-                duration: 1000,
-                onComplete: () => this.endCutscene()
-            });
-        });
-    }
-
-    playSimpleCutscene(bossType) {
-        // Fallback for any boss
-        const overlay = this.scene.add.rectangle(400, 300, 800, 600, 0x000000, 0.7);
-        overlay.setScrollFactor(0);
-        overlay.setDepth(900);
-        this.currentElements.push(overlay);
-        
-        const title = this.scene.add.text(400, 300, 'BOSS APPROACHES', {
-            fontSize: '48px',
-            color: '#ff0000',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 6
-        });
-        title.setOrigin(0.5);
-        title.setScrollFactor(0);
-        title.setDepth(901);
-        this.currentElements.push(title);
-        
-        this.scene.tweens.add({
-            targets: title,
-            scale: { from: 0, to: 1 },
-            duration: 1000,
-            ease: 'Back.easeOut'
-        });
-        
+        // Fade out after 2 seconds
         this.scene.time.delayedCall(2000, () => {
             this.scene.tweens.add({
-                targets: this.currentElements,
+                targets: title,
                 alpha: 0,
                 duration: 1000,
                 onComplete: () => this.endCutscene()
             });
         });
     }
-
+    
     skipCutscene() {
         if (!this.isPlaying) return;
-        this.scene.tweens.killAll();
-        this.currentElements.forEach(el => el?.destroy?.());
+        
+        // Kill all tweens
+        this.currentElements.forEach(element => {
+            this.scene.tweens.killTweensOf(element);
+        });
+        
         this.endCutscene();
     }
-
+    
     endCutscene() {
-        this.isPlaying = false;
-        this.currentElements.forEach(el => el?.destroy?.());
+        // Clean up
+        this.currentElements.forEach(element => {
+            if (element && element.destroy) {
+                element.destroy();
+            }
+        });
         this.currentElements = [];
         
-        if (this.skipKey) {
-            this.skipKey.removeAllListeners();
-            this.skipKey = null;
-        }
-        
+        // Restore state
         if (this.savedState) {
             if (this.savedState.physicsRunning) {
                 this.scene.physics.resume();
             }
-            this.scene.input.keyboard.enabled = this.savedState.inputEnabled;
-            
-            if (this.scene.bgMusic) {
+            if (this.scene.bgMusic && this.savedState.bgMusicVolume) {
                 this.scene.tweens.add({
                     targets: this.scene.bgMusic,
                     volume: this.savedState.bgMusicVolume,
                     duration: 500
                 });
             }
+            this.scene.input.keyboard.enabled = this.savedState.inputEnabled;
         }
         
+        // Remove skip handler
+        if (this.skipKey) {
+            this.skipKey.off('down');
+            this.skipKey = null;
+        }
+        
+        this.isPlaying = false;
+        
+        // Call completion callback
         if (this.onComplete) {
             this.onComplete();
+            this.onComplete = null;
         }
     }
 }

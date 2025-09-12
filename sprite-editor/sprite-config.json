@@ -98,7 +98,7 @@
   },
   "golem": {
     "texture": "golem-orange-walk",
-    "path": "Golem_1/Orange/No_Swoosh_VFX/Golem_1_walk.png",
+    "path": "../assets/Golem_1/Orange/No_Swoosh_VFX/Golem_1_walk.png",
     "frameWidth": 90,
     "frameHeight": 64,
     "animations": {
@@ -109,7 +109,7 @@
       },
       "death": {
         "texture": "golem-orange-die",
-        "path": "Golem_1/Orange/No_Swoosh_VFX/Golem_1_die.png",
+        "path": "../assets/Golem_1/Orange/No_Swoosh_VFX/Golem_1_die.png",
         "frameWidth": 90,
         "frameHeight": 64,
         "start": 0,
@@ -121,7 +121,7 @@
   },
   "slime": {
     "texture": "bloboid-walk",
-    "path": "newenemies/blob/blob minion walk.png",
+    "path": "../assets/newenemies/blob/blob%20minion%20walk.png",
     "frameWidth": 80,
     "frameHeight": 35,
     "animations": {
@@ -273,7 +273,7 @@
   },
   "bat": {
     "texture": "bat-fly",
-    "path": "bateye/Flight.png",
+    "path": "../assets/enemies/bateye/Flight.png",
     "frameWidth": 150,
     "frameHeight": 150,
     "animations": {
@@ -287,7 +287,7 @@
   },
   "darkbat": {
     "texture": "dark-bat-fly",
-    "path": "Bat-IdleFly9frames.png",
+    "path": "../assets/images/Bat-IdleFly9frames.png",
     "frameWidth": 16,
     "frameHeight": 16,
     "animations": {
@@ -301,7 +301,7 @@
   },
   "soul": {
     "texture": "soul-move",
-    "path": "newenemies/Soul/Soul/move/Soul_move.png",
+    "path": "../assets/newenemies/Soul/Soul/move/Soul_move.png",
     "frameWidth": 96,
     "frameHeight": 96,
     "animations": {
@@ -315,7 +315,7 @@
   },
   "fireworm": {
     "texture": "fireworm-walk",
-    "path": "fireworm/Walk.png",
+    "path": "../assets/fireworm/Walk.png",
     "frameWidth": 90,
     "frameHeight": 90,
     "animations": {
@@ -329,7 +329,7 @@
   },
   "summoner": {
     "texture": "summoner-idle",
-    "path": "newenemies/summoner/The Summoner idle animation-export.png",
+    "path": "../assets/newenemies/summoner/The%20Summoner%20idle%20animation-export.png",
     "frameWidth": 80,
     "frameHeight": 80,
     "animations": {
@@ -341,9 +341,488 @@
     },
     "defaultScale": 1
   },
+  "bloboid": {
+    "texture": "bloboid-walk",
+    "path": "../assets/newenemies/blob/blob%20minion%20walk.png",
+    "frameWidth": 80,
+    "frameHeight": 35,
+    "animations": {
+      "walk": {
+        "start": 0,
+        "end": 7,
+        "rate": 10
+      }
+    },
+    "defaultScale": 1.5
+  },
+  "sorcerer": {
+    "texture": "sorcerer-idle",
+    "individualFrames": true,
+    "framePattern": "sorcerer-idle-",
+    "path": "../assets/newenemies/sorcerer villain/sorcerer attack_Animation 1_0.png",
+    "frameCount": 10,
+    "frameWidth": 80,
+    "frameHeight": 80,
+    "animations": {
+      "walk": {
+        "start": 0,
+        "end": 9,
+        "rate": 6
+      }
+    },
+    "defaultScale": 1.5
+  },
+  "element-symbols": {
+    "texture": "element-symbols",
+    "path": "../assets/images/elements.png",
+    "frameWidth": 273,
+    "frameHeight": 273,
+    "animations": {
+      "cycle": {
+        "start": 0,
+        "end": 8,
+        "rate": 10
+      }
+    },
+    "defaultScale": 0.3
+  },
+  "element-symbols2": {
+    "texture": "element-symbols2",
+    "path": "../assets/images/elements2.PNG",
+    "frameWidth": 341,
+    "frameHeight": 341,
+    "animations": {
+      "cycle": {
+        "start": 0,
+        "end": 8,
+        "rate": 10
+      }
+    },
+    "defaultScale": 0.25
+  },
+  "element-symbols3": {
+    "texture": "element-symbols3",
+    "path": "../assets/images/elements3.PNG",
+    "frameWidth": 341,
+    "frameHeight": 341,
+    "animations": {
+      "cycle": {
+        "start": 0,
+        "end": 8,
+        "rate": 10
+      }
+    },
+    "defaultScale": 0.25
+  },
+  "waterball-projectile": {
+    "texture": "waterball-projectile",
+    "path": "../assets/effects/elementanimations/waterball/WaterBall%20-%20Startup%20and%20Infinite.png",
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "animations": {
+      "startup": {
+        "start": 0,
+        "end": 3,
+        "rate": 12
+      },
+      "travel": {
+        "start": 4,
+        "end": 19,
+        "rate": 15
+      }
+    },
+    "defaultScale": 0.8
+  },
+  "waterball-impact": {
+    "texture": "waterball-impact",
+    "path": "../assets/effects/elementanimations/waterball/WaterBall%20-%20Impact.png",
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "animations": {
+      "impact": {
+        "start": 0,
+        "end": 15,
+        "rate": 20
+      }
+    },
+    "defaultScale": 1.2
+  },
+  "lightning-projectile": {
+    "texture": "lightning-projectile",
+    "path": "../assets/effects/elementanimations/Thunder%20Projectile%201/5framesdims160x32.png",
+    "frameWidth": 32,
+    "frameHeight": 32,
+    "animations": {
+      "travel": {
+        "start": 0,
+        "end": 4,
+        "rate": 12
+      }
+    },
+    "defaultScale": 1
+  },
+  "lightning-impact": {
+    "texture": "lightning-impact",
+    "path": "../assets/effects/elementanimations/Thunder%20Hit/5framesdims192x32.png",
+    "frameWidth": 38,
+    "frameHeight": 32,
+    "animations": {
+      "hit": {
+        "start": 0,
+        "end": 4,
+        "rate": 20
+      }
+    },
+    "defaultScale": 1.5
+  },
+  "earth-projectile": {
+    "texture": "earth-projectile",
+    "path": "../assets/effects/elementanimations/earthprojectile/6framesx2framesdims288x64.png",
+    "frameWidth": 48,
+    "frameHeight": 32,
+    "animations": {
+      "travel": {
+        "start": 0,
+        "end": 5,
+        "rate": 12
+      },
+      "impact": {
+        "start": 6,
+        "end": 11,
+        "rate": 18
+      }
+    },
+    "defaultScale": 1
+  },
+  "wind-projectile": {
+    "texture": "wind-projectile",
+    "path": "../assets/effects/elementanimations/windprojectile/proj3framesx2framesdims96x64.png",
+    "frameWidth": 32,
+    "frameHeight": 32,
+    "animations": {
+      "travel": {
+        "start": 0,
+        "end": 5,
+        "rate": 12
+      }
+    },
+    "defaultScale": 1
+  },
+  "wind-impact": {
+    "texture": "wind-impact",
+    "path": "../assets/effects/elementanimations/windprojectile/hit3framesx2framesdims96x64.png",
+    "frameWidth": 32,
+    "frameHeight": 32,
+    "animations": {
+      "hit": {
+        "start": 0,
+        "end": 5,
+        "rate": 18
+      }
+    },
+    "defaultScale": 1.5
+  },
+  "firebolt": {
+    "texture": "firebolt",
+    "path": "../assets/effects/elementanimations/firebolt/11framesdims528x48.png",
+    "frameWidth": 48,
+    "frameHeight": 48,
+    "animations": {
+      "travel": {
+        "start": 0,
+        "end": 3,
+        "rate": 12
+      },
+      "impact": {
+        "start": 4,
+        "end": 10,
+        "rate": 20
+      }
+    },
+    "defaultScale": 1
+  },
+  "ice-spike": {
+    "texture": "ice-spike-start1",
+    "individualFrames": true,
+    "framePattern": "ice-spike-start",
+    "frameCount": 3,
+    "frameWidth": 32,
+    "frameHeight": 48,
+    "animations": {
+      "travel": {
+        "start": 1,
+        "end": 3,
+        "rate": 10
+      }
+    },
+    "defaultScale": 1
+  },
+  "ice-spike-loop": {
+    "texture": "ice-spike-loop1",
+    "individualFrames": true,
+    "framePattern": "ice-spike-loop",
+    "frameCount": 4,
+    "frameWidth": 32,
+    "frameHeight": 48,
+    "animations": {
+      "loop": {
+        "start": 1,
+        "end": 4,
+        "rate": 10
+      }
+    },
+    "defaultScale": 1
+  },
+  "ice-spike-hit": {
+    "texture": "ice-spike-hit1",
+    "individualFrames": true,
+    "framePattern": "ice-spike-hit",
+    "frameCount": 8,
+    "frameWidth": 48,
+    "frameHeight": 48,
+    "animations": {
+      "impact": {
+        "start": 1,
+        "end": 8,
+        "rate": 20
+      }
+    },
+    "defaultScale": 1.3
+  },
+  "holy-impact": {
+    "texture": "holy-impact-1",
+    "individualFrames": true,
+    "framePattern": "holy-impact-",
+    "frameCount": 7,
+    "frameWidth": 48,
+    "frameHeight": 48,
+    "animations": {
+      "impact": {
+        "start": 1,
+        "end": 7,
+        "rate": 20
+      }
+    },
+    "defaultScale": 2
+  },
+  "archer-projectile": {
+    "texture": "archer-projectile",
+    "path": "../assets/bosses/archerboss/projectile.png",
+    "isStaticImage": true,
+    "frameWidth": 32,
+    "frameHeight": 32,
+    "animations": {
+      "idle": {
+        "start": 0,
+        "end": 0,
+        "rate": 1
+      }
+    },
+    "defaultScale": 1.2
+  },
+  "poison-spell": {
+    "texture": "poison-spell",
+    "path": "../assets/effects/spells/poison-sheet.png",
+    "frameWidth": 55,
+    "frameHeight": 41,
+    "animations": {
+      "active": {
+        "start": 0,
+        "end": 5,
+        "rate": 10
+      }
+    },
+    "defaultScale": 0.75
+  },
+  "fire-spell": {
+    "texture": "fire-spell",
+    "path": "../assets/effects/spells/fire1.png",
+    "frameWidth": 32,
+    "frameHeight": 32,
+    "animations": {
+      "active": {
+        "start": 0,
+        "end": 3,
+        "rate": 10
+      }
+    },
+    "defaultScale": 1
+  },
+  "arcane-spell": {
+    "texture": "arcane-spell",
+    "path": "../assets/effects/spells/arcane1.png",
+    "frameWidth": 32,
+    "frameHeight": 32,
+    "animations": {
+      "active": {
+        "start": 0,
+        "end": 3,
+        "rate": 10
+      }
+    },
+    "defaultScale": 1
+  },
+  "water-spell": {
+    "texture": "water-spell",
+    "path": "../assets/effects/spells/water1.png",
+    "frameWidth": 32,
+    "frameHeight": 32,
+    "animations": {
+      "active": {
+        "start": 0,
+        "end": 3,
+        "rate": 10
+      }
+    },
+    "defaultScale": 1
+  },
+  "lightning-spell": {
+    "texture": "lightning-spell",
+    "path": "../assets/effects/spells/lightning1.png",
+    "frameWidth": 32,
+    "frameHeight": 32,
+    "animations": {
+      "active": {
+        "start": 0,
+        "end": 3,
+        "rate": 10
+      }
+    },
+    "defaultScale": 1
+  },
+  "earth-spell": {
+    "texture": "earth-spell",
+    "path": "../assets/effects/spells/earth1.png",
+    "frameWidth": 32,
+    "frameHeight": 32,
+    "animations": {
+      "active": {
+        "start": 0,
+        "end": 3,
+        "rate": 10
+      }
+    },
+    "defaultScale": 1
+  },
+  "rock-spell": {
+    "texture": "rock-spell",
+    "path": "../assets/effects/spells/rock1(6frames).PNG",
+    "frameWidth": 32,
+    "frameHeight": 30,
+    "animations": {
+      "active": {
+        "start": 0,
+        "end": 5,
+        "rate": 10
+      }
+    },
+    "defaultScale": 1
+  },
+  "storm-spell": {
+    "texture": "storm-spell",
+    "path": "../assets/effects/spells/thunder1-17frames.PNG",
+    "frameWidth": 64,
+    "frameHeight": 68,
+    "animations": {
+      "active": {
+        "start": 0,
+        "end": 16,
+        "rate": 15
+      }
+    },
+    "defaultScale": 1
+  },
+  "volcano-spell": {
+    "texture": "volcano-spell",
+    "path": "../assets/effects/spells/volcano1.PNG",
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "animations": {
+      "active": {
+        "start": 0,
+        "end": 3,
+        "rate": 10
+      }
+    },
+    "defaultScale": 1
+  },
+  "meteor-spell": {
+    "texture": "meteor-spell",
+    "path": "../assets/effects/spells/meteor1.PNG",
+    "frameWidth": 32,
+    "frameHeight": 38,
+    "animations": {
+      "active": {
+        "start": 0,
+        "end": 3,
+        "rate": 10
+      }
+    },
+    "defaultScale": 1
+  },
+  "gravity-spell": {
+    "texture": "gravity-spell",
+    "path": "../assets/effects/spells/gravity1.PNG",
+    "frameWidth": 64,
+    "frameHeight": 59,
+    "animations": {
+      "active": {
+        "start": 0,
+        "end": 3,
+        "rate": 10
+      }
+    },
+    "defaultScale": 1
+  },
+  "void-ball": {
+    "texture": "void-ball",
+    "individualFrames": true,
+    "framePattern": "void-ball-",
+    "frameCount": 3,
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "animations": {
+      "travel": {
+        "start": 1,
+        "end": 3,
+        "rate": 8
+      }
+    },
+    "defaultScale": 1
+  },
+  "void-ball-destroyed": {
+    "texture": "projectile-destroyed-1",
+    "individualFrames": true,
+    "framePattern": "projectile-destroyed-",
+    "frameCount": 3,
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "animations": {
+      "destroyed": {
+        "start": 1,
+        "end": 3,
+        "rate": 12
+      }
+    },
+    "defaultScale": 1
+  },
+  "boss-arm-projectile": {
+    "texture": "boss-arm-projectile",
+    "path": "../assets/images/arm_projectile_glowing.png",
+    "frameWidth": 100,
+    "frameHeight": 100,
+    "animations": {
+      "spin": {
+        "start": 0,
+        "end": 5,
+        "rate": 12
+      }
+    },
+    "defaultScale": 1
+  },
   "archerBoss": {
     "texture": "archer-boss-walk",
-    "path": "assets/bosses/archerboss/boss2archerwalk8frames.png",
+    "path": "../assets/bosses/archerboss/boss2archerwalk8frames.png",
     "frameWidth": 63,
     "frameHeight": 54,
     "animations": {
@@ -354,7 +833,7 @@
       },
       "attack": {
         "texture": "archer-boss-shoot",
-        "path": "assets/bosses/archerboss/boss2archershoot7frames.png",
+        "path": "../assets/bosses/archerboss/boss2archershoot7frames.png",
         "frameWidth": 64,
         "frameHeight": 54,
         "start": 0,
@@ -363,7 +842,7 @@
       },
       "death": {
         "texture": "archer-boss-death",
-        "path": "assets/bosses/archerboss/boss2archerdeath8frames.png",
+        "path": "../assets/bosses/archerboss/boss2archerdeath8frames.png",
         "frameWidth": 63,
         "frameHeight": 54,
         "start": 0,
@@ -375,7 +854,7 @@
   },
   "obeliskBoss": {
     "texture": "obelisk-boss",
-    "path": "obeliskBoss.png",
+    "path": "../assets/images/obeliskBoss.png",
     "frameWidth": 100,
     "frameHeight": 100,
     "animations": {
@@ -389,7 +868,7 @@
   },
   "voidkin": {
     "texture": "voidkin",
-    "path": "voidkin15frames.png",
+    "path": "../assets/images/voidkin15frames.png",
     "frameWidth": 224,
     "frameHeight": 240,
     "animations": {
@@ -400,6 +879,20 @@
       }
     },
     "defaultScale": 1
+  },
+  "demon-slime-boss": {
+    "texture": "demon-slime-idle",
+    "path": "../assets/bosses/demonslime/boss_demon_slime_FREE_v1.0/boss_demon_slime_FREE_v1.0/spritesheets/demon_slime_FREE_v1.0_288x160_spritesheet.png",
+    "frameWidth": 96,
+    "frameHeight": 80,
+    "animations": {
+      "walk": {
+        "start": 0,
+        "end": 2,
+        "rate": 8
+      }
+    },
+    "defaultScale": 2
   },
   "kingNothing": {
     "texture": "king-nothing-run",
@@ -644,7 +1137,7 @@
   },
   "flyingdemon": {
     "texture": "flyingdemon",
-    "path": "assets/bosses/flyingdemon/flamedemon4frames.png",
+    "path": "../assets/bosses/flyingdemon/flamedemon4frames.png",
     "frameWidth": 81,
     "frameHeight": 71,
     "animations": {
@@ -658,7 +1151,7 @@
   },
   "fireslime": {
     "texture": "slime-idle",
-    "path": "newenemies/blob/blob minion idle.png",
+    "path": "../assets/newenemies/blob/blob%20minion%20idle.png",
     "frameWidth": 80,
     "frameHeight": 35,
     "animations": {
@@ -673,7 +1166,7 @@
   },
   "orangegolem": {
     "texture": "golem-orange-walk",
-    "path": "Golem_1/Orange/No_Swoosh_VFX/Golem_1_walk.png",
+    "path": "../assets/Golem_1/Orange/No_Swoosh_VFX/Golem_1_walk.png",
     "frameWidth": 90,
     "frameHeight": 64,
     "animations": {
@@ -699,10 +1192,10 @@
       "attack": {
         "texture": "wraith-attack",
         "path": "assets/bosses/scythewraith/scythewraithattack8frames.png",
-        "frameWidth": 79.5,
+        "frameWidth": 78,
         "frameHeight": 68,
         "start": 0,
-        "end": 7,
+        "end": 6,
         "rate": 12
       },
       "death": {
