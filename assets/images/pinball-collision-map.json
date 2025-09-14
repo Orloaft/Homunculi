@@ -1,0 +1,264 @@
+{
+  "background": "collision-bg-1757711757831",
+  "shapes": [
+    {
+      "type": "circle",
+      "x": 330,
+      "y": 130,
+      "radius": 0,
+      "name": "Circle0",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 400,
+      "y": 190,
+      "radius": 100,
+      "name": "Circle1",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "rect",
+      "x": 260,
+      "y": 260,
+      "width": 20,
+      "height": 300,
+      "rotation": 0,
+      "name": "Rect2",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "rect",
+      "x": 260,
+      "y": 40,
+      "width": 20,
+      "height": 250,
+      "rotation": 0,
+      "name": "Rect3",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "rect",
+      "x": 530,
+      "y": 50,
+      "width": 10,
+      "height": 510,
+      "rotation": 0,
+      "name": "Rect4",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "polygon",
+      "points": [
+        {
+          "x": 280,
+          "y": 240
+        },
+        {
+          "x": 350,
+          "y": 370
+        },
+        {
+          "x": 280,
+          "y": 420
+        },
+        {
+          "x": 280,
+          "y": 240
+        }
+      ],
+      "x": 280,
+      "y": 240,
+      "name": "Polygon5",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "polygon",
+      "points": [
+        {
+          "x": 450,
+          "y": 380
+        },
+        {
+          "x": 520,
+          "y": 410
+        },
+        {
+          "x": 520,
+          "y": 260
+        },
+        {
+          "x": 450,
+          "y": 370
+        },
+        {
+          "x": 450,
+          "y": 380
+        }
+      ],
+      "x": 450,
+      "y": 380,
+      "name": "Polygon6",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "polygon",
+      "points": [
+        {
+          "x": 320,
+          "y": 420
+        },
+        {
+          "x": 320,
+          "y": 460
+        },
+        {
+          "x": 350,
+          "y": 470
+        },
+        {
+          "x": 320,
+          "y": 410
+        },
+        {
+          "x": 320,
+          "y": 420
+        },
+        {
+          "x": 320,
+          "y": 420
+        }
+      ],
+      "x": 510,
+      "y": 480,
+      "name": "Polygon7",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "polygon",
+      "points": [
+        {
+          "x": 460,
+          "y": 420
+        },
+        {
+          "x": 450,
+          "y": 480
+        },
+        {
+          "x": 480,
+          "y": 450
+        },
+        {
+          "x": 470,
+          "y": 420
+        },
+        {
+          "x": 470,
+          "y": 420
+        }
+      ],
+      "x": 460,
+      "y": 420,
+      "name": "Polygon8",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "polygon",
+      "points": [
+        {
+          "x": 500,
+          "y": 460
+        },
+        {
+          "x": 440,
+          "y": 500
+        },
+        {
+          "x": 450,
+          "y": 510
+        },
+        {
+          "x": 510,
+          "y": 480
+        },
+        {
+          "x": 500,
+          "y": 460
+        },
+        {
+          "x": 500,
+          "y": 460
+        }
+      ],
+      "x": 500,
+      "y": 460,
+      "name": "Polygon9",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "rect",
+      "x": 510,
+      "y": 410,
+      "width": 20,
+      "height": 150,
+      "rotation": 0,
+      "name": "Rect10",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "polygon",
+      "points": [
+        {
+          "x": 290,
+          "y": 460
+        },
+        {
+          "x": 350,
+          "y": 500
+        },
+        {
+          "x": 350,
+          "y": 510
+        },
+        {
+          "x": 290,
+          "y": 480
+        },
+        {
+          "x": 290,
+          "y": 460
+        }
+      ],
+      "x": 290,
+      "y": 460,
+      "name": "Polygon11",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    }
+  ],
+  "gridSize": 10
+}

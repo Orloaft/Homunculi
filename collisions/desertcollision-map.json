@@ -1,0 +1,346 @@
+{
+  "background": "collision-bg-1757710112223",
+  "shapes": [
+    {
+      "type": "circle",
+      "x": 170,
+      "y": 70,
+      "radius": 22.360679774997898,
+      "name": "Circle0",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 630,
+      "y": 260,
+      "radius": 22.360679774997898,
+      "name": "Circle1",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 230,
+      "y": 190,
+      "radius": 36.05551275463989,
+      "name": "Circle2",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 150,
+      "y": 410,
+      "radius": 28.284271247461902,
+      "name": "Circle3",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 610,
+      "y": 70,
+      "radius": 31.622776601683793,
+      "name": "Circle4",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 550,
+      "y": 380,
+      "radius": 10,
+      "name": "Circle5",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 380,
+      "y": 340,
+      "radius": 10,
+      "name": "Circle6",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 290,
+      "y": 180,
+      "radius": 0,
+      "name": "Circle7",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 300,
+      "y": 200,
+      "radius": 0,
+      "name": "Circle8",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 290,
+      "y": 180,
+      "radius": 0,
+      "name": "Circle9",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 300,
+      "y": 190,
+      "radius": 14.142135623730951,
+      "name": "Circle10",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 260,
+      "y": 210,
+      "radius": 0,
+      "name": "Circle11",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 270,
+      "y": 220,
+      "radius": 10,
+      "name": "Circle12",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 190,
+      "y": 220,
+      "radius": 0,
+      "name": "Circle13",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 200,
+      "y": 230,
+      "radius": 0,
+      "name": "Circle14",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 190,
+      "y": 220,
+      "radius": 0,
+      "name": "Circle15",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 200,
+      "y": 230,
+      "radius": 0,
+      "name": "Circle16",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 190,
+      "y": 220,
+      "radius": 0,
+      "name": "Circle17",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 200,
+      "y": 230,
+      "radius": 10,
+      "name": "Circle18",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 160,
+      "y": 210,
+      "radius": 10,
+      "name": "Circle19",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 270,
+      "y": 60,
+      "radius": 10,
+      "name": "Circle20",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 200,
+      "y": 90,
+      "radius": 10,
+      "name": "Circle21",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 300,
+      "y": 540,
+      "radius": 10,
+      "name": "Circle22",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 290,
+      "y": 540,
+      "radius": 14.142135623730951,
+      "name": "Circle23",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 280,
+      "y": 560,
+      "radius": 0,
+      "name": "Circle24",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 610,
+      "y": 360,
+      "radius": 0,
+      "name": "Circle25",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 620,
+      "y": 370,
+      "radius": 14.142135623730951,
+      "name": "Circle26",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 630,
+      "y": 460,
+      "radius": 0,
+      "name": "Circle27",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 630,
+      "y": 470,
+      "radius": 14.142135623730951,
+      "name": "Circle28",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 610,
+      "y": 550,
+      "radius": 10,
+      "name": "Circle29",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 370,
+      "y": 480,
+      "radius": 14.142135623730951,
+      "name": "Circle30",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 620,
+      "y": 150,
+      "radius": 14.142135623730951,
+      "name": "Circle31",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 570,
+      "y": 220,
+      "radius": 10,
+      "name": "Circle32",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    },
+    {
+      "type": "circle",
+      "x": 160,
+      "y": 330,
+      "radius": 10,
+      "name": "Circle33",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
+    }
+  ],
+  "gridSize": 10
+}
