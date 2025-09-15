@@ -54,9 +54,9 @@ const server = http.createServer((req, res) => {
                 // Save sprite configuration
                 fs.writeFileSync(CONFIG_FILE, JSON.stringify(config.sprites, null, 2));
                 
-                // Update hitbox-config.js if hitbox, shadow, or scale data is provided
-                if (config.hitboxes || config.shadows || config.scales) {
-                    updateHitboxConfig(config.hitboxes || {}, config.shadows || {}, config.scales || {});
+                // Update hitbox-config.js if hitbox, shadow, scale, or flip data is provided
+                if (config.hitboxes || config.shadows || config.scales || config.flips) {
+                    updateHitboxConfig(config.hitboxes || {}, config.shadows || {}, config.scales || {}, config.flips || {});
                 }
                 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -119,6 +119,22 @@ const server = http.createServer((req, res) => {
                             offsetY: parseFloat(offsetY)
                         };
                         console.log(`Loaded hitbox for ${enemy}:`, config[enemy].hitbox);
+                    }
+                }
+                
+                // Extract flips object
+                const flipsMatch = hitboxContent.match(/flips:\s*\{([\s\S]*?)\n\s*\},/);
+                if (flipsMatch) {
+                    const flipsText = flipsMatch[1];
+                    // Match entries like 'grim': { flipX: true, flipY: false }
+                    const flipPattern = /'([^']+)':\s*\{\s*flipX:\s*(true|false),\s*flipY:\s*(true|false)/g;
+                    let match;
+                    while ((match = flipPattern.exec(flipsText)) !== null) {
+                        const [, enemy, flipX, flipY] = match;
+                        if (!config[enemy]) config[enemy] = {};
+                        config[enemy].flipX = flipX === 'true';
+                        config[enemy].flipY = flipY === 'true';
+                        console.log(`Loaded flip for ${enemy}: flipX=${flipX}, flipY=${flipY}`);
                     }
                 }
             }
@@ -202,12 +218,14 @@ const server = http.createServer((req, res) => {
     });
 });
 
-function updateHitboxConfig(hitboxes, shadows, scales) {
+function updateHitboxConfig(hitboxes, shadows, scales, flips) {
     console.log('updateHitboxConfig called with:', {
         hitboxCount: Object.keys(hitboxes || {}).length,
         shadowCount: Object.keys(shadows || {}).length,
         scaleCount: Object.keys(scales || {}).length,
+        flipCount: Object.keys(flips || {}).length,
         scales: scales,
+        flips: flips,
         hitboxes: hitboxes  // Add this to see the actual hitbox data
     });
     
@@ -281,6 +299,11 @@ function updateHitboxConfig(hitboxes, shadows, scales) {
                         `$1 width: ${hitbox.width}, height: ${hitbox.height}, offsetX: ${hitbox.offsetX}, offsetY: ${hitbox.offsetY} $2`
                     );
                     
+                    // Log the specific update for grim
+                    if (enemyType === 'grim') {
+                        console.log(`GRIM UPDATE: Setting hitbox to offsetX=${hitbox.offsetX}, offsetY=${hitbox.offsetY}`);
+                    }
+                    
                     // Verify the replacement worked
                     if (newContent === configContent) {
                         console.log(`WARNING: Failed to update hitbox for ${enemyType} - trying without quotes`);
@@ -341,15 +364,78 @@ function updateHitboxConfig(hitboxes, shadows, scales) {
             }
         }
         
+        // Update flips if provided - MUST BE DONE BEFORE WRITING FILE
+        if (flips && Object.keys(flips).length > 0) {
+            console.log('Updating flips:', flips);
+            console.log('Current config content length before flips:', configContent.length);
+            
+            for (const [spriteType, flipData] of Object.entries(flips)) {
+                const escapedType = spriteType.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                
+                // Look for existing flip in the flips object
+                const existingPattern = new RegExp(`'${escapedType}'\\s*:\\s*\\{[^}]*flipX`);
+                
+                if (existingPattern.test(configContent)) {
+                    // Update existing flip
+                    console.log(`Updating existing flip for ${spriteType}`);
+                    configContent = configContent.replace(
+                        new RegExp(`('${escapedType}'\\s*:\\s*\\{)[^}]*(\\})`, 'g'),
+                        `$1 flipX: ${flipData.flipX}, flipY: ${flipData.flipY} $2`
+                    );
+                } else {
+                    // Add new flip entry
+                    console.log(`Adding new flip for ${spriteType}: flipX=${flipData.flipX}, flipY=${flipData.flipY}`);
+                    // Try both patterns - with content and empty
+                    const flipsSectionPattern = /(flips:\s*\{[\s\S]*?)(\s*\},)/;
+                    const emptyFlipsPattern = /(flips:\s*\{)(\s*\},)/;
+                    
+                    let match = configContent.match(flipsSectionPattern);
+                    if (!match) {
+                        match = configContent.match(emptyFlipsPattern);
+                    }
+                    
+                    if (match) {
+                        // Check if this is the first entry (empty object)
+                        const isEmptySection = match[0].match(/flips:\s*\{\s*\}/);
+                        const newEntry = isEmptySection 
+                            ? `\n        '${spriteType}': { flipX: ${flipData.flipX}, flipY: ${flipData.flipY} }\n    `
+                            : `,\n        '${spriteType}': { flipX: ${flipData.flipX}, flipY: ${flipData.flipY} }`;
+                        
+                        const beforeReplace = configContent.length;
+                        configContent = configContent.replace(
+                            match[0],
+                            match[1] + newEntry + match[2]
+                        );
+                        const afterReplace = configContent.length;
+                        console.log(`Successfully added flip entry for ${spriteType}`);
+                        console.log(`Config length changed from ${beforeReplace} to ${afterReplace}`);
+                    } else {
+                        console.log('WARNING: Could not find flips section in config');
+                    }
+                }
+            }
+        }
+        
         // Write back the updated configuration
         fs.writeFileSync(HITBOX_CONFIG_FILE, configContent);
         console.log('✅ hitbox-config.js updated successfully');
         
         // Verify the write by reading it back
         const verifyContent = fs.readFileSync(HITBOX_CONFIG_FILE, 'utf8');
+        if (verifyContent.includes("'grim':")) {
+            const grimLine = verifyContent.split('\n').find(line => line.includes("'grim':") && line.includes('width'));
+            console.log('Verification - grim hitbox line after save:', grimLine);
+        }
         if (verifyContent.includes("'blip':")) {
             const blipLine = verifyContent.split('\n').find(line => line.includes("'blip':") && line.includes('width'));
             console.log('Verification - blip line after save:', blipLine);
+        }
+        // Also verify flips were saved
+        if (flips && Object.keys(flips).length > 0) {
+            const flipSection = verifyContent.match(/flips:\s*\{([^}]*)\}/);
+            if (flipSection) {
+                console.log('Verification - flips section after save:', flipSection[0]);
+            }
         }
         
         // Log what was updated
@@ -365,6 +451,10 @@ function updateHitboxConfig(hitboxes, shadows, scales) {
         if (shadows && Object.keys(shadows).length > 0) {
             updates.push(`${Object.keys(shadows).length} shadows`);
             console.log('Updated shadows:', Object.keys(shadows));
+        }
+        if (flips && Object.keys(flips).length > 0) {
+            updates.push(`${Object.keys(flips).length} flips`);
+            console.log('Updated flips:', Object.keys(flips));
         }
         
         if (updates.length > 0) {

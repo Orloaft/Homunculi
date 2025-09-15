@@ -1212,7 +1212,7 @@
   },
   "wizard": {
     "texture": "wizard-idle",
-    "path": "assets/sprites/wizmove/newiz/wizard_idle.PNG",
+    "path": "../assets/sprites/wizmove/newiz/wizard_idle.PNG",
     "frameWidth": 80,
     "frameHeight": 80,
     "animations": {
@@ -1264,7 +1264,7 @@
       },
       "spawn": {
         "texture": "orb-spawn",
-        "path": "assets/sprites/homunculicharacters/orbspawn8framesdims512x64.png",
+        "path": "../assets/sprites/homunculicharacters/orbspawn8framesdims512x64.png",
         "frameWidth": 64,
         "frameHeight": 64,
         "start": 0,
@@ -1274,41 +1274,9 @@
     },
     "defaultScale": 1.5
   },
-  "grim": {
-    "texture": "grim-idle",
-    "path": "assets/sprites/homunculicharacters/grimidle8framesx2framesdims512x128.png",
-    "frameWidth": 64,
-    "frameHeight": 64,
-    "animations": {
-      "idle": {
-        "start": 0,
-        "end": 8,
-        "rate": 8
-      },
-      "walk": {
-        "texture": "grim-walk",
-        "path": "assets/sprites/homunculicharacters/grimwalk6framesdimsdims384x64.png",
-        "frameWidth": 64,
-        "frameHeight": 64,
-        "start": 0,
-        "end": 5,
-        "rate": 10
-      },
-      "death": {
-        "texture": "grim-death",
-        "path": "assets/sprites/homunculicharacters/grimdeath8framesx3framesdims512x192.png",
-        "frameWidth": 64,
-        "frameHeight": 64,
-        "start": 0,
-        "end": 23,
-        "rate": 10
-      }
-    },
-    "defaultScale": 1.5
-  },
   "blip": {
     "texture": "blip-idle",
-    "path": "assets/sprites/homunculicharacters/blipidle5framesvertical.png",
+    "path": "../assets/sprites/homunculicharacters/blipidle5framesvertical.png",
     "frameWidth": 64,
     "frameHeight": 39,
     "verticalSheet": true,
@@ -1320,7 +1288,7 @@
       },
       "walk": {
         "texture": "blip-walk",
-        "path": "assets/sprites/homunculicharacters/blipwalk8framesvertical.png",
+        "path": "../assets/sprites/homunculicharacters/blipwalk8framesvertical.png",
         "frameWidth": 64,
         "frameHeight": 39,
         "verticalSheet": true,
@@ -1330,7 +1298,7 @@
       },
       "death": {
         "texture": "blip-death",
-        "path": "assets/sprites/homunculicharacters/blipdeath5framesvertical.png",
+        "path": "../assets/sprites/homunculicharacters/blipdeath5framesvertical.png",
         "frameWidth": 64,
         "frameHeight": 39,
         "verticalSheet": true,
@@ -1340,5 +1308,37 @@
       }
     },
     "defaultScale": 1.5
+  },
+  "grim": {
+    "texture": "grim-idle",
+    "path": "../assets/sprites/homunculicharacters/grimidle8framesx2framesdims512x128.png",
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "animations": {
+      "idle": {
+        "start": 0,
+        "end": 15,
+        "rate": 10
+      },
+      "walk": {
+        "texture": "grim-walk",
+        "path": "../assets/sprites/homunculicharacters/grimwalk6framesdimsdims384x64.png",
+        "frameWidth": 64,
+        "frameHeight": 64,
+        "start": 0,
+        "end": 5,
+        "rate": 10
+      },
+      "death": {
+        "texture": "grim-death",
+        "path": "../assets/sprites/homunculicharacters/grimdeath8framesx3framesdims512x192.png",
+        "frameWidth": 64,
+        "frameHeight": 64,
+        "start": 0,
+        "end": 23,
+        "rate": 10
+      }
+    },
+    "defaultScale": 1.3
   }
 }

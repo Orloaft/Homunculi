@@ -15,6 +15,18 @@
         #game-container {
             width: 100vw;
             height: 100vh;
+            image-rendering: pixelated; /* Chrome/Safari */
+            image-rendering: -moz-crisp-edges; /* Firefox */
+            image-rendering: crisp-edges; /* Standard */
+        }
+        
+        /* Fix for Chrome flickering */
+        canvas {
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            transform: translateZ(0); /* Force GPU acceleration */
+            backface-visibility: hidden; /* Prevent flickering */
         }
         
         /* Pre-loader styles for instant display during Electron startup */
@@ -122,7 +134,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
     
     <script src="scripts/phaser.min.js"></script>
-    <script src="scripts/hitbox-config.js"></script>
+    <script src="scripts/hitbox-config.js?v=8"></script>
     <script src="scripts/electron-fixes.js"></script>
     <script src="scripts/ChunkManager.js"></script>
     <script src="scripts/OptimizedEnemyManager.js"></script>
@@ -132,7 +144,7 @@
     <script src="scripts/ObstacleManager.js"></script>
     <script src="scripts/InfiniteGameScene.js"></script>
     <script src="scripts/UltraOptimizedGameScene.js"></script>
-    <script src="scripts/game.js?v=155"></script>
+    <script src="scripts/game.js?v=169"></script>
     <script src="scripts/autoplay.js"></script>
     
     <script>

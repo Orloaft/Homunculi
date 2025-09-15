@@ -537,32 +537,55 @@
                 </div>
                 
                 <div class="section">
+                    <h3 class="section-title">Sprite Orientation</h3>
+                    <div class="control-group">
+                        <label class="control-label">Flip Options</label>
+                        <div class="button-group">
+                            <button class="btn" onclick="toggleFlipX()" id="flip-x-btn" style="background: #444;">↔️ Flip Horizontal</button>
+                            <button class="btn" onclick="toggleFlipY()" id="flip-y-btn" style="background: #444;">↕️ Flip Vertical</button>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                            <label style="flex: 1; display: flex; align-items: center;">
+                                <input type="checkbox" id="flip-x-checkbox" onchange="updateFlipFromCheckbox()" style="margin-right: 5px;">
+                                Horizontally Flipped
+                            </label>
+                            <label style="flex: 1; display: flex; align-items: center;">
+                                <input type="checkbox" id="flip-y-checkbox" onchange="updateFlipFromCheckbox()" style="margin-right: 5px;">
+                                Vertically Flipped
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
                     <h3 class="section-title">Hitbox Adjustment</h3>
                     <div class="control-group">
                         <label class="control-label">Width</label>
                         <div class="slider-container">
-                            <input type="range" id="hitbox-width" min="5" max="200" value="30" onchange="updateHitbox()">
+                            <input type="range" id="hitbox-width" min="5" max="500" value="30" onchange="updateHitbox()">
                             <span class="value-display" id="width-value">30</span>
                         </div>
                     </div>
                     <div class="control-group">
                         <label class="control-label">Height</label>
                         <div class="slider-container">
-                            <input type="range" id="hitbox-height" min="5" max="200" value="30" onchange="updateHitbox()">
+                            <input type="range" id="hitbox-height" min="5" max="500" value="30" onchange="updateHitbox()">
                             <span class="value-display" id="height-value">30</span>
                         </div>
                     </div>
                     <div class="control-group">
                         <label class="control-label">Offset X</label>
                         <div class="slider-container">
-                            <input type="range" id="hitbox-offsetx" min="-100" max="100" value="0" onchange="updateHitbox()">
+                            <input type="range" id="hitbox-offsetx" min="-300" max="300" value="0" onchange="updateHitbox()">
                             <span class="value-display" id="offsetx-value">0</span>
                         </div>
                     </div>
                     <div class="control-group">
                         <label class="control-label">Offset Y</label>
                         <div class="slider-container">
-                            <input type="range" id="hitbox-offsety" min="-100" max="100" value="0" onchange="updateHitbox()">
+                            <input type="range" id="hitbox-offsety" min="-300" max="300" value="0" onchange="updateHitbox()">
                             <span class="value-display" id="offsety-value">0</span>
                         </div>
                     </div>
@@ -580,28 +603,28 @@
                     <div class="control-group">
                         <label class="control-label">Shadow Width</label>
                         <div class="slider-container">
-                            <input type="range" id="shadow-width" min="5" max="150" value="40" onchange="updateShadow()">
+                            <input type="range" id="shadow-width" min="5" max="300" value="40" onchange="updateShadow()">
                             <span class="value-display" id="shadow-width-value">40</span>
                         </div>
                     </div>
                     <div class="control-group">
                         <label class="control-label">Shadow Height</label>
                         <div class="slider-container">
-                            <input type="range" id="shadow-height" min="5" max="50" value="12" onchange="updateShadow()">
+                            <input type="range" id="shadow-height" min="5" max="150" value="12" onchange="updateShadow()">
                             <span class="value-display" id="shadow-height-value">12</span>
                         </div>
                     </div>
                     <div class="control-group">
                         <label class="control-label">Shadow Offset X</label>
                         <div class="slider-container">
-                            <input type="range" id="shadow-offsetx" min="-50" max="50" value="0" onchange="updateShadow()">
+                            <input type="range" id="shadow-offsetx" min="-150" max="150" value="0" onchange="updateShadow()">
                             <span class="value-display" id="shadow-offsetx-value">0</span>
                         </div>
                     </div>
                     <div class="control-group">
                         <label class="control-label">Shadow Offset Y</label>
                         <div class="slider-container">
-                            <input type="range" id="shadow-offsety" min="-50" max="100" value="30" onchange="updateShadow()">
+                            <input type="range" id="shadow-offsety" min="-150" max="300" value="30" onchange="updateShadow()">
                             <span class="value-display" id="shadow-offsety-value">30</span>
                         </div>
                     </div>
@@ -663,6 +686,17 @@
     
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script>
+        // IMPORTANT: SPRITE PARITY WITH GAME
+        // This editor must match EXACTLY how sprites are created and configured in the game
+        // Any mismatch will cause hitboxes to appear differently between editor and game
+        //
+        // Key Rules for Perfect Parity (STANDARDIZED):
+        // 1. ALL sprites use origin (0.5, 0.5) - no exceptions!
+        // 2. NO special flips - all characters use standard left/right flipping
+        // 3. Scales are applied via setScale
+        // 4. Hitbox offsets are in unscaled sprite coordinates (Phaser's body.setOffset always uses unscaled)
+        // 5. Order: Create sprite -> Set origin (0.5,0.5) -> Set scale -> Apply hitbox
+        //
         // Enemy configurations
         const enemyConfigs = {
             // Forest enemies
@@ -1569,7 +1603,7 @@
             // For accurate hitbox editing, consider the actual in-game scale
             wizard: {
                 texture: 'wizard-idle',
-                path: 'assets/sprites/wizmove/newiz/wizard_idle.PNG',
+                path: '../assets/sprites/wizmove/newiz/wizard_idle.PNG',
                 frameWidth: 80,
                 frameHeight: 80,
                 animations: {
@@ -1607,7 +1641,7 @@
                     },
                     spawn: {
                         texture: 'orb-spawn',
-                        path: 'assets/sprites/homunculicharacters/orbspawn8framesdims512x64.png',
+                        path: '../assets/sprites/homunculicharacters/orbspawn8framesdims512x64.png',
                         frameWidth: 64,
                         frameHeight: 64,
                         start: 0, end: 7, rate: 10
@@ -1615,33 +1649,9 @@
                 },
                 defaultScale: 1.5
             },
-            grim: {
-                texture: 'grim-idle',
-                path: 'assets/sprites/homunculicharacters/grimidle8framesx2framesdims512x128.png',
-                frameWidth: 64,
-                frameHeight: 64,
-                animations: {
-                    idle: { start: 0, end: 8, rate: 8 },
-                    walk: {
-                        texture: 'grim-walk',
-                        path: 'assets/sprites/homunculicharacters/grimwalk6framesdimsdims384x64.png',
-                        frameWidth: 64,
-                        frameHeight: 64,
-                        start: 0, end: 5, rate: 10
-                    },
-                    death: {
-                        texture: 'grim-death',
-                        path: 'assets/sprites/homunculicharacters/grimdeath8framesx3framesdims512x192.png',
-                        frameWidth: 64,
-                        frameHeight: 64,
-                        start: 0, end: 23, rate: 10
-                    }
-                },
-                defaultScale: 1.5
-            },
             blip: {
                 texture: 'blip-idle',
-                path: 'assets/sprites/homunculicharacters/blipidle5framesvertical.png',
+                path: '../assets/sprites/homunculicharacters/blipidle5framesvertical.png',
                 frameWidth: 64,
                 frameHeight: 39,
                 verticalSheet: true,
@@ -1649,7 +1659,7 @@
                     idle: { start: 0, end: 4, rate: 8 },
                     walk: {
                         texture: 'blip-walk',
-                        path: 'assets/sprites/homunculicharacters/blipwalk8framesvertical.png',
+                        path: '../assets/sprites/homunculicharacters/blipwalk8framesvertical.png',
                         frameWidth: 64,
                         frameHeight: 39,
                         verticalSheet: true,
@@ -1657,7 +1667,7 @@
                     },
                     death: {
                         texture: 'blip-death',
-                        path: 'assets/sprites/homunculicharacters/blipdeath5framesvertical.png',
+                        path: '../assets/sprites/homunculicharacters/blipdeath5framesvertical.png',
                         frameWidth: 64,
                         frameHeight: 39,
                         verticalSheet: true,
@@ -1665,6 +1675,30 @@
                     }
                 },
                 defaultScale: 1.5
+            },
+            grim: {
+                texture: 'grim-idle',
+                path: '../assets/sprites/homunculicharacters/grimidle8framesx2framesdims512x128.png',
+                frameWidth: 64,  // 512/8 = 64
+                frameHeight: 64,  // 128/2 = 64
+                animations: {
+                    idle: { start: 0, end: 15, rate: 10 },  // 8x2 = 16 frames
+                    walk: {
+                        texture: 'grim-walk',
+                        path: '../assets/sprites/homunculicharacters/grimwalk6framesdimsdims384x64.png',
+                        frameWidth: 64,  // 384/6 = 64
+                        frameHeight: 64,
+                        start: 0, end: 5, rate: 10
+                    },
+                    death: {
+                        texture: 'grim-death',
+                        path: '../assets/sprites/homunculicharacters/grimdeath8framesx3framesdims512x192.png',
+                        frameWidth: 64,  // 512/8 = 64
+                        frameHeight: 64,  // 192/3 = 64
+                        start: 0, end: 23, rate: 10  // 8x3 = 24 frames
+                    }
+                },
+                defaultScale: 1.3
             }
         };
         
@@ -1730,8 +1764,7 @@
                     };
                 }
             }
-            localStorage.setItem('hitboxData', JSON.stringify(hitboxData));
-            
+            // Removed localStorage - data is saved to server via saveConfigToServer()
             updateExportData();
         }
         
@@ -2300,9 +2333,9 @@
                     currentSprite = editorScene.physics.add.sprite(400, 300, config.texture, 0);
                 }
                 
-                // Set origin to center (0.5, 0.5) to match how enemies are created in the game
-                // The game uses center origin for enemies
+                // Standardized origin for all sprites - no special cases!
                 currentSprite.setOrigin(0.5, 0.5);
+                console.log(`Setting standardized origin for ${enemyType}: (0.5, 0.5)`);
                 
                 // Create shadow
                 currentShadow = editorScene.add.graphics();
@@ -2311,11 +2344,22 @@
                 // Load saved data or use defaults
                 const saved = savedData[enemyType] || {};
                 const scale = saved.scale || config.defaultScale || 1;
+                const flipX = saved.flipX || false;
+                const flipY = saved.flipY || false;
                 const hitbox = saved.hitbox || { width: 30, height: 30, offsetX: 0, offsetY: 0 };
                 const shadow = saved.shadow || { width: 40, height: 12, offsetX: 0, offsetY: 30, alpha: 0.5 };
                 
-                // Apply scale
-                currentSprite.setScale(scale);
+                // Apply scale with flip state
+                currentSprite.setScale(
+                    flipX ? -scale : scale,
+                    flipY ? -scale : scale
+                );
+                
+                // Update flip UI
+                document.getElementById('flip-x-checkbox').checked = flipX;
+                document.getElementById('flip-y-checkbox').checked = flipY;
+                document.getElementById('flip-x-btn').style.background = flipX ? '#4CAF50' : '#444';
+                document.getElementById('flip-y-btn').style.background = flipY ? '#4CAF50' : '#444';
                 
                 // Position sprite at center of editor
                 currentSprite.x = 400;
@@ -2338,6 +2382,12 @@
                 } else {
                     const scaleNote = document.getElementById('scale-note');
                     if (scaleNote) scaleNote.style.display = 'none';
+                }
+                
+                // No more special properties - everything is standardized!
+                const propsNote = document.getElementById('props-note');
+                if (propsNote) {
+                    propsNote.style.display = 'none';
                 }
                 
                 // Apply hitbox
@@ -2454,7 +2504,15 @@
             if (!currentSprite) return;
             
             const scale = parseFloat(document.getElementById('scale-slider').value);
-            currentSprite.setScale(scale);
+            
+            // Preserve flip state when changing scale
+            const flipX = savedData[currentEnemy]?.flipX || false;
+            const flipY = savedData[currentEnemy]?.flipY || false;
+            
+            currentSprite.setScale(
+                flipX ? -scale : scale,
+                flipY ? -scale : scale
+            );
             document.getElementById('scale-value').textContent = scale.toFixed(1);
             
             // Save data
@@ -2462,6 +2520,82 @@
             savedData[currentEnemy].scale = scale;
             saveData();
             
+            updateInfoPanel();
+        }
+        
+        // Toggle horizontal flip
+        function toggleFlipX() {
+            if (!currentSprite) return;
+            
+            if (!savedData[currentEnemy]) savedData[currentEnemy] = {};
+            savedData[currentEnemy].flipX = !savedData[currentEnemy].flipX;
+            
+            const scale = savedData[currentEnemy].scale || 1;
+            const flipX = savedData[currentEnemy].flipX || false;
+            const flipY = savedData[currentEnemy].flipY || false;
+            
+            currentSprite.setScale(
+                flipX ? -Math.abs(scale) : Math.abs(scale),
+                flipY ? -Math.abs(currentSprite.scaleY) : Math.abs(currentSprite.scaleY)
+            );
+            
+            // Update UI
+            document.getElementById('flip-x-checkbox').checked = flipX;
+            document.getElementById('flip-x-btn').style.background = flipX ? '#4CAF50' : '#444';
+            
+            console.log(`FlipX toggled for ${currentEnemy}: ${flipX}`);
+            console.log(`Current savedData for ${currentEnemy}:`, savedData[currentEnemy]);
+            saveData();
+            updateInfoPanel();
+        }
+        
+        // Toggle vertical flip
+        function toggleFlipY() {
+            if (!currentSprite) return;
+            
+            if (!savedData[currentEnemy]) savedData[currentEnemy] = {};
+            savedData[currentEnemy].flipY = !savedData[currentEnemy].flipY;
+            
+            const scale = savedData[currentEnemy].scale || 1;
+            const flipX = savedData[currentEnemy].flipX || false;
+            const flipY = savedData[currentEnemy].flipY || false;
+            
+            currentSprite.setScale(
+                flipX ? -Math.abs(currentSprite.scaleX) : Math.abs(currentSprite.scaleX),
+                flipY ? -Math.abs(scale) : Math.abs(scale)
+            );
+            
+            // Update UI
+            document.getElementById('flip-y-checkbox').checked = flipY;
+            document.getElementById('flip-y-btn').style.background = flipY ? '#4CAF50' : '#444';
+            
+            saveData();
+            updateInfoPanel();
+        }
+        
+        // Update flip from checkboxes
+        function updateFlipFromCheckbox() {
+            if (!currentSprite) return;
+            
+            const flipX = document.getElementById('flip-x-checkbox').checked;
+            const flipY = document.getElementById('flip-y-checkbox').checked;
+            
+            if (!savedData[currentEnemy]) savedData[currentEnemy] = {};
+            savedData[currentEnemy].flipX = flipX;
+            savedData[currentEnemy].flipY = flipY;
+            
+            const scale = savedData[currentEnemy].scale || 1;
+            
+            currentSprite.setScale(
+                flipX ? -Math.abs(scale) : Math.abs(scale),
+                flipY ? -Math.abs(scale) : Math.abs(scale)
+            );
+            
+            // Update button colors
+            document.getElementById('flip-x-btn').style.background = flipX ? '#4CAF50' : '#444';
+            document.getElementById('flip-y-btn').style.background = flipY ? '#4CAF50' : '#444';
+            
+            saveData();
             updateInfoPanel();
         }
         
@@ -2536,8 +2670,9 @@
             // The game uses center origin (0.5, 0.5) for enemies
             // Phaser body offset is from the sprite's top-left corner regardless of origin
             hitboxGraphics.lineStyle(2, 0x00ff00, 1);
-            const spriteTopLeftX = currentSprite.x - (currentSprite.width * currentSprite.originX * currentSprite.scaleX);
-            const spriteTopLeftY = currentSprite.y - (currentSprite.height * currentSprite.originY * currentSprite.scaleY);
+            // Use displayOriginX/Y which already accounts for scale
+            const spriteTopLeftX = currentSprite.x - currentSprite.displayOriginX;
+            const spriteTopLeftY = currentSprite.y - currentSprite.displayOriginY;
             const bodyX = spriteTopLeftX + body.offset.x;
             const bodyY = spriteTopLeftY + body.offset.y;
             hitboxGraphics.strokeRect(bodyX, bodyY, body.width, body.height);
@@ -2551,12 +2686,15 @@
                 currentSprite.displayHeight
             );
             
-            // Draw sprite origin cross (at center)
-            hitboxGraphics.lineStyle(1, 0xffff00, 0.5);
+            // Draw sprite origin cross (at actual origin point)
+            // This shows where the sprite's anchor point is
+            hitboxGraphics.lineStyle(1, 0xffff00, 0.8);
             hitboxGraphics.moveTo(currentSprite.x - 10, currentSprite.y);
             hitboxGraphics.lineTo(currentSprite.x + 10, currentSprite.y);
             hitboxGraphics.moveTo(currentSprite.x, currentSprite.y - 10);
             hitboxGraphics.lineTo(currentSprite.x, currentSprite.y + 10);
+            
+            // All sprites now use standardized (0.5, 0.5) origin
         }
         
         // Draw grid
@@ -2937,10 +3075,11 @@ if (typeof module !== 'undefined' && module.exports) {
                     sprites: enemyConfigs,
                     hitboxes: {},
                     shadows: {},
-                    scales: {}
+                    scales: {},
+                    flips: {}
                 };
                 
-                // Extract hitbox, shadow, and scale data from saved configurations
+                // Extract hitbox, shadow, scale, and flip data from saved configurations
                 for (const [enemy, data] of Object.entries(savedData)) {
                     if (data.hitbox) {
                         config.hitboxes[enemy] = {
@@ -2962,10 +3101,19 @@ if (typeof module !== 'undefined' && module.exports) {
                     if (data.scale) {
                         config.scales[enemy] = data.scale;
                     }
+                    // Save flip state if any
+                    if (data.flipX || data.flipY) {
+                        config.flips[enemy] = {
+                            flipX: data.flipX || false,
+                            flipY: data.flipY || false
+                        };
+                    }
                 }
                 
                 console.log('Sending config to server:', config);
                 console.log('Scales being sent:', config.scales);
+                console.log('Flips being sent:', config.flips);
+                console.log('SavedData for debugging:', savedData);
                 
                 // Send to server
                 const response = await fetch('/save-config', {
@@ -2978,6 +3126,10 @@ if (typeof module !== 'undefined' && module.exports) {
                 
                 const result = await response.json();
                 if (result.success) {
+                    // Clear localStorage hitboxData so game uses the updated config file
+                    localStorage.removeItem('hitboxData');
+                    localStorage.removeItem('spriteScaleData');
+                    console.log('Cleared localStorage hitboxData to ensure game uses updated config file');
                     showStatus('✅ Configuration saved to game successfully!');
                 } else {
                     showStatus('❌ Error saving configuration: ' + result.error);
@@ -2995,6 +3147,11 @@ if (typeof module !== 'undefined' && module.exports) {
                 if (response.ok) {
                     const config = await response.json();
                     
+                    // Clear localStorage to ensure we're using fresh data from config file
+                    localStorage.removeItem('hitboxData');
+                    localStorage.removeItem('spriteScaleData');
+                    console.log('Cleared localStorage to load fresh data from config file');
+                    
                     // Update saved data with loaded scales and configs
                     if (config) {
                         for (const [enemy, data] of Object.entries(config)) {
@@ -3010,6 +3167,16 @@ if (typeof module !== 'undefined' && module.exports) {
                                 // Load other data if present
                                 if (data.hitbox) savedData[enemy].hitbox = data.hitbox;
                                 if (data.shadow) savedData[enemy].shadow = data.shadow;
+                                
+                                // Load flip data if present
+                                if (data.flipX !== undefined) {
+                                    savedData[enemy].flipX = data.flipX;
+                                    console.log(`Loaded flipX for ${enemy}: ${data.flipX}`);
+                                }
+                                if (data.flipY !== undefined) {
+                                    savedData[enemy].flipY = data.flipY;
+                                    console.log(`Loaded flipY for ${enemy}: ${data.flipY}`);
+                                }
                             }
                         }
                         

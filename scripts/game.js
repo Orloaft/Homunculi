@@ -2924,6 +2924,9 @@ class StageSelectScene extends Phaser.Scene {
     }
 
     create() {
+        // Basic pixel-perfect rendering
+        this.cameras.main.roundPixels = true;
+        
         // Stop all sounds including boss music when entering stage select
         this.sound.stopAll();
         
@@ -9869,6 +9872,12 @@ class GameScene extends Phaser.Scene {
         if (typeof hitboxConfig !== 'undefined') {
             hitboxConfig.load();
             console.log('Hitbox config loaded before player creation');
+            console.log('hitboxConfig.loaded =', hitboxConfig.loaded);
+            console.log('Available character hitboxes:', Object.keys(hitboxConfig.hitboxes).filter(k => ['wizard', 'orb', 'grim', 'blip'].includes(k)));
+            console.log('Grim config present?', 'grim' in hitboxConfig.hitboxes);
+            console.log('Grim hitbox from config =', hitboxConfig.hitboxes.grim);
+            
+            // Legacy localStorage data removed - using only hitbox-config.js
         }
 
         console.log('Creating wizard sprite');
@@ -9894,20 +9903,69 @@ class GameScene extends Phaser.Scene {
             this.wizard = this.physics.add.sprite(wizardStartX, wizardStartY, p1Sprite);
         }
         
-        // Apply scale from config
+        // Apply scale from config or localStorage
+        console.log('Applying scale for P1:', this.p1Character);
+        
+        // Apply scale from hitbox-config.js only
         if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
-            hitboxConfig.applyScale(this.wizard, this.p1Character);
+            const scale = hitboxConfig.getScale(this.p1Character);
+            this.wizard.setScale(scale);
+            console.log(`[P1] Applied scale from hitboxConfig: ${scale}`);
+            
+            // Apply flips if configured
+            console.log(`[P1] Checking flips for ${this.p1Character}`);
+            console.log('[P1] hitboxConfig.flips:', hitboxConfig.flips);
+            
+            if (hitboxConfig.flips && hitboxConfig.flips[this.p1Character]) {
+                const flipData = hitboxConfig.flips[this.p1Character];
+                console.log(`[P1] Found flip data for ${this.p1Character}:`, flipData);
+                const currentScaleX = Math.abs(this.wizard.scaleX);
+                const currentScaleY = Math.abs(this.wizard.scaleY);
+                
+                // Apply flip by negating scale
+                const newScaleX = flipData.flipX ? -currentScaleX : currentScaleX;
+                const newScaleY = flipData.flipY ? -currentScaleY : currentScaleY;
+                
+                this.wizard.setScale(newScaleX, newScaleY);
+                console.log(`[P1] Applied flip for ${this.p1Character}: flipX=${flipData.flipX}, flipY=${flipData.flipY}`);
+                console.log(`[P1] Final scale: X=${this.wizard.scaleX}, Y=${this.wizard.scaleY}`);
+                
+                // Double-check the scale was actually applied
+                if (flipData.flipY && this.wizard.scaleY > 0) {
+                    console.warn(`[P1] WARNING: Vertical flip not applied! Forcing negative Y scale`);
+                    this.wizard.setScale(this.wizard.scaleX, -Math.abs(this.wizard.scaleY));
+                }
+                if (flipData.flipX && this.wizard.scaleX > 0) {
+                    console.warn(`[P1] WARNING: Horizontal flip not applied! Forcing negative X scale`);
+                    this.wizard.setScale(-Math.abs(this.wizard.scaleX), this.wizard.scaleY);
+                }
+            } else {
+                console.log(`[P1] No flip data found for ${this.p1Character}`);
+            }
         } else {
-            // Fallback to default scale
+            // Use default if config not loaded
             this.wizard.setScale(1.0);
+            console.log('[P1] Config not loaded, using default scale 1.0');
         }
         
         // Character-specific adjustments
-        if (this.p1Character === 'grim') {
-            this.wizard.setFlipX(true); // Flip Grim horizontally
-            this.wizard.setOrigin(0.5, 0.65); // Shift sprite up more to center in circle
-        } else {
-            this.wizard.setOrigin(0.5, 0.5); // Default origin
+        // Standardized origin for all characters
+        this.wizard.setOrigin(0.5, 0.5);
+        
+        // Final scale and hitbox check for Blip
+        if (this.p1Character === 'blip') {
+            console.log(`[BLIP CHECK] After all setup, Blip scale is: ${this.wizard.scaleX}`);
+            console.log(`[BLIP CHECK] Expected scale from config: ${hitboxConfig.scales.blip}`);
+            console.log(`[BLIP CHECK] Sprite dimensions: ${this.wizard.width}x${this.wizard.height}`);
+            console.log(`[BLIP CHECK] Body size: ${this.wizard.body.width}x${this.wizard.body.height}`);
+            console.log(`[BLIP CHECK] Body offset: (${this.wizard.body.offset.x}, ${this.wizard.body.offset.y})`);
+            console.log(`[BLIP CHECK] Sprite origin: (${this.wizard.originX}, ${this.wizard.originY})`);
+            
+            // Force apply if not matching
+            if (Math.abs(this.wizard.scaleX - hitboxConfig.scales.blip) > 0.01) {
+                console.log(`[BLIP CHECK] Scale mismatch! Forcing to ${hitboxConfig.scales.blip}`);
+                this.wizard.setScale(hitboxConfig.scales.blip);
+            }
         }
         
         console.log('P1 sprite created successfully at', wizardStartX, wizardStartY, 'using character:', this.p1Character);
@@ -9934,22 +9992,22 @@ class GameScene extends Phaser.Scene {
             const p2Sprite = this.getCharacterSprite(this.p2Character || 'wizard', true);
             this.wizard2 = this.physics.add.sprite(wizard2X, wizard2Y, p2Sprite);
             
-            // Apply scale from config for P2
+            // Apply scale from hitbox-config.js only for P2
             const p2Char = this.p2Character || 'wizard';
+            console.log('Applying scale for P2:', p2Char);
+            
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
-                hitboxConfig.applyScale(this.wizard2, p2Char);
+                const scale = hitboxConfig.getScale(p2Char);
+                this.wizard2.setScale(scale);
+                console.log(`[P2] Applied scale from hitboxConfig: ${scale}`);
             } else {
-                // Fallback to default scale
+                // Use default if config not loaded
                 this.wizard2.setScale(1.0);
+                console.log('[P2] Config not loaded, using default scale 1.0');
             }
             
-            // Character-specific adjustments for P2
-            if (p2Char === 'grim') {
-                this.wizard2.setFlipX(true); // Flip Grim horizontally
-                this.wizard2.setOrigin(0.5, 0.65); // Shift sprite up more to center in circle
-            } else {
-                this.wizard2.setOrigin(0.5, 0.5); // Default origin
-            }
+            // Standardized origin for all characters
+            this.wizard2.setOrigin(0.5, 0.5);
             
             this.wizard2.setCollideWorldBounds(this.stage === 'spire');
             this.wizard2.setDepth(100);
@@ -9965,35 +10023,25 @@ class GameScene extends Phaser.Scene {
             // Create animations for P2 character
             this.createCharacterAnimations(this.p2Character || 'wizard', true);
             
-            // Apply hitbox configuration from hitbox-config.js if available for P2
+            // Apply hitbox from hitbox-config.js only for P2
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
                 const config = hitboxConfig.hitboxes[this.p2Character] || hitboxConfig.hitboxes['wizard'];
                 if (config) {
-                    // Use scale-adjusted formula to match P1
-                    const scale = this.wizard2.scaleX;
-                    const adjustedOffsetX = config.offsetX / scale;
-                    const adjustedOffsetY = config.offsetY / scale;
-                    
+                    // Apply hitbox directly - no scale division
+                    // Sprite editor saves in unscaled coordinates
                     this.wizard2.body.setSize(config.width, config.height);
-                    this.wizard2.body.setOffset(adjustedOffsetX, adjustedOffsetY);
-                } else {
-                    // Fallback to default
-                    this.wizard2.body.setSize(20, 30);
-                    this.wizard2.body.setOffset(30, 25);
+                    this.wizard2.body.setOffset(config.offsetX, config.offsetY);
+                    console.log(`[P2] Applied hitbox from config:`, config);
+                    console.log(`[P2] Scale: ${this.wizard2.scaleX}, Direct offsets: (${config.offsetX}, ${config.offsetY})`);
+                    hitboxApplied = true;
                 }
-            } else {
-                // Fallback if config not loaded
-                this.wizard2.body.setSize(20, 30);
-                
-                // Character-specific body offsets for P2
-                if ((this.p2Character || 'wizard') === 'grim') {
-                    this.wizard2.body.setOffset(26, 15);
-                } else if ((this.p2Character || 'wizard') === 'blip') {
-                    // Use centered offset for Blip
-                    this.wizard2.body.setOffset(15, 5);
-                } else {
-                    this.wizard2.body.setOffset(30, 25);
-                }
+            }
+            
+            // If still no hitbox, use default
+            if (!hitboxApplied) {
+                this.wizard2.body.setSize(30, 30);
+                this.wizard2.body.setOffset(0, 0);
+                console.log('[P2] No hitbox config found, using default 30x30');
             }
             
             // Create shadow for P2
@@ -10041,10 +10089,40 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        // Apply hitbox configuration from hitbox-config.js if available
+        // Apply hitbox configuration from hitbox-config.js only
         if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+            // Force reload the config to get latest values
+            const configScript = document.querySelector('script[src*="hitbox-config.js"]');
+            if (configScript) {
+                console.log('[P1] Reloading hitbox-config.js to get latest values...');
+            }
+            
+            // Extra debugging for Grim
+            if (this.p1Character === 'grim') {
+                console.log('=== GRIM HITBOX DEBUG ===');
+                console.log('Character name:', this.p1Character);
+                console.log('Type of p1Character:', typeof this.p1Character);
+                console.log('hitboxConfig loaded?', hitboxConfig.loaded);
+                console.log('All hitbox keys:', Object.keys(hitboxConfig.hitboxes));
+                console.log('Grim in hitboxes?', 'grim' in hitboxConfig.hitboxes);
+                console.log('Raw grim config:', hitboxConfig.hitboxes['grim']);
+                
+                // Try to read the config file directly
+                try {
+                    console.log('Attempting to access grim config directly...');
+                    const grimConfig = hitboxConfig.hitboxes['grim'];
+                    console.log('Direct access result:', grimConfig);
+                } catch (e) {
+                    console.error('Error accessing grim config:', e);
+                }
+            }
+            
             const config = hitboxConfig.hitboxes[this.p1Character] || hitboxConfig.hitboxes['wizard'];
-            console.log(`Applying hitbox for P1 character '${this.p1Character}':`, config);
+            console.log(`[P1] Looking for hitbox config for character: '${this.p1Character}'`);
+            console.log(`[P1] Direct check - hitboxConfig.hitboxes['grim']:`, hitboxConfig.hitboxes['grim']);
+            console.log(`[P1] Direct check - hitboxConfig.hitboxes.grim:`, hitboxConfig.hitboxes.grim);
+            console.log(`[P1] Applying hitbox from config for '${this.p1Character}':`, config);
+            console.log(`[P1] Full hitbox config keys:`, Object.keys(hitboxConfig.hitboxes));
             if (config) {
                 // Convert editor's top-left based offset to center-based offset for sprites with centered origin
                 // Editor calculates offset from top-left (0,0), but Phaser applies from sprite's anchor point
@@ -10072,15 +10150,42 @@ class GameScene extends Phaser.Scene {
                     y: config.offsetY / scale
                 };
                 
-                // Use scale-adjusted formula - this accounts for sprite scaling
-                const adjustedOffsetX = config.offsetX / scale;
-                const adjustedOffsetY = config.offsetY / scale;
+                // Apply hitbox directly - no scale division
+                // Sprite editor saves in unscaled coordinates
                 
-                // Log the final calculation
-                console.log(`P1 ${this.p1Character}: Hitbox ${config.width}x${config.height}, Scale ${scale}, Offset adjusted from (${config.offsetX}, ${config.offsetY}) to (${adjustedOffsetX.toFixed(1)}, ${adjustedOffsetY.toFixed(1)})`);
+                // Log the final calculation with more detail
+                console.log(`[P1 HITBOX] ${this.p1Character}:`);
+                console.log(`  Sprite info - Origin: (${this.wizard.originX}, ${this.wizard.originY}), Scale: ${scale}`);
+                console.log(`  Frame size: ${this.wizard.width}x${this.wizard.height}`);
+                console.log(`  Display size: ${this.wizard.displayWidth}x${this.wizard.displayHeight}`);
+                console.log(`  DisplayOrigin: (${this.wizard.displayOriginX}, ${this.wizard.displayOriginY})`);
+                console.log(`  Hitbox: ${config.width}x${config.height}`);
+                console.log(`  Offset: Direct application (${config.offsetX}, ${config.offsetY})`);
                 
+                console.log(`[P1] BEFORE setSize/setOffset - Body: ${this.wizard.body.width}x${this.wizard.body.height} at (${this.wizard.body.offset.x}, ${this.wizard.body.offset.y})`);
                 this.wizard.body.setSize(config.width, config.height);
+                
+                // Adjust offset for flipped sprites
+                let adjustedOffsetX = config.offsetX;
+                let adjustedOffsetY = config.offsetY;
+                
+                // Check if sprite is flipped
+                const isFlippedX = this.wizard.scaleX < 0;
+                const isFlippedY = this.wizard.scaleY < 0;
+                
+                if (isFlippedX) {
+                    // When horizontally flipped, mirror the X offset
+                    adjustedOffsetX = this.wizard.width - config.offsetX - config.width;
+                }
+                
+                if (isFlippedY) {
+                    // When vertically flipped, mirror the Y offset
+                    adjustedOffsetY = this.wizard.height - config.offsetY - config.height;
+                }
+                
                 this.wizard.body.setOffset(adjustedOffsetX, adjustedOffsetY);
+                console.log(`[P1] AFTER setSize/setOffset - Body: ${this.wizard.body.width}x${this.wizard.body.height} at (${this.wizard.body.offset.x}, ${this.wizard.body.offset.y})`);
+                console.log(`[P1] Flip state: X=${isFlippedX}, Y=${isFlippedY}, Adjusted offset: (${adjustedOffsetX}, ${adjustedOffsetY})`);
                 
                 // Create visual debug overlay for hitbox (for ALL characters in debug mode)
                 if (DEBUG_MODE) {
@@ -10107,7 +10212,7 @@ class GameScene extends Phaser.Scene {
                             half: { x: halfOffset.x, y: halfOffset.y },
                             originAdjusted: { x: originAdjusted.x, y: originAdjusted.y },
                             scaleAdjusted: { x: scaleAdjusted.x, y: scaleAdjusted.y },
-                            current: { x: adjustedOffsetX, y: adjustedOffsetY }
+                            current: { x: config.offsetX, y: config.offsetY }
                         }
                     };
                     
@@ -10137,27 +10242,19 @@ class GameScene extends Phaser.Scene {
                     });
                 }
                 console.log(`Frame: ${frameWidth}x${frameHeight}, Origin: (${originX}, ${originY})`);
-                console.log(`Editor offset (from top-left): (${config.offsetX}, ${config.offsetY})`);
-                console.log(`Game offset (from origin): (${adjustedOffsetX.toFixed(1)}, ${adjustedOffsetY.toFixed(1)})`)
+                console.log(`Applied offset (direct from config): (${config.offsetX}, ${config.offsetY})`)
             } else {
-                // Fallback to default
-                console.log('No hitbox config found, using defaults');
-                this.wizard.body.setSize(20, 30);
-                this.wizard.body.setOffset(30, 25);
+                // No hitbox config found, use defaults based on character
+                console.log('No hitbox config found, using character defaults');
+                // Use config defaults or fallback to 30x30 at origin
+                this.wizard.body.setSize(30, 30);
+                this.wizard.body.setOffset(0, 0);
             }
         } else {
-            // Fallback if config not loaded
-            this.wizard.body.setSize(20, 30);
-            
-            // Character-specific body offsets to center sprites properly
-            if (this.p1Character === 'grim') {
-                this.wizard.body.setOffset(26, 15);
-            } else if (this.p1Character === 'blip') {
-                // Use centered offset for Blip
-                this.wizard.body.setOffset(15, 5);
-            } else {
-                this.wizard.body.setOffset(30, 25);
-            }
+            // Config not loaded yet, use default hitbox
+            console.log('Config not loaded, using default hitbox for P1');
+            this.wizard.body.setSize(30, 30);
+            this.wizard.body.setOffset(0, 0);
         }
 
         // Try to minimize the grey background visibility
@@ -12195,6 +12292,7 @@ class GameScene extends Phaser.Scene {
             // Top border
             let tree = this.trees.create(x, 20, 'tree');
             tree.setScale(0.8);
+            // Note: These are obstacles, not enemies, so hardcoding is acceptable
             tree.body.setSize(30, 30);
             tree.body.setOffset(15, 45);
             tree.setDepth(2);
@@ -12202,6 +12300,7 @@ class GameScene extends Phaser.Scene {
             // Bottom border
             tree = this.trees.create(x, worldHeight - 20, 'tree');
             tree.setScale(0.8);
+            // Note: These are obstacles, not enemies, so hardcoding is acceptable
             tree.body.setSize(30, 30);
             tree.body.setOffset(15, 45);
             tree.setDepth(72);
@@ -12212,6 +12311,7 @@ class GameScene extends Phaser.Scene {
             // Left border
             let tree = this.trees.create(20, y, 'tree');
             tree.setScale(0.8);
+            // Note: These are obstacles, not enemies, so hardcoding is acceptable
             tree.body.setSize(30, 30);
             tree.body.setOffset(15, 45);
             tree.setDepth(y / 10);
@@ -12219,6 +12319,7 @@ class GameScene extends Phaser.Scene {
             // Right border
             tree = this.trees.create(worldWidth - 20, y, 'tree');
             tree.setScale(0.8);
+            // Note: These are obstacles, not enemies, so hardcoding is acceptable
             tree.body.setSize(30, 30);
             tree.body.setOffset(15, 45);
             tree.setDepth(y / 10);
@@ -12239,6 +12340,7 @@ class GameScene extends Phaser.Scene {
 
             const tree = this.trees.create(x, y, 'tree');
             tree.setScale(0.8);
+            // Note: These are obstacles, not enemies, so hardcoding is acceptable
             tree.body.setSize(30, 30);
             tree.body.setOffset(15, 45);
             tree.setDepth(y / 10);
@@ -16285,19 +16387,16 @@ class GameScene extends Phaser.Scene {
                     wizard.lastStableDirection = newDirection;
 
                     // Update flip based on horizontal component
-                    // Grim has reversed flipping
-                    if (wizard.characterType === 'grim') {
-                        if (leftStickX < -deadzone) {
-                            wizard.setFlipX(true); // Face left (reversed for Grim)
-                        } else if (leftStickX > deadzone) {
-                            wizard.setFlipX(false); // Face right (reversed for Grim)
-                        }
-                    } else {
-                        if (leftStickX < -deadzone) {
-                            wizard.setFlipX(false); // Face left
-                        } else if (leftStickX > deadzone) {
-                            wizard.setFlipX(true); // Face right
-                        }
+                    // Check if character has initial flip from config
+                    let hasInitialFlip = false;
+                    if (typeof hitboxConfig !== 'undefined' && hitboxConfig.flips && hitboxConfig.flips[wizard.characterType]) {
+                        hasInitialFlip = hitboxConfig.flips[wizard.characterType].flipX || false;
+                    }
+                    
+                    if (leftStickX < -deadzone) {
+                        wizard.setFlipX(hasInitialFlip ? true : false); // Face left (inverted if initially flipped)
+                    } else if (leftStickX > deadzone) {
+                        wizard.setFlipX(hasInitialFlip ? false : true); // Face right (inverted if initially flipped)
                     }
                 } else {
                     // When gamepad is centered, preserve the last stable direction
@@ -16314,13 +16413,21 @@ class GameScene extends Phaser.Scene {
 
                 if (movingLeft && !movingRight) {
                     velocityX = -speed;
-                    // Grim has reversed flipping
-                    wizard.setFlipX(wizard.characterType === 'grim' ? true : false); // Face left
+                    // Check if character has initial flip from config
+                    let hasInitialFlip = false;
+                    if (typeof hitboxConfig !== 'undefined' && hitboxConfig.flips && hitboxConfig.flips[wizard.characterType]) {
+                        hasInitialFlip = hitboxConfig.flips[wizard.characterType].flipX || false;
+                    }
+                    wizard.setFlipX(hasInitialFlip ? true : false); // Face left (inverted if initially flipped)
                     moving = true;
                 } else if (movingRight && !movingLeft) {
                     velocityX = speed;
-                    // Grim has reversed flipping
-                    wizard.setFlipX(wizard.characterType === 'grim' ? false : true); // Face right
+                    // Check if character has initial flip from config
+                    let hasInitialFlip = false;
+                    if (typeof hitboxConfig !== 'undefined' && hitboxConfig.flips && hitboxConfig.flips[wizard.characterType]) {
+                        hasInitialFlip = hitboxConfig.flips[wizard.characterType].flipX || false;
+                    }
+                    wizard.setFlipX(hasInitialFlip ? false : true); // Face right (inverted if initially flipped)
                     moving = true;
                 }
 
@@ -17177,15 +17284,19 @@ class GameScene extends Phaser.Scene {
                         enemy.isTired = true;
                         enemy.setVelocity(0, 0);
                         
-                        // Clear warning circle using proper removal
+                        // Clear warning circle
                         if (enemy.warningCircle) {
-                            this.removeDangerWarning(enemy.warningCircle);
+                            if (enemy.warningCircle.destroy) {
+                                enemy.warningCircle.destroy();
+                            } else if (enemy.warningCircle.remove) {
+                                enemy.warningCircle.remove();
+                            }
                             enemy.warningCircle = null;
                         }
                         
                         // Start tired timer
                         this.time.delayedCall(2000, () => {
-                            if (enemy && enemy.active) {
+                            if (enemy && enemy.active && !enemy.isDying) {
                                 enemy.isTired = false;
                                 enemy.play('cacodemon-walking');
                             }
@@ -18479,7 +18590,6 @@ class GameScene extends Phaser.Scene {
         // All elements have already been added to the pause menu container individually
 
         this.pauseMenu.setVisible(false);
-        this.pauseMenu.setDepth(500);
         this.pauseMenu.setScrollFactor(0);
 
         // Set up drag events - we need to remove old listeners first to avoid duplicates
@@ -20709,6 +20819,11 @@ class GameScene extends Phaser.Scene {
             enemy.isDying = true;
             enemy.setVelocity(0, 0);
             
+            // IMMEDIATELY disable physics to prevent collisions during death
+            if (enemy.body) {
+                enemy.body.enable = false;
+            }
+            
             // Clear all cacodemon states
             enemy.isPursuing = false;
             enemy.isTired = false;
@@ -20718,9 +20833,13 @@ class GameScene extends Phaser.Scene {
             // Stop any current animations
             enemy.stop();
             
-            // Clear warning circle if exists using proper removal
+            // Clear warning circle if exists
             if (enemy.warningCircle) {
-                this.removeDangerWarning(enemy.warningCircle);
+                if (enemy.warningCircle.destroy) {
+                    enemy.warningCircle.destroy();
+                } else if (enemy.warningCircle.remove) {
+                    enemy.warningCircle.remove();
+                }
                 enemy.warningCircle = null;
             }
             
@@ -20730,11 +20849,7 @@ class GameScene extends Phaser.Scene {
             const shouldDropChest = true;
             
             // Play death animation
-            try {
-                enemy.play('cacodemon-dying');
-            } catch (e) {
-                console.warn('Failed to play cacodemon death animation:', e);
-            }
+            enemy.play('cacodemon-dying', true); // Force play even if another animation is playing
             
             // Function to handle death completion
             const completeDeathSequence = () => {
@@ -20773,13 +20888,32 @@ class GameScene extends Phaser.Scene {
             // Clear any existing animation listeners
             enemy.off('animationcomplete');
             
-            // Wait for animation to complete OR use timer as fallback
-            enemy.once('animationcomplete', completeDeathSequence);
+            // Set up both animation complete AND fallback timer
+            let deathCompleted = false;
             
-            // Fallback timer in case animation doesn't complete properly
+            const safeCompleteDeathSequence = () => {
+                if (deathCompleted) return; // Prevent double execution
+                deathCompleted = true;
+                completeDeathSequence();
+            };
+            
+            // Try to wait for animation to complete
+            enemy.once('animationcomplete', () => {
+                if (enemy && enemy.active && !deathCompleted) {
+                    safeCompleteDeathSequence();
+                }
+            });
+            
+            // ALWAYS use fallback timer to guarantee destruction
             this.time.delayedCall(800, () => {
-                if (enemy && enemy.active) {
-                    completeDeathSequence();
+                if (enemy && enemy.active && !deathCompleted) {
+                    console.log('Cacodemon death fallback triggered');
+                    safeCompleteDeathSequence();
+                } else if (enemy && enemy.active) {
+                    // Force destroy if somehow still alive
+                    console.log('Force destroying stuck cacodemon');
+                    if (enemy.body) enemy.body.enable = false;
+                    enemy.destroy();
                 }
             });
         } else if (enemy.enemyType === 'golem') {
@@ -21651,7 +21785,8 @@ class GameScene extends Phaser.Scene {
 
             // Spawn a bat minion
             const bat = this.physics.add.sprite(spawnX, spawnY, 'bat-fly', 0);
-            bat.setScale(0.6); // Smaller than regular bats
+            // Apply scale from config (bat scale will be used)
+            this.applySavedScale(bat, 'bat');
             bat.health = 2; // Increased by 50%
             bat.maxHealth = bat.health;
             bat.enemyType = 'bat';
@@ -21692,12 +21827,10 @@ class GameScene extends Phaser.Scene {
         if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
             const config = hitboxConfig.hitboxes[projectileType];
             if (config) {
-                const scale = projectile.scaleX || 1;
-                const adjustedOffsetX = config.offsetX / scale;
-                const adjustedOffsetY = config.offsetY / scale;
-                
+                // Apply hitbox directly - no scale division
+                // Sprite editor saves in unscaled coordinates
                 projectile.body.setSize(config.width, config.height);
-                projectile.body.setOffset(adjustedOffsetX, adjustedOffsetY);
+                projectile.body.setOffset(config.offsetX, config.offsetY);
                 return true;
             }
         }
@@ -22292,55 +22425,35 @@ class GameScene extends Phaser.Scene {
     applyHitboxConfig(enemy, enemyType) {
         // Try to apply saved hitbox configuration
         if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
-            return hitboxConfig.applyHitbox(enemy, enemyType);
+            const result = hitboxConfig.applyHitbox(enemy, enemyType);
+            if (result) return true;
         }
         
-        // Also check localStorage directly
-        const savedData = localStorage.getItem('hitboxData');
-        if (savedData) {
-            try {
-                const hitboxData = JSON.parse(savedData);
-                const config = hitboxData[enemyType];
-                if (config) {
-                    enemy.body.setSize(config.width, config.height);
-                    enemy.body.setOffset(config.offsetX, config.offsetY);
-                    return true;
-                }
-            } catch (e) {
-                console.warn('Failed to apply hitbox from localStorage:', e);
-            }
-        }
+        // localStorage removed - using only hitbox-config.js
         
-        return false;
+        // Apply default hitbox if no config exists
+        const defaultSize = 30;
+        enemy.body.setSize(defaultSize, defaultSize);
+        enemy.body.setOffset(0, 0);
+        console.log(`No hitbox config for ${enemyType}, using default ${defaultSize}x${defaultSize}`);
+        return true;
     }
     
     applySavedScale(enemy, enemyType) {
-        // First try to apply scale from hitboxConfig
+        // Apply scale from hitbox-config.js only
         if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
             const scale = hitboxConfig.getScale(enemyType);
-            if (scale && scale !== 1.0) {
+            if (scale) {
                 enemy.setScale(scale);
                 console.log(`Applied scale from hitboxConfig for ${enemyType}: ${scale}`);
                 return true;
             }
         }
         
-        // Fallback to localStorage scale data
-        const scaleData = localStorage.getItem('spriteScaleData');
-        if (scaleData) {
-            try {
-                const scales = JSON.parse(scaleData);
-                const scale = scales[enemyType];
-                if (scale) {
-                    enemy.setScale(scale.scaleX, scale.scaleY);
-                    console.log(`Applied saved scale from localStorage for ${enemyType}: ${scale.scaleX}x${scale.scaleY}`);
-                    return true;
-                }
-            } catch (e) {
-                console.warn('Failed to apply scale from localStorage:', e);
-            }
-        }
-        return false;
+        // Apply default scale of 1.0 if no config exists
+        enemy.setScale(1.0);
+        console.log(`No scale config for ${enemyType}, using default 1.0`);
+        return true;
     }
     
     // Combined function to apply both hitbox and scale data
@@ -22462,11 +22575,8 @@ class GameScene extends Phaser.Scene {
             const enemy = this.physics.add.sprite(x, y, 'enemy-walk', 0);
             enemy.enemyType = 'tree';
             
-            // Apply saved scale or use default
-            if (!this.applySavedScale(enemy, 'tree')) {
-                const scaleFactor = 1.2;
-                enemy.setScale(scaleFactor);
-            }
+            // Apply saved scale (always returns true now)
+            this.applySavedScale(enemy, 'tree');
             
             enemy.health = 5; // Reduced by 50% from 9
             enemy.maxHealth = enemy.health;
@@ -22485,10 +22595,8 @@ class GameScene extends Phaser.Scene {
             const bat = this.physics.add.sprite(x, y, 'bat-fly', 0);
             bat.enemyType = 'bat';
             
-            // Apply saved scale or use default
-            if (!this.applySavedScale(bat, 'bat')) {
-                bat.setScale(0.8);
-            }
+            // Apply saved scale (always returns true now)
+            this.applySavedScale(bat, 'bat');
             
             bat.health = 2; // Increased by 50%
             bat.maxHealth = bat.health;
@@ -22504,10 +22612,8 @@ class GameScene extends Phaser.Scene {
         } else if (enemyType === 'mushroom') {
             const mushroom = this.physics.add.sprite(x, y, 'mushroom-run', 0);
             
-            // Apply scale from config or use default
-            if (!this.applySavedScale(mushroom, 'mushroom')) {
-                mushroom.setScale(0.7);
-            }
+            // Apply scale from config
+            this.applySavedScale(mushroom, 'mushroom');
             
             mushroom.setFlipY(true); // Reverse vertical facing
             mushroom.health = 5; // Increased by 50%
@@ -22528,7 +22634,8 @@ class GameScene extends Phaser.Scene {
                 return null;
             }
             const giantfly = this.physics.add.sprite(x, y, 'giantfly-walk', 0);
-            giantfly.setScale(2.0); // Scale up the 32x32 sprite
+            // Apply scale from config
+            this.applySavedScale(giantfly, 'giantfly');
             giantfly.health = 4; // Low-medium health, flies are fragile
             giantfly.maxHealth = giantfly.health;
             giantfly.enemyType = 'giantfly';
@@ -22555,7 +22662,8 @@ class GameScene extends Phaser.Scene {
                 return null;
             }
             const squirrel = this.physics.add.sprite(x, y, 'squirrel-walk', 0);
-            squirrel.setScale(2.0); // Scale up the 32x32 sprite
+            // Apply scale from config
+            this.applySavedScale(squirrel, 'squirrel');
             squirrel.health = 5; // Medium health
             squirrel.maxHealth = squirrel.health;
             squirrel.enemyType = 'squirrel';
@@ -22580,7 +22688,8 @@ class GameScene extends Phaser.Scene {
                 return null;
             }
             const redpanda = this.physics.add.sprite(x, y, 'redpanda-walk', 0);
-            redpanda.setScale(2.0); // Scale up the 32x32 sprite
+            // Apply scale from config
+            this.applySavedScale(redpanda, 'redpanda');
             redpanda.health = 7; // Medium-high health
             redpanda.maxHealth = redpanda.health;
             redpanda.enemyType = 'redpanda';
@@ -22600,7 +22709,8 @@ class GameScene extends Phaser.Scene {
             this.addEnemyToGroup(redpanda);
         } else if (enemyType === 'fireworm') {
             const fireworm = this.physics.add.sprite(x, y, 'fireworm-walk', 0);
-            fireworm.setScale(1.2);
+            // Apply scale from config
+            this.applySavedScale(fireworm, 'fireworm');
             fireworm.health = 3; // Increased by 50%
             fireworm.maxHealth = fireworm.health;
             fireworm.enemyType = 'fireworm';
@@ -22615,7 +22725,8 @@ class GameScene extends Phaser.Scene {
             fireworm.play('fireworm-walking');
         } else if (enemyType === 'summoner') {
             const summoner = this.physics.add.sprite(x, y, 'summoner-walk', 0);
-            summoner.setScale(0.8);
+            // Apply scale from config
+            this.applySavedScale(summoner, 'summoner');
             summoner.health = 12; // Increased by 50%
             summoner.maxHealth = summoner.health;
             summoner.enemyType = 'summoner';
@@ -22659,7 +22770,8 @@ class GameScene extends Phaser.Scene {
             this.addEnemyToGroup(soul);
         } else if (enemyType === 'bloboid') {
             const bloboid = this.physics.add.sprite(x, y, 'bloboid-walk', 0);
-            bloboid.setScale(1.5);
+            // Apply scale from config
+            this.applySavedScale(bloboid, 'bloboid');
             bloboid.setFlipX(true);
             bloboid.setFlipY(true); // Reverse vertical facing
             bloboid.health = 8; // Increased by 50%
@@ -22677,10 +22789,8 @@ class GameScene extends Phaser.Scene {
         } else if (enemyType === 'slime') {
             const slime = this.physics.add.sprite(x, y, 'slime-idle', 0);
             
-            // Apply scale from config or use default
-            if (!this.applySavedScale(slime, 'slime')) {
-                slime.setScale(1.0);
-            }
+            // Apply scale from config
+            this.applySavedScale(slime, 'slime');
             
             slime.health = 4; // Increased by 50%
             slime.maxHealth = slime.health;
@@ -22696,7 +22806,8 @@ class GameScene extends Phaser.Scene {
             this.addEnemyToGroup(slime);
         } else if (enemyType === 'fireslime') {
             const slime = this.physics.add.sprite(x, y, 'slime-idle', 0);
-            slime.setScale(1.0);
+            // Apply scale from config
+            this.applySavedScale(slime, 'fireslime');
             slime.setTint(0xff4444); // Red tint for fire slime
             slime.health = 5; // Slightly more health than regular slime
             slime.maxHealth = slime.health;
@@ -22716,10 +22827,8 @@ class GameScene extends Phaser.Scene {
             const golemColor = Math.random() < 0.5 ? 'orange' : 'blue';
             const golem = this.physics.add.sprite(x, y, `golem-${golemColor}-walk`, 0);
             
-            // Apply scale from config or use default
-            if (!this.applySavedScale(golem, 'golem')) {
-                golem.setScale(1.5);
-            }
+            // Apply scale from config
+            this.applySavedScale(golem, 'golem');
             
             golem.health = 15; // Increased by 50%
             golem.maxHealth = golem.health;
@@ -22737,7 +22846,8 @@ class GameScene extends Phaser.Scene {
         } else if (enemyType === 'orangegolem') {
             // Always orange golem for lava stage
             const golem = this.physics.add.sprite(x, y, 'golem-orange-walk', 0);
-            golem.setScale(1.5);
+            // Apply scale from config
+            this.applySavedScale(golem, 'golem-blue');
             golem.health = 18; // More health than regular golem
             golem.maxHealth = golem.health;
             golem.enemyType = 'golem';
@@ -22757,10 +22867,8 @@ class GameScene extends Phaser.Scene {
         } else if (enemyType === 'clubimp') {
             // Create Club Imp
             const imp = this.physics.add.sprite(x, y, 'club-imp-walk-1');
-            // Apply saved scale or default to 3x
-            if (!this.applySavedScale(imp, 'clubimp')) {
-                imp.setScale(3);
-            }
+            // Apply saved scale
+            this.applySavedScale(imp, 'clubimp');
             imp.health = 5;
             imp.maxHealth = imp.health;
             imp.enemyType = 'clubimp';
@@ -22770,19 +22878,15 @@ class GameScene extends Phaser.Scene {
             imp.isReviving = false;
             imp.play('club-imp-walk');
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(imp, 'clubimp')) {
-                imp.body.setSize(30, 40);
-                imp.body.setOffset(15, 10);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(imp, 'clubimp');
             imp.element = 'earth';
             this.addEnemyToGroup(imp);
         } else if (enemyType === 'axeimp') {
             // Create Axe Imp
             const imp = this.physics.add.sprite(x, y, 'axe-imp-walk-1');
-            // Apply saved scale or default to 3x
-            if (!this.applySavedScale(imp, 'axeimp')) {
-                imp.setScale(3);
-            }
+            // Apply saved scale
+            this.applySavedScale(imp, 'axeimp');
             imp.health = 4;
             imp.maxHealth = imp.health;
             imp.enemyType = 'axeimp';
@@ -22792,19 +22896,15 @@ class GameScene extends Phaser.Scene {
             imp.isReviving = false;
             imp.play('axe-imp-walk');
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(imp, 'axeimp')) {
-                imp.body.setSize(30, 40);
-                imp.body.setOffset(15, 10);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(imp, 'axeimp');
             imp.element = 'metal';
             this.addEnemyToGroup(imp);
         } else if (enemyType === 'kobold') {
             const kobold = this.physics.add.sprite(x, y, 'kobold-walk', 0);
             
-            // Apply scale from config or use default
-            if (!this.applySavedScale(kobold, 'kobold')) {
-                kobold.setScale(0.6); // Reduced by 40%
-            }
+            // Apply scale from config
+            this.applySavedScale(kobold, 'kobold');
             
             kobold.health = 6;
             kobold.maxHealth = kobold.health;
@@ -22813,15 +22913,14 @@ class GameScene extends Phaser.Scene {
             kobold.damage = 15;
             kobold.play('kobold-walk');
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(kobold, 'kobold')) {
-                kobold.body.setSize(48, 42); // Reduced by 40%
-                kobold.body.setOffset(20, 8); // Adjusted for smaller size
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(kobold, 'kobold');
             kobold.element = 'earth';
             this.addEnemyToGroup(kobold);
         } else if (enemyType === 'darkbat') {
             const darkbat = this.physics.add.sprite(x, y, 'dark-bat-fly', 0);
-            darkbat.setScale(1.2);
+            // Apply scale from config
+            this.applySavedScale(darkbat, 'darkbat');
             darkbat.health = 3;
             darkbat.maxHealth = darkbat.health;
             darkbat.enemyType = 'darkbat';
@@ -22829,17 +22928,16 @@ class GameScene extends Phaser.Scene {
             darkbat.damage = 12;
             darkbat.play('dark-bat-fly');
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(darkbat, 'darkbat')) {
-                darkbat.body.setSize(50, 40);
-                darkbat.body.setOffset(7, 12);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(darkbat, 'darkbat');
             darkbat.isFlying = true;
             darkbat.element = 'arcane';
             this.setEnemyDepth(darkbat);
             this.addEnemyToGroup(darkbat);
         } else if (enemyType === 'brainmole') {
             const brainmole = this.physics.add.sprite(x, y, 'brainmole-walk', 0);
-            brainmole.setScale(2.0); // Scale up the 32x32 sprite
+            // Apply scale from config
+            this.applySavedScale(brainmole, 'brainmole');
             brainmole.health = 5; // Medium health
             brainmole.maxHealth = brainmole.health;
             brainmole.enemyType = 'brainmole';
@@ -22847,15 +22945,14 @@ class GameScene extends Phaser.Scene {
             brainmole.damage = 20; // High damage for psychic attacks
             brainmole.play('brainmole-walking');
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(brainmole, 'brainmole')) {
-                brainmole.body.setSize(28, 28);
-                brainmole.body.setOffset(2, 2);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(brainmole, 'brainmole');
             brainmole.element = 'arcane'; // Psychic/arcane type
             this.addEnemyToGroup(brainmole);
         } else if (enemyType === 'intellectdevourer') {
             const devourer = this.physics.add.sprite(x, y, 'intellectdevourer-walk', 0);
-            devourer.setScale(1.8); // Scale up the 32x32 sprite
+            // Apply scale from config
+            this.applySavedScale(devourer, 'intellectdevourer');
             devourer.health = 8; // High health for a brain creature
             devourer.maxHealth = devourer.health;
             devourer.enemyType = 'intellectdevourer';
@@ -22863,16 +22960,15 @@ class GameScene extends Phaser.Scene {
             devourer.damage = 25; // Very high damage - dangerous enemy
             devourer.play('intellectdevourer-walking');
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(devourer, 'intellectdevourer')) {
-                devourer.body.setSize(26, 26);
-                devourer.body.setOffset(3, 3);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(devourer, 'intellectdevourer');
             devourer.element = 'arcane'; // Psychic/arcane type
             devourer.isFlying = true; // Brain creatures levitate
             this.addEnemyToGroup(devourer);
         } else if (enemyType === 'wraith') {
             const wraith = this.physics.add.sprite(x, y, 'wraith-walk', 0);
-            wraith.setScale(1.5); // Scale the 64x64 sprite
+            // Apply scale from config
+            this.applySavedScale(wraith, 'wraith');
             wraith.health = 10; // High health for undead creature
             wraith.maxHealth = wraith.health;
             wraith.enemyType = 'wraith';
@@ -22880,10 +22976,8 @@ class GameScene extends Phaser.Scene {
             wraith.damage = 30; // High damage
             wraith.play('wraith-walking');
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(wraith, 'wraith')) {
-                wraith.body.setSize(40, 50);
-                wraith.body.setOffset(12, 7);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(wraith, 'wraith');
             wraith.element = 'arcane'; // Undead/arcane type
             wraith.isFlying = true; // Wraiths float
             wraith.attackRange = 200; // Range for projectile attack
@@ -22893,7 +22987,8 @@ class GameScene extends Phaser.Scene {
             this.addEnemyToGroup(wraith);
         } else if (enemyType === 'flyingdemon') {
             const demon = this.physics.add.sprite(x, y, 'flying-demon', 0);
-            demon.setScale(0.91); // Reduced by 30% from 1.3
+            // Apply scale from config
+            this.applySavedScale(demon, 'flyingdemon');
             demon.setFlipX(false); // Remove horizontal flip - sprite faces correct direction
             demon.health = 8;
             demon.maxHealth = demon.health;
@@ -22902,10 +22997,8 @@ class GameScene extends Phaser.Scene {
             demon.damage = 20;
             demon.play('flying-demon-fly');
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(demon, 'flyingdemon')) {
-                demon.body.setSize(50, 40);
-                demon.body.setOffset(7, 12);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(demon, 'flyingdemon');
             demon.isFlying = true;
             demon.element = 'fire';
             demon.burnDamage = 2;
@@ -22914,7 +23007,8 @@ class GameScene extends Phaser.Scene {
             this.addEnemyToGroup(demon);
         } else if (enemyType === 'yellowskeleton') {
             const skeleton = this.physics.add.sprite(x, y, 'skeleton-yellow-walk', 0);
-            skeleton.setScale(1.0);
+            // Apply scale from config
+            this.applySavedScale(skeleton, 'yellowskeleton');
             skeleton.health = 4;
             skeleton.maxHealth = skeleton.health;
             skeleton.enemyType = 'yellowskeleton';
@@ -22922,10 +23016,8 @@ class GameScene extends Phaser.Scene {
             skeleton.damage = 15;
             skeleton.play('skeleton-yellow-walking');
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(skeleton, 'yellowskeleton')) {
-                skeleton.body.setSize(40, 50);
-                skeleton.body.setOffset(28, 14);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(skeleton, 'yellowskeleton');
             this.setEnemyDepth(skeleton);
             this.addEnemyToGroup(skeleton);
         } else if (enemyType === 'skeletonseeker') {
@@ -23084,10 +23176,8 @@ class GameScene extends Phaser.Scene {
         } else if (enemyType === 'cobra') {
             const cobra = this.physics.add.sprite(x, y, 'cobra-walk', 0);
             
-            // Apply scale from config or use default
-            if (!this.applySavedScale(cobra, 'cobra')) {
-                cobra.setScale(2.0); // Scale up the 32x32 sprite
-            }
+            // Apply scale from config
+            this.applySavedScale(cobra, 'cobra');
             
             cobra.health = 6; // Medium health
             cobra.maxHealth = cobra.health;
@@ -23999,6 +24089,18 @@ class GameScene extends Phaser.Scene {
                         console.error('WIZARD DEATH: Killing all tweens!');
                         this.time.removeAllEvents();
                         this.tweens.killAll();
+                        
+                        // Stop all audio before transitioning to prevent null reference errors
+                        if (this.bgMusic) {
+                            this.bgMusic.stop();
+                            this.bgMusic = null;
+                        }
+                        if (this.bossMusic) {
+                            this.bossMusic.stop();
+                            this.bossMusic = null;
+                        }
+                        this.sound.stopAll();
+                        
                         this.scene.start('GameOverScene', {
                             survivalTime: this.survivalTime,
                             enemiesKilled: this.enemiesKilled,
@@ -46230,10 +46332,8 @@ class GameScene extends Phaser.Scene {
         const boss = this.physics.add.sprite(bossX, bossY, 'obelisk-boss', 0);
         boss.enemyType = 'obelisk-boss';
         
-        // Apply saved scale or use default
-        if (!this.applySavedScale(boss, 'obelisk-boss')) {
-            boss.setScale(2); // Make boss large
-        }
+        // Apply saved scale
+        this.applySavedScale(boss, 'obelisk-boss');
         
         // Adjust boss health based on enemy density setting
         const baseHealth = 2700;
@@ -46353,10 +46453,8 @@ class GameScene extends Phaser.Scene {
         const boss = this.physics.add.sprite(bossX, bossY, 'archer-boss-walk', 0);
         boss.enemyType = 'archer-boss';
         
-        // Apply saved scale or use default (scaled up 50% from 1.5 to 2.25)
-        if (!this.applySavedScale(boss, 'archer-boss')) {
-            boss.setScale(2.25); // Make boss 50% larger than before
-        }
+        // Apply saved scale
+        this.applySavedScale(boss, 'archer-boss');
         
         // Adjust boss health based on enemy density setting
         const baseHealth = 13200; // Double the tripled health (6600 * 2)
@@ -46507,10 +46605,8 @@ class GameScene extends Phaser.Scene {
         const boss = this.physics.add.sprite(bossX, bossY, 'eyelor-move-1');
         boss.enemyType = 'eyelor-boss';
         
-        // Apply saved scale or use default
-        if (!this.applySavedScale(boss, 'eyelor-boss')) {
-            boss.setScale(2.0);
-        }
+        // Apply saved scale
+        this.applySavedScale(boss, 'eyelor-boss');
         
         // Adjust boss health for sand stage
         const baseHealth = 4500;
@@ -47171,10 +47267,8 @@ class GameScene extends Phaser.Scene {
         const boss = this.physics.add.sprite(bossX, bossY, 'nekros-walk-1');
         boss.enemyType = 'nekros-boss';
         
-        // Apply saved scale or use default
-        if (!this.applySavedScale(boss, 'nekros-boss')) {
-            boss.setScale(1.8);
-        }
+        // Apply saved scale
+        this.applySavedScale(boss, 'nekros-boss');
         
         // Adjust boss health for grave stage
         const baseHealth = 5000;
@@ -47332,10 +47426,8 @@ class GameScene extends Phaser.Scene {
         const boss = this.physics.add.sprite(bossX, bossY, 'demon-slime-idle-1');
         boss.enemyType = 'demon-slime-boss';
         
-        // Apply saved scale or use default
-        if (!this.applySavedScale(boss, 'demon-slime-boss')) {
-            boss.setScale(1.75); // Reduced by 30% from 2.5
-        }
+        // Apply saved scale
+        this.applySavedScale(boss, 'demon-slime-boss');
         boss.setFlipX(true); // Flip horizontally to face correct direction
         
         // Adjust boss health based on enemy density setting
@@ -50178,6 +50270,18 @@ class GameScene extends Phaser.Scene {
             onComplete: () => {
                 // Use a simple timer for the scene transition
                 this.time.delayedCall(2000, () => {
+                    // Stop all audio before transitioning to prevent null reference errors
+                    if (this.bgMusic) {
+                        this.bgMusic.stop();
+                        this.bgMusic = null;
+                    }
+                    if (this.bossMusic) {
+                        this.bossMusic.stop();
+                        this.bossMusic = null;
+                    }
+                    // Stop all sounds to prevent any lingering audio issues
+                    this.sound.stopAll();
+                    
                     this.scene.start('GameOverScene', {
                         survivalTime: this.survivalTime,
                         enemiesKilled: this.enemiesKilled,
@@ -50228,6 +50332,18 @@ class GameScene extends Phaser.Scene {
             console.error('WIZARD DEATH: Killing all tweens!');
             this.time.removeAllEvents();
             this.tweens.killAll();
+            
+            // Stop all audio before transitioning to prevent null reference errors
+            if (this.bgMusic) {
+                this.bgMusic.stop();
+                this.bgMusic = null;
+            }
+            if (this.bossMusic) {
+                this.bossMusic.stop();
+                this.bossMusic = null;
+            }
+            this.sound.stopAll();
+            
             this.scene.start('GameOverScene', {
                 survivalTime: this.survivalTime,
                 enemiesKilled: this.enemiesKilled,
@@ -52265,10 +52381,7 @@ const config = {
         powerPreference: isElectron ? 'high-performance' : 'default',
         batchSize: 4096,  // Increased for better performance
         maxTextures: -1,  // Use all available texture units
-        mipmapFilter: 'LINEAR',
-        clearBeforeRender: false,  // Better performance
-        preserveDrawingBuffer: false,  // Better performance
-        premultipliedAlpha: true,  // Standard setting
+        mipmapFilter: 'NEAREST', // Better for pixel art
         failIfMajorPerformanceCaveat: false,
         transparent: false,
         desynchronized: true  // Better performance in Electron

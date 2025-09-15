@@ -1,5 +1,5 @@
 @echo off
 echo Starting Enemy Sprite Editor Server...
 echo.
-node serve-editor.js
+node run-editor.js
 pause

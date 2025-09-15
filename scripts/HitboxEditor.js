@@ -26,6 +26,150 @@ class HitboxEditor {
         this.init();
     }
     
+    createSliderControls() {
+        // Create a DOM element for slider controls
+        const sliderPanel = document.createElement('div');
+        sliderPanel.id = 'hitbox-slider-panel';
+        sliderPanel.style.cssText = `
+            position: fixed;
+            top: 100px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 14px;
+            display: none;
+            z-index: 10000;
+            min-width: 300px;
+        `;
+        
+        sliderPanel.innerHTML = `
+            <h3 style="margin: 0 0 10px 0; color: #00ff00;">Hitbox Controls</h3>
+            
+            <div style="margin-bottom: 10px;">
+                <label>Width: <span id="hitbox-width-value">0</span></label><br>
+                <input type="range" id="hitbox-width" min="5" max="500" value="50" style="width: 100%;">
+            </div>
+            
+            <div style="margin-bottom: 10px;">
+                <label>Height: <span id="hitbox-height-value">0</span></label><br>
+                <input type="range" id="hitbox-height" min="5" max="500" value="50" style="width: 100%;">
+            </div>
+            
+            <div style="margin-bottom: 10px;">
+                <label>Offset X: <span id="hitbox-offsetx-value">0</span></label><br>
+                <input type="range" id="hitbox-offsetx" min="-250" max="250" value="0" style="width: 100%;">
+            </div>
+            
+            <div style="margin-bottom: 10px;">
+                <label>Offset Y: <span id="hitbox-offsety-value">0</span></label><br>
+                <input type="range" id="hitbox-offsety" min="-250" max="250" value="0" style="width: 100%;">
+            </div>
+            
+            <div style="margin-bottom: 10px;">
+                <label>Sprite Scale: <span id="sprite-scale-value">1.0</span></label><br>
+                <input type="range" id="sprite-scale" min="10" max="500" value="100" style="width: 100%;">
+            </div>
+            
+            <div style="margin-top: 15px;">
+                <button id="hitbox-apply" style="padding: 5px 10px; margin-right: 5px;">Apply</button>
+                <button id="hitbox-reset" style="padding: 5px 10px; margin-right: 5px;">Reset</button>
+                <button id="hitbox-save" style="padding: 5px 10px;">Save All</button>
+            </div>
+        `;
+        
+        document.body.appendChild(sliderPanel);
+        this.sliderPanel = sliderPanel;
+        
+        // Add event listeners
+        const widthSlider = document.getElementById('hitbox-width');
+        const heightSlider = document.getElementById('hitbox-height');
+        const offsetXSlider = document.getElementById('hitbox-offsetx');
+        const offsetYSlider = document.getElementById('hitbox-offsety');
+        const scaleSlider = document.getElementById('sprite-scale');
+        
+        // Update value displays
+        widthSlider.addEventListener('input', (e) => {
+            document.getElementById('hitbox-width-value').textContent = e.target.value;
+            this.updateHitboxFromSliders();
+        });
+        
+        heightSlider.addEventListener('input', (e) => {
+            document.getElementById('hitbox-height-value').textContent = e.target.value;
+            this.updateHitboxFromSliders();
+        });
+        
+        offsetXSlider.addEventListener('input', (e) => {
+            document.getElementById('hitbox-offsetx-value').textContent = e.target.value;
+            this.updateHitboxFromSliders();
+        });
+        
+        offsetYSlider.addEventListener('input', (e) => {
+            document.getElementById('hitbox-offsety-value').textContent = e.target.value;
+            this.updateHitboxFromSliders();
+        });
+        
+        scaleSlider.addEventListener('input', (e) => {
+            const scaleValue = e.target.value / 100;
+            document.getElementById('sprite-scale-value').textContent = scaleValue.toFixed(2);
+            if (this.currentSprite) {
+                this.currentSprite.setScale(scaleValue);
+                this.updateDisplay();
+            }
+        });
+        
+        // Button handlers
+        document.getElementById('hitbox-apply').addEventListener('click', () => {
+            this.saveCurrentHitbox();
+        });
+        
+        document.getElementById('hitbox-reset').addEventListener('click', () => {
+            this.resetHitbox();
+            this.updateSlidersFromSprite();
+        });
+        
+        document.getElementById('hitbox-save').addEventListener('click', () => {
+            this.exportAllData();
+        });
+    }
+    
+    updateHitboxFromSliders() {
+        if (!this.currentSprite || !this.currentSprite.body) return;
+        
+        const width = parseInt(document.getElementById('hitbox-width').value);
+        const height = parseInt(document.getElementById('hitbox-height').value);
+        const offsetX = parseInt(document.getElementById('hitbox-offsetx').value);
+        const offsetY = parseInt(document.getElementById('hitbox-offsety').value);
+        
+        this.currentSprite.body.setSize(width, height);
+        this.currentSprite.body.setOffset(offsetX, offsetY);
+        
+        this.updateDisplay();
+    }
+    
+    updateSlidersFromSprite() {
+        if (!this.currentSprite || !this.currentSprite.body) return;
+        
+        const body = this.currentSprite.body;
+        
+        document.getElementById('hitbox-width').value = body.width;
+        document.getElementById('hitbox-width-value').textContent = Math.round(body.width);
+        
+        document.getElementById('hitbox-height').value = body.height;
+        document.getElementById('hitbox-height-value').textContent = Math.round(body.height);
+        
+        document.getElementById('hitbox-offsetx').value = body.offset.x;
+        document.getElementById('hitbox-offsetx-value').textContent = Math.round(body.offset.x);
+        
+        document.getElementById('hitbox-offsety').value = body.offset.y;
+        document.getElementById('hitbox-offsety-value').textContent = Math.round(body.offset.y);
+        
+        document.getElementById('sprite-scale').value = this.currentSprite.scaleX * 100;
+        document.getElementById('sprite-scale-value').textContent = this.currentSprite.scaleX.toFixed(2);
+    }
+    
     init() {
         // Create graphics layer for hitbox visualization
         this.graphics = this.scene.add.graphics();
@@ -115,6 +259,9 @@ class HitboxEditor {
         this.scaleDownButton.on('pointerdown', () => this.scaleSprite(0.9));
         this.scaleDownButton.setVisible(false);
         
+        // Create HTML slider controls for precise adjustments
+        this.createSliderControls();
+        
         // Hide everything initially
         this.setVisible(false);
     }
@@ -139,6 +286,11 @@ class HitboxEditor {
             
             // Load scale data
             this.loadScaleData();
+            
+            // Show slider panel
+            if (this.sliderPanel) {
+                this.sliderPanel.style.display = 'block';
+            }
         } else {
             // Use centralized resume system
             if (this.scene.resumeGame) {
@@ -149,6 +301,11 @@ class HitboxEditor {
                 this.scene.time.paused = false;
             }
             this.clearSelection();
+            
+            // Hide slider panel
+            if (this.sliderPanel) {
+                this.sliderPanel.style.display = 'none';
+            }
         }
         
         return this.enabled;
@@ -162,6 +319,9 @@ class HitboxEditor {
         if (!visible) {
             this.saveButton.setVisible(false);
             this.copyButton.setVisible(false);
+            this.resetButton.setVisible(false);
+            this.scaleUpButton.setVisible(false);
+            this.scaleDownButton.setVisible(false);
             this.hideHandles();
         }
     }
@@ -208,6 +368,9 @@ class HitboxEditor {
         
         // Update display
         this.updateDisplay();
+        
+        // Update slider values to match selected sprite
+        this.updateSlidersFromSprite();
         
         // Visual feedback for selection - just a brief flash instead of scale
         const originalTint = sprite.tintTopLeft;
