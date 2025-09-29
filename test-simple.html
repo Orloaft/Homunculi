@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WizBiz - Simple Crash Detector</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1a1a1a;
+            color: #0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        #error-log {
+            background: #000;
+            border: 1px solid #f00;
+            padding: 10px;
+            margin: 20px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .error { color: #f00; font-weight: bold; }
+        .warning { color: #ff0; }
+        .success { color: #0f0; }
+        .crash { 
+            color: #fff; 
+            background: #f00; 
+            padding: 5px;
+            margin: 5px 0;
+            font-weight: bold;
+        }
+        #game-container {
+            width: 800px;
+            height: 600px;
+            margin: 20px auto;
+            border: 2px solid #333;
+        }
+        button {
+            background: #333;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        #status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #333;
+            padding: 10px;
+            border: 1px solid #0f0;
+        }
+    </style>
+</head>
+<body>
+    <h1>WizBiz Simple Crash Detector</h1>
+    
+    <div id="status">
+        <div>Errors Found: <span id="error-count" style="color: #f00">0</span></div>
+        <div>Time: <span id="timer">0s</span></div>
+        <div>FPS: <span id="fps">--</span></div>
+    </div>
+
+    <div>
+        <button onclick="startQuickTest()">Start Quick Test</button>
+        <button onclick="testSceneTransitions()">Test Scene Transitions</button>
+        <button onclick="testSpawnMany()">Spawn 100 Enemies</button>
+        <button onclick="clearErrors()">Clear Log</button>
+    </div>
+
+    <h3>Error Log:</h3>
+    <div id="error-log">Monitoring for errors...</div>
+
+    <div id="game-container"></div>
+
+    <script>
+        let errorCount = 0;
+        let startTime = Date.now();
+        let gameInstance = null;
+        const errorLog = document.getElementById('error-log');
+
+        // Setup comprehensive error tracking
+        window.addEventListener('error', function(event) {
+            errorCount++;
+            document.getElementById('error-count').textContent = errorCount;
+            
+            const errorInfo = {
+                message: event.message,
+                source: event.filename,
+                line: event.lineno,
+                column: event.colno,
+                error: event.error
+            };
+            
+            logError('JAVASCRIPT ERROR', errorInfo);
+            
+            // Check if it's a crash
+            if (event.error && event.error.stack) {
+                if (event.error.stack.includes('Phaser') || 
+                    event.error.stack.includes('game.js') ||
+                    event.error.stack.includes('undefined')) {
+                    logCrash('GAME CRASH DETECTED', errorInfo);
+                }
+            }
+            
+            event.preventDefault();
+            return true;
+        });
+
+        window.addEventListener('unhandledrejection', function(event) {
+            errorCount++;
+            document.getElementById('error-count').textContent = errorCount;
+            
+            logError('UNHANDLED PROMISE REJECTION', {
+                reason: event.reason,
+                promise: event.promise
+            });
+            
+            event.preventDefault();
+        });
+
+        // Override console.error
+        const originalError = console.error;
+        console.error = function(...args) {
+            errorCount++;
+            document.getElementById('error-count').textContent = errorCount;
+            logError('CONSOLE ERROR', args);
+            originalError.apply(console, args);
+        };
+
+        function logError(type, details) {
+            const entry = document.createElement('div');
+            entry.className = 'error';
+            entry.innerHTML = `
+                <strong>[${new Date().toLocaleTimeString()}] ${type}:</strong><br>
+                ${JSON.stringify(details, null, 2).substring(0, 500)}
+            `;
+            errorLog.appendChild(entry);
+            errorLog.scrollTop = errorLog.scrollHeight;
+            
+            console.log('Error captured:', type, details);
+        }
+
+        function logCrash(type, details) {
+            const entry = document.createElement('div');
+            entry.className = 'crash';
+            entry.innerHTML = `
+                <strong>🔥 ${type} 🔥</strong><br>
+                Message: ${details.message}<br>
+                Location: ${details.source}:${details.line}:${details.column}<br>
+                Stack: ${details.error?.stack?.substring(0, 300)}
+            `;
+            errorLog.appendChild(entry);
+            errorLog.scrollTop = errorLog.scrollHeight;
+        }
+
+        function logSuccess(message) {
+            const entry = document.createElement('div');
+            entry.className = 'success';
+            entry.textContent = `✓ ${message}`;
+            errorLog.appendChild(entry);
+            errorLog.scrollTop = errorLog.scrollHeight;
+        }
+
+        function clearErrors() {
+            errorLog.innerHTML = 'Log cleared. Monitoring...';
+            errorCount = 0;
+            document.getElementById('error-count').textContent = '0';
+        }
+
+        // Timer
+        setInterval(() => {
+            const elapsed = Math.round((Date.now() - startTime) / 1000);
+            document.getElementById('timer').textContent = elapsed + 's';
+            
+            if (gameInstance && gameInstance.loop) {
+                document.getElementById('fps').textContent = Math.round(gameInstance.loop.actualFps);
+            }
+        }, 1000);
+    </script>
+
+    <!-- Load game scripts -->
+    <script src="scripts/phaser.min.js"></script>
+    <script src="scripts/hitbox-config.js"></script>
+    <script src="scripts/game.js"></script>
+
+    <script>
+        // Initialize game after scripts load
+        window.addEventListener('load', function() {
+            try {
+                console.log('Initializing game...');
+                const config = {
+                    type: Phaser.AUTO,
+                    width: 800,
+                    height: 600,
+                    parent: 'game-container',
+                    physics: {
+                        default: 'arcade',
+                        arcade: {
+                            gravity: { y: 0 },
+                            debug: false
+                        }
+                    },
+                    scene: [LoadingScene, TitleScene, StageSelectScene, GameScene, GameOverScene, TalentTreeScene]
+                };
+                
+                gameInstance = new Phaser.Game(config);
+                logSuccess('Game initialized successfully');
+                
+            } catch (error) {
+                logCrash('INITIALIZATION CRASH', {
+                    message: error.message,
+                    error: error
+                });
+            }
+        });
+
+        function startQuickTest() {
+            console.log('Starting quick test...');
+            logSuccess('Starting automated test sequence...');
+            
+            // Try to start game
+            setTimeout(() => {
+                try {
+                    gameInstance.scene.start('TitleScene');
+                    logSuccess('Title scene started');
+                } catch (e) {
+                    logCrash('SCENE START CRASH', {message: e.message, error: e});
+                }
+            }, 2000);
+
+            // Try to go to stage select
+            setTimeout(() => {
+                try {
+                    gameInstance.scene.start('StageSelectScene');
+                    logSuccess('Stage select scene started');
+                } catch (e) {
+                    logCrash('STAGE SELECT CRASH', {message: e.message, error: e});
+                }
+            }, 4000);
+
+            // Try to start game
+            setTimeout(() => {
+                try {
+                    gameInstance.scene.start('GameScene', {
+                        stage: 'forestland',
+                        playerNumber: 1,
+                        p1Character: 'wizard'
+                    });
+                    logSuccess('Game scene started');
+                } catch (e) {
+                    logCrash('GAME START CRASH', {message: e.message, error: e});
+                }
+            }, 6000);
+
+            // Try to spawn enemies
+            setTimeout(() => {
+                try {
+                    const scene = gameInstance.scene.getScene('GameScene');
+                    if (scene && scene.spawnEnemy) {
+                        for (let i = 0; i < 10; i++) {
+                            scene.spawnEnemy();
+                        }
+                        logSuccess('Spawned 10 enemies');
+                    }
+                } catch (e) {
+                    logCrash('ENEMY SPAWN CRASH', {message: e.message, error: e});
+                }
+            }, 8000);
+
+            // Try spell casting
+            setTimeout(() => {
+                try {
+                    const scene = gameInstance.scene.getScene('GameScene');
+                    if (scene && scene.spellSystem && scene.wizard) {
+                        scene.spellSystem.castSpell(scene.wizard);
+                        logSuccess('Cast spell');
+                    }
+                } catch (e) {
+                    logCrash('SPELL CAST CRASH', {message: e.message, error: e});
+                }
+            }, 10000);
+        }
+
+        function testSceneTransitions() {
+            const scenes = ['TitleScene', 'StageSelectScene', 'TalentTreeScene', 'GameScene'];
+            let index = 0;
+            
+            const interval = setInterval(() => {
+                if (index >= scenes.length) {
+                    clearInterval(interval);
+                    logSuccess('Scene transition test complete');
+                    return;
+                }
+                
+                try {
+                    const sceneName = scenes[index];
+                    console.log('Switching to:', sceneName);
+                    
+                    if (sceneName === 'GameScene') {
+                        gameInstance.scene.start(sceneName, {
+                            stage: 'forestland',
+                            playerNumber: 1,
+                            p1Character: 'wizard'
+                        });
+                    } else {
+                        gameInstance.scene.start(sceneName);
+                    }
+                    
+                    logSuccess(`Transitioned to ${sceneName}`);
+                } catch (e) {
+                    logCrash(`SCENE TRANSITION CRASH: ${scenes[index]}`, {
+                        message: e.message,
+                        error: e
+                    });
+                }
+                
+                index++;
+            }, 2000);
+        }
+
+        function testSpawnMany() {
+            try {
+                const scene = gameInstance.scene.getScene('GameScene');
+                if (!scene) {
+                    // Start game scene first
+                    gameInstance.scene.start('GameScene', {
+                        stage: 'forestland',
+                        playerNumber: 1,
+                        p1Character: 'wizard'
+                    });
+                    
+                    setTimeout(testSpawnMany, 2000);
+                    return;
+                }
+                
+                if (scene.spawnEnemy) {
+                    console.log('Spawning 100 enemies...');
+                    for (let i = 0; i < 100; i++) {
+                        scene.spawnEnemy();
+                    }
+                    logSuccess('Spawned 100 enemies - checking performance...');
+                    
+                    // Check FPS after spawning
+                    setTimeout(() => {
+                        const fps = Math.round(gameInstance.loop.actualFps);
+                        if (fps < 20) {
+                            logError('PERFORMANCE ISSUE', {
+                                fps: fps,
+                                message: 'FPS dropped below 20'
+                            });
+                        } else {
+                            logSuccess(`Performance OK: ${fps} FPS`);
+                        }
+                    }, 3000);
+                }
+            } catch (e) {
+                logCrash('STRESS TEST CRASH', {message: e.message, error: e});
+            }
+        }
+    </script>
+</body>
+</html>
