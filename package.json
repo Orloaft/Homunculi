@@ -7,6 +7,7 @@
     "start": "electron .",
     "build-win": "electron-builder --win",
     "build-win-portable": "electron-builder --win portable",
+    "build-portable": "node build-portable.js",
     "build-mac": "electron-builder --mac",
     "build-linux": "electron-builder --linux",
     "dist": "electron-builder",
@@ -35,16 +36,17 @@
     "win": {
       "target": [
         {
-          "target": "nsis",
-          "arch": ["x64"]
-        },
-        {
           "target": "portable",
           "arch": ["x64"]
         }
       ],
+      "sign": false,
+      "signAndEditExecutable": false,
+      "signDlls": false,
       "forceCodeSigning": false,
-      "verifyUpdateCodeSignature": false
+      "verifyUpdateCodeSignature": false,
+      "certificateFile": null,
+      "certificatePassword": null
     },
     "mac": {
       "target": "dmg"

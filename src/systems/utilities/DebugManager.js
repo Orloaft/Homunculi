@@ -6,7 +6,6 @@ class DebugManager {
     constructor() {
         this.debugEnabled = this.loadDebugState();
     }
-
     /**
      * Load debug state from localStorage
      */
@@ -14,11 +13,9 @@ class DebugManager {
         try {
             return localStorage.getItem('debugMode') === 'true';
         } catch (e) {
-            console.warn('Could not load debug state:', e);
             return false;
         }
     }
-
     /**
      * Save debug state to localStorage
      */
@@ -27,10 +24,8 @@ class DebugManager {
             localStorage.setItem('debugMode', enabled.toString());
             this.debugEnabled = enabled;
         } catch (e) {
-            console.warn('Could not save debug state:', e);
-        }
+            }
     }
-
     /**
      * Toggle debug mode
      */
@@ -38,14 +33,12 @@ class DebugManager {
         this.saveDebugState(!this.debugEnabled);
         return this.debugEnabled;
     }
-
     /**
      * Get current debug state
      */
     isEnabled() {
         return this.debugEnabled;
     }
-
     /**
      * Set debug state
      */
@@ -53,10 +46,8 @@ class DebugManager {
         this.saveDebugState(enabled);
     }
 }
-
 // Export as singleton
 const debugManager = new DebugManager();
-
 // For compatibility with existing code
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = debugManager;

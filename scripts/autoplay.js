@@ -1,6 +1,5 @@
 // Autoplay Script for Wizbiz Game Testing
 // This script automatically plays the game to identify crashes and bugs
-
 class AutoPlayer {
     constructor() {
         this.enabled = false;
@@ -9,7 +8,6 @@ class AutoPlayer {
         this.errorLog = [];
         this.actionLog = [];
         this.startTime = Date.now();
-        
         // Configuration
         this.config = {
             moveInterval: 100, // How often to change movement direction (ms)
@@ -18,21 +16,16 @@ class AutoPlayer {
             logActions: true,
             catchErrors: true
         };
-        
         // Movement state
         this.movement = {
             direction: 0, // 0-7 for 8 directions
             lastChange: 0
         };
-        
         // Setup error catching
         if (this.config.catchErrors) {
             this.setupErrorHandling();
         }
-        
-        console.log('AutoPlayer initialized. Press F9 to toggle autoplay.');
-    }
-    
+        }
     setupErrorHandling() {
         // Catch unhandled errors
         window.addEventListener('error', (event) => {
@@ -44,7 +37,6 @@ class AutoPlayer {
                 error: event.error?.stack
             });
         });
-        
         // Catch promise rejections
         window.addEventListener('unhandledrejection', (event) => {
             this.logError('Unhandled Promise Rejection', {
@@ -53,7 +45,6 @@ class AutoPlayer {
             });
         });
     }
-    
     logError(type, details) {
         const error = {
             type,
@@ -62,43 +53,33 @@ class AutoPlayer {
             timestamp: Date.now() - this.startTime,
             lastActions: this.actionLog.slice(-5)
         };
-        
         this.errorLog.push(error);
         console.error('🚨 AutoPlayer Error:', error);
-        
         // Save error log to localStorage
         localStorage.setItem('autoplay_errors', JSON.stringify(this.errorLog));
     }
-    
     logAction(action, details = {}) {
         if (!this.config.logActions) return;
-        
         const logEntry = {
             action,
             details,
             scene: this.currentScene,
             timestamp: Date.now() - this.startTime
         };
-        
         this.actionLog.push(logEntry);
-        
         // Keep only last 100 actions
         if (this.actionLog.length > 100) {
             this.actionLog.shift();
         }
     }
-    
     toggle() {
         this.enabled = !this.enabled;
-        console.log(`AutoPlayer ${this.enabled ? 'ENABLED' : 'DISABLED'}`);
-        
         if (this.enabled) {
             this.start();
         } else {
             this.stop();
         }
     }
-    
     start() {
         // Start movement updates
         this.actionInterval = setInterval(() => {
@@ -108,35 +89,27 @@ class AutoPlayer {
                 this.logError('Update Loop Error', error);
             }
         }, this.config.actionInterval);
-        
         // Show status
         this.showStatus();
     }
-    
     stop() {
         if (this.actionInterval) {
             clearInterval(this.actionInterval);
             this.actionInterval = null;
         }
-        
         // Stop all movement
         this.stopMovement();
-        
         // Hide status
         this.hideStatus();
     }
-    
     update() {
         // Get current scene
         const game = window.game || window.phaser;
         if (!game || !game.scene) return;
-        
         const activeScenes = game.scene.getScenes(true);
         if (activeScenes.length === 0) return;
-        
         const scene = activeScenes[0];
         this.currentScene = scene.scene.key;
-        
         // Perform actions based on scene
         switch (this.currentScene) {
             case 'TitleScene':
@@ -154,13 +127,11 @@ class AutoPlayer {
                 break;
         }
     }
-    
     handleTitleScene(scene) {
         // Press space to start
         this.logAction('Title: Press Start');
         this.simulateKey(scene, 'SPACE');
     }
-    
     handleStageSelect(scene) {
         // Navigate and select stages
         if (Math.random() < 0.3) {
@@ -173,7 +144,6 @@ class AutoPlayer {
             this.simulateKey(scene, 'SPACE');
         }
     }
-    
     handleGameScene(scene) {
         // Handle different game states
         if (scene.elementSelectionActive) {
@@ -189,53 +159,44 @@ class AutoPlayer {
             this.handleGameplay(scene);
         }
     }
-    
     handleElementSelection(scene) {
         // Wait a bit then select random element
         setTimeout(() => {
             const choice = Math.floor(Math.random() * 3);
             this.logAction('ElementSelect: Choose', { choice });
-            
             // Navigate to choice
             for (let i = 0; i < choice; i++) {
                 this.simulateKey(scene, 'RIGHT');
             }
-            
             // Select
             setTimeout(() => {
                 this.simulateKey(scene, 'SPACE');
             }, 200);
         }, this.config.chestDecisionDelay);
     }
-    
     handleChestSelection(scene) {
         // Select random chest reward
         setTimeout(() => {
             const options = scene.chestUI?.buttons?.length || 3;
             const choice = Math.floor(Math.random() * options);
             this.logAction('ChestSelect: Choose', { choice, options });
-            
             // Navigate to choice
             for (let i = 0; i < choice; i++) {
                 this.simulateKey(scene, 'RIGHT');
             }
-            
             // Select
             setTimeout(() => {
                 this.simulateKey(scene, 'SPACE');
             }, 200);
         }, this.config.chestDecisionDelay);
     }
-    
     handleGameplay(scene) {
         // Random movement
         if (Date.now() - this.movement.lastChange > this.config.moveInterval) {
             this.movement.direction = Math.floor(Math.random() * 9); // 0-8, where 8 is stop
             this.movement.lastChange = Date.now();
-            
             this.updateMovement(scene);
         }
-        
         // Random actions
         if (Math.random() < 0.1) {
             // Use random charge slot
@@ -244,14 +205,12 @@ class AutoPlayer {
             this.logAction('Game: Use Charge', { slot });
             this.simulateKey(scene, keys[slot]);
         }
-        
         // Occasionally open spellbook
         if (Math.random() < 0.02) {
             this.logAction('Game: Toggle Spellbook');
             this.simulateKey(scene, 'TAB');
         }
     }
-    
     handleTalentTree(scene) {
         // Navigate and select talents randomly
         if (Math.random() < 0.5) {
@@ -268,13 +227,10 @@ class AutoPlayer {
             this.simulateKey(scene, 'ESCAPE');
         }
     }
-    
     updateMovement(scene) {
         if (!scene.cursors) return;
-        
         // Reset all keys
         this.stopMovement(scene);
-        
         // Set new direction
         const dirs = [
             { up: true, left: true },   // 0: Up-Left
@@ -287,27 +243,21 @@ class AutoPlayer {
             { down: true },              // 7: Down
             { down: true, right: true }  // 8: Down-Right
         ];
-        
         const dir = dirs[this.movement.direction] || {};
-        
         if (dir.up) scene.cursors.up.isDown = true;
         if (dir.down) scene.cursors.down.isDown = true;
         if (dir.left) scene.cursors.left.isDown = true;
         if (dir.right) scene.cursors.right.isDown = true;
     }
-    
     stopMovement(scene) {
         if (!scene || !scene.cursors) return;
-        
         scene.cursors.up.isDown = false;
         scene.cursors.down.isDown = false;
         scene.cursors.left.isDown = false;
         scene.cursors.right.isDown = false;
     }
-    
     simulateKey(scene, key) {
         if (!scene.input || !scene.input.keyboard) return;
-        
         const keyMap = {
             'SPACE': Phaser.Input.Keyboard.KeyCodes.SPACE,
             'ENTER': Phaser.Input.Keyboard.KeyCodes.ENTER,
@@ -323,21 +273,17 @@ class AutoPlayer {
             'V': Phaser.Input.Keyboard.KeyCodes.V,
             'P': Phaser.Input.Keyboard.KeyCodes.P
         };
-        
         const keyCode = keyMap[key] || key;
         const keyObj = scene.input.keyboard.addKey(keyCode);
-        
         // Simulate key press
         keyObj.isDown = true;
         keyObj._justDown = true;
-        
         // Release after short delay
         setTimeout(() => {
             keyObj.isDown = false;
             keyObj._justDown = false;
         }, 50);
     }
-    
     showStatus() {
         // Create status display
         if (!this.statusDiv) {
@@ -358,13 +304,11 @@ class AutoPlayer {
             `;
             document.body.appendChild(this.statusDiv);
         }
-        
         // Update status regularly
         this.statusInterval = setInterval(() => {
             const runtime = Math.floor((Date.now() - this.startTime) / 1000);
             const errors = this.errorLog.length;
             const lastAction = this.actionLog[this.actionLog.length - 1];
-            
             this.statusDiv.innerHTML = `
                 <div>🤖 AUTOPLAY ACTIVE</div>
                 <div>Runtime: ${runtime}s</div>
@@ -375,37 +319,22 @@ class AutoPlayer {
             `;
         }, 100);
     }
-    
     hideStatus() {
         if (this.statusDiv) {
             this.statusDiv.remove();
             this.statusDiv = null;
         }
-        
         if (this.statusInterval) {
             clearInterval(this.statusInterval);
             this.statusInterval = null;
         }
     }
-    
     generateReport() {
         const runtime = Math.floor((Date.now() - this.startTime) / 1000);
-        
-        console.log('=== AUTOPLAY REPORT ===');
-        console.log(`Runtime: ${runtime} seconds`);
-        console.log(`Total Errors: ${this.errorLog.length}`);
-        console.log(`Total Actions: ${this.actionLog.length}`);
-        
         if (this.errorLog.length > 0) {
-            console.log('\nERRORS:');
             this.errorLog.forEach((error, i) => {
-                console.log(`\n${i + 1}. ${error.type} at ${error.timestamp}ms`);
-                console.log('   Scene:', error.scene);
-                console.log('   Details:', error.details);
-                console.log('   Last Actions:', error.lastActions.map(a => a.action).join(' -> '));
-            });
+                });
         }
-        
         return {
             runtime,
             errors: this.errorLog,
@@ -413,13 +342,11 @@ class AutoPlayer {
         };
     }
 }
-
 // Initialize autoplay when game loads
 window.addEventListener('load', () => {
     // Wait a bit for game to initialize
     setTimeout(() => {
         window.autoPlayer = new AutoPlayer();
-        
         // Add F9 key handler
         document.addEventListener('keydown', (event) => {
             if (event.key === 'F9') {
@@ -427,11 +354,7 @@ window.addEventListener('load', () => {
                 window.autoPlayer.toggle();
             }
         });
-        
-        console.log('AutoPlayer ready! Press F9 to start/stop autoplay.');
-        console.log('Use autoPlayer.generateReport() to see error report.');
-    }, 2000);
+        }, 2000);
 });
-
 // Export for use in console
 window.AutoPlayer = AutoPlayer;

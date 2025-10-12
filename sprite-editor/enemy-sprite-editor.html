@@ -902,6 +902,66 @@
                 },
                 defaultScale: 2.0
             },
+            // Swampland enemies
+            swampmerchant: {
+                texture: 'swampmerchant-walk',
+                path: '../assets/enemies/forestlandfoes/swampmerchantwalk5frames.png',
+                frameWidth: 64,
+                frameHeight: 64,
+                animations: {
+                    walk: { start: 0, end: 4, rate: 8 }
+                },
+                defaultScale: 1.5
+            },
+            torchboy: {
+                texture: 'torchboy-walk',
+                path: '../assets/enemies/forestlandfoes/torchboi/runvertical6frames.png',
+                frameWidth: 82,
+                frameHeight: 39,  // 234 / 6 frames = 39
+                animations: {
+                    walk: { start: 0, end: 5, rate: 10 }
+                },
+                defaultScale: 1.2
+            },
+            mudguard: {
+                texture: 'mudguard-walk',
+                path: '../assets/enemies/forestlandfoes/Mud Guard/mudguardrunvertical6frames.png',
+                frameWidth: 82,
+                frameHeight: 23,  // 138 / 6 frames = 23
+                animations: {
+                    walk: { start: 0, end: 5, rate: 10 },
+                    death: {
+                        texture: 'mudguard-death',
+                        path: '../assets/enemies/forestlandfoes/Mud Guard/mudguarddeathvertical8frames.png',
+                        frameWidth: 82,
+                        frameHeight: 23,  // 184 / 8 frames = 23
+                        start: 0, end: 7, rate: 12
+                    }
+                },
+                defaultScale: 1.8
+            },
+            eyewalker: {
+                texture: 'eyewalker-walk',
+                path: '../assets/homunculiwalkerboss/Boss_Normal.png',
+                frameWidth: 64,  // 384 / 6 frames = 64
+                frameHeight: 64,  // 192 / 3 rows = 64
+                animations: {
+                    initial: { start: 0, end: 5, rate: 8 },  // First row
+                    stomp: { start: 6, end: 11, rate: 10 },  // Second row
+                    summoned: { start: 12, end: 16, rate: 8 }  // Third row (only 5 frames)
+                },
+                defaultScale: 2.2
+            },
+            eyegoompa: {
+                texture: 'eyegoompa-walk',
+                path: '../assets/homunculiwalkerboss/eyegoompawalk9x2frames.png',
+                frameWidth: 24,  // 216 / 9 frames = 24
+                frameHeight: 24,  // 49 / 2 rows ≈ 24
+                animations: {
+                    walk: { start: 0, end: 17, rate: 12 }  // All 18 frames
+                },
+                defaultScale: 1.5
+            },
             bat: {
                 texture: 'bat-fly',
                 path: '../assets/enemies/bateye/Flight.png',
@@ -915,12 +975,12 @@
             darkbat: {
                 texture: 'dark-bat-fly',
                 path: '../assets/images/Bat-IdleFly9frames.png',
-                frameWidth: 16,
-                frameHeight: 16,
+                frameWidth: 64,
+                frameHeight: 64,
                 animations: {
-                    walk: { start: 0, end: 8, rate: 10 }
+                    walk: { start: 0, end: 8, rate: 12 }
                 },
-                defaultScale: 3.0
+                defaultScale: 1.5
             },
             soul: {
                 texture: 'soul-move',
@@ -1737,34 +1797,104 @@
         let showCollisionGrid = true;
         
         // Load saved data from localStorage
-        function loadSavedData() {
-            const saved = localStorage.getItem('enemySpriteData');
-            if (saved) {
-                try {
-                    savedData = JSON.parse(saved);
-                } catch (e) {
+        async function loadSavedData() {
+            // Load from server config instead of localStorage
+            try {
+                const response = await fetch('/load-config');
+                if (response.ok) {
+                    const config = await response.json();
+                    savedData = {};
+                    
+                    // Convert config format to savedData format
+                    for (const [enemy, hitbox] of Object.entries(config.hitboxes || {})) {
+                        if (!savedData[enemy]) savedData[enemy] = {};
+                        savedData[enemy].hitbox = hitbox;
+                    }
+                    for (const [enemy, shadow] of Object.entries(config.shadows || {})) {
+                        if (!savedData[enemy]) savedData[enemy] = {};
+                        savedData[enemy].shadow = shadow;
+                    }
+                    for (const [enemy, scale] of Object.entries(config.scales || {})) {
+                        if (!savedData[enemy]) savedData[enemy] = {};
+                        savedData[enemy].scale = scale;
+                    }
+                    for (const [enemy, flip] of Object.entries(config.flips || {})) {
+                        if (!savedData[enemy]) savedData[enemy] = {};
+                        savedData[enemy].flipX = flip.flipX || false;
+                        savedData[enemy].flipY = flip.flipY || false;
+                    }
+                    console.log('Loaded config from server:', savedData);
+                } else {
+                    console.warn('Could not load config from server, using empty data');
                     savedData = {};
                 }
+            } catch (error) {
+                console.error('Error loading config:', error);
+                savedData = {};
             }
         }
         
-        // Save data to localStorage
-        function saveData() {
-            localStorage.setItem('enemySpriteData', JSON.stringify(savedData));
-            
-            // Also save hitbox data separately for game compatibility
-            const hitboxData = {};
-            for (const [enemy, data] of Object.entries(savedData)) {
-                if (data.hitbox) {
-                    hitboxData[enemy] = {
-                        width: data.hitbox.width,
-                        height: data.hitbox.height,
-                        offsetX: data.hitbox.offsetX,
-                        offsetY: data.hitbox.offsetY
-                    };
+        // Save data to server config file
+        async function saveData() {
+            // Auto-save to server for consistency
+            try {
+                const config = {
+                    sprites: enemyConfigs,
+                    hitboxes: {},
+                    shadows: {},
+                    scales: {},
+                    flips: {}
+                };
+                
+                // Extract hitbox, shadow, scale, and flip data from saved configurations
+                for (const [enemy, data] of Object.entries(savedData)) {
+                    if (data.hitbox) {
+                        config.hitboxes[enemy] = {
+                            width: data.hitbox.width,
+                            height: data.hitbox.height,
+                            offsetX: data.hitbox.offsetX,
+                            offsetY: data.hitbox.offsetY
+                        };
+                    }
+                    if (data.shadow) {
+                        config.shadows[enemy] = {
+                            width: data.shadow.width,
+                            height: data.shadow.height,
+                            offsetX: data.shadow.offsetX,
+                            offsetY: data.shadow.offsetY,
+                            alpha: data.shadow.alpha
+                        };
+                    }
+                    if (data.scale) {
+                        config.scales[enemy] = data.scale;
+                    }
+                    // Save flip states for characters that need initial flips
+                    // Important: Check if flipX/flipY exist, not if they're truthy
+                    if (data.flipX !== undefined || data.flipY !== undefined) {
+                        config.flips[enemy] = {
+                            flipX: data.flipX || false,
+                            flipY: data.flipY || false
+                        };
+                    }
                 }
+                
+                // Send to server
+                const response = await fetch('/save-config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+                
+                const result = await response.json();
+                if (!result.success) {
+                    console.error('Error auto-saving configuration:', result.error);
+                }
+            } catch (error) {
+                console.error('Auto-save error:', error);
             }
-            // Removed localStorage - data is saved to server via saveConfigToServer()
+            
             updateExportData();
         }
         
@@ -2245,8 +2375,9 @@
             // Group enemies by category
             const categories = {
                 'Forest': ['mushroom', 'tree', 'giantfly', 'squirrel', 'redpanda'],
-                'Cave': ['golem', 'slime', 'kobold', 'brainmole', 'intellectdevourer', 'bloboid'],
-                'Desert': ['cobra', 'cactuse', 'armadillo', 'bat', 'darkbat', 'soul', 'fireworm', 'summoner'],
+                'Cave': ['golem', 'slime', 'kobold', 'brainmole', 'intellectdevourer', 'bloboid', 'darkbat'],
+                'Desert': ['cobra', 'cactuse', 'armadillo', 'bat', 'soul', 'fireworm', 'summoner'],
+                'Swamp': ['swampmerchant', 'torchboy', 'mudguard', 'eyewalker', 'eyegoompa'],
                 'Castle': ['castle-knight', 'castle-rogue', 'castle-soldier', 'castle-bladekeeper', 'castle-squire'],
                 'Grave': ['yellowskeleton', 'skeletonseeker', 'clubimp', 'axeimp', 'wraith', 'flyingdemon'],
                 'Lava': ['fireslime', 'orangegolem', 'sorcerer'],
@@ -2976,7 +3107,8 @@
         function resetAll() {
             if (confirm('This will reset all saved configurations. Are you sure?')) {
                 savedData = {};
-                localStorage.removeItem('enemySpriteData');
+                // Save empty config to server
+                saveData();
                 
                 if (currentEnemy) {
                     selectEnemy(currentEnemy);
@@ -3102,7 +3234,8 @@ if (typeof module !== 'undefined' && module.exports) {
                         config.scales[enemy] = data.scale;
                     }
                     // Save flip state if any
-                    if (data.flipX || data.flipY) {
+                    // Important: Check if flipX/flipY exist, not if they're truthy
+                    if (data.flipX !== undefined || data.flipY !== undefined) {
                         config.flips[enemy] = {
                             flipX: data.flipX || false,
                             flipY: data.flipY || false
@@ -3835,8 +3968,8 @@ if (typeof module !== 'undefined' && module.exports) {
         }
         
         // Initialize
-        window.onload = () => {
-            loadSavedData();
+        window.onload = async () => {
+            await loadSavedData();  // Wait for config to load from server
             populateEnemyList();
             initGame();
             updateExportData();

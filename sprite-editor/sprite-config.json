@@ -271,6 +271,95 @@
     },
     "defaultScale": 2
   },
+  "swampmerchant": {
+    "texture": "swampmerchant-walk",
+    "path": "../assets/enemies/forestlandfoes/swampmerchantwalk5frames.png",
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "animations": {
+      "walk": {
+        "start": 0,
+        "end": 4,
+        "rate": 8
+      }
+    },
+    "defaultScale": 1.5
+  },
+  "torchboy": {
+    "texture": "torchboy-walk",
+    "path": "../assets/enemies/forestlandfoes/torchboi/runvertical6frames.png",
+    "frameWidth": 82,
+    "frameHeight": 39,
+    "animations": {
+      "walk": {
+        "start": 0,
+        "end": 5,
+        "rate": 10
+      }
+    },
+    "defaultScale": 1.2
+  },
+  "mudguard": {
+    "texture": "mudguard-walk",
+    "path": "../assets/enemies/forestlandfoes/Mud Guard/mudguardrunvertical6frames.png",
+    "frameWidth": 82,
+    "frameHeight": 23,
+    "animations": {
+      "walk": {
+        "start": 0,
+        "end": 5,
+        "rate": 10
+      },
+      "death": {
+        "texture": "mudguard-death",
+        "path": "../assets/enemies/forestlandfoes/Mud Guard/mudguarddeathvertical8frames.png",
+        "frameWidth": 82,
+        "frameHeight": 23,
+        "start": 0,
+        "end": 7,
+        "rate": 12
+      }
+    },
+    "defaultScale": 1.8
+  },
+  "eyewalker": {
+    "texture": "eyewalker-walk",
+    "path": "../assets/homunculiwalkerboss/Boss_Normal.png",
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "animations": {
+      "initial": {
+        "start": 0,
+        "end": 5,
+        "rate": 8
+      },
+      "stomp": {
+        "start": 6,
+        "end": 11,
+        "rate": 10
+      },
+      "summoned": {
+        "start": 12,
+        "end": 16,
+        "rate": 8
+      }
+    },
+    "defaultScale": 2.2
+  },
+  "eyegoompa": {
+    "texture": "eyegoompa-walk",
+    "path": "../assets/homunculiwalkerboss/eyegoompawalk9x2frames.png",
+    "frameWidth": 24,
+    "frameHeight": 24,
+    "animations": {
+      "walk": {
+        "start": 0,
+        "end": 17,
+        "rate": 12
+      }
+    },
+    "defaultScale": 1.5
+  },
   "bat": {
     "texture": "bat-fly",
     "path": "../assets/enemies/bateye/Flight.png",
@@ -288,16 +377,16 @@
   "darkbat": {
     "texture": "dark-bat-fly",
     "path": "../assets/images/Bat-IdleFly9frames.png",
-    "frameWidth": 16,
-    "frameHeight": 16,
+    "frameWidth": 64,
+    "frameHeight": 64,
     "animations": {
       "walk": {
         "start": 0,
         "end": 8,
-        "rate": 10
+        "rate": 12
       }
     },
-    "defaultScale": 3
+    "defaultScale": 1.5
   },
   "soul": {
     "texture": "soul-move",

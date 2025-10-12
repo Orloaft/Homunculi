@@ -37,6 +37,7 @@ const server = http.createServer((req, res) => {
     
     // Handle POST requests for saving configuration
     if (req.method === 'POST' && req.url === '/save-config') {
+        console.log('=== SAVE REQUEST RECEIVED ===');
         let body = '';
         req.on('data', chunk => {
             body += chunk.toString();
@@ -50,9 +51,17 @@ const server = http.createServer((req, res) => {
                 if (config.hitboxes && config.hitboxes.blip) {
                     console.log('Blip hitbox received:', config.hitboxes.blip);
                 }
+                if (config.hitboxes && config.hitboxes.orb) {
+                    console.log('[ORB DEBUG] Orb hitbox received from editor:', config.hitboxes.orb);
+                }
+                if (config.flips && config.flips.orb) {
+                    console.log('[ORB DEBUG] Orb flip received from editor:', config.flips.orb);
+                }
                 
-                // Save sprite configuration
-                fs.writeFileSync(CONFIG_FILE, JSON.stringify(config.sprites, null, 2));
+                // Save sprite configuration (only if sprites data exists)
+                if (config.sprites) {
+                    fs.writeFileSync(CONFIG_FILE, JSON.stringify(config.sprites, null, 2));
+                }
                 
                 // Update hitbox-config.js if hitbox, shadow, scale, or flip data is provided
                 if (config.hitboxes || config.shadows || config.scales || config.flips) {
@@ -107,7 +116,8 @@ const server = http.createServer((req, res) => {
                 if (hitboxesMatch) {
                     const hitboxesText = hitboxesMatch[1];
                     // Match entries like 'blip': { width: 18, height: 18, offsetX: 23, offsetY: 11 }
-                    const hitboxPattern = /'([^']+)':\s*\{\s*width:\s*(\d+),\s*height:\s*(\d+),\s*offsetX:\s*([\d.-]+),\s*offsetY:\s*([\d.-]+)/g;
+                    // Also handle entries without quotes like darkbat: { width: 50, ...
+                    const hitboxPattern = /['"]?([^'":\s]+)['"]?\s*:\s*\{\s*width:\s*(\d+),\s*height:\s*(\d+),\s*offsetX:\s*([\d.-]+),\s*offsetY:\s*([\d.-]+)/g;
                     let match;
                     while ((match = hitboxPattern.exec(hitboxesText)) !== null) {
                         const [, enemy, width, height, offsetX, offsetY] = match;
@@ -119,6 +129,27 @@ const server = http.createServer((req, res) => {
                             offsetY: parseFloat(offsetY)
                         };
                         console.log(`Loaded hitbox for ${enemy}:`, config[enemy].hitbox);
+                    }
+                }
+                
+                // Extract shadows object  
+                const shadowsMatch = hitboxContent.match(/shadows:\s*\{([\s\S]*?)\n\s*\},/);
+                if (shadowsMatch) {
+                    const shadowsText = shadowsMatch[1];
+                    // Match entries with or without quotes
+                    const shadowPattern = /['"]?([^'":\s]+)['"]?\s*:\s*\{\s*width:\s*(\d+),\s*height:\s*(\d+),\s*offsetX:\s*([\d.-]+),\s*offsetY:\s*([\d.-]+),\s*alpha:\s*([\d.]+)/g;
+                    let match;
+                    while ((match = shadowPattern.exec(shadowsText)) !== null) {
+                        const [, enemy, width, height, offsetX, offsetY, alpha] = match;
+                        if (!config[enemy]) config[enemy] = {};
+                        config[enemy].shadow = {
+                            width: parseInt(width),
+                            height: parseInt(height), 
+                            offsetX: parseFloat(offsetX),
+                            offsetY: parseFloat(offsetY),
+                            alpha: parseFloat(alpha)
+                        };
+                        console.log(`Loaded shadow for ${enemy}:`, config[enemy].shadow);
                     }
                 }
                 
@@ -218,7 +249,16 @@ const server = http.createServer((req, res) => {
     });
 });
 
+// Import the clean update function
+const updateHitboxConfigClean = require('./updateHitboxConfig-clean');
+
 function updateHitboxConfig(hitboxes, shadows, scales, flips) {
+    // Use the clean implementation
+    return updateHitboxConfigClean(hitboxes, shadows, scales, flips);
+}
+
+// Original function (disabled)
+function updateHitboxConfig_OLD(hitboxes, shadows, scales, flips) {
     console.log('updateHitboxConfig called with:', {
         hitboxCount: Object.keys(hitboxes || {}).length,
         shadowCount: Object.keys(shadows || {}).length,
@@ -226,235 +266,201 @@ function updateHitboxConfig(hitboxes, shadows, scales, flips) {
         flipCount: Object.keys(flips || {}).length,
         scales: scales,
         flips: flips,
-        hitboxes: hitboxes  // Add this to see the actual hitbox data
+        hitboxes: hitboxes
     });
     
     try {
         // Read the current hitbox-config.js
         let configContent = fs.readFileSync(HITBOX_CONFIG_FILE, 'utf8');
         
-        // Update scales if provided
-        if (scales && Object.keys(scales).length > 0) {
-            console.log('Updating scales:', scales);
-            
-            for (const [spriteType, scale] of Object.entries(scales)) {
-                const escapedType = spriteType.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                
-                // Look for existing scale in the scales object
-                const existingPattern = new RegExp(`'${escapedType}'\\s*:\\s*[\\d.]+`);
-                
-                if (existingPattern.test(configContent)) {
-                    // Update existing scale
-                    console.log(`Updating existing scale for ${spriteType} to ${scale}`);
-                    configContent = configContent.replace(
-                        new RegExp(`('${escapedType}'\\s*:\\s*)[\\d.]+`, 'g'),
-                        `$1${scale}`
-                    );
-                } else {
-                    // Add new scale entry
-                    console.log(`Adding new scale for ${spriteType}: ${scale}`);
-                    // Find the scales section - use a more robust pattern
-                    const scalesSectionPattern = /(scales:\s*\{[\s\S]*?)(\n\s*\},)/;
-                    const match = configContent.match(scalesSectionPattern);
-                    if (match) {
-                        // Add the new entry before the closing brace
-                        const newEntry = `,\n        '${spriteType}': ${scale}`;
-                        configContent = configContent.replace(
-                            scalesSectionPattern,
-                            `$1${newEntry}$2`
-                        );
-                        console.log(`Added ${spriteType} to scales section`);
-                    } else {
-                        console.log('Could not find scales section in hitbox-config.js');
-                    }
-                }
-            }
-        }
+        // Collect all section updates with their positions
+        const sectionsToUpdate = [];
         
-        // Update each enemy's hitbox configuration
-        if (hitboxes && Object.keys(hitboxes).length > 0) {
-            console.log('Updating hitboxes:', hitboxes);
-            
-            for (const [enemyType, hitbox] of Object.entries(hitboxes)) {
-                const escapedType = enemyType.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                
-                // Look for existing hitbox with or without quotes
-                const existingPattern = new RegExp(`['"]?${escapedType}['"]?\\s*:\\s*\\{[^}]*width`);
-                
-                if (existingPattern.test(configContent)) {
-                    // Update existing entry
-                    console.log(`Updating existing hitbox for ${enemyType}`);
-                    console.log(`New values: width=${hitbox.width}, height=${hitbox.height}, offsetX=${hitbox.offsetX}, offsetY=${hitbox.offsetY}`);
-                    
-                    // Find the current line for logging
-                    const currentMatch = configContent.match(new RegExp(`'${escapedType}'\\s*:\\s*\\{[^}]*\\}`));
-                    if (currentMatch) {
-                        console.log(`Current line: ${currentMatch[0]}`);
-                    }
-                    
-                    // Match the exact format with quotes preserved
-                    const replacePattern = new RegExp(`('${escapedType}'\\s*:\\s*\\{)[^}]*(\\})`, 'g');
-                    const newContent = configContent.replace(
-                        replacePattern,
-                        `$1 width: ${hitbox.width}, height: ${hitbox.height}, offsetX: ${hitbox.offsetX}, offsetY: ${hitbox.offsetY} $2`
-                    );
-                    
-                    // Log the specific update for grim
-                    if (enemyType === 'grim') {
-                        console.log(`GRIM UPDATE: Setting hitbox to offsetX=${hitbox.offsetX}, offsetY=${hitbox.offsetY}`);
-                    }
-                    
-                    // Verify the replacement worked
-                    if (newContent === configContent) {
-                        console.log(`WARNING: Failed to update hitbox for ${enemyType} - trying without quotes`);
-                        // Try without quotes as fallback
-                        configContent = configContent.replace(
-                            new RegExp(`(${escapedType}\\s*:\\s*\\{)[^}]*(\\})`, 'g'),
-                            `$1 width: ${hitbox.width}, height: ${hitbox.height}, offsetX: ${hitbox.offsetX}, offsetY: ${hitbox.offsetY} $2`
-                        );
-                    } else {
-                        configContent = newContent;
-                        console.log(`Successfully updated hitbox for ${enemyType} to w:${hitbox.width} h:${hitbox.height}`);
-                    }
-                } else {
-                    // Add new entry to hitboxes section
-                    console.log(`Adding new hitbox for ${enemyType}`);
-                    const hitboxSectionPattern = /(hitboxes:\s*\{[\s\S]*?)([\n\s]*\},)/;
-                    const match = configContent.match(hitboxSectionPattern);
-                    if (match) {
-                        const newEntry = `,\n        '${enemyType}': { width: ${hitbox.width}, height: ${hitbox.height}, offsetX: ${hitbox.offsetX}, offsetY: ${hitbox.offsetY} }`;
-                        configContent = configContent.replace(
-                            hitboxSectionPattern,
-                            `$1${newEntry}$2`
-                        );
-                    }
-                }
-            }
-        }
-        
-        // Update each enemy's shadow configuration
-        for (const [enemyType, shadow] of Object.entries(shadows)) {
-            // Create a safe regex pattern that properly handles the enemy type
-            const escapedType = enemyType.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            
-            // First, try to find and update existing entry
-            const shadowPattern = new RegExp(
-                `(${escapedType}:\\s*\\{[^}]*?)width:\\s*\\d+`,
-                'g'
-            );
-            
-            if (shadowPattern.test(configContent)) {
-                // Update existing entry - replace all values
-                configContent = configContent.replace(
-                    new RegExp(`(${escapedType}:\\s*\\{)[^}]*(\\})`, 'g'),
-                    `$1 width: ${shadow.width}, height: ${shadow.height}, offsetX: ${shadow.offsetX}, offsetY: ${shadow.offsetY}, alpha: ${shadow.alpha} $2`
-                );
-            } else {
-                // Add new entry to shadows section
-                // Find the shadows object and add before the last closing brace
-                const shadowSectionPattern = /(shadows:\s*\{[\s\S]*?)([\n\s]*\},)/;
-                const match = configContent.match(shadowSectionPattern);
-                if (match) {
-                    const newEntry = `,\n        ${enemyType}: { width: ${shadow.width}, height: ${shadow.height}, offsetX: ${shadow.offsetX}, offsetY: ${shadow.offsetY}, alpha: ${shadow.alpha} }`;
-                    configContent = configContent.replace(
-                        shadowSectionPattern,
-                        `$1${newEntry}$2`
-                    );
-                }
-            }
-        }
-        
-        // Update flips if provided - MUST BE DONE BEFORE WRITING FILE
+        // Find flips section
         if (flips && Object.keys(flips).length > 0) {
-            console.log('Updating flips:', flips);
-            console.log('Current config content length before flips:', configContent.length);
-            
-            for (const [spriteType, flipData] of Object.entries(flips)) {
-                const escapedType = spriteType.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const flipsSectionMatch = configContent.match(/(flips:\s*\{)([\s\S]*?)(\n\s*\},)/);
+            if (flipsSectionMatch) {
+                const sectionStart = configContent.indexOf(flipsSectionMatch[0]);
+                const sectionEnd = sectionStart + flipsSectionMatch[0].length;
+                let flipsContent = flipsSectionMatch[2];
                 
-                // Look for existing flip in the flips object
-                const existingPattern = new RegExp(`'${escapedType}'\\s*:\\s*\\{[^}]*flipX`);
-                
-                if (existingPattern.test(configContent)) {
-                    // Update existing flip
-                    console.log(`Updating existing flip for ${spriteType}`);
-                    configContent = configContent.replace(
-                        new RegExp(`('${escapedType}'\\s*:\\s*\\{)[^}]*(\\})`, 'g'),
-                        `$1 flipX: ${flipData.flipX}, flipY: ${flipData.flipY} $2`
-                    );
-                } else {
-                    // Add new flip entry
-                    console.log(`Adding new flip for ${spriteType}: flipX=${flipData.flipX}, flipY=${flipData.flipY}`);
-                    // Try both patterns - with content and empty
-                    const flipsSectionPattern = /(flips:\s*\{[\s\S]*?)(\s*\},)/;
-                    const emptyFlipsPattern = /(flips:\s*\{)(\s*\},)/;
+                for (const [spriteType, flipData] of Object.entries(flips)) {
+                    const escapedType = spriteType.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const existingPattern = new RegExp(`\\n\\s*['"]?${escapedType}['"]?\\s*:\\s*\\{[^}]+\\}`);
                     
-                    let match = configContent.match(flipsSectionPattern);
-                    if (!match) {
-                        match = configContent.match(emptyFlipsPattern);
-                    }
-                    
-                    if (match) {
-                        // Check if this is the first entry (empty object)
-                        const isEmptySection = match[0].match(/flips:\s*\{\s*\}/);
-                        const newEntry = isEmptySection 
-                            ? `\n        '${spriteType}': { flipX: ${flipData.flipX}, flipY: ${flipData.flipY} }\n    `
-                            : `,\n        '${spriteType}': { flipX: ${flipData.flipX}, flipY: ${flipData.flipY} }`;
-                        
-                        const beforeReplace = configContent.length;
-                        configContent = configContent.replace(
-                            match[0],
-                            match[1] + newEntry + match[2]
+                    if (existingPattern.test(flipsContent)) {
+                        console.log(`Updating existing flip for ${spriteType}`);
+                        flipsContent = flipsContent.replace(
+                            existingPattern,
+                            `\n        '${spriteType}': { flipX: ${flipData.flipX}, flipY: ${flipData.flipY} }`
                         );
-                        const afterReplace = configContent.length;
-                        console.log(`Successfully added flip entry for ${spriteType}`);
-                        console.log(`Config length changed from ${beforeReplace} to ${afterReplace}`);
                     } else {
-                        console.log('WARNING: Could not find flips section in config');
+                        console.log(`Adding new flip for ${spriteType}: flipX=${flipData.flipX}, flipY=${flipData.flipY}`);
+                        if (flipsContent.trim() === '') {
+                            flipsContent = `\n        '${spriteType}': { flipX: ${flipData.flipX}, flipY: ${flipData.flipY} }\n    `;
+                        } else {
+                            flipsContent += `,\n        '${spriteType}': { flipX: ${flipData.flipX}, flipY: ${flipData.flipY} }`;
+                        }
                     }
                 }
+                
+                sectionsToUpdate.push({
+                    start: sectionStart,
+                    end: sectionEnd,
+                    newContent: `${flipsSectionMatch[1]}${flipsContent}${flipsSectionMatch[3]}`
+                });
             }
+        }
+        
+        // Find shadows section
+        if (shadows && Object.keys(shadows).length > 0) {
+            const shadowsSectionMatch = configContent.match(/(shadows:\s*\{)([\s\S]*?)(\n\s*\},)/);
+            if (shadowsSectionMatch) {
+                const sectionStart = configContent.indexOf(shadowsSectionMatch[0]);
+                const sectionEnd = sectionStart + shadowsSectionMatch[0].length;
+                let shadowsContent = shadowsSectionMatch[2];
+                
+                for (const [enemyType, shadow] of Object.entries(shadows)) {
+                    const escapedType = enemyType.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const existingPattern = new RegExp(`\\n\\s*['"]?${escapedType}['"]?\\s*:\\s*\\{[^}]+\\}`);
+                    
+                    if (existingPattern.test(shadowsContent)) {
+                        console.log(`Updating existing shadow for ${enemyType}`);
+                        shadowsContent = shadowsContent.replace(
+                            existingPattern,
+                            `\n        '${enemyType}': { width: ${shadow.width}, height: ${shadow.height}, offsetX: ${shadow.offsetX}, offsetY: ${shadow.offsetY}, alpha: ${shadow.alpha} }`
+                        );
+                    } else {
+                        console.log(`Adding new shadow for ${enemyType}`);
+                        shadowsContent += `,\n        '${enemyType}': { width: ${shadow.width}, height: ${shadow.height}, offsetX: ${shadow.offsetX}, offsetY: ${shadow.offsetY}, alpha: ${shadow.alpha} }`;
+                    }
+                }
+                
+                sectionsToUpdate.push({
+                    start: sectionStart,
+                    end: sectionEnd,
+                    newContent: `${shadowsSectionMatch[1]}${shadowsContent}${shadowsSectionMatch[3]}`
+                });
+            }
+        }
+        
+        // Find hitboxes section
+        if (hitboxes && Object.keys(hitboxes).length > 0) {
+            const hitboxesSectionMatch = configContent.match(/(hitboxes:\s*\{)([\s\S]*?)(\n\s*\},)/);
+            if (hitboxesSectionMatch) {
+                const sectionStart = configContent.indexOf(hitboxesSectionMatch[0]);
+                const sectionEnd = sectionStart + hitboxesSectionMatch[0].length;
+                let hitboxesContent = hitboxesSectionMatch[2];
+                
+                for (const [enemyType, hitbox] of Object.entries(hitboxes)) {
+                    // Special logging for orb
+                    if (enemyType === 'orb') {
+                        console.log(`[ORB DEBUG] Processing orb hitbox:`, hitbox);
+                        console.log(`[ORB DEBUG] Current hitboxesContent includes orb:`, hitboxesContent.includes("'orb'"));
+                    }
+                    
+                    const escapedType = enemyType.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const existingPattern = new RegExp(`\\n\\s*['"]?${escapedType}['"]?\\s*:\\s*\\{[^}]+\\}`);
+                    
+                    if (existingPattern.test(hitboxesContent)) {
+                        console.log(`Updating existing hitbox for ${enemyType}`);
+                        const hasQuotes = new RegExp(`\\n\\s*'${escapedType}'\\s*:`).test(hitboxesContent);
+                        const prefix = hasQuotes ? `'${enemyType}'` : enemyType;
+                        
+                        const newEntry = `\n        ${prefix}: { width: ${hitbox.width}, height: ${hitbox.height}, offsetX: ${hitbox.offsetX}, offsetY: ${hitbox.offsetY} }`;
+                        
+                        if (enemyType === 'orb') {
+                            console.log(`[ORB DEBUG] Replacing with:`, newEntry);
+                        }
+                        
+                        hitboxesContent = hitboxesContent.replace(
+                            existingPattern,
+                            newEntry
+                        );
+                    } else {
+                        console.log(`Adding new hitbox for ${enemyType}`);
+                        hitboxesContent += `,\n        '${enemyType}': { width: ${hitbox.width}, height: ${hitbox.height}, offsetX: ${hitbox.offsetX}, offsetY: ${hitbox.offsetY} }`;
+                    }
+                }
+                
+                sectionsToUpdate.push({
+                    start: sectionStart,
+                    end: sectionEnd,
+                    newContent: `${hitboxesSectionMatch[1]}${hitboxesContent}${hitboxesSectionMatch[3]}`
+                });
+            }
+        }
+        
+        // Find scales section
+        if (scales && Object.keys(scales).length > 0) {
+            const scalesSectionMatch = configContent.match(/(scales:\s*\{)([\s\S]*?)(\n\s*\},)/);
+            if (scalesSectionMatch) {
+                const sectionStart = configContent.indexOf(scalesSectionMatch[0]);
+                const sectionEnd = sectionStart + scalesSectionMatch[0].length;
+                let scalesContent = scalesSectionMatch[2];
+                
+                for (const [spriteType, scale] of Object.entries(scales)) {
+                    const escapedType = spriteType.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const existingPattern = new RegExp(`\\n\\s*['"]?${escapedType}['"]?\\s*:\\s*[\\d.]+`);
+                    
+                    if (existingPattern.test(scalesContent)) {
+                        console.log(`Updating existing scale for ${spriteType} to ${scale}`);
+                        scalesContent = scalesContent.replace(
+                            existingPattern,
+                            `\n        '${spriteType}': ${scale}`
+                        );
+                    } else {
+                        console.log(`Adding new scale for ${spriteType}: ${scale}`);
+                        scalesContent += `,\n        '${spriteType}': ${scale}`;
+                    }
+                }
+                
+                sectionsToUpdate.push({
+                    start: sectionStart,
+                    end: sectionEnd,
+                    newContent: `${scalesSectionMatch[1]}${scalesContent}${scalesSectionMatch[3]}`
+                });
+            }
+        }
+        
+        // Sort sections by start position in REVERSE order (end to beginning)
+        // This ensures that when we replace sections, we don't invalidate the indices of earlier sections
+        sectionsToUpdate.sort((a, b) => b.start - a.start);
+        
+        // Apply all updates in reverse order
+        for (const section of sectionsToUpdate) {
+            console.log(`Updating section at position ${section.start}-${section.end}`);
+            configContent = configContent.substring(0, section.start) + section.newContent + configContent.substring(section.end);
         }
         
         // Write back the updated configuration
         fs.writeFileSync(HITBOX_CONFIG_FILE, configContent);
         console.log('✅ hitbox-config.js updated successfully');
         
-        // Verify the write by reading it back
+        // Verification logging
         const verifyContent = fs.readFileSync(HITBOX_CONFIG_FILE, 'utf8');
         if (verifyContent.includes("'grim':")) {
             const grimLine = verifyContent.split('\n').find(line => line.includes("'grim':") && line.includes('width'));
             console.log('Verification - grim hitbox line after save:', grimLine);
         }
-        if (verifyContent.includes("'blip':")) {
-            const blipLine = verifyContent.split('\n').find(line => line.includes("'blip':") && line.includes('width'));
-            console.log('Verification - blip line after save:', blipLine);
-        }
-        // Also verify flips were saved
-        if (flips && Object.keys(flips).length > 0) {
-            const flipSection = verifyContent.match(/flips:\s*\{([^}]*)\}/);
-            if (flipSection) {
-                console.log('Verification - flips section after save:', flipSection[0]);
-            }
+        if (verifyContent.includes("'orb':")) {
+            const orbLine = verifyContent.split('\n').find(line => line.includes("'orb':") && line.includes('width'));
+            console.log('Verification - orb hitbox line after save:', orbLine);
         }
         
         // Log what was updated
         const updates = [];
         if (scales && Object.keys(scales).length > 0) {
             updates.push(`${Object.keys(scales).length} scales`);
-            console.log('Updated scales:', scales);
         }
         if (hitboxes && Object.keys(hitboxes).length > 0) {
             updates.push(`${Object.keys(hitboxes).length} hitboxes`);
-            console.log('Updated hitboxes:', Object.keys(hitboxes));
         }
         if (shadows && Object.keys(shadows).length > 0) {
             updates.push(`${Object.keys(shadows).length} shadows`);
-            console.log('Updated shadows:', Object.keys(shadows));
         }
         if (flips && Object.keys(flips).length > 0) {
             updates.push(`${Object.keys(flips).length} flips`);
-            console.log('Updated flips:', Object.keys(flips));
         }
         
         if (updates.length > 0) {

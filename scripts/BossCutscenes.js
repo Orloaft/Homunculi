@@ -1,6 +1,5 @@
 // Enhanced Boss Cutscene System for WizBiz
 // Can be integrated into game.js
-
 class BossCutsceneSystem {
     constructor(scene) {
         this.scene = scene;
@@ -8,25 +7,20 @@ class BossCutsceneSystem {
         this.currentElements = [];
         this.skipKey = null;
     }
-
     // Main entry point for boss cutscenes
     playBossCutscene(bossType, onComplete) {
         if (this.isPlaying) return;
-        
         this.isPlaying = true;
         this.onComplete = onComplete;
-        
         // Save game state
         this.savedState = {
             physicsRunning: !this.scene.physics.world.isPaused,
             bgMusicVolume: this.scene.bgMusic?.volume || 0.5,
             inputEnabled: this.scene.input.keyboard.enabled
         };
-        
         // Prepare for cutscene
         this.scene.physics.pause();
         this.scene.input.keyboard.enabled = false;
-        
         // Stop player movement
         if (this.scene.wizard?.body) {
             this.scene.wizard.body.setVelocity(0, 0);
@@ -34,7 +28,6 @@ class BossCutsceneSystem {
         if (this.scene.wizard2?.body) {
             this.scene.wizard2.body.setVelocity(0, 0);
         }
-        
         // Fade music
         if (this.scene.bgMusic) {
             this.scene.tweens.add({
@@ -43,11 +36,9 @@ class BossCutsceneSystem {
                 duration: 500
             });
         }
-        
         // Setup skip functionality
         this.skipKey = this.scene.input.keyboard.addKey('SPACE');
         this.skipKey.once('down', () => this.skipCutscene());
-        
         // Play specific boss cutscene
         switch(bossType) {
             case 'obelisk':
@@ -72,25 +63,21 @@ class BossCutsceneSystem {
                 this.playGenericBossCutscene(bossType);
         }
     }
-
     // Obelisk Boss Cutscene - Ancient Awakening
     playObeliskCutscene() {
         // Screen shake as obelisk awakens
         this.scene.cameras.main.shake(2000, 0.02);
-        
         // Dark overlay
         const overlay = this.scene.add.rectangle(400, 300, 800, 600, 0x000000, 0);
         overlay.setScrollFactor(0);
         overlay.setDepth(900);
         this.currentElements.push(overlay);
-        
         // Fade in overlay
         this.scene.tweens.add({
             targets: overlay,
             alpha: 0.8,
             duration: 1000
         });
-        
         // Ancient text appears
         const ancientText = this.scene.add.text(400, 200, 'THE ANCIENT SEAL HAS BEEN BROKEN', {
             fontSize: '32px',
@@ -104,7 +91,6 @@ class BossCutsceneSystem {
         ancientText.setDepth(901);
         ancientText.setAlpha(0);
         this.currentElements.push(ancientText);
-        
         // Boss title
         const title = this.scene.add.text(400, 300, 'AWAKENED OBELISK', {
             fontSize: '64px',
@@ -118,7 +104,6 @@ class BossCutsceneSystem {
         title.setDepth(901);
         title.setScale(0);
         this.currentElements.push(title);
-        
         // Subtitle
         const subtitle = this.scene.add.text(400, 370, 'Guardian of Forbidden Knowledge', {
             fontSize: '24px',
@@ -132,7 +117,6 @@ class BossCutsceneSystem {
         subtitle.setDepth(901);
         subtitle.setAlpha(0);
         this.currentElements.push(subtitle);
-        
         // Red lightning effects
         const createLightning = () => {
             const lightning = this.scene.add.rectangle(
@@ -146,7 +130,6 @@ class BossCutsceneSystem {
             lightning.setScrollFactor(0);
             lightning.setDepth(902);
             this.currentElements.push(lightning);
-            
             this.scene.tweens.add({
                 targets: lightning,
                 alpha: 0,
@@ -154,10 +137,8 @@ class BossCutsceneSystem {
                 onComplete: () => lightning.destroy()
             });
         };
-        
         // Sequence the cutscene
         const timeline = this.scene.tweens.createTimeline();
-        
         // Ancient text fades in
         timeline.add({
             targets: ancientText,
@@ -165,7 +146,6 @@ class BossCutsceneSystem {
             duration: 1000,
             ease: 'Power2'
         });
-        
         // Lightning flashes
         timeline.add({
             targets: {},
@@ -176,7 +156,6 @@ class BossCutsceneSystem {
                 this.scene.time.delayedCall(200, createLightning);
             }
         });
-        
         // Title scales in dramatically
         timeline.add({
             targets: title,
@@ -190,20 +169,17 @@ class BossCutsceneSystem {
                 }
             }
         });
-        
         // Subtitle fades in
         timeline.add({
             targets: subtitle,
             alpha: 1,
             duration: 500
         });
-        
         // Hold for dramatic effect
         timeline.add({
             targets: {},
             duration: 2000
         });
-        
         // Fade out everything
         timeline.add({
             targets: this.currentElements,
@@ -211,10 +187,8 @@ class BossCutsceneSystem {
             duration: 1000,
             onComplete: () => this.endCutscene()
         });
-        
         timeline.play();
     }
-
     // Nekros Boss Cutscene - Death Approaches
     playNekrosCutscene() {
         // Purple fog effect
@@ -222,14 +196,12 @@ class BossCutsceneSystem {
         fog.setScrollFactor(0);
         fog.setDepth(900);
         this.currentElements.push(fog);
-        
         // Death whispers text
         const whispers = [
             "Death... comes for all...",
             "Your souls... will be mine...",
             "Join the eternal legion..."
         ];
-        
         let whisperIndex = 0;
         const whisperText = this.scene.add.text(400, 200, '', {
             fontSize: '24px',
@@ -243,7 +215,6 @@ class BossCutsceneSystem {
         whisperText.setDepth(901);
         whisperText.setAlpha(0);
         this.currentElements.push(whisperText);
-        
         // Boss title
         const title = this.scene.add.text(400, 300, 'NEKROS', {
             fontSize: '72px',
@@ -257,7 +228,6 @@ class BossCutsceneSystem {
         title.setDepth(901);
         title.setAlpha(0);
         this.currentElements.push(title);
-        
         // Subtitle
         const subtitle = this.scene.add.text(400, 380, 'Death Knight of the Forsaken', {
             fontSize: '26px',
@@ -271,7 +241,6 @@ class BossCutsceneSystem {
         subtitle.setDepth(901);
         subtitle.setAlpha(0);
         this.currentElements.push(subtitle);
-        
         // Soul particles
         const createSoul = () => {
             const soul = this.scene.add.circle(
@@ -284,7 +253,6 @@ class BossCutsceneSystem {
             soul.setScrollFactor(0);
             soul.setDepth(899);
             this.currentElements.push(soul);
-            
             this.scene.tweens.add({
                 targets: soul,
                 y: -50,
@@ -294,14 +262,12 @@ class BossCutsceneSystem {
                 onComplete: () => soul.destroy()
             });
         };
-        
         // Create soul effect repeatedly
         const soulTimer = this.scene.time.addEvent({
             delay: 300,
             callback: createSoul,
             repeat: 15
         });
-        
         // Cutscene sequence
         this.scene.tweens.add({
             targets: fog,
@@ -309,7 +275,6 @@ class BossCutsceneSystem {
             duration: 1500,
             ease: 'Power2'
         });
-        
         // Cycle through whispers
         const whisperTimer = this.scene.time.addEvent({
             delay: 1500,
@@ -317,7 +282,6 @@ class BossCutsceneSystem {
                 if (whisperIndex < whispers.length) {
                     whisperText.setText(whispers[whisperIndex]);
                     whisperIndex++;
-                    
                     this.scene.tweens.add({
                         targets: whisperText,
                         alpha: 1,
@@ -329,7 +293,6 @@ class BossCutsceneSystem {
             },
             repeat: whispers.length - 1
         });
-        
         // Show title after whispers
         this.scene.time.delayedCall(6000, () => {
             this.scene.tweens.add({
@@ -339,7 +302,6 @@ class BossCutsceneSystem {
                 duration: 1000,
                 ease: 'Power2'
             });
-            
             this.scene.tweens.add({
                 targets: subtitle,
                 alpha: 1,
@@ -347,7 +309,6 @@ class BossCutsceneSystem {
                 delay: 500
             });
         });
-        
         // End cutscene
         this.scene.time.delayedCall(9000, () => {
             this.scene.tweens.add({
@@ -358,7 +319,6 @@ class BossCutsceneSystem {
             });
         });
     }
-
     // Eyelor Boss Cutscene - The All-Seeing
     playEyelorCutscene() {
         // Sandy overlay
@@ -366,27 +326,23 @@ class BossCutsceneSystem {
         overlay.setScrollFactor(0);
         overlay.setDepth(900);
         this.currentElements.push(overlay);
-        
         // Eye opening effect
         const eyeLid = this.scene.add.ellipse(400, 300, 400, 0, 0x000000);
         eyeLid.setScrollFactor(0);
         eyeLid.setDepth(902);
         this.currentElements.push(eyeLid);
-        
         // Iris
         const iris = this.scene.add.circle(400, 300, 80, 0xff6600);
         iris.setScrollFactor(0);
         iris.setDepth(901);
         iris.setScale(0);
         this.currentElements.push(iris);
-        
         // Pupil
         const pupil = this.scene.add.circle(400, 300, 30, 0x000000);
         pupil.setScrollFactor(0);
         pupil.setDepth(901);
         pupil.setScale(0);
         this.currentElements.push(pupil);
-        
         // Title
         const title = this.scene.add.text(400, 450, 'EYELOR', {
             fontSize: '64px',
@@ -400,7 +356,6 @@ class BossCutsceneSystem {
         title.setDepth(903);
         title.setAlpha(0);
         this.currentElements.push(title);
-        
         // Subtitle
         const subtitle = this.scene.add.text(400, 510, 'The Desert\'s Watchful Gaze', {
             fontSize: '24px',
@@ -414,14 +369,12 @@ class BossCutsceneSystem {
         subtitle.setDepth(903);
         subtitle.setAlpha(0);
         this.currentElements.push(subtitle);
-        
         // Sequence
         this.scene.tweens.add({
             targets: overlay,
             alpha: 0.3,
             duration: 1000
         });
-        
         // Eye opens
         this.scene.tweens.add({
             targets: eyeLid,
@@ -430,7 +383,6 @@ class BossCutsceneSystem {
             delay: 500,
             ease: 'Power2'
         });
-        
         // Iris appears
         this.scene.tweens.add({
             targets: iris,
@@ -439,7 +391,6 @@ class BossCutsceneSystem {
             delay: 1500,
             ease: 'Back.easeOut'
         });
-        
         // Pupil appears
         this.scene.tweens.add({
             targets: pupil,
@@ -447,7 +398,6 @@ class BossCutsceneSystem {
             duration: 500,
             delay: 2000
         });
-        
         // Eye looks around
         this.scene.tweens.add({
             targets: [iris, pupil],
@@ -456,7 +406,6 @@ class BossCutsceneSystem {
             delay: 2500,
             ease: 'Sine.easeInOut'
         });
-        
         // Title and subtitle
         this.scene.tweens.add({
             targets: [title, subtitle],
@@ -464,7 +413,6 @@ class BossCutsceneSystem {
             duration: 1000,
             delay: 3500
         });
-        
         // End
         this.scene.time.delayedCall(6000, () => {
             this.scene.tweens.add({
@@ -475,7 +423,6 @@ class BossCutsceneSystem {
             });
         });
     }
-
     // Demon Slime Boss Cutscene - Infernal Emergence
     playDemonSlimeCutscene() {
         // Lava bubbles
@@ -485,7 +432,6 @@ class BossCutsceneSystem {
             bubble.setScrollFactor(0);
             bubble.setDepth(900);
             this.currentElements.push(bubble);
-            
             this.scene.tweens.add({
                 targets: bubble,
                 y: Phaser.Math.Between(200, 400),
@@ -496,24 +442,20 @@ class BossCutsceneSystem {
                 onComplete: () => bubble.destroy()
             });
         };
-        
         // Create multiple bubbles
         for (let i = 0; i < 20; i++) {
             this.scene.time.delayedCall(i * 200, createLavaBubble);
         }
-        
         // Red overlay
         const overlay = this.scene.add.rectangle(400, 300, 800, 600, 0xff0000, 0);
         overlay.setScrollFactor(0);
         overlay.setDepth(899);
         this.currentElements.push(overlay);
-        
         this.scene.tweens.add({
             targets: overlay,
             alpha: 0.3,
             duration: 1500
         });
-        
         // Title emerges from lava
         const title = this.scene.add.text(400, 350, 'DEMON SLIME', {
             fontSize: '64px',
@@ -526,7 +468,6 @@ class BossCutsceneSystem {
         title.setScrollFactor(0);
         title.setDepth(901);
         this.currentElements.push(title);
-        
         const subtitle = this.scene.add.text(400, 420, 'Lord of Molten Fury', {
             fontSize: '24px',
             color: '#ff8800',
@@ -538,11 +479,9 @@ class BossCutsceneSystem {
         subtitle.setScrollFactor(0);
         subtitle.setDepth(901);
         this.currentElements.push(subtitle);
-        
         // Emerge from bottom
         title.y = 600;
         subtitle.y = 670;
-        
         this.scene.tweens.add({
             targets: title,
             y: 350,
@@ -550,7 +489,6 @@ class BossCutsceneSystem {
             delay: 1000,
             ease: 'Power2.easeOut'
         });
-        
         this.scene.tweens.add({
             targets: subtitle,
             y: 420,
@@ -558,12 +496,10 @@ class BossCutsceneSystem {
             delay: 1500,
             ease: 'Power2.easeOut'
         });
-        
         // Screen shake for impact
         this.scene.time.delayedCall(3000, () => {
             this.scene.cameras.main.shake(500, 0.03);
         });
-        
         // End
         this.scene.time.delayedCall(5000, () => {
             this.scene.tweens.add({
@@ -574,7 +510,6 @@ class BossCutsceneSystem {
             });
         });
     }
-
     // Archer Boss Cutscene
     playArcherCutscene() {
         // Purple mystical overlay
@@ -582,13 +517,11 @@ class BossCutsceneSystem {
         overlay.setScrollFactor(0);
         overlay.setDepth(900);
         this.currentElements.push(overlay);
-        
         this.scene.tweens.add({
             targets: overlay,
             alpha: 0.3,
             duration: 1000
         });
-        
         // Arrow volley effect
         const createArrow = (startX) => {
             const arrow = this.scene.add.rectangle(startX, -20, 3, 30, 0xff00ff);
@@ -596,7 +529,6 @@ class BossCutsceneSystem {
             arrow.setDepth(901);
             arrow.rotation = Math.PI / 2;
             this.currentElements.push(arrow);
-            
             this.scene.tweens.add({
                 targets: arrow,
                 y: 620,
@@ -605,14 +537,12 @@ class BossCutsceneSystem {
                 onComplete: () => arrow.destroy()
             });
         };
-        
         // Rain of arrows
         for (let i = 0; i < 10; i++) {
             this.scene.time.delayedCall(i * 100, () => {
                 createArrow(Phaser.Math.Between(100, 700));
             });
         }
-        
         // Title
         const title = this.scene.add.text(400, 300, 'ARCANE ARCHER', {
             fontSize: '56px',
@@ -626,7 +556,6 @@ class BossCutsceneSystem {
         title.setDepth(902);
         title.setAlpha(0);
         this.currentElements.push(title);
-        
         const subtitle = this.scene.add.text(400, 360, 'Master of the Mystical Bow', {
             fontSize: '24px',
             color: '#ff99ff',
@@ -639,7 +568,6 @@ class BossCutsceneSystem {
         subtitle.setDepth(902);
         subtitle.setAlpha(0);
         this.currentElements.push(subtitle);
-        
         // Fade in text
         this.scene.tweens.add({
             targets: [title, subtitle],
@@ -647,7 +575,6 @@ class BossCutsceneSystem {
             duration: 1000,
             delay: 1500
         });
-        
         // End
         this.scene.time.delayedCall(4000, () => {
             this.scene.tweens.add({
@@ -658,7 +585,6 @@ class BossCutsceneSystem {
             });
         });
     }
-
     // King Nothing Boss Cutscene - The Hollow Crown
     playKingNothingCutscene() {
         // Dark void effect
@@ -666,7 +592,6 @@ class BossCutsceneSystem {
         void1.setScrollFactor(0);
         void1.setDepth(900);
         this.currentElements.push(void1);
-        
         // Expand the void
         this.scene.tweens.add({
             targets: void1,
@@ -675,7 +600,6 @@ class BossCutsceneSystem {
             duration: 2000,
             ease: 'Power2'
         });
-        
         // Crown floating down
         const crown = this.scene.add.text(400, -50, '👑', {
             fontSize: '64px'
@@ -684,14 +608,12 @@ class BossCutsceneSystem {
         crown.setScrollFactor(0);
         crown.setDepth(901);
         this.currentElements.push(crown);
-        
         this.scene.tweens.add({
             targets: crown,
             y: 200,
             duration: 2000,
             ease: 'Bounce.easeOut'
         });
-        
         // Title appears from shadows
         const title = this.scene.add.text(400, 300, 'KING NOTHING', {
             fontSize: '64px',
@@ -705,7 +627,6 @@ class BossCutsceneSystem {
         title.setDepth(901);
         title.setAlpha(0);
         this.currentElements.push(title);
-        
         const subtitle = this.scene.add.text(400, 370, 'Ruler of the Void', {
             fontSize: '24px',
             color: '#999999',
@@ -718,7 +639,6 @@ class BossCutsceneSystem {
         subtitle.setDepth(901);
         subtitle.setAlpha(0);
         this.currentElements.push(subtitle);
-        
         // Fade in text
         this.scene.tweens.add({
             targets: [title, subtitle],
@@ -726,7 +646,6 @@ class BossCutsceneSystem {
             duration: 1000,
             delay: 2000
         });
-        
         // Crown disappears into void
         this.scene.tweens.add({
             targets: crown,
@@ -736,7 +655,6 @@ class BossCutsceneSystem {
             delay: 3000,
             ease: 'Power2.easeIn'
         });
-        
         // End
         this.scene.time.delayedCall(5000, () => {
             this.scene.tweens.add({
@@ -747,14 +665,12 @@ class BossCutsceneSystem {
             });
         });
     }
-
     // Generic boss cutscene for any other boss
     playGenericBossCutscene(bossType) {
         const overlay = this.scene.add.rectangle(400, 300, 800, 600, 0x000000, 0.7);
         overlay.setScrollFactor(0);
         overlay.setDepth(900);
         this.currentElements.push(overlay);
-        
         const title = this.scene.add.text(400, 300, 'BOSS APPROACHES', {
             fontSize: '48px',
             color: '#ff0000',
@@ -766,14 +682,12 @@ class BossCutsceneSystem {
         title.setScrollFactor(0);
         title.setDepth(901);
         this.currentElements.push(title);
-        
         this.scene.tweens.add({
             targets: title,
             scale: { from: 0, to: 1 },
             duration: 1000,
             ease: 'Back.easeOut'
         });
-        
         this.scene.time.delayedCall(3000, () => {
             this.scene.tweens.add({
                 targets: this.currentElements,
@@ -783,28 +697,22 @@ class BossCutsceneSystem {
             });
         });
     }
-
     // Skip the current cutscene
     skipCutscene() {
         if (!this.isPlaying) return;
-        
         // Stop all tweens
         this.scene.tweens.killAll();
-        
         // Clean up immediately
         this.currentElements.forEach(element => {
             if (element && element.destroy) {
                 element.destroy();
             }
         });
-        
         this.endCutscene();
     }
-
     // End cutscene and restore game state
     endCutscene() {
         this.isPlaying = false;
-        
         // Clean up elements
         this.currentElements.forEach(element => {
             if (element && element.destroy) {
@@ -812,21 +720,17 @@ class BossCutsceneSystem {
             }
         });
         this.currentElements = [];
-        
         // Remove skip handler
         if (this.skipKey) {
             this.skipKey.removeAllListeners();
             this.skipKey = null;
         }
-        
         // Restore game state
         if (this.savedState) {
             if (this.savedState.physicsRunning) {
                 this.scene.physics.resume();
             }
-            
             this.scene.input.keyboard.enabled = this.savedState.inputEnabled;
-            
             if (this.scene.bgMusic) {
                 this.scene.tweens.add({
                     targets: this.scene.bgMusic,
@@ -835,14 +739,12 @@ class BossCutsceneSystem {
                 });
             }
         }
-        
         // Call completion callback
         if (this.onComplete) {
             this.onComplete();
         }
     }
 }
-
 // Export for use
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = BossCutsceneSystem;
