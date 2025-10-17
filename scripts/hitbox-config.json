@@ -11,6 +11,30 @@
     "orb": {
       "flipX": true,
       "flipY": false
+    },
+    "frost-guardian-boss": {
+      "flipX": true,
+      "flipY": false
+    },
+    "wizard": {
+      "flipX": true,
+      "flipY": false
+    },
+    "crabby": {
+      "flipX": false,
+      "flipY": false
+    },
+    "mushroom": {
+      "flipX": false,
+      "flipY": true
+    },
+    "bloboid": {
+      "flipX": true,
+      "flipY": true
+    },
+    "flyingdemon": {
+      "flipX": false,
+      "flipY": false
     }
   },
   "scales": {
@@ -53,7 +77,10 @@
     "archer-boss": 2.25,
     "demon-slime-boss": 1.75,
     "eyelor-boss": 2,
-    "nekros-boss": 1.8
+    "nekros-boss": 1.8,
+    "frost-guardian-boss": 1,
+    "torchboy": 3.1,
+    "jellyfish": 1.4
   },
   "hitboxes": {
     "": {
@@ -114,7 +141,10 @@
       "": 17
     },
     "wizard": {
-      "": 15
+      "width": 35,
+      "height": 59,
+      "offsetX": 27,
+      "offsetY": 13
     },
     "grim": {
       "": 15
@@ -139,6 +169,30 @@
       "height": 50,
       "offsetX": 10,
       "offsetY": 10
+    },
+    "frost-guardian-boss": {
+      "width": 62,
+      "height": 61,
+      "offsetX": 75,
+      "offsetY": 33
+    },
+    "torchboy": {
+      "width": 5,
+      "height": 11,
+      "offsetX": -22,
+      "offsetY": -8
+    },
+    "jellyfish": {
+      "width": 49,
+      "height": 56,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "crabby": {
+      "width": 56,
+      "height": 33,
+      "offsetX": 6,
+      "offsetY": 16
     }
   },
   "shadows": {
@@ -195,6 +249,13 @@
     },
     "archer-boss": {
       "": 40
+    },
+    "frost-guardian-boss": {
+      "width": 40,
+      "height": 15,
+      "offsetX": -16,
+      "offsetY": 18,
+      "alpha": 0.5
     }
   }
 }

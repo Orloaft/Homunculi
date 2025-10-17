@@ -103,6 +103,20 @@ if (typeof hitboxConfig === 'undefined') {
         console.log(\`[HITBOX CONFIG] Sprite scale after: \${sprite.scaleX}\`);
         return scale;
     },
+
+    // Helper function to get flip configuration
+    getFlip: function(spriteType) {
+        return this.flips[spriteType] || { flipX: false, flipY: false };
+    },
+
+    // Helper function to apply flip configuration
+    applyFlip: function(sprite, spriteType) {
+        const flip = this.getFlip(spriteType);
+        console.log(\`[HITBOX CONFIG] Applying flip for \${spriteType}:\`, flip);
+        if (flip.flipX) sprite.setFlipX(true);
+        if (flip.flipY) sprite.setFlipY(true);
+        return flip;
+    },
     
     // Helper function to apply hitbox configuration
     applyHitbox: function(enemy, enemyType) {

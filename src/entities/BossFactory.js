@@ -5,6 +5,7 @@ import ArcherBoss from './bosses/ArcherBoss.js';
 import DemonSlimeBoss from './bosses/DemonSlimeBoss.js';
 import NekrosBoss from './bosses/NekrosBoss.js';
 import EyelorBoss from './bosses/EyelorBoss.js';
+import FrostGuardianBoss from './bosses/FrostGuardianBoss.js';
 
 export class BossFactory {
     static createBoss(scene, stage, x, y) {
@@ -29,6 +30,10 @@ export class BossFactory {
                 
             case 'grave':
                 boss = new NekrosBoss(scene, x, y);
+                break;
+                
+            case 'snow':
+                boss = new FrostGuardianBoss(scene, x, y);
                 break;
                 
             default:

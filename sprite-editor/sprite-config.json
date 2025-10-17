@@ -430,6 +430,236 @@
     },
     "defaultScale": 1
   },
+  "snowy": {
+    "texture": "snowy-walk",
+    "path": "../assets/enemies/snowlandenemies/snow-enemy-character-sprites-pixel-art/1 Snowy/Snowy_walk.png",
+    "frameWidth": 48,
+    "frameHeight": 48,
+    "animations": {
+      "walk": {
+        "start": 0,
+        "end": 5,
+        "rate": 8
+      },
+      "death": {
+        "texture": "snowy-death",
+        "path": "../assets/enemies/snowlandenemies/snow-enemy-character-sprites-pixel-art/1 Snowy/Snowy_death.png",
+        "frameWidth": 48,
+        "frameHeight": 48,
+        "start": 0,
+        "end": 5,
+        "rate": 10
+      }
+    },
+    "defaultScale": 1.5
+  },
+  "elkman": {
+    "texture": "elkman-walk",
+    "path": "../assets/enemies/snowlandenemies/snow-enemy-character-sprites-pixel-art/2 Elkman/Elkman_walk.png",
+    "frameWidth": 48,
+    "frameHeight": 48,
+    "animations": {
+      "walk": {
+        "start": 0,
+        "end": 3,
+        "rate": 6
+      },
+      "death": {
+        "texture": "elkman-death",
+        "path": "../assets/enemies/snowlandenemies/snow-enemy-character-sprites-pixel-art/2 Elkman/Elkman_death.png",
+        "frameWidth": 48,
+        "frameHeight": 48,
+        "start": 0,
+        "end": 3,
+        "rate": 8
+      }
+    },
+    "defaultScale": 1.6
+  },
+  "frost-golem": {
+    "texture": "frost-golem-walk",
+    "path": "../assets/enemies/snowlandenemies/snow-enemy-character-sprites-pixel-art/3 Frost_golem/Frost_golem_walk.png",
+    "frameWidth": 48,
+    "frameHeight": 48,
+    "animations": {
+      "walk": {
+        "start": 0,
+        "end": 3,
+        "rate": 5
+      },
+      "death": {
+        "texture": "frost-golem-death",
+        "path": "../assets/enemies/snowlandenemies/snow-enemy-character-sprites-pixel-art/3 Frost_golem/Frost_golem_death.png",
+        "frameWidth": 48,
+        "frameHeight": 48,
+        "start": 0,
+        "end": 5,
+        "rate": 8
+      }
+    },
+    "defaultScale": 1.8
+  },
+  "spiked-slime": {
+    "texture": "spiked-slime-walk",
+    "path": "../assets/enemies/snowlandenemies/snow-enemy-character-sprites-pixel-art/4 Spiked_slime/Spiked_slime_walk.png",
+    "frameWidth": 48,
+    "frameHeight": 48,
+    "animations": {
+      "walk": {
+        "start": 0,
+        "end": 3,
+        "rate": 8
+      },
+      "death": {
+        "texture": "spiked-slime-death",
+        "path": "../assets/enemies/snowlandenemies/snow-enemy-character-sprites-pixel-art/4 Spiked_slime/Spiked_slime_death.png",
+        "frameWidth": 48,
+        "frameHeight": 48,
+        "start": 0,
+        "end": 3,
+        "rate": 10
+      }
+    },
+    "defaultScale": 1.4
+  },
+  "northerner": {
+    "texture": "northerner-walk",
+    "path": "../assets/enemies/snowlandenemies/snow-enemy-character-sprites-pixel-art/6 Northerner/Northerner_walk.png",
+    "frameWidth": 48,
+    "frameHeight": 48,
+    "animations": {
+      "walk": {
+        "start": 0,
+        "end": 5,
+        "rate": 8
+      },
+      "death": {
+        "texture": "northerner-death",
+        "path": "../assets/enemies/snowlandenemies/snow-enemy-character-sprites-pixel-art/6 Northerner/Northerner_death.png",
+        "frameWidth": 48,
+        "frameHeight": 48,
+        "start": 0,
+        "end": 3,
+        "rate": 8
+      }
+    },
+    "defaultScale": 1.5
+  },
+  "jellyfish": {
+    "texture": "jellyfish-walk",
+    "path": "../assets/enemies/oceanlandenemies/Enemie Pack N1 (Aquatic)/Medusas/Blue Medusa/Idle/Idle-Sheet.png",
+    "frameWidth": 48,
+    "frameHeight": 48,
+    "animations": {
+      "walk": {
+        "start": 0,
+        "end": 3,
+        "rate": 6
+      },
+      "death": {
+        "texture": "jellyfish-death",
+        "path": "../assets/enemies/oceanlandenemies/Enemie Pack N1 (Aquatic)/Medusas/Blue Medusa/Dead/Dead-Sheet.png",
+        "frameWidth": 48,
+        "frameHeight": 48,
+        "start": 0,
+        "end": 4,
+        "rate": 8
+      }
+    },
+    "defaultScale": 1.4
+  },
+  "crabby": {
+    "texture": "crabby-walk",
+    "path": "../assets/enemies/oceanlandenemies/Enemie Pack N1 (Aquatic)/Crustaceon/Walk/Walk-Sheet.png",
+    "frameWidth": 64,
+    "frameHeight": 48,
+    "animations": {
+      "walk": {
+        "start": 0,
+        "end": 5,
+        "rate": 10
+      },
+      "death": {
+        "texture": "crabby-death",
+        "path": "../assets/enemies/oceanlandenemies/Enemie Pack N1 (Aquatic)/Crustaceon/Dead/Dead-Sheet.png",
+        "frameWidth": 64,
+        "frameHeight": 48,
+        "start": 0,
+        "end": 4,
+        "rate": 8
+      }
+    },
+    "defaultScale": 1.5
+  },
+  "shark": {
+    "texture": "shark-walk",
+    "path": "../assets/enemies/oceanlandenemies/shark/Walk.png",
+    "frameWidth": 96,
+    "frameHeight": 96,
+    "animations": {
+      "walk": {
+        "start": 0,
+        "end": 5,
+        "rate": 8
+      },
+      "death": {
+        "texture": "shark-death",
+        "path": "../assets/enemies/oceanlandenemies/shark/Death.png",
+        "frameWidth": 96,
+        "frameHeight": 96,
+        "start": 0,
+        "end": 5,
+        "rate": 8
+      }
+    },
+    "defaultScale": 1.2
+  },
+  "squid": {
+    "texture": "squid-walk",
+    "path": "../assets/enemies/oceanlandenemies/squid/Walk.png",
+    "frameWidth": 96,
+    "frameHeight": 96,
+    "animations": {
+      "walk": {
+        "start": 0,
+        "end": 5,
+        "rate": 8
+      },
+      "death": {
+        "texture": "squid-death",
+        "path": "../assets/enemies/oceanlandenemies/squid/Death.png",
+        "frameWidth": 96,
+        "frameHeight": 96,
+        "start": 0,
+        "end": 5,
+        "rate": 8
+      }
+    },
+    "defaultScale": 1.4
+  },
+  "crablore": {
+    "texture": "crablore-walk",
+    "path": "../assets/enemies/oceanlandenemies/crab/Walk.png",
+    "frameWidth": 96,
+    "frameHeight": 96,
+    "animations": {
+      "walk": {
+        "start": 0,
+        "end": 5,
+        "rate": 6
+      },
+      "death": {
+        "texture": "crablore-death",
+        "path": "../assets/enemies/oceanlandenemies/crab/Death.png",
+        "frameWidth": 96,
+        "frameHeight": 96,
+        "start": 0,
+        "end": 5,
+        "rate": 8
+      }
+    },
+    "defaultScale": 1.6
+  },
   "bloboid": {
     "texture": "bloboid-walk",
     "path": "../assets/newenemies/blob/blob%20minion%20walk.png",
@@ -446,10 +676,7 @@
   },
   "sorcerer": {
     "texture": "sorcerer-idle",
-    "individualFrames": true,
-    "framePattern": "sorcerer-idle-",
     "path": "../assets/newenemies/sorcerer villain/sorcerer attack_Animation 1_0.png",
-    "frameCount": 10,
     "frameWidth": 80,
     "frameHeight": 80,
     "animations": {
@@ -459,7 +686,9 @@
         "rate": 6
       }
     },
-    "defaultScale": 1.5
+    "defaultScale": 1.5,
+    "individualFrames": true,
+    "framePattern": "sorcerer-idle-"
   },
   "element-symbols": {
     "texture": "element-symbols",
@@ -632,9 +861,6 @@
   },
   "ice-spike": {
     "texture": "ice-spike-start1",
-    "individualFrames": true,
-    "framePattern": "ice-spike-start",
-    "frameCount": 3,
     "frameWidth": 32,
     "frameHeight": 48,
     "animations": {
@@ -644,13 +870,12 @@
         "rate": 10
       }
     },
-    "defaultScale": 1
+    "defaultScale": 1,
+    "individualFrames": true,
+    "framePattern": "ice-spike-start"
   },
   "ice-spike-loop": {
     "texture": "ice-spike-loop1",
-    "individualFrames": true,
-    "framePattern": "ice-spike-loop",
-    "frameCount": 4,
     "frameWidth": 32,
     "frameHeight": 48,
     "animations": {
@@ -660,13 +885,12 @@
         "rate": 10
       }
     },
-    "defaultScale": 1
+    "defaultScale": 1,
+    "individualFrames": true,
+    "framePattern": "ice-spike-loop"
   },
   "ice-spike-hit": {
     "texture": "ice-spike-hit1",
-    "individualFrames": true,
-    "framePattern": "ice-spike-hit",
-    "frameCount": 8,
     "frameWidth": 48,
     "frameHeight": 48,
     "animations": {
@@ -676,13 +900,12 @@
         "rate": 20
       }
     },
-    "defaultScale": 1.3
+    "defaultScale": 1.3,
+    "individualFrames": true,
+    "framePattern": "ice-spike-hit"
   },
   "holy-impact": {
     "texture": "holy-impact-1",
-    "individualFrames": true,
-    "framePattern": "holy-impact-",
-    "frameCount": 7,
     "frameWidth": 48,
     "frameHeight": 48,
     "animations": {
@@ -692,12 +915,13 @@
         "rate": 20
       }
     },
-    "defaultScale": 2
+    "defaultScale": 2,
+    "individualFrames": true,
+    "framePattern": "holy-impact-"
   },
   "archer-projectile": {
     "texture": "archer-projectile",
     "path": "../assets/bosses/archerboss/projectile.png",
-    "isStaticImage": true,
     "frameWidth": 32,
     "frameHeight": 32,
     "animations": {
@@ -707,7 +931,8 @@
         "rate": 1
       }
     },
-    "defaultScale": 1.2
+    "defaultScale": 1.2,
+    "isStaticImage": true
   },
   "poison-spell": {
     "texture": "poison-spell",
@@ -865,9 +1090,6 @@
   },
   "void-ball": {
     "texture": "void-ball",
-    "individualFrames": true,
-    "framePattern": "void-ball-",
-    "frameCount": 3,
     "frameWidth": 64,
     "frameHeight": 64,
     "animations": {
@@ -877,13 +1099,12 @@
         "rate": 8
       }
     },
-    "defaultScale": 1
+    "defaultScale": 1,
+    "individualFrames": true,
+    "framePattern": "void-ball-"
   },
   "void-ball-destroyed": {
     "texture": "projectile-destroyed-1",
-    "individualFrames": true,
-    "framePattern": "projectile-destroyed-",
-    "frameCount": 3,
     "frameWidth": 64,
     "frameHeight": 64,
     "animations": {
@@ -893,7 +1114,9 @@
         "rate": 12
       }
     },
-    "defaultScale": 1
+    "defaultScale": 1,
+    "individualFrames": true,
+    "framePattern": "projectile-destroyed-"
   },
   "boss-arm-projectile": {
     "texture": "boss-arm-projectile",
@@ -1047,6 +1270,22 @@
     "individualFrames": true,
     "framePattern": "nekros-walk-"
   },
+  "frost-guardian-boss": {
+    "texture": "frost-guardian-idle-1",
+    "path": "assets/frostguardian/idle/idle_1.png",
+    "frameWidth": 200,
+    "frameHeight": 200,
+    "animations": {
+      "idle": {
+        "start": 1,
+        "end": 6,
+        "rate": 6
+      }
+    },
+    "defaultScale": 2,
+    "individualFrames": true,
+    "framePattern": "frost-guardian-idle-"
+  },
   "castle-knight": {
     "texture": "castle-knight",
     "path": "../assets/enemies/castlelandfoes/knightrun8frames.png",
@@ -1090,10 +1329,7 @@
     "defaultScale": 0.45
   },
   "castle-bladekeeper": {
-    "individualFrames": true,
-    "framePattern": "castle-bladekeeper-",
     "path": "../assets/enemies/castlelandfoes/bladekeeper/02_run_1.png",
-    "frameCount": 8,
     "frameWidth": 64,
     "frameHeight": 64,
     "animations": {
@@ -1103,7 +1339,9 @@
         "rate": 10
       }
     },
-    "defaultScale": 0.45
+    "defaultScale": 0.45,
+    "individualFrames": true,
+    "framePattern": "castle-bladekeeper-"
   },
   "castle-squire": {
     "texture": "castle-squire",
@@ -1157,10 +1395,7 @@
     "defaultScale": 1.5
   },
   "clubimp": {
-    "individualFrames": true,
-    "framePattern": "club-imp-walk-",
     "path": "../assets/enemies/impclub/walk_1.png",
-    "frameCount": 6,
     "frameWidth": 32,
     "frameHeight": 32,
     "animations": {
@@ -1188,13 +1423,12 @@
         "rate": 10
       }
     },
-    "defaultScale": 3
+    "defaultScale": 3,
+    "individualFrames": true,
+    "framePattern": "club-imp-walk-"
   },
   "axeimp": {
-    "individualFrames": true,
-    "framePattern": "axe-imp-walk-",
     "path": "../assets/enemies/impaxe/walk_1.png",
-    "frameCount": 6,
     "frameWidth": 32,
     "frameHeight": 32,
     "animations": {
@@ -1222,7 +1456,9 @@
         "rate": 10
       }
     },
-    "defaultScale": 3
+    "defaultScale": 3,
+    "individualFrames": true,
+    "framePattern": "axe-imp-walk-"
   },
   "flyingdemon": {
     "texture": "flyingdemon",
@@ -1250,8 +1486,7 @@
         "rate": 8
       }
     },
-    "defaultScale": 1,
-    "tint": 16729156
+    "defaultScale": 1
   },
   "orangegolem": {
     "texture": "golem-orange-walk",
@@ -1368,7 +1603,6 @@
     "path": "../assets/sprites/homunculicharacters/blipidle5framesvertical.png",
     "frameWidth": 64,
     "frameHeight": 39,
-    "verticalSheet": true,
     "animations": {
       "idle": {
         "start": 0,

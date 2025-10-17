@@ -92,6 +92,88 @@ class LoadingScene extends Phaser.Scene {
             frameWidth: 48,
             frameHeight: 60
         });
+        // Load snowland enemy sprites
+        this.load.spritesheet('snowy-walk', 'assets/enemies/snowlandenemies/snow-enemy-character-sprites-pixel-art/1 Snowy/Snowy_walk.png', {
+            frameWidth: 48,
+            frameHeight: 48
+        });
+        this.load.spritesheet('snowy-death', 'assets/enemies/snowlandenemies/snow-enemy-character-sprites-pixel-art/1 Snowy/Snowy_death.png', {
+            frameWidth: 48,
+            frameHeight: 48
+        });
+        this.load.spritesheet('elkman-walk', 'assets/enemies/snowlandenemies/snow-enemy-character-sprites-pixel-art/2 Elkman/Elkman_walk.png', {
+            frameWidth: 48,
+            frameHeight: 48
+        });
+        this.load.spritesheet('elkman-death', 'assets/enemies/snowlandenemies/snow-enemy-character-sprites-pixel-art/2 Elkman/Elkman_death.png', {
+            frameWidth: 48,
+            frameHeight: 48
+        });
+        this.load.spritesheet('frost-golem-walk', 'assets/enemies/snowlandenemies/snow-enemy-character-sprites-pixel-art/3 Frost_golem/Frost_golem_walk.png', {
+            frameWidth: 48,
+            frameHeight: 48
+        });
+        this.load.spritesheet('frost-golem-death', 'assets/enemies/snowlandenemies/snow-enemy-character-sprites-pixel-art/3 Frost_golem/Frost_golem_death.png', {
+            frameWidth: 48,
+            frameHeight: 48
+        });
+        this.load.spritesheet('spiked-slime-walk', 'assets/enemies/snowlandenemies/snow-enemy-character-sprites-pixel-art/4 Spiked_slime/Spiked_slime_walk.png', {
+            frameWidth: 48,
+            frameHeight: 48
+        });
+        this.load.spritesheet('spiked-slime-death', 'assets/enemies/snowlandenemies/snow-enemy-character-sprites-pixel-art/4 Spiked_slime/Spiked_slime_death.png', {
+            frameWidth: 48,
+            frameHeight: 48
+        });
+        this.load.spritesheet('northerner-walk', 'assets/enemies/snowlandenemies/snow-enemy-character-sprites-pixel-art/6 Northerner/Northerner_walk.png', {
+            frameWidth: 48,
+            frameHeight: 48
+        });
+        this.load.spritesheet('northerner-death', 'assets/enemies/snowlandenemies/snow-enemy-character-sprites-pixel-art/6 Northerner/Northerner_death.png', {
+            frameWidth: 48,
+            frameHeight: 48
+        });
+        // Load oceanland enemy sprites
+        this.load.spritesheet('jellyfish-walk', 'assets/enemies/oceanlandenemies/Enemie Pack N1 (Aquatic)/Medusas/Blue Medusa/Idle/Idle-Sheet.png', {
+            frameWidth: 48,
+            frameHeight: 48
+        });
+        this.load.spritesheet('jellyfish-death', 'assets/enemies/oceanlandenemies/Enemie Pack N1 (Aquatic)/Medusas/Blue Medusa/Dead/Dead-Sheet.png', {
+            frameWidth: 48,
+            frameHeight: 48
+        });
+        this.load.spritesheet('crabby-walk', 'assets/enemies/oceanlandenemies/Enemie Pack N1 (Aquatic)/Crustaceon/Walk/Walk-Sheet.png', {
+            frameWidth: 64,
+            frameHeight: 48
+        });
+        this.load.spritesheet('crabby-death', 'assets/enemies/oceanlandenemies/Enemie Pack N1 (Aquatic)/Crustaceon/Dead/Dead-Sheet.png', {
+            frameWidth: 64,
+            frameHeight: 48
+        });
+        this.load.spritesheet('shark-walk', 'assets/enemies/oceanlandenemies/shark/Walk.png', {
+            frameWidth: 96,
+            frameHeight: 96
+        });
+        this.load.spritesheet('shark-death', 'assets/enemies/oceanlandenemies/shark/Death.png', {
+            frameWidth: 96,
+            frameHeight: 96
+        });
+        this.load.spritesheet('squid-walk', 'assets/enemies/oceanlandenemies/squid/Walk.png', {
+            frameWidth: 96,
+            frameHeight: 96
+        });
+        this.load.spritesheet('squid-death', 'assets/enemies/oceanlandenemies/squid/Death.png', {
+            frameWidth: 96,
+            frameHeight: 96
+        });
+        this.load.spritesheet('crablore-walk', 'assets/enemies/oceanlandenemies/crab/Walk.png', {
+            frameWidth: 96,
+            frameHeight: 96
+        });
+        this.load.spritesheet('crablore-death', 'assets/enemies/oceanlandenemies/crab/Death.png', {
+            frameWidth: 96,
+            frameHeight: 96
+        });
         // Load tiles and environment
         this.load.image('dirt-tiles', 'assets/TopDownFantasy_Forest_v1/TopDownFantasy-Forest/Tiles/dirt.png');
         // Load grass tile with a specific frame to crop out transparent areas
@@ -114,6 +196,7 @@ class LoadingScene extends Phaser.Scene {
         this.load.image('skullfloor-tile', 'assets/images/skullfloor.png');
         this.load.image('water-tile', 'assets/images/waterfloor.png');
         this.load.image('swamp-tile', 'assets/images/swamptile.png');
+        this.load.image('snow-tile', 'assets/snowtile.png');
         // Load swamp obstacles
         this.load.image('swamprock', 'assets/swamprock.png');
         this.load.image('swampstump', 'assets/swampstump.png');
@@ -122,6 +205,9 @@ class LoadingScene extends Phaser.Scene {
         this.load.image('castle-crate', 'assets/obstacles/castleobstacles/crate_1.png');
         this.load.image('castle-table', 'assets/obstacles/castleobstacles/table_noshadow.png');
         this.load.image('castle-weapon-rack', 'assets/obstacles/castleobstacles/weapon_rack.png');
+        // Load snowland obstacles
+        this.load.image('snow-ice-block', 'assets/snowiceblock.png');
+        this.load.image('snow-tree', 'assets/snowtree.png');
         // Load charge slot upgrade sprite
         this.load.image('charge-slot', 'assets/images/chargeslot.png');
         // Load level up reward icons
@@ -193,6 +279,9 @@ class LoadingScene extends Phaser.Scene {
         this.load.audio('desertland-bgm', 'assets/audio/Sketchbook%202024-06-19(desertland).ogg');
         this.load.audio('lavaland-bgm', 'assets/audio/Retro_%20Spooky%20Soundscape_%20The%20Whispering%20Shadows%20Dungeon%20_Clement%20Panchout%202016(lavaland).wav');
         this.load.audio('graveland-bgm', 'assets/audio/Ludum%20Dare%2032%2003\'9graveland).ogg');
+        this.load.audio('swampland-bgm', 'assets/DavidKBD - Pink Bloom Pack - 06 - Diamonds on The Ceiling(swampland).ogg');
+        this.load.audio('snowland-bgm', 'assets/DavidKBD - Pink Bloom Pack - 05 - Western Cyberhorse(snowland).ogg');
+        this.load.audio('oceanland-bgm', 'assets/DavidKBD - Pink Bloom Pack - 03 - To the Unknown(oceanland).ogg');
         this.load.audio('castleland-intro-bgm', 'assets/audio/Battle-Dawn_intro(castlelandintro).ogg');
         this.load.audio('castleland-bgm', 'assets/audio/Battle-Dawn_loop(castlelandloop).ogg');
         this.load.audio('castleboss-bgm', 'assets/audio/Battle-Vampire(castlebossloop).mp3');
@@ -830,6 +919,89 @@ class LoadingScene extends Phaser.Scene {
         for (let i = 1; i <= 5; i++) {
             this.load.image(`nekros-hurt-${i}`, `assets/bosses/Nekros/hurt/hurt_${i}.png`);
         }
+        // Load Frost Guardian boss sprites (individual frames)
+        // Walk animation (10 frames)
+        for (let i = 1; i <= 10; i++) {
+            this.load.image(`frost-guardian-walk-${i}`, `assets/frostguardian/walk/walk_${i}.png`);
+        }
+        // Idle animation (6 frames)
+        for (let i = 1; i <= 6; i++) {
+            this.load.image(`frost-guardian-idle-${i}`, `assets/frostguardian/idle/idle_${i}.png`);
+        }
+        // Attack animation (14 frames)
+        for (let i = 1; i <= 14; i++) {
+            this.load.image(`frost-guardian-attack-${i}`, `assets/frostguardian/1_atk/1_atk_${i}.png`);
+        }
+        // Take hit animation (7 frames)
+        for (let i = 1; i <= 7; i++) {
+            this.load.image(`frost-guardian-hurt-${i}`, `assets/frostguardian/take_hit/take_hit_${i}.png`);
+        }
+        // Death animation (16 frames)
+        for (let i = 1; i <= 16; i++) {
+            this.load.image(`frost-guardian-death-${i}`, `assets/frostguardian/death/death_${i}.png`);
+        }
+        // Load Amphibian boss sprites (Swampland boss - Frogger)
+        this.load.spritesheet('amphibian-idle', 'assets/enemies/swamplandfoes/Bosses_Frogger/Frogger/frogger_idle.png', {
+            frameWidth: 128,
+            frameHeight: 128
+        });
+        this.load.spritesheet('amphibian-walk', 'assets/enemies/swamplandfoes/Bosses_Frogger/Frogger/frogger_move.png', {
+            frameWidth: 384,
+            frameHeight: 128
+        });
+        this.load.spritesheet('amphibian-spit', 'assets/enemies/swamplandfoes/Bosses_Frogger/Frogger/frogger_spit.png', {
+            frameWidth: 384,
+            frameHeight: 128
+        });
+        this.load.spritesheet('amphibian-tongue', 'assets/enemies/swamplandfoes/Bosses_Frogger/Frogger/frogger_tongue.png', {
+            frameWidth: 384,
+            frameHeight: 128
+        });
+        this.load.spritesheet('amphibian-heal', 'assets/enemies/swamplandfoes/Bosses_Frogger/Frogger/frogger_heal.png', {
+            frameWidth: 384,
+            frameHeight: 128
+        });
+        // Load Sea Kings boss sprites (Ocean Land boss - Three Kings)
+        // Each boss has walk, attack, and death animations (8x4 frames: down, up, left, right)
+        // Beholder 1
+        this.load.spritesheet('seaking1-walk', 'assets/enemies/oceanlandenemies/threekingsboss/Beholder1/Walk/Beholder1_Walk_body.png', {
+            frameWidth: 64,  // 512 / 8 = 64
+            frameHeight: 64  // 256 / 4 = 64
+        });
+        this.load.spritesheet('seaking1-attack', 'assets/enemies/oceanlandenemies/threekingsboss/Beholder1/Attack/Beholder1_Attack_body.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
+        this.load.spritesheet('seaking1-death', 'assets/enemies/oceanlandenemies/threekingsboss/Beholder1/Death/Beholder1_Death_body.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
+        // Beholder 2
+        this.load.spritesheet('seaking2-walk', 'assets/enemies/oceanlandenemies/threekingsboss/Beholder2/Walk/Beholder2_Walk_body.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
+        this.load.spritesheet('seaking2-attack', 'assets/enemies/oceanlandenemies/threekingsboss/Beholder2/Attack/Beholder2_Attack_body.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
+        this.load.spritesheet('seaking2-death', 'assets/enemies/oceanlandenemies/threekingsboss/Beholder2/Death/Beholder2_Death_body.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
+        // Beholder 3
+        this.load.spritesheet('seaking3-walk', 'assets/enemies/oceanlandenemies/threekingsboss/Beholder3/Walk/Beholder3_Walk_body.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
+        this.load.spritesheet('seaking3-attack', 'assets/enemies/oceanlandenemies/threekingsboss/Beholder3/Attack/Beholder3_Attack_body.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
+        this.load.spritesheet('seaking3-death', 'assets/enemies/oceanlandenemies/threekingsboss/Beholder3/Death/Beholder3_Death_body.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
         // Load forest enemy sprites
         this.load.spritesheet('giantfly-walk', 'assets/enemies/forestlandfoes/giantflywalk4frames.png', {
             frameWidth: 32,
@@ -939,15 +1111,15 @@ class LoadingScene extends Phaser.Scene {
             frameHeight: 64
         });
         this.load.spritesheet('torchboy-walk', 'assets/enemies/forestlandfoes/torchboi/runvertical6frames.png', {
-            frameWidth: 82,
+            frameWidth: 31,
             frameHeight: 39  // 234 / 6 frames = 39 (vertical sprite sheet)
         });
         this.load.spritesheet('mudguard-walk', 'assets/enemies/forestlandfoes/Mud Guard/mudguardrunvertical6frames.png', {
-            frameWidth: 82,
+            frameWidth: 28,
             frameHeight: 23  // 138 / 6 frames = 23 (vertical sprite sheet)
         });
         this.load.spritesheet('mudguard-death', 'assets/enemies/forestlandfoes/Mud Guard/mudguarddeathvertical8frames.png', {
-            frameWidth: 82,
+            frameWidth: 28,
             frameHeight: 23  // 184 / 8 frames = 23 (vertical sprite sheet)
         });
         
@@ -1152,6 +1324,7 @@ class TitleScene extends Phaser.Scene {
     constructor() {
         super({ key: 'TitleScene' });
         this.debugEnabled = localStorage.getItem('debugMode') === 'true';
+        this.controllerDetectionActive = false;
     }
     init(data) {
         // Store any data passed from previous scene
@@ -1378,13 +1551,43 @@ class TitleScene extends Phaser.Scene {
                 // Fade out and start cutscene
                 this.cameras.main.fadeOut(500, 0, 0, 0);
                 this.time.delayedCall(500, () => {
-                    this.scene.start('CutsceneScene', { 
+                    this.scene.start('CutsceneScene', {
                         cutsceneType: 'intro',
                         returnScene: 'TitleScene'
                     });
                 });
             }
         });
+
+        // CO-OP Button - center below start text
+        const coopButton = this.add.text(400, 470, 'CO-OP (2-4 Players)', {
+            fontSize: '24px',
+            color: '#ffffff',
+            backgroundColor: '#003300',
+            padding: { x: 20, y: 10 }
+        }).setOrigin(0.5);
+        coopButton.setInteractive({ useHandCursor: true });
+        coopButton.setAlpha(0); // Start invisible
+        // Fade in co-op button
+        this.tweens.add({
+            targets: coopButton,
+            alpha: 1,
+            duration: 1000,
+            delay: 3000,
+            ease: 'Power2'
+        });
+        coopButton.on('pointerover', () => {
+            coopButton.setColor('#00ff00');
+            coopButton.setScale(1.05);
+        });
+        coopButton.on('pointerout', () => {
+            coopButton.setColor('#ffffff');
+            coopButton.setScale(1);
+        });
+        coopButton.on('pointerdown', () => {
+            this.startControllerDetection();
+        });
+
         // Options button - bottom right corner
         const optionsButton = this.add.text(750, 560, 'OPTIONS', {
             fontSize: '20px',
@@ -1422,7 +1625,7 @@ class TitleScene extends Phaser.Scene {
         }
         // Store keyboard listener function so we can re-add it if needed
         this.spaceKeyHandler = () => {
-            if (!this.optionsMenu && !this.isTransitioning) {
+            if (!this.optionsMenu && !this.isTransitioning && !this.controllerDetectionActive) {
                 this.animateStartTextAndTransition(this.startText);
             }
         };
@@ -1523,7 +1726,7 @@ class TitleScene extends Phaser.Scene {
                 const aJustPressed = pad.buttons[0].pressed && !this.prevButtonStates.a;
                 const startJustPressed = pad.buttons[9].pressed && !this.prevButtonStates.start;
                 const selectJustPressed = pad.buttons[8].pressed && !this.prevButtonStates.select;
-                if ((aJustPressed || startJustPressed) && !this.isTransitioning && !this.optionsMenu) {
+                if ((aJustPressed || startJustPressed) && !this.isTransitioning && !this.optionsMenu && !this.controllerDetectionActive) {
                     // Use the stored startText reference
                     if (this.startText) {
                         this.animateStartTextAndTransition(this.startText);
@@ -2444,6 +2647,264 @@ class TitleScene extends Phaser.Scene {
             }
         });
     }
+
+    // ===== CO-OP CONTROLLER DETECTION =====
+    startControllerDetection() {
+        this.controllerDetectionActive = true;
+        this.detectedPlayers = [];
+        this.maxPlayers = 4;
+
+        // Create dark overlay
+        this.detectionOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.85);
+        this.detectionOverlay.setDepth(100);
+
+        // Title
+        const title = this.add.text(400, 120, 'CONTROLLER DETECTION', {
+            fontSize: '36px',
+            color: '#00ff00',
+            fontStyle: 'bold'
+        });
+        title.setOrigin(0.5);
+        title.setDepth(101);
+
+        // Instructions
+        const instructions = this.add.text(400, 180, 'Press any button on controller or key on keyboard to join', {
+            fontSize: '18px',
+            color: '#cccccc'
+        });
+        instructions.setOrigin(0.5);
+        instructions.setDepth(101);
+
+        // Player status displays (in a 2x2 grid)
+        this.playerStatusTexts = [];
+        const positions = [
+            { x: 250, y: 280 },  // P1 top-left
+            { x: 550, y: 280 },  // P2 top-right
+            { x: 250, y: 380 },  // P3 bottom-left
+            { x: 550, y: 380 }   // P4 bottom-right
+        ];
+
+        for (let i = 0; i < this.maxPlayers; i++) {
+            const box = this.add.rectangle(positions[i].x, positions[i].y, 200, 80, 0x222222);
+            box.setStrokeStyle(2, 0x444444);
+            box.setDepth(101);
+
+            const playerText = this.add.text(positions[i].x, positions[i].y, `Player ${i + 1}\nWaiting...`, {
+                fontSize: '18px',
+                color: '#666666',
+                align: 'center'
+            });
+            playerText.setOrigin(0.5);
+            playerText.setDepth(102);
+            this.playerStatusTexts.push({ box, text: playerText });
+        }
+
+        // Start button (disabled initially)
+        this.startCoopButton = this.add.text(400, 480, 'Need at least 2 players', {
+            fontSize: '22px',
+            color: '#666666',
+            backgroundColor: '#333333',
+            padding: { x: 25, y: 12 }
+        });
+        this.startCoopButton.setOrigin(0.5);
+        this.startCoopButton.setDepth(101);
+
+        // Cancel button
+        const cancelButton = this.add.text(400, 540, 'Cancel', {
+            fontSize: '20px',
+            color: '#ffffff',
+            backgroundColor: '#663333',
+            padding: { x: 20, y: 10 }
+        });
+        cancelButton.setOrigin(0.5);
+        cancelButton.setDepth(101);
+        cancelButton.setInteractive({ useHandCursor: true });
+        cancelButton.on('pointerover', () => {
+            cancelButton.setColor('#ff6666');
+        });
+        cancelButton.on('pointerout', () => {
+            cancelButton.setColor('#ffffff');
+        });
+        cancelButton.on('pointerdown', () => {
+            this.cancelControllerDetection();
+        });
+
+        // Store UI elements for cleanup
+        this.detectionUI = [this.detectionOverlay, title, instructions, cancelButton, this.startCoopButton];
+        this.playerStatusTexts.forEach(p => {
+            this.detectionUI.push(p.box);
+            this.detectionUI.push(p.text);
+        });
+
+        // Start listening for controllers
+        this.setupControllerListening();
+    }
+
+    setupControllerListening() {
+        // Listen for gamepad input
+        this.gamepadListener = (pad, button, value) => {
+            if (!this.controllerDetectionActive) return;
+
+            // Check if this controller is already registered
+            const existingPlayer = this.detectedPlayers.find(p => p.padIndex === pad.index);
+            if (existingPlayer) return;
+
+            // Add new player
+            if (this.detectedPlayers.length < this.maxPlayers) {
+                const playerNum = this.detectedPlayers.length;
+                this.detectedPlayers.push({
+                    padIndex: pad.index,
+                    playerNumber: playerNum + 1,
+                    inputType: 'gamepad'
+                });
+
+                // Update UI
+                this.playerStatusTexts[playerNum].text.setText(`Player ${playerNum + 1}\nController ${pad.index}\nReady!`);
+                this.playerStatusTexts[playerNum].text.setColor('#00ff00');
+                this.playerStatusTexts[playerNum].box.setStrokeStyle(3, 0x00ff00);
+
+                // Play feedback sound if available
+                if (this.sound.get('menu-select')) {
+                    this.sound.play('menu-select');
+                }
+
+                // Check if we can start
+                this.updateStartButton();
+            }
+        };
+
+        this.input.gamepad.on('down', this.gamepadListener);
+
+        // Also listen for keyboard (any player can use keyboard)
+        this.keyboardListener = (event) => {
+            if (!this.controllerDetectionActive) return;
+
+            // Check if keyboard player already exists
+            const keyboardPlayer = this.detectedPlayers.find(p => p.padIndex === -1);
+            if (keyboardPlayer) return;
+
+            // Add keyboard player
+            if (this.detectedPlayers.length < this.maxPlayers) {
+                const playerNum = this.detectedPlayers.length;
+                this.detectedPlayers.push({
+                    padIndex: -1, // -1 indicates keyboard
+                    playerNumber: playerNum + 1,
+                    inputType: 'keyboard'
+                });
+
+                // Update UI
+                this.playerStatusTexts[playerNum].text.setText(`Player ${playerNum + 1}\nKeyboard\nReady!`);
+                this.playerStatusTexts[playerNum].text.setColor('#00ff00');
+                this.playerStatusTexts[playerNum].box.setStrokeStyle(3, 0x00ff00);
+
+                // Play feedback sound if available
+                if (this.sound.get('menu-select')) {
+                    this.sound.play('menu-select');
+                }
+
+                // Check if we can start
+                this.updateStartButton();
+            }
+        };
+
+        this.input.keyboard.on('keydown', this.keyboardListener);
+    }
+
+    updateStartButton() {
+        if (this.detectedPlayers.length >= 2) {
+            this.startCoopButton.setText(`START (${this.detectedPlayers.length} Players)`);
+            this.startCoopButton.setColor('#ffffff');
+            this.startCoopButton.setStyle({ backgroundColor: '#006600' });
+            this.startCoopButton.setInteractive({ useHandCursor: true });
+
+            // Remove previous listeners
+            this.startCoopButton.removeAllListeners();
+
+            this.startCoopButton.on('pointerover', () => {
+                this.startCoopButton.setColor('#00ff00');
+                this.startCoopButton.setScale(1.05);
+            });
+            this.startCoopButton.on('pointerout', () => {
+                this.startCoopButton.setColor('#ffffff');
+                this.startCoopButton.setScale(1);
+            });
+            this.startCoopButton.on('pointerdown', () => {
+                this.startCoopGame();
+            });
+        }
+    }
+
+    cancelControllerDetection() {
+        this.controllerDetectionActive = false;
+        this.detectedPlayers = [];
+
+        // Remove listeners
+        if (this.gamepadListener) {
+            this.input.gamepad.off('down', this.gamepadListener);
+            this.gamepadListener = null;
+        }
+        if (this.keyboardListener) {
+            this.input.keyboard.off('keydown', this.keyboardListener);
+            this.keyboardListener = null;
+        }
+
+        // Clean up UI
+        this.detectionUI.forEach(element => {
+            if (element && element.destroy) {
+                element.destroy();
+            }
+        });
+        this.detectionUI = [];
+        this.playerStatusTexts = [];
+    }
+
+    startCoopGame() {
+        if (this.detectedPlayers.length < 2) return;
+
+        // Clean up detection UI
+        this.controllerDetectionActive = false;
+        if (this.gamepadListener) {
+            this.input.gamepad.off('down', this.gamepadListener);
+        }
+        if (this.keyboardListener) {
+            this.input.keyboard.off('keydown', this.keyboardListener);
+        }
+        this.detectionUI.forEach(element => {
+            if (element && element.destroy) {
+                element.destroy();
+            }
+        });
+
+        // Store player data for the game
+        const playerCount = this.detectedPlayers.length;
+
+        // Create fade overlay
+        const fadeOverlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0);
+        fadeOverlay.setDepth(1000);
+
+        this.tweens.add({
+            targets: fadeOverlay,
+            alpha: 1,
+            duration: 1000,
+            ease: 'Power2',
+            onComplete: () => {
+                // Clean up music
+                if (this.titleMusic) {
+                    this.titleMusic.destroy();
+                    this.titleMusic = null;
+                }
+
+                // Start stage select with co-op data
+                this.scene.start('StageSelectScene', {
+                    fromTitle: true,
+                    multiplayerEnabled: true,
+                    playerCount: playerCount,
+                    playerControllers: this.detectedPlayers
+                });
+            }
+        });
+    }
+    // ===== END CO-OP CONTROLLER DETECTION =====
 }
 class StageSelectScene extends Phaser.Scene {
     constructor() {
@@ -2456,7 +2917,9 @@ class StageSelectScene extends Phaser.Scene {
         this.currentPlayer = 'p1';
         this.selectedCard = null;
         this.tarotCards = [];
-        this.selectedCharacters = { p1: null, p2: null };
+        this.selectedCharacters = { p1: null, p2: null, p3: null, p4: null };
+        this.playerCount = 1;
+        this.playerControllers = [];
     }
     init(data) {
         // Always enable keyboard input when entering this scene
@@ -2469,13 +2932,23 @@ class StageSelectScene extends Phaser.Scene {
         if (data && data.multiplayerEnabled !== undefined) {
             this.multiplayerEnabled = data.multiplayerEnabled;
             }
+        // Handle multiplayer data from title screen
+        if (data && data.multiplayerMode) {
+            this.playerCount = data.playerCount || 2;
+            this.playerControllers = data.playerControllers || [];
+            this.multiplayerEnabled = true;
+        } else {
+            this.playerCount = 1;
+            this.playerControllers = [];
+        }
+
         // Check if we should show character selection
         if (data && data.fromTitle) {
             this.characterSelectionMode = true;
             this.currentPlayer = 'p1';
             this.selectedCard = null;
             // Reset character selections when coming from title
-            this.selectedCharacters = { p1: null, p2: null };
+            this.selectedCharacters = { p1: null, p2: null, p3: null, p4: null };
         } else if (data && data.showP2CharacterSelect) {
             this.characterSelectionMode = true;
             this.currentPlayer = 'p2';
@@ -2613,13 +3086,7 @@ class StageSelectScene extends Phaser.Scene {
         this.multiplayerEnabled = false;
         this.player2Connected = false;
         this.multiplayerUI = null; // Reset UI reference
-        // Check for gamepads immediately to show multiplayer UI
-        this.checkForMultipleGamepads();
-        // If multiplayer was enabled from title screen, show it as active
-        if (this.multiplayerEnabled) {
-            this.player2Connected = true;
-            // Will show UI when detail view is active
-        }
+        // Multiplayer is now handled at title screen, no need to check here
         // Create voidkin animation
         if (!this.anims.exists('voidkin-idle')) {
             this.anims.create({
@@ -3142,11 +3609,16 @@ class StageSelectScene extends Phaser.Scene {
         // Create main container for character selection UI
         this.charSelectContainer = this.add.container(0, 0);
         // Title with player-specific color
-        const title = this.currentPlayer === 'p1' ? 
-            'PLAYER 1 - SELECT YOUR HOMUNCULUS' : 
-            'PLAYER 2 - SELECT YOUR HOMUNCULUS';
-        const titleColor = this.currentPlayer === 'p1' ? '#00ff00' : '#00ffff';
-        const strokeColor = this.currentPlayer === 'p1' ? '#004400' : '#004444';
+        const playerColors = {
+            'p1': { color: '#00ff00', stroke: '#004400' },
+            'p2': { color: '#00ffff', stroke: '#004444' },
+            'p3': { color: '#ffff00', stroke: '#444400' },
+            'p4': { color: '#ff00ff', stroke: '#440044' }
+        };
+        const playerNum = parseInt(this.currentPlayer.charAt(1));
+        const title = `PLAYER ${playerNum} - SELECT YOUR HOMUNCULUS`;
+        const titleColor = playerColors[this.currentPlayer].color;
+        const strokeColor = playerColors[this.currentPlayer].stroke;
         const titleText = this.add.text(400, 60, title, {
             fontSize: '28px',
             color: titleColor,
@@ -3556,9 +4028,13 @@ class StageSelectScene extends Phaser.Scene {
     selectCharacter(charName) {
         // Store the selection
         this.selectedCharacters[this.currentPlayer] = charName;
-        // Check if P2 needs to select (if multiplayer is enabled)
-        if (this.currentPlayer === 'p1' && this.multiplayerEnabled) {
-            this.currentPlayer = 'p2';
+        
+        // Check if more players need to select
+        const currentPlayerNum = parseInt(this.currentPlayer.charAt(1));
+        
+        if (currentPlayerNum < this.playerCount) {
+            // Move to next player
+            this.currentPlayer = `p${currentPlayerNum + 1}`;
             if (this.charSelectContainer) {
                 this.charSelectContainer.destroy();
                 this.charSelectContainer = null;
@@ -3661,35 +4137,10 @@ class StageSelectScene extends Phaser.Scene {
             this.charSelectUpdate();
             return; // Don't process stage selection input while in character selection mode
         }
-        // Check for second gamepad
-        this.checkForMultipleGamepads();
+        // No need to check for gamepads - multiplayer is handled at title screen
         // Skip input during cooldown period
         if (!this.inputEnabled) return;
-        // Check for START button on ANY controller or M key to enable multiplayer
-        if (this.player2Connected && !this.multiplayerEnabled) {
-            const mKeyPressed = Phaser.Input.Keyboard.JustDown(this.mKey);
-            let startPressed = false;
-            // Check all connected gamepads for START button
-            if (this.input.gamepad) {
-                for (let i = 0; i < this.input.gamepad.total; i++) {
-                    const pad = this.input.gamepad.getPad(i);
-                    if (pad && pad.buttons[9] && pad.buttons[9].pressed && !this.lastStartPressed) {
-                        startPressed = true;
-                        // If multiplayer activated by controller, assign that controller to P2
-                        this.p2ControllerIndex = i;
-                        break;
-                    }
-                }
-            }
-            if (startPressed || mKeyPressed) {
-                this.multiplayerEnabled = true;
-                this.updateMultiplayerUI();
-                if (startPressed) {
-                    }
-            }
-            this.lastStartPressed = this.input.gamepad && this.input.gamepad.total > 0 && 
-                                   this.input.gamepad.getPad(0).buttons[9].pressed;
-        }
+        // Multiplayer is now handled at title screen - no activation needed here
         // Handle gamepad
         const pad = this.input.gamepad ? this.input.gamepad.pad1 : null;
         // Handle navigation
@@ -3968,13 +4419,7 @@ class StageSelectScene extends Phaser.Scene {
     showDetailedView(index) {
         if (this.detailViewActive) return;
         this.detailViewActive = true;
-        // Reset P2 connection state and check for gamepads when entering detail view
-        this.player2Connected = false;
-        if (this.multiplayerUI) {
-            this.multiplayerUI.destroy();
-            this.multiplayerUI = null;
-        }
-        this.checkForMultipleGamepads();
+        // Multiplayer UI no longer needed in stage select
         const selectedStage = this.stages[index];
         const selectedButton = this.stageButtons[index];
         // Disable input during transition
@@ -4176,12 +4621,7 @@ class StageSelectScene extends Phaser.Scene {
     }
     exitDetailView() {
         if (!this.detailViewActive) return;
-        // Hide multiplayer UI when exiting detail view
-        if (this.multiplayerUI) {
-            this.multiplayerUI.destroy();
-            this.multiplayerUI = null;
-        }
-        this.player2Connected = false;
+        // No multiplayer UI to clean up
         // Fade out details
         this.tweens.add({
             targets: this.detailsContainer,
@@ -4267,12 +4707,16 @@ class StageSelectScene extends Phaser.Scene {
                 }
                 const gameData = { 
                     stage: stageName,
-                    multiplayerEnabled: this.multiplayerEnabled,
+                    multiplayerEnabled: this.multiplayerEnabled || this.playerCount > 1,
                     p2ControllerIndex: this.p2ControllerIndex || 0,
                     p1Character: this.selectedCharacters.p1 || 'wizard',
                     p2Character: this.selectedCharacters.p2,
-                    coopMode: this.multiplayerEnabled,
-                    p2Joined: this.multiplayerEnabled
+                    p3Character: this.selectedCharacters.p3,
+                    p4Character: this.selectedCharacters.p4,
+                    coopMode: this.multiplayerEnabled || this.playerCount > 1,
+                    p2Joined: this.multiplayerEnabled || this.playerCount > 1,
+                    playerCount: this.playerCount,
+                    playerControllers: this.playerControllers
                 };
                 this.scene.start('LoadingScene', {
                     nextScene: nextScene,
@@ -7917,8 +8361,12 @@ class GameScene extends Phaser.Scene {
         // Receive character selection data
         this.p1Character = data?.p1Character || 'wizard';
         this.p2Character = data?.p2Character || null;
+        this.p3Character = data?.p3Character || null;
+        this.p4Character = data?.p4Character || null;
         this.coopMode = data?.coopMode || false;
         this.p2Joined = data?.p2Joined || false;
+        this.playerCount = data?.playerCount || 1;
+        this.playerControllers = data?.playerControllers || [];
         if (this.p2Joined) {
             }
     }
@@ -8281,6 +8729,12 @@ class GameScene extends Phaser.Scene {
             bgmKey = 'graveland-bgm';
         } else if (this.stage === 'castle') {
             bgmKey = 'castleland-bgm';
+        } else if (this.stage === 'swamp') {
+            bgmKey = 'swampland-bgm';
+        } else if (this.stage === 'snow') {
+            bgmKey = 'snowland-bgm';
+        } else if (this.stage === 'ocean') {
+            bgmKey = 'oceanland-bgm';
         } else {
             // Use default music for other stages
             const selectedBGM = localStorage.getItem('selectedBGM') || 'BGM 1';
@@ -8518,6 +8972,449 @@ class GameScene extends Phaser.Scene {
             laser: 'Fusion of lightning and lava. Creates a devastating beam that damages all enemies in a line. High-tech destruction.',
             chaos: 'Fusion of vortex and tornado. Applies random status effects and deals damage per status. Unpredictable magic.'
         };
+
+        // ===== CENTRALIZED SPELL CONFIGURATION =====
+        // This object contains all shared spell properties for easy balance adjustments
+        // and talent tree buff application
+        this.spellConfig = {
+            fire: {
+                baseDamage: 2.0,
+                damagePerCount: 0.5, // Additional damage per fire in group
+                baseSpeed: 380,
+                cooldown: 3150, // Milliseconds
+                piercing: false,
+                homing: false,
+                aoeRadius: 0,
+                statusEffects: {
+                    burn: { duration: 3000, magnitude: 3 }
+                },
+                projectile: {
+                    texture: 'firebolt',
+                    animation: 'firebolt-travel',
+                    scale: 1.0,
+                    scalePerCount: 0.2
+                }
+            },
+            water: {
+                baseDamage: 1.5,
+                baseSpeed: 350,
+                cooldown: 1800,
+                piercing: false,
+                homing: false,
+                aoeRadius: 0,
+                statusEffects: {
+                    wet: { duration: 3000 },
+                    slow: { duration: 2000, magnitude: 0.5 }
+                },
+                projectile: {
+                    texture: 'waterball-projectile',
+                    animation: 'startup',
+                    scale: 1.0
+                }
+            },
+            lightning: {
+                baseDamage: 2.0,
+                baseSpeed: 400,
+                cooldown: 1500,
+                piercing: false,
+                homing: false,
+                bounceCount: 2, // Chains to 2 additional enemies
+                aoeRadius: 0,
+                statusEffects: {
+                    shock: { duration: 1000 }
+                },
+                projectile: {
+                    texture: 'lightning-projectile',
+                    animation: 'travel',
+                    scale: 1.0
+                }
+            },
+            earth: {
+                baseDamage: 3.0,
+                baseSpeed: 350,
+                cooldown: 3000,
+                piercing: false,
+                homing: false,
+                aoeRadius: 0,
+                knockbackForce: 1600,
+                shatterMultiplier: 2.5, // Bonus damage vs frozen enemies
+                statusEffects: {},
+                projectile: {
+                    texture: 'earth-projectile',
+                    animation: 'travel',
+                    scale: 1.0
+                }
+            },
+            ice: {
+                baseDamage: 2.5,
+                baseSpeed: 350,
+                cooldown: 2500,
+                piercing: false,
+                homing: false,
+                aoeRadius: 0,
+                statusEffects: {
+                    freeze: { duration: 2000 },
+                    slow: { duration: 3000, magnitude: 0.7 }
+                },
+                projectile: {
+                    texture: 'ice-spike-start1',
+                    animation: null,
+                    scale: 1.0
+                }
+            },
+            rock: {
+                baseDamage: 2.0, // Base damage (2x on crit)
+                baseSpeed: 350,
+                cooldown: 2250,
+                piercing: false,
+                homing: false,
+                aoeRadius: 0,
+                critChance: 0.3, // 30% crit chance
+                critMultiplier: 2.0,
+                statusEffects: {
+                    stun: { duration: 500 }
+                },
+                projectile: {
+                    texture: 'rock-spell',
+                    animation: 'active',
+                    scale: 1.0
+                }
+            },
+            arcane: {
+                baseDamage: 3.0,
+                damageLinked: 4.0, // Damage when linked between enemies
+                baseSpeed: 300,
+                cooldown: 2400,
+                piercing: false,
+                homing: true,
+                homingSpeed: 350,
+                boomerang: true,
+                returnTime: 1000,
+                aoeRadius: 0,
+                statusEffects: {},
+                projectile: {
+                    texture: 'arcane-spell',
+                    animation: 'active',
+                    scale: 1.0
+                }
+            },
+            air: {
+                baseDamage: 1.5,
+                baseSpeed: 400,
+                cooldown: 1200,
+                piercing: false,
+                homing: false,
+                aoeRadius: 150, // Air explosion radius
+                statusEffects: {
+                    knockback: { force: 800 }
+                },
+                projectile: {
+                    texture: 'wind-projectile',
+                    animation: 'travel',
+                    scale: 1.0
+                }
+            },
+            holy: {
+                baseDamage: 3.0,
+                baseSpeed: 350,
+                cooldown: 3000,
+                piercing: false,
+                homing: false,
+                aoeRadius: 0,
+                undeadBonus: 2.0, // 2x damage to undead
+                statusEffects: {
+                    bless: { duration: 5000 }
+                },
+                projectile: {
+                    texture: 'holy-initial-1',
+                    animation: null,
+                    scale: 1.0
+                }
+            },
+            poison: {
+                baseDamage: 1.0,
+                baseSpeed: 300,
+                cooldown: 2000,
+                piercing: true,
+                homing: false,
+                aoeRadius: 0,
+                statusEffects: {
+                    poison: { duration: 5000, damage: 3 }
+                },
+                projectile: {
+                    texture: 'poison-spell',
+                    animation: 'active',
+                    scale: 0.75
+                }
+            },
+            wave: {
+                baseDamage: 3.0,
+                baseSpeed: 400,
+                cooldown: 3000,
+                piercing: true,
+                homing: false,
+                knockbackForce: 1200,
+                aoeRadius: 0,
+                statusEffects: {
+                    wet: { duration: 3000 }
+                },
+                projectile: {
+                    texture: 'wave-spell',
+                    animation: null,
+                    scale: 1.0
+                }
+            },
+            crystal: {
+                baseDamage: 2.5,
+                baseSpeed: 400,
+                cooldown: 2000,
+                piercing: true,
+                homing: false,
+                needleCount: 8, // Fires 8 needles in all directions
+                aoeRadius: 0,
+                statusEffects: {},
+                projectile: {
+                    texture: 'spinning-crystal',
+                    animation: null,
+                    scale: 1.0
+                }
+            },
+            venom: {
+                baseDamage: 2.0,
+                baseSpeed: 350,
+                cooldown: 2000,
+                piercing: true,
+                homing: false,
+                aoeRadius: 0,
+                statusEffects: {
+                    poison: { duration: 6000, damage: 4 }
+                },
+                projectile: {
+                    texture: 'venom-spine',
+                    animation: null,
+                    scale: 1.0
+                }
+            },
+            // Advanced/Fusion spells
+            meteor: {
+                baseDamage: 4.0,
+                baseSpeed: 300,
+                cooldown: 1500,
+                piercing: false,
+                homing: true,
+                homingSpeed: 350,
+                aoeRadius: 200,
+                statusEffects: {
+                    burn: { duration: 2000, magnitude: 4 }
+                },
+                projectile: {
+                    texture: 'meteor-spell',
+                    animation: 'active',
+                    scale: 1.0
+                }
+            },
+            thunder: {
+                baseDamage: 3.5,
+                baseSpeed: 450,
+                cooldown: 2000,
+                piercing: false,
+                homing: false,
+                bounceCount: 3,
+                aoeRadius: 100,
+                statusEffects: {
+                    shock: { duration: 1500 }
+                },
+                projectile: {
+                    texture: 'lightning-projectile',
+                    animation: 'travel',
+                    scale: 1.2
+                }
+            },
+            blast: {
+                baseDamage: 3.5,
+                baseSpeed: 350,
+                cooldown: 2000,
+                piercing: false,
+                homing: false,
+                aoeRadius: 250,
+                explosive: true,
+                statusEffects: {
+                    burn: { duration: 1500, magnitude: 2 },
+                    knockback: { force: 1000 }
+                },
+                projectile: {
+                    texture: 'blast-proj',
+                    animation: null,
+                    scale: 1.0
+                }
+            },
+            mud: {
+                baseDamage: 2.0,
+                baseSpeed: 300,
+                cooldown: 3000,
+                piercing: false,
+                homing: false,
+                aoeRadius: 150,
+                statusEffects: {
+                    slow: { duration: 5000, magnitude: 0.2 }
+                },
+                projectile: {
+                    texture: 'mud-spell',
+                    animation: 'active',
+                    scale: 1.0
+                }
+            },
+            // Passive/Special elements (no projectiles)
+            death: {
+                baseDamage: 999, // Instant kill on low HP enemies
+                cooldown: 30000,
+                piercing: false,
+                homing: false,
+                aoeRadius: 300,
+                thresholdPercent: 0.2, // Kills enemies below 20% HP
+                statusEffects: {}
+            },
+            gravity: {
+                baseDamage: 0, // Deals % of max HP
+                cooldown: 6000,
+                piercing: false,
+                homing: false,
+                aoeRadius: 400,
+                pullForce: 500,
+                maxHPDamagePercent: 0.3,
+                statusEffects: {}
+            },
+            time: {
+                cooldown: 8000,
+                piercing: false,
+                homing: false,
+                aoeRadius: 500,
+                slowMagnitude: 0.5,
+                slowDuration: 5000,
+                statusEffects: {
+                    slow: { duration: 5000, magnitude: 0.5 }
+                }
+            }
+            // More spells can be added here as needed
+        };
+
+        // Spell factory helper methods - these will be used to create projectiles
+        // with consistent property application
+        this.getSpellDamage = function(element, slotIndex) {
+            const config = this.spellConfig[element];
+            if (!config) return 1.0; // Fallback
+
+            let damage = config.baseDamage;
+
+            // Apply slot buff
+            const slotBuff = this.getSlotBuff ? this.getSlotBuff(slotIndex) : { damageMultiplier: 1.0 };
+            damage *= slotBuff.damageMultiplier;
+
+            // Apply tier scaling
+            const tierKey = element + '_' + slotIndex;
+            const tierLevel = this.elementTiers.get(tierKey) || 1;
+            const tierDamageScale = this.tierScaling.damage[tierLevel - 1] || 1.0;
+            damage *= tierDamageScale;
+
+            // Apply king multiplier (chess piece)
+            const kingMultiplier = this.hasKingInPassive ? this.hasKingInPassive() : 1.0;
+            damage *= kingMultiplier;
+
+            // Apply global passive bonuses
+            if (this.passiveBonuses && this.passiveBonuses.damageMultiplier) {
+                damage *= this.passiveBonuses.damageMultiplier;
+            }
+
+            return damage;
+        };
+
+        this.getSpellSpeed = function(element, slotIndex) {
+            const config = this.spellConfig[element];
+            if (!config || !config.baseSpeed) return 350; // Fallback
+
+            let speed = config.baseSpeed;
+
+            // Apply slot buff
+            const slotBuff = this.getSlotBuff ? this.getSlotBuff(slotIndex) : { speedMultiplier: 1.0 };
+            speed *= slotBuff.speedMultiplier;
+
+            // Apply global speed multiplier (game speed mode)
+            speed *= this.speedMultiplier;
+
+            return speed;
+        };
+
+        this.getSpellCooldown = function(element, slotIndex) {
+            const elementConf = this.elementConfig[element];
+            if (!elementConf || !elementConf.fireRate) return 1500; // Fallback
+
+            let cooldown = elementConf.fireRate;
+
+            // Apply talent tree cooldown reduction
+            if (this.hasTalent && this.hasTalent('arcane')) {
+                cooldown *= 0.9; // -10% cooldown from Arcane Shroud
+            }
+
+            // Apply knight chess piece modifier (halves cooldown)
+            if (this.hasKnightModifier && this.hasKnightModifier(slotIndex)) {
+                cooldown *= 0.5;
+            }
+
+            // Apply fire rate multiplier from buffs
+            const slotBuff = this.getSlotBuff ? this.getSlotBuff(slotIndex) : { fireRateMultiplier: 1.0 };
+            if (slotBuff.fireRateMultiplier) {
+                cooldown /= slotBuff.fireRateMultiplier;
+            }
+
+            return cooldown;
+        };
+
+        this.applySpellStatusEffects = function(projectile, element, target) {
+            const config = this.spellConfig[element];
+            if (!config || !config.statusEffects) return;
+
+            const effects = config.statusEffects;
+
+            // Apply burn
+            if (effects.burn && target) {
+                projectile.burnMagnitude = effects.burn.magnitude;
+            }
+
+            // Apply freeze
+            if (effects.freeze) {
+                projectile.freezeDuration = effects.freeze.duration;
+            }
+
+            // Apply slow
+            if (effects.slow) {
+                projectile.slowDuration = effects.slow.duration;
+                projectile.slowMagnitude = effects.slow.magnitude;
+            }
+
+            // Apply wet
+            if (effects.wet) {
+                projectile.wetDuration = effects.wet.duration;
+                projectile.appliesWet = true;
+            }
+
+            // Apply poison
+            if (effects.poison) {
+                projectile.poisonDamage = effects.poison.damage;
+            }
+
+            // Apply stun
+            if (effects.stun) {
+                projectile.stunDuration = effects.stun.duration;
+                projectile.stuns = true;
+            }
+        };
+
+        // Note: canCastSpell cooldown checking is handled by the existing system at line ~26979
+        // The spell config above provides centralized damage/speed/cooldown values
+        // that can be used for balancing and talent tree modifications
+
+        // ===== END CENTRALIZED SPELL CONFIGURATION =====
+
         this.createStageBackground();
         // Initialize Hitbox Config BEFORE creating player
         if (typeof hitboxConfig !== 'undefined') {
@@ -8674,6 +9571,100 @@ class GameScene extends Phaser.Scene {
             // Play initial idle animation for P2
             if (this.animationsReady && this.anims.exists('wizard-idle-loop-p2')) {
                 this.wizard2.play('wizard-idle-loop-p2');
+            }
+            
+            // Create player 3 if player count > 2
+            if (this.playerCount > 2 && this.p3Character) {
+                const wizard3X = this.stage === 'spire' ? wizardStartX - 50 : 1950;
+                const wizard3Y = this.stage === 'spire' ? wizardStartY : 1080;
+                const p3Sprite = this.getCharacterSprite(this.p3Character, false); // P3 uses non-P2 suffix
+                this.wizard3 = this.physics.add.sprite(wizard3X, wizard3Y, p3Sprite);
+                
+                // Configure wizard3 similar to wizard2 but as player 3
+                const p3Char = this.p3Character;
+                if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                    const scale = hitboxConfig.getScale(p3Char);
+                    this.wizard3.setScale(scale);
+                } else {
+                    this.wizard3.setScale(1.0);
+                }
+                
+                this.wizard3.setOrigin(0.5, 0.5);
+                this.wizard3.setCollideWorldBounds(this.stage === 'spire');
+                this.wizard3.setDepth(100);
+                this.wizard3.lastDirection = 'down';
+                this.wizard3.playerNumber = 3;
+                this.wizard3.characterType = this.p3Character;
+                this.wizard3.body.setDrag(500, 500);
+                this.wizard3.body.setBounce(0, 0);
+                this.wizard3.body.setFriction(0, 0);
+                
+                this.createCharacterAnimations(this.p3Character, false);
+                this.wizard3.setFrame(0);
+                this.createShadowFor(this.wizard3, 25, 12);
+                
+                // Initialize P3 properties
+                this.wizard3.charges = [];
+                this.wizard3.chargeSlots = new Array(8).fill(null);
+                this.wizard3.maxCharges = (this.p3Character === 'orb') ? 4 : 
+                                           (this.p3Character === 'blip') ? 5 : 3;
+                this.wizard3.currentChargeIndex = 0;
+                this.wizard3.elementTiers = new Map();
+                this.wizard3.chargeGroups = [];
+                this.wizard3.elementPouch = [];
+                this.wizard3.health = 200;
+                this.wizard3.maxHealth = 200;
+                this.wizard3.invulnerable = false;
+                this.wizard3.invulnerableUntil = 0;
+                this.wizard3.directionBuffer = [];
+                this.wizard3.lastStableDirection = 'down';
+            }
+            
+            // Create player 4 if player count > 3
+            if (this.playerCount > 3 && this.p4Character) {
+                const wizard4X = this.stage === 'spire' ? wizardStartX + 100 : 2150;
+                const wizard4Y = this.stage === 'spire' ? wizardStartY : 1080;
+                const p4Sprite = this.getCharacterSprite(this.p4Character, true); // P4 uses P2 suffix for now
+                this.wizard4 = this.physics.add.sprite(wizard4X, wizard4Y, p4Sprite);
+                
+                // Configure wizard4 similar to wizard2 but as player 4
+                const p4Char = this.p4Character;
+                if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                    const scale = hitboxConfig.getScale(p4Char);
+                    this.wizard4.setScale(scale);
+                } else {
+                    this.wizard4.setScale(1.0);
+                }
+                
+                this.wizard4.setOrigin(0.5, 0.5);
+                this.wizard4.setCollideWorldBounds(this.stage === 'spire');
+                this.wizard4.setDepth(100);
+                this.wizard4.lastDirection = 'down';
+                this.wizard4.playerNumber = 4;
+                this.wizard4.characterType = this.p4Character;
+                this.wizard4.body.setDrag(500, 500);
+                this.wizard4.body.setBounce(0, 0);
+                this.wizard4.body.setFriction(0, 0);
+                
+                this.createCharacterAnimations(this.p4Character, true);
+                this.wizard4.setFrame(0);
+                this.createShadowFor(this.wizard4, 25, 12);
+                
+                // Initialize P4 properties
+                this.wizard4.charges = [];
+                this.wizard4.chargeSlots = new Array(8).fill(null);
+                this.wizard4.maxCharges = (this.p4Character === 'orb') ? 4 : 
+                                           (this.p4Character === 'blip') ? 5 : 3;
+                this.wizard4.currentChargeIndex = 0;
+                this.wizard4.elementTiers = new Map();
+                this.wizard4.chargeGroups = [];
+                this.wizard4.elementPouch = [];
+                this.wizard4.health = 200;
+                this.wizard4.maxHealth = 200;
+                this.wizard4.invulnerable = false;
+                this.wizard4.invulnerableUntil = 0;
+                this.wizard4.directionBuffer = [];
+                this.wizard4.lastStableDirection = 'down';
             }
         }
         // Apply hitbox configuration from hitbox-config.js only
@@ -9027,6 +10018,62 @@ class GameScene extends Phaser.Scene {
                 this.collectElementOrb(wizard2, orb); // Use the correct function name
             }, (wizard2, orb) => {
                 return wizard2 && wizard2.active && orb && orb.active && !orb.isDestroying && orb.canCollect;
+            }, this);
+        }
+        
+        // Add P3 collision detection if player count > 2
+        if (this.playerCount > 2 && this.wizard3) {
+            this.physics.add.overlap(this.wizard3, this.enemies, (wizard3, enemy) => {
+                this.hitEnemy(wizard3, enemy, false, 3); // Player 3
+            }, 
+            (wizard3, enemy) => {
+                const canDamage = enemy.enemyType === 'armadillo' && enemy.isRolling ? true : !enemy.isInvulnerable;
+                return enemy && enemy.active && enemy.body && enemy.body.enable && !enemy.isDying && enemy.health > 0 && canDamage;
+            }, this);
+            // P3 vs enemy projectiles
+            this.physics.add.overlap(this.enemyProjectiles, this.wizard3, (projectile, wizard3) => {
+                this.bossProjectileHitPlayer(projectile, wizard3, false, 3); // Player 3
+            }, 
+            (projectile, wizard3) => {
+                return projectile && projectile.active && projectile.body && projectile.body.enable && 
+                       wizard3 && wizard3.active && wizard3.body && wizard3.body.enable;
+            }, this);
+            // P3 can collect items
+            this.physics.add.overlap(this.wizard3, this.jewels, (wizard3, jewel) => {
+                this.collectJewel(wizard3, jewel, false, 3); // Player 3
+            }, null, this);
+            this.physics.add.overlap(this.wizard3, this.elementOrbs, (wizard3, orb) => {
+                this.collectElementOrb(wizard3, orb);
+            }, (wizard3, orb) => {
+                return wizard3 && wizard3.active && orb && orb.active && !orb.isDestroying && orb.canCollect;
+            }, this);
+        }
+        
+        // Add P4 collision detection if player count > 3
+        if (this.playerCount > 3 && this.wizard4) {
+            this.physics.add.overlap(this.wizard4, this.enemies, (wizard4, enemy) => {
+                this.hitEnemy(wizard4, enemy, false, 4); // Player 4
+            }, 
+            (wizard4, enemy) => {
+                const canDamage = enemy.enemyType === 'armadillo' && enemy.isRolling ? true : !enemy.isInvulnerable;
+                return enemy && enemy.active && enemy.body && enemy.body.enable && !enemy.isDying && enemy.health > 0 && canDamage;
+            }, this);
+            // P4 vs enemy projectiles
+            this.physics.add.overlap(this.enemyProjectiles, this.wizard4, (projectile, wizard4) => {
+                this.bossProjectileHitPlayer(projectile, wizard4, false, 4); // Player 4
+            }, 
+            (projectile, wizard4) => {
+                return projectile && projectile.active && projectile.body && projectile.body.enable && 
+                       wizard4 && wizard4.active && wizard4.body && wizard4.body.enable;
+            }, this);
+            // P4 can collect items
+            this.physics.add.overlap(this.wizard4, this.jewels, (wizard4, jewel) => {
+                this.collectJewel(wizard4, jewel, false, 4); // Player 4
+            }, null, this);
+            this.physics.add.overlap(this.wizard4, this.elementOrbs, (wizard4, orb) => {
+                this.collectElementOrb(wizard4, orb);
+            }, (wizard4, orb) => {
+                return wizard4 && wizard4.active && orb && orb.active && !orb.isDestroying && orb.canCollect;
             }, this);
         }
         // Store the collider reference so we can manage it
@@ -10452,6 +11499,134 @@ class GameScene extends Phaser.Scene {
             frameRate: 12,
             repeat: 0
         });
+        // Create Frost Guardian boss animations
+        // Walk animation (10 frames)
+        const frostGuardianWalkFrames = [];
+        for (let i = 1; i <= 10; i++) {
+            frostGuardianWalkFrames.push({ key: `frost-guardian-walk-${i}` });
+        }
+        createAnimIfNotExists({
+            key: 'frost-guardian-walk',
+            frames: frostGuardianWalkFrames,
+            frameRate: 8,
+            repeat: -1
+        });
+        // Idle animation (6 frames)
+        const frostGuardianIdleFrames = [];
+        for (let i = 1; i <= 6; i++) {
+            frostGuardianIdleFrames.push({ key: `frost-guardian-idle-${i}` });
+        }
+        createAnimIfNotExists({
+            key: 'frost-guardian-idle',
+            frames: frostGuardianIdleFrames,
+            frameRate: 6,
+            repeat: -1
+        });
+        // Attack animation (14 frames)
+        const frostGuardianAttackFrames = [];
+        for (let i = 1; i <= 14; i++) {
+            frostGuardianAttackFrames.push({ key: `frost-guardian-attack-${i}` });
+        }
+        createAnimIfNotExists({
+            key: 'frost-guardian-attack',
+            frames: frostGuardianAttackFrames,
+            frameRate: 12,
+            repeat: 0
+        });
+        // Hurt animation (7 frames)
+        const frostGuardianHurtFrames = [];
+        for (let i = 1; i <= 7; i++) {
+            frostGuardianHurtFrames.push({ key: `frost-guardian-hurt-${i}` });
+        }
+        createAnimIfNotExists({
+            key: 'frost-guardian-hurt',
+            frames: frostGuardianHurtFrames,
+            frameRate: 10,
+            repeat: 0
+        });
+        // Death animation (16 frames)
+        const frostGuardianDeathFrames = [];
+        for (let i = 1; i <= 16; i++) {
+            frostGuardianDeathFrames.push({ key: `frost-guardian-death-${i}` });
+        }
+        createAnimIfNotExists({
+            key: 'frost-guardian-death',
+            frames: frostGuardianDeathFrames,
+            frameRate: 8,
+            repeat: 0
+        });
+        // Create Amphibian boss animations (Swampland boss - Frogger)
+        createAnimIfNotExists({
+            key: 'amphibian-idle',
+            frames: this.anims.generateFrameNumbers('amphibian-idle', { start: 0, end: 4 }),
+            frameRate: 6,
+            repeat: -1
+        });
+        createAnimIfNotExists({
+            key: 'amphibian-walk',
+            frames: this.anims.generateFrameNumbers('amphibian-walk', { start: 0, end: 7 }),
+            frameRate: 8,
+            repeat: -1
+        });
+        createAnimIfNotExists({
+            key: 'amphibian-spit',
+            frames: this.anims.generateFrameNumbers('amphibian-spit', { start: 0, end: 10 }),
+            frameRate: 12,
+            repeat: 0
+        });
+        createAnimIfNotExists({
+            key: 'amphibian-tongue',
+            frames: this.anims.generateFrameNumbers('amphibian-tongue', { start: 0, end: 7 }),
+            frameRate: 10,
+            repeat: 0
+        });
+        createAnimIfNotExists({
+            key: 'amphibian-heal',
+            frames: this.anims.generateFrameNumbers('amphibian-heal', { start: 0, end: 16 }),
+            frameRate: 10,
+            repeat: 0
+        });
+        // Create Sea Kings boss animations (Ocean Land boss - Three Kings)
+        // Each spritesheet is 8x4 (8 frames across, 4 rows: down, up, left, right)
+        const seaKingDirections = ['down', 'up', 'left', 'right'];
+        for (let kingNum = 1; kingNum <= 3; kingNum++) {
+            // Walk animations for each direction
+            seaKingDirections.forEach((dir, rowIndex) => {
+                createAnimIfNotExists({
+                    key: `seaking${kingNum}-walk-${dir}`,
+                    frames: this.anims.generateFrameNumbers(`seaking${kingNum}-walk`, {
+                        start: rowIndex * 8,
+                        end: rowIndex * 8 + 7
+                    }),
+                    frameRate: 10,
+                    repeat: -1
+                });
+            });
+            // Attack animations for each direction
+            seaKingDirections.forEach((dir, rowIndex) => {
+                createAnimIfNotExists({
+                    key: `seaking${kingNum}-attack-${dir}`,
+                    frames: this.anims.generateFrameNumbers(`seaking${kingNum}-attack`, {
+                        start: rowIndex * 8,
+                        end: rowIndex * 8 + 7
+                    }),
+                    frameRate: 12,
+                    repeat: 0
+                });
+            });
+            // Death animations for each direction
+            seaKingDirections.forEach((dir, rowIndex) => {
+                createAnimIfNotExists({
+                    key: `seaking${kingNum}-death-${dir}`,
+                    frames: this.anims.generateFrameNumbers(`seaking${kingNum}-death`, {
+                        start: rowIndex * 8,
+                        end: rowIndex * 8 + 7
+                    }),
+                    frameRate: 8,
+                    repeat: 0
+                });
+            });
+        }
         // Create Eyelor animations
         // Movement animation (13 frames)
         const eyelorMoveFrames = [];
@@ -11289,6 +12464,9 @@ class GameScene extends Phaser.Scene {
         } else if (this.stage === 'castle') {
             tileName = 'stone-tile'; // Use stone tiles for castle
             tileSize = 32;
+        } else if (this.stage === 'snow') {
+            tileName = 'snow-tile'; // Use snow tiles for snowland
+            tileSize = 32;
         } else if (this.stage === 'spire') {
             tileName = 'grass-tile'; // Start with grass (forest biome), will change as we descend
             tileSize = 32;
@@ -11692,6 +12870,94 @@ class GameScene extends Phaser.Scene {
             this.directionArrow2.setStrokeStyle(2, 0x004488);
             this.directionArrow2.setAlpha(0.8);
         }
+        
+        // Create indicators for P3 if player count > 2
+        if (this.playerCount > 2) {
+            this.playerOutline3 = this.add.graphics();
+            this.playerOutline3.setDepth(9);
+            this.playerLabel3 = this.add.text(0, -60, 'P3', {
+                fontSize: '14px',
+                color: '#ffff00', // Yellow for P3
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 3,
+                backgroundColor: '#000000',
+                padding: { x: 4, y: 2 }
+            });
+            this.playerLabel3.setOrigin(0.5);
+            this.playerLabel3.setDepth(11);
+            this.playerArrow3 = this.add.triangle(0, -80,
+                0, 0,    // top point
+                -8, 12,  // bottom left
+                8, 12,   // bottom right
+                0xffff00 // Yellow
+            );
+            this.playerArrow3.setDepth(11);
+            this.playerArrow3.setStrokeStyle(2, 0x000000);
+            // Pulsing animation for P3 arrow
+            this.tweens.add({
+                targets: this.playerArrow3,
+                y: -75,
+                duration: 500,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+            this.directionArrow3 = this.add.triangle(0, 0,
+                0, -15,   // tip of arrow
+                -6, 0,    // left base
+                6, 0,     // right base
+                0xffff00
+            );
+            this.directionArrow3.setOrigin(0.5, 0.5);
+            this.directionArrow3.setDepth(11);
+            this.directionArrow3.setStrokeStyle(2, 0x444400);
+            this.directionArrow3.setAlpha(0.8);
+        }
+        
+        // Create indicators for P4 if player count > 3
+        if (this.playerCount > 3) {
+            this.playerOutline4 = this.add.graphics();
+            this.playerOutline4.setDepth(9);
+            this.playerLabel4 = this.add.text(0, -60, 'P4', {
+                fontSize: '14px',
+                color: '#ff00ff', // Magenta for P4
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 3,
+                backgroundColor: '#000000',
+                padding: { x: 4, y: 2 }
+            });
+            this.playerLabel4.setOrigin(0.5);
+            this.playerLabel4.setDepth(11);
+            this.playerArrow4 = this.add.triangle(0, -80,
+                0, 0,    // top point
+                -8, 12,  // bottom left
+                8, 12,   // bottom right
+                0xff00ff // Magenta
+            );
+            this.playerArrow4.setDepth(11);
+            this.playerArrow4.setStrokeStyle(2, 0x000000);
+            // Pulsing animation for P4 arrow
+            this.tweens.add({
+                targets: this.playerArrow4,
+                y: -75,
+                duration: 500,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+            this.directionArrow4 = this.add.triangle(0, 0,
+                0, -15,   // tip of arrow
+                -6, 0,    // left base
+                6, 0,     // right base
+                0xff00ff
+            );
+            this.directionArrow4.setOrigin(0.5, 0.5);
+            this.directionArrow4.setDepth(11);
+            this.directionArrow4.setStrokeStyle(2, 0x440044);
+            this.directionArrow4.setAlpha(0.8);
+        }
         // Option to toggle indicators with a key
         this.toggleIndicatorsKey = this.input.keyboard.addKey('I');
         this.indicatorsVisible = true;
@@ -11843,6 +13109,18 @@ class GameScene extends Phaser.Scene {
         if (this.multiplayerEnabled && this.wizard2) {
             updateWizardIndicators(this.wizard2, this.playerOutline2, this.playerLabel2,
                                  this.playerArrow2, this.directionArrow2, 0x0088ff);
+        }
+        
+        // Update P3 indicators if player count > 2
+        if (this.playerCount > 2 && this.wizard3) {
+            updateWizardIndicators(this.wizard3, this.playerOutline3, this.playerLabel3,
+                                 this.playerArrow3, this.directionArrow3, 0xffff00);
+        }
+        
+        // Update P4 indicators if player count > 3
+        if (this.playerCount > 3 && this.wizard4) {
+            updateWizardIndicators(this.wizard4, this.playerOutline4, this.playerLabel4,
+                                 this.playerArrow4, this.directionArrow4, 0xff00ff);
         }
     }
     createChargeUI() {
@@ -12970,28 +14248,27 @@ class GameScene extends Phaser.Scene {
                     spawnInterval: 2000,
                     maxEnemies: 40
                 },
-                // Wave 4 (4:00-5:00) - Elite enemy appears
+                // Wave 4 (4:00-5:00) - Eye walker becomes regular enemy
                 {
                     enemies: [
-                        { type: 'eyewalker', weight: 5, count: 1 },  // Rare elite
+                        { type: 'eyewalker', weight: 25, count: 2 },  // Regular spawn now
                         { type: 'torchboy', weight: 25, count: 3 },
                         { type: 'mudguard', weight: 25, count: 4 },
-                        { type: 'swampmerchant', weight: 20, count: 3 },
-                        { type: 'bloboid', weight: 15, count: 4 },
-                        { type: 'giantfly', weight: 10, count: 4 }
+                        { type: 'swampmerchant', weight: 15, count: 3 },
+                        { type: 'bloboid', weight: 10, count: 4 }
                     ],
                     spawnInterval: 1800,
                     maxEnemies: 50
                 },
-                // Wave 5 (5:00-6:00) - Intense finale
+                // Wave 5 (5:00-6:00) - Intense finale with more eye walkers
                 {
                     enemies: [
-                        { type: 'eyewalker', weight: 10, count: 1 },  // Elite more common
+                        { type: 'eyewalker', weight: 30, count: 3 },  // Common elite enemy now
                         { type: 'torchboy', weight: 20, count: 4 },
                         { type: 'mudguard', weight: 20, count: 5 },
-                        { type: 'swampmerchant', weight: 20, count: 4 },
-                        { type: 'bloboid', weight: 15, count: 5 },
-                        { type: 'giantfly', weight: 15, count: 5 }
+                        { type: 'swampmerchant', weight: 15, count: 4 },
+                        { type: 'bloboid', weight: 10, count: 5 },
+                        { type: 'giantfly', weight: 5, count: 5 }
                     ],
                     spawnInterval: 1500,
                     maxEnemies: 60
@@ -13071,6 +14348,150 @@ class GameScene extends Phaser.Scene {
                         { type: 'giantfly', weight: 20, count: 5 },
                         { type: 'squirrel', weight: 20, count: 5 },
                         { type: 'redpanda', weight: 10, count: 3 }
+                    ],
+                    spawnInterval: 1500,
+                    maxEnemies: 80
+                }
+            ];
+        } else if (this.stage === 'snow') {
+            // Snow stage waves: snowy, elkman, frost-golem, spiked-slime, northerner
+            baseWaves = [
+                // Wave 0 (0:00-1:00) - Introduction - Easy start with snowy and northerner
+                {
+                    enemies: [
+                        { type: 'snowy', weight: 60, count: 2 },
+                        { type: 'northerner', weight: 40, count: 1 }
+                    ],
+                    spawnInterval: 3000,  // Slower spawn rate
+                    maxEnemies: 15  // Fewer total enemies
+                },
+                // Wave 1 (1:00-2:00) - Add spiked slimes
+                {
+                    enemies: [
+                        { type: 'snowy', weight: 35, count: 2 },
+                        { type: 'northerner', weight: 30, count: 2 },
+                        { type: 'spiked-slime', weight: 35, count: 2 }
+                    ],
+                    spawnInterval: 1500,
+                    maxEnemies: 35
+                },
+                // Wave 2 (2:00-3:00) - Add elkman warriors
+                {
+                    enemies: [
+                        { type: 'snowy', weight: 25, count: 3 },
+                        { type: 'northerner', weight: 25, count: 2 },
+                        { type: 'spiked-slime', weight: 25, count: 3 },
+                        { type: 'elkman', weight: 25, count: 2 }
+                    ],
+                    spawnInterval: 1200,
+                    maxEnemies: 45,
+                    specialEvent: { time: 30, type: 'swarm', enemy: 'spiked-slime', count: 8 }
+                },
+                // Wave 3 (3:00-4:00) - Add frost golems
+                {
+                    enemies: [
+                        { type: 'snowy', weight: 20, count: 3 },
+                        { type: 'northerner', weight: 20, count: 3 },
+                        { type: 'spiked-slime', weight: 25, count: 3 },
+                        { type: 'elkman', weight: 20, count: 2 },
+                        { type: 'frost-golem', weight: 15, count: 1 }
+                    ],
+                    spawnInterval: 1000,
+                    maxEnemies: 55
+                },
+                // Wave 4 (4:00-5:00) - Frozen chaos
+                {
+                    enemies: [
+                        { type: 'snowy', weight: 15, count: 4 },
+                        { type: 'northerner', weight: 20, count: 3 },
+                        { type: 'spiked-slime', weight: 20, count: 3 },
+                        { type: 'elkman', weight: 25, count: 3 },
+                        { type: 'frost-golem', weight: 20, count: 2 }
+                    ],
+                    spawnInterval: 2000,
+                    maxEnemies: 65,
+                    specialEvent: { time: 30, type: 'circle', enemy: 'frost-golem', count: 6 }
+                },
+                // Wave 5+ (5:00+) - Full snow roster
+                {
+                    enemies: [
+                        { type: 'frost-golem', weight: 25, count: 3 },
+                        { type: 'elkman', weight: 25, count: 4 },
+                        { type: 'northerner', weight: 20, count: 4 },
+                        { type: 'spiked-slime', weight: 20, count: 4 },
+                        { type: 'snowy', weight: 10, count: 5 }
+                    ],
+                    spawnInterval: 1500,
+                    maxEnemies: 80
+                }
+            ];
+        } else if (this.stage === 'ocean') {
+            // Ocean stage waves: jellyfish, crabby, shark, squid, crablore
+            baseWaves = [
+                // Wave 0 (0:00-1:00) - Introduction - Easy start with jellyfish and crabby
+                {
+                    enemies: [
+                        { type: 'jellyfish', weight: 60, count: 2 },
+                        { type: 'crabby', weight: 40, count: 1 }
+                    ],
+                    spawnInterval: 3000,  // Slower spawn rate
+                    maxEnemies: 15  // Fewer total enemies
+                },
+                // Wave 1 (1:00-2:00) - Add more crabs and introduce squid
+                {
+                    enemies: [
+                        { type: 'jellyfish', weight: 35, count: 2 },
+                        { type: 'crabby', weight: 40, count: 2 },
+                        { type: 'squid', weight: 25, count: 1 }
+                    ],
+                    spawnInterval: 1500,
+                    maxEnemies: 35
+                },
+                // Wave 2 (2:00-3:00) - Add sharks
+                {
+                    enemies: [
+                        { type: 'jellyfish', weight: 25, count: 3 },
+                        { type: 'crabby', weight: 30, count: 3 },
+                        { type: 'squid', weight: 25, count: 2 },
+                        { type: 'shark', weight: 20, count: 1 }
+                    ],
+                    spawnInterval: 1200,
+                    maxEnemies: 45,
+                    specialEvent: { time: 30, type: 'swarm', enemy: 'jellyfish', count: 10 }
+                },
+                // Wave 3 (3:00-4:00) - Add elite crablore
+                {
+                    enemies: [
+                        { type: 'jellyfish', weight: 20, count: 3 },
+                        { type: 'crabby', weight: 25, count: 3 },
+                        { type: 'squid', weight: 25, count: 3 },
+                        { type: 'shark', weight: 20, count: 2 },
+                        { type: 'crablore', weight: 10, count: 1 }
+                    ],
+                    spawnInterval: 1000,
+                    maxEnemies: 55
+                },
+                // Wave 4 (4:00-5:00) - Deep sea predators
+                {
+                    enemies: [
+                        { type: 'jellyfish', weight: 15, count: 4 },
+                        { type: 'crabby', weight: 20, count: 3 },
+                        { type: 'squid', weight: 25, count: 3 },
+                        { type: 'shark', weight: 25, count: 3 },
+                        { type: 'crablore', weight: 15, count: 2 }
+                    ],
+                    spawnInterval: 2000,
+                    maxEnemies: 65,
+                    specialEvent: { time: 30, type: 'circle', enemy: 'shark', count: 6 }
+                },
+                // Wave 5+ (5:00+) - Full ocean roster
+                {
+                    enemies: [
+                        { type: 'shark', weight: 30, count: 4 },
+                        { type: 'crablore', weight: 25, count: 3 },
+                        { type: 'squid', weight: 20, count: 4 },
+                        { type: 'crabby', weight: 15, count: 4 },
+                        { type: 'jellyfish', weight: 10, count: 5 }
                     ],
                     spawnInterval: 1500,
                     maxEnemies: 80
@@ -13162,6 +14583,26 @@ class GameScene extends Phaser.Scene {
             this.wizard2HealthBar.setOrigin(0, 0.5);
             this.wizard2HealthBar.setDepth(551);
         }
+        
+        // Create P3 health bar if player count > 2
+        if (this.playerCount > 2 && this.wizard3) {
+            this.wizard3HealthBarBg = this.add.rectangle(0, -50, 40, 6, 0x333333);
+            this.wizard3HealthBarBg.setStrokeStyle(1, 0x000000);
+            this.wizard3HealthBarBg.setDepth(550);
+            this.wizard3HealthBar = this.add.rectangle(-20, -50, 40, 6, 0xffff44); // Yellow for P3
+            this.wizard3HealthBar.setOrigin(0, 0.5);
+            this.wizard3HealthBar.setDepth(551);
+        }
+        
+        // Create P4 health bar if player count > 3
+        if (this.playerCount > 3 && this.wizard4) {
+            this.wizard4HealthBarBg = this.add.rectangle(0, -50, 40, 6, 0x333333);
+            this.wizard4HealthBarBg.setStrokeStyle(1, 0x000000);
+            this.wizard4HealthBarBg.setDepth(550);
+            this.wizard4HealthBar = this.add.rectangle(-20, -50, 40, 6, 0xff44ff); // Magenta for P4
+            this.wizard4HealthBar.setOrigin(0, 0.5);
+            this.wizard4HealthBar.setDepth(551);
+        }
         // Add to wizard container or update position in update loop
         this.updateWizardHealthBar();
     }
@@ -13214,6 +14655,54 @@ class GameScene extends Phaser.Scene {
             if (healthPercent2 === 0) {
                 this.wizard2HealthBar.setVisible(false);
                 this.wizard2HealthBarBg.setVisible(false);
+            }
+        }
+        
+        // Update P3 health bar
+        if (this.playerCount > 2 && this.wizard3 && this.wizard3HealthBar && this.wizard3HealthBarBg) {
+            // Update position to follow wizard3
+            this.wizard3HealthBarBg.x = this.wizard3.x;
+            this.wizard3HealthBarBg.y = this.wizard3.y - 50;
+            this.wizard3HealthBar.x = this.wizard3.x - 20;
+            this.wizard3HealthBar.y = this.wizard3.y - 50;
+            // Update health display
+            const healthPercent3 = Math.max(0, this.wizard3.health / this.wizard3.maxHealth);
+            this.wizard3HealthBar.width = 40 * healthPercent3;
+            if (healthPercent3 > 0.6) {
+                this.wizard3HealthBar.setFillStyle(0xffff44); // Yellow
+            } else if (healthPercent3 > 0.3) {
+                this.wizard3HealthBar.setFillStyle(0xffff88);
+            } else {
+                this.wizard3HealthBar.setFillStyle(0xff4444);
+            }
+            // Hide if dead
+            if (healthPercent3 === 0) {
+                this.wizard3HealthBar.setVisible(false);
+                this.wizard3HealthBarBg.setVisible(false);
+            }
+        }
+        
+        // Update P4 health bar
+        if (this.playerCount > 3 && this.wizard4 && this.wizard4HealthBar && this.wizard4HealthBarBg) {
+            // Update position to follow wizard4
+            this.wizard4HealthBarBg.x = this.wizard4.x;
+            this.wizard4HealthBarBg.y = this.wizard4.y - 50;
+            this.wizard4HealthBar.x = this.wizard4.x - 20;
+            this.wizard4HealthBar.y = this.wizard4.y - 50;
+            // Update health display
+            const healthPercent4 = Math.max(0, this.wizard4.health / this.wizard4.maxHealth);
+            this.wizard4HealthBar.width = 40 * healthPercent4;
+            if (healthPercent4 > 0.6) {
+                this.wizard4HealthBar.setFillStyle(0xff44ff); // Magenta
+            } else if (healthPercent4 > 0.3) {
+                this.wizard4HealthBar.setFillStyle(0xff88ff);
+            } else {
+                this.wizard4HealthBar.setFillStyle(0xff4444);
+            }
+            // Hide if dead
+            if (healthPercent4 === 0) {
+                this.wizard4HealthBar.setVisible(false);
+                this.wizard4HealthBarBg.setVisible(false);
             }
         }
     }
@@ -13828,39 +15317,93 @@ class GameScene extends Phaser.Scene {
             this.gamepadButtonStates = [];
         }
         // P key or Start button (button 9) for pause/charge management
-        let startPressed = false;
-        let p2StartPressed = false;
-        // Check P1's gamepad
-        if (this.gamepad && this.gamepad.buttons[9]) {
-            startPressed = this.gamepad.buttons[9].pressed;
-        }
-        // Check P2's gamepad if multiplayer
-        if (this.multiplayerEnabled && this.p2ControllerIndex !== undefined) {
-            const p2Gamepad = this.input.gamepad.getPad(this.p2ControllerIndex);
-            if (p2Gamepad && p2Gamepad.buttons[9]) {
-                p2StartPressed = p2Gamepad.buttons[9].pressed;
+        let startPressed = [false, false, false, false]; // For players 1-4
+        let initiatingPlayer = 1;
+        
+        // Check keyboard (P1)
+        const keyboardPressed = this.pKey && Phaser.Input.Keyboard.JustDown(this.pKey);
+        
+        // Check all player controllers
+        for (let i = 0; i < this.playerCount; i++) {
+            const playerNum = i + 1;
+            let gamepad = null;
+            
+            if (playerNum === 1) {
+                // P1 can use keyboard or first controller
+                if (this.playerControllers.length >= 1) {
+                    const p1Controller = this.playerControllers.find(p => p.playerNumber === 1);
+                    if (p1Controller && p1Controller.padIndex >= 0) {
+                        gamepad = this.input.gamepad.getPad(p1Controller.padIndex);
+                    }
+                } else if (!this.multiplayerEnabled) {
+                    gamepad = this.gamepad; // Fallback for single player
+                }
+            } else {
+                // P2-P4 use their assigned controllers
+                const playerController = this.playerControllers.find(p => p.playerNumber === playerNum);
+                if (playerController && playerController.padIndex >= 0) {
+                    gamepad = this.input.gamepad.getPad(playerController.padIndex);
+                }
+            }
+            
+            if (gamepad && gamepad.buttons[9]) {
+                const buttonPressed = gamepad.buttons[9].pressed;
+                const wasPressed = this.gamepadButtonStates && this.gamepadButtonStates[`p${playerNum}_start`];
+                startPressed[i] = buttonPressed && !wasPressed;
+                
+                if (startPressed[i]) {
+                    initiatingPlayer = playerNum;
+                    break; // First player to press gets control
+                }
             }
         }
-        // Only open pause menu if no other menus are active
-        const p1StartJustPressed = startPressed && !this.gamepadButtonStates[9];
-        const p2StartJustPressed = p2StartPressed && !(this.p2GamepadButtonStates && this.p2GamepadButtonStates[9]);
-        if ((this.pKey && Phaser.Input.Keyboard.JustDown(this.pKey)) || p1StartJustPressed || p2StartJustPressed) {
+        
+        // Check if any start button was pressed or keyboard
+        const anyStartPressed = startPressed.some(pressed => pressed) || keyboardPressed;
+        
+        if (anyStartPressed) {
             if (this.spellbookOpen || this.chestSelectionActive || this.fusionUI ||
                 this.elementSelectionActive || this.discardConfirmation || this.discardConfirmUI || this.obeliskMenuOpen) {
                 } else {
                 // Track which player opened the pause menu
-                if (p2StartJustPressed) {
-                    this.pauseMenuPlayer = 2;
-                } else {
-                    this.pauseMenuPlayer = 1;
-                }
+                this.pauseMenuPlayer = keyboardPressed ? 1 : initiatingPlayer;
                 this.togglePause();
             }
         }
         // TAB or ESC key to open spellbook (consolidated menu)
         let selectPressed = false;
-        if (this.gamepad && this.gamepad.buttons[8]) {
-            selectPressed = this.gamepad.buttons[8].pressed;
+        
+        // Check all player controllers for select button
+        for (let i = 0; i < this.playerCount; i++) {
+            const playerNum = i + 1;
+            let gamepad = null;
+            
+            if (playerNum === 1) {
+                // P1 can use keyboard or first controller
+                if (this.playerControllers.length >= 1) {
+                    const p1Controller = this.playerControllers.find(p => p.playerNumber === 1);
+                    if (p1Controller && p1Controller.padIndex >= 0) {
+                        gamepad = this.input.gamepad.getPad(p1Controller.padIndex);
+                    }
+                } else if (!this.multiplayerEnabled) {
+                    gamepad = this.gamepad; // Fallback for single player
+                }
+            } else {
+                // P2-P4 use their assigned controllers
+                const playerController = this.playerControllers.find(p => p.playerNumber === playerNum);
+                if (playerController && playerController.padIndex >= 0) {
+                    gamepad = this.input.gamepad.getPad(playerController.padIndex);
+                }
+            }
+            
+            if (gamepad && gamepad.buttons[8]) {
+                const buttonPressed = gamepad.buttons[8].pressed;
+                const wasPressed = this.gamepadButtonStates && this.gamepadButtonStates[`p${playerNum}_select`];
+                if (buttonPressed && !wasPressed) {
+                    selectPressed = true;
+                    break; // First player to press gets to open
+                }
+            }
         }
         // Handle obelisk menu close first (priority)
         if (this.obeliskMenuOpen && this.escKey && Phaser.Input.Keyboard.JustDown(this.escKey)) {
@@ -13870,7 +15413,7 @@ class GameScene extends Phaser.Scene {
         // Handle spellbook toggle
         if (((this.escKey && Phaser.Input.Keyboard.JustDown(this.escKey)) || 
             (this.tabKey && Phaser.Input.Keyboard.JustDown(this.tabKey)) ||
-            (selectPressed && !this.gamepadButtonStates[8])) &&
+            selectPressed) &&
             !this.isPaused && !this.chestSelectionActive && !this.fusionUI && !this.obeliskMenuOpen) {
             this.toggleSpellbook();
         }
@@ -13928,22 +15471,43 @@ class GameScene extends Phaser.Scene {
                 onComplete: () => indicatorText.destroy()
             });
         }
-        // Update gamepad button states for next frame
-        if (this.gamepad) {
-            this.gamepad.buttons.forEach((button, index) => {
-                this.gamepadButtonStates[index] = button.pressed;
-            });
-        }
-        // Update P2 gamepad button states if multiplayer
-        if (this.multiplayerEnabled && this.p2ControllerIndex !== undefined) {
-            const p2Gamepad = this.input.gamepad.getPad(this.p2ControllerIndex);
-            if (p2Gamepad && p2Gamepad.buttons) {
-                if (!this.p2GamepadButtonStates) {
-                    this.p2GamepadButtonStates = [];
+        // Update gamepad button states for all players
+        for (let i = 0; i < this.playerCount; i++) {
+            const playerNum = i + 1;
+            let gamepad = null;
+            
+            if (playerNum === 1) {
+                // P1 can use keyboard or first controller
+                if (this.playerControllers.length >= 1) {
+                    const p1Controller = this.playerControllers.find(p => p.playerNumber === 1);
+                    if (p1Controller && p1Controller.padIndex >= 0) {
+                        gamepad = this.input.gamepad.getPad(p1Controller.padIndex);
+                    }
+                } else if (!this.multiplayerEnabled) {
+                    gamepad = this.gamepad; // Fallback for single player
                 }
-                p2Gamepad.buttons.forEach((button, index) => {
-                    this.p2GamepadButtonStates[index] = button.pressed;
-                });
+            } else {
+                // P2-P4 use their assigned controllers
+                const playerController = this.playerControllers.find(p => p.playerNumber === playerNum);
+                if (playerController && playerController.padIndex >= 0) {
+                    gamepad = this.input.gamepad.getPad(playerController.padIndex);
+                }
+            }
+            
+            if (gamepad && gamepad.buttons) {
+                // Update button states for this player
+                if (gamepad.buttons[9]) { // Start button
+                    this.gamepadButtonStates[`p${playerNum}_start`] = gamepad.buttons[9].pressed;
+                }
+                if (gamepad.buttons[8]) { // Select button
+                    this.gamepadButtonStates[`p${playerNum}_select`] = gamepad.buttons[8].pressed;
+                }
+                // Update other button states for compatibility
+                if (playerNum === 1) {
+                    gamepad.buttons.forEach((button, index) => {
+                        this.gamepadButtonStates[index] = button.pressed;
+                    });
+                }
             }
         }
         // Handle fusion UI controller input FIRST (highest priority)
@@ -14181,7 +15745,7 @@ class GameScene extends Phaser.Scene {
             return;
         }
         // Function to handle movement for any wizard
-        const handleWizardMovement = (wizard, isP2 = false) => {
+        const handleWizardMovement = (wizard, isP2 = false, playerNumber = 1) => {
             const speed = 192 * this.speedMultiplier; // Increased by 20% from 160
             let moving = false;
             let velocityX = 0;
@@ -14189,12 +15753,31 @@ class GameScene extends Phaser.Scene {
             let usingGamepad = false;
             // Controller movement for the appropriate player
             let gamepad = null;
-            if (isP2) {
-                // P2 uses the controller that activated multiplayer
-                gamepad = this.input.gamepad.getPad(this.p2ControllerIndex);
+            
+            if (playerNumber >= 3) {
+                // For players 3 and 4, use the controller assigned during detection
+                const controllerData = this.playerControllers.find(p => p.playerNumber === playerNumber);
+                if (controllerData && controllerData.padIndex >= 0) {
+                    gamepad = this.input.gamepad.getPad(controllerData.padIndex);
+                }
+            } else if (isP2) {
+                // P2 uses the controller that activated multiplayer or from controller detection
+                if (this.playerControllers.length >= 2) {
+                    const p2Controller = this.playerControllers.find(p => p.playerNumber === 2);
+                    if (p2Controller && p2Controller.padIndex >= 0) {
+                        gamepad = this.input.gamepad.getPad(p2Controller.padIndex);
+                    }
+                } else {
+                    gamepad = this.input.gamepad.getPad(this.p2ControllerIndex);
+                }
             } else if (!isP2 && this.multiplayerEnabled) {
-                // In multiplayer, P1 only uses keyboard
-                gamepad = null;
+                // In multiplayer, P1 can use keyboard or first controller
+                if (this.playerControllers.length >= 1) {
+                    const p1Controller = this.playerControllers.find(p => p.playerNumber === 1);
+                    if (p1Controller && p1Controller.padIndex >= 0) {
+                        gamepad = this.input.gamepad.getPad(p1Controller.padIndex);
+                    }
+                }
             } else if (!isP2 && !this.multiplayerEnabled) {
                 // In single player, P1 can use controller
                 gamepad = this.gamepad;
@@ -14344,7 +15927,7 @@ class GameScene extends Phaser.Scene {
             this.wizard.lastDirection = this.wizard.lastStableDirection;
         }
         // Function to apply movement and animations to a wizard
-        const applyWizardMovement = (wizard, velocityX, velocityY, moving, isP2 = false) => {
+        const applyWizardMovement = (wizard, velocityX, velocityY, moving, isP2 = false, playerNumber = 1) => {
             const speed = 192 * this.speedMultiplier;
             // Normalize diagonal movement
             if (velocityX !== 0 && velocityY !== 0) {
@@ -14484,55 +16067,86 @@ class GameScene extends Phaser.Scene {
             const p2Movement = handleWizardMovement(this.wizard2, true);
             applyWizardMovement(this.wizard2, p2Movement.velocityX, p2Movement.velocityY, p2Movement.moving, true);
         }
+        
+        // Handle P3 movement if player count > 2 and P3 is alive
+        if (this.playerCount > 2 && this.wizard3 && this.wizard3.health > 0) {
+            const p3Movement = handleWizardMovement(this.wizard3, false, 3); // Player 3
+            applyWizardMovement(this.wizard3, p3Movement.velocityX, p3Movement.velocityY, p3Movement.moving, false, 3);
+        }
+        
+        // Handle P4 movement if player count > 3 and P4 is alive
+        if (this.playerCount > 3 && this.wizard4 && this.wizard4.health > 0) {
+            const p4Movement = handleWizardMovement(this.wizard4, true, 4); // Player 4
+            applyWizardMovement(this.wizard4, p4Movement.velocityX, p4Movement.velocityY, p4Movement.moving, true, 4);
+        }
         // Update camera for multiplayer (moved outside P2 movement block)
-        if (this.multiplayerEnabled && this.cameraTarget) {
+        if ((this.multiplayerEnabled || this.playerCount > 1) && this.cameraTarget) {
             let midX, midY;
-            // Check if either player is dead
-            const p1Dead = this.playerHealth <= 0;
-            const p2Dead = !this.wizard2 || this.wizard2.health <= 0 || !this.wizard2.active;
-            if (p1Dead && !p2Dead) {
-                // P1 is dead, follow P2 only
-                midX = this.wizard2.x;
-                midY = this.wizard2.y;
-                // Hide P1's body
-                if (this.wizard.visible) {
-                    this.wizard.setVisible(false);
-                    this.wizard.body.enable = false;
-                }
-                // Spawn dungeon gate if not already spawned and not in spire/nexus
-                if (!this.dungeonGate && this.stage !== 'spire' && this.stage !== 'nexus' && !this.inDungeon) {
-                    this.spawnDungeonGate();
-                }
-            } else if (p2Dead && !p1Dead) {
-                // P2 is dead, follow P1 only
-                midX = this.wizard.x;
-                midY = this.wizard.y;
-                // Hide P2's body
-                if (this.wizard2 && this.wizard2.visible) {
-                    this.wizard2.setVisible(false);
-                    this.wizard2.body.enable = false;
-                }
-                // Spawn dungeon gate if not already spawned and not in spire/nexus
-                if (!this.dungeonGate && this.stage !== 'spire' && this.stage !== 'nexus' && !this.inDungeon) {
-                    this.spawnDungeonGate();
-                }
-            } else if (!p1Dead && !p2Dead) {
-                // Both alive, follow midpoint
-                midX = (this.wizard.x + this.wizard2.x) / 2;
-                midY = (this.wizard.y + this.wizard2.y) / 2;
-                // Make sure both are visible if they were hidden
-                if (!this.wizard.visible) {
-                    this.wizard.setVisible(true);
-                    this.wizard.body.enable = true;
-                }
-                if (this.wizard2 && !this.wizard2.visible) {
-                    this.wizard2.setVisible(true);
-                    this.wizard2.body.enable = true;
-                }
-            } else {
-                // Both dead, keep current position
+            
+            // Get alive players
+            const alivePlayers = [];
+            if (this.playerHealth > 0) {
+                alivePlayers.push({player: this.wizard, name: 'P1'});
+            }
+            if (this.wizard2 && this.wizard2.health > 0 && this.wizard2.active) {
+                alivePlayers.push({player: this.wizard2, name: 'P2'});
+            }
+            if (this.wizard3 && this.wizard3.health > 0 && this.wizard3.active) {
+                alivePlayers.push({player: this.wizard3, name: 'P3'});
+            }
+            if (this.wizard4 && this.wizard4.health > 0 && this.wizard4.active) {
+                alivePlayers.push({player: this.wizard4, name: 'P4'});
+            }
+            
+            if (alivePlayers.length === 0) {
+                // All dead - keep current position
                 midX = this.cameraTarget.x;
                 midY = this.cameraTarget.y;
+            } else if (alivePlayers.length === 1) {
+                // Only one player alive - follow that player
+                midX = alivePlayers[0].player.x;
+                midY = alivePlayers[0].player.y;
+                
+                // Hide dead players and spawn dungeon gate
+                [this.wizard, this.wizard2, this.wizard3, this.wizard4].forEach(player => {
+                    if (player && !alivePlayers.some(alive => alive.player === player)) {
+                        if (player.visible) {
+                            player.setVisible(false);
+                            player.body.enable = false;
+                        }
+                    }
+                });
+                
+                // Spawn dungeon gate if not already spawned and not in spire/nexus
+                if (!this.dungeonGate && this.stage !== 'spire' && this.stage !== 'nexus' && !this.inDungeon) {
+                    this.spawnDungeonGate();
+                }
+            } else {
+                // Multiple players alive - follow center point
+                let totalX = 0, totalY = 0;
+                alivePlayers.forEach(({player}) => {
+                    totalX += player.x;
+                    totalY += player.y;
+                });
+                midX = totalX / alivePlayers.length;
+                midY = totalY / alivePlayers.length;
+                
+                // Make sure all alive players are visible
+                alivePlayers.forEach(({player}) => {
+                    if (!player.visible) {
+                        player.setVisible(true);
+                        player.body.enable = true;
+                    }
+                });
+                
+                // Hide dungeon gate when multiple players are alive
+                if (this.dungeonGate) {
+                    this.dungeonGate.destroy();
+                    this.dungeonGate = null;
+                }
+                if (this.dungeonArrow) {
+                    this.dungeonArrow.setVisible(false);
+                }
             }
             this.cameraTarget.setPosition(midX, midY);
             // Also ensure camera target stays within world bounds if they exist
@@ -15127,7 +16741,7 @@ class GameScene extends Phaser.Scene {
                             }
                     }
                     // Flip enemies to face target player
-                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'soul' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'mushroom' || enemy.enemyType === 'clubimp' || enemy.enemyType === 'axeimp' || enemy.enemyType === 'kobold' || enemy.enemyType === 'yellowskeleton' || enemy.enemyType === 'skeletonseeker' || enemy.enemyType === 'giantfly' || enemy.enemyType === 'squirrel' || enemy.enemyType === 'redpanda' || enemy.enemyType === 'intellectdevourer' || enemy.enemyType === 'brainmole' || enemy.enemyType === 'cobra' || enemy.enemyType === 'cactuse' || enemy.enemyType === 'swampmerchant' || enemy.enemyType === 'torchboy' || enemy.enemyType === 'mudguard') {
+                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'soul' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'mushroom' || enemy.enemyType === 'clubimp' || enemy.enemyType === 'axeimp' || enemy.enemyType === 'kobold' || enemy.enemyType === 'yellowskeleton' || enemy.enemyType === 'skeletonseeker' || enemy.enemyType === 'giantfly' || enemy.enemyType === 'squirrel' || enemy.enemyType === 'redpanda' || enemy.enemyType === 'intellectdevourer' || enemy.enemyType === 'brainmole' || enemy.enemyType === 'cobra' || enemy.enemyType === 'cactuse' || enemy.enemyType === 'swampmerchant' || enemy.enemyType === 'torchboy' || enemy.enemyType === 'mudguard' || enemy.enemyType === 'eyewalker' || enemy.enemyType === 'snowy' || enemy.enemyType === 'elkman' || enemy.enemyType === 'frost-golem' || enemy.enemyType === 'spiked-slime' || enemy.enemyType === 'northerner' || enemy.enemyType === 'jellyfish' || enemy.enemyType === 'crabby' || enemy.enemyType === 'shark' || enemy.enemyType === 'squid' || enemy.enemyType === 'crablore') {
                         if (targetPlayer.x < enemy.x) {
                             enemy.setFlipX(true); // Face left
                         } else {
@@ -15156,7 +16770,7 @@ class GameScene extends Phaser.Scene {
                         enemy.play(`golem-${enemy.golemColor}-walk`);
                     }
                     // Flip enemies to face target player even when stopped
-                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'mushroom' || enemy.enemyType === 'clubimp' || enemy.enemyType === 'axeimp' || enemy.enemyType === 'kobold' || enemy.enemyType === 'yellowskeleton' || enemy.enemyType === 'skeletonseeker') {
+                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'mushroom' || enemy.enemyType === 'clubimp' || enemy.enemyType === 'axeimp' || enemy.enemyType === 'kobold' || enemy.enemyType === 'yellowskeleton' || enemy.enemyType === 'skeletonseeker' || enemy.enemyType === 'eyewalker' || enemy.enemyType === 'snowy' || enemy.enemyType === 'elkman' || enemy.enemyType === 'frost-golem' || enemy.enemyType === 'spiked-slime' || enemy.enemyType === 'northerner' || enemy.enemyType === 'jellyfish' || enemy.enemyType === 'crabby' || enemy.enemyType === 'shark' || enemy.enemyType === 'squid' || enemy.enemyType === 'crablore') {
                         if (targetPlayer.x < enemy.x) {
                             enemy.setFlipX(true); // Face left
                         } else {
@@ -17593,11 +19207,35 @@ class GameScene extends Phaser.Scene {
         }
     }
     handlePauseMenuController() {
-        if (!this.gamepad || !this.pauseMenu.visible) return;
+        if (!this.pauseMenu.visible) return;
+        
+        // Get the controller for the player who opened the pause menu
+        let controllingGamepad = null;
+        if (this.pauseMenuPlayer && this.pauseMenuPlayer <= this.playerCount) {
+            if (this.pauseMenuPlayer === 1) {
+                // P1 can use keyboard or first controller
+                if (this.playerControllers.length >= 1) {
+                    const p1Controller = this.playerControllers.find(p => p.playerNumber === 1);
+                    if (p1Controller && p1Controller.padIndex >= 0) {
+                        controllingGamepad = this.input.gamepad.getPad(p1Controller.padIndex);
+                    }
+                } else if (!this.multiplayerEnabled) {
+                    controllingGamepad = this.gamepad; // Fallback for single player
+                }
+            } else {
+                // P2-P4 use their assigned controllers
+                const playerController = this.playerControllers.find(p => p.playerNumber === this.pauseMenuPlayer);
+                if (playerController && playerController.padIndex >= 0) {
+                    controllingGamepad = this.input.gamepad.getPad(playerController.padIndex);
+                }
+            }
+        }
+        
+        if (!controllingGamepad) return;
         // Handle confirmation dialog if active
         if (this.discardConfirmUI && this.discardConfirmUI.active) {
-            const aPressed = this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed;
-            const bPressed = this.gamepad.buttons[1] && this.gamepad.buttons[1].pressed;
+            const aPressed = controllingGamepad.buttons[0] && controllingGamepad.buttons[0].pressed;
+            const bPressed = controllingGamepad.buttons[1] && controllingGamepad.buttons[1].pressed;
             if (aPressed && !this.prevPauseAPressed) {
                 // Confirm discard
                 const index = this.discardConfirmUI.chargeIndex;
@@ -17623,8 +19261,8 @@ class GameScene extends Phaser.Scene {
             return;
         }
         // D-pad navigation
-        const leftPressed = this.gamepad.buttons[14] && this.gamepad.buttons[14].pressed;
-        const rightPressed = this.gamepad.buttons[15] && this.gamepad.buttons[15].pressed;
+        const leftPressed = controllingGamepad.buttons[14] && controllingGamepad.buttons[14].pressed;
+        const rightPressed = controllingGamepad.buttons[15] && controllingGamepad.buttons[15].pressed;
         // Check for just pressed (not held)
         if (leftPressed && !this.prevPauseLeftPressed) {
             if (this.linkMode) {
@@ -17659,7 +19297,7 @@ class GameScene extends Phaser.Scene {
             this.updatePauseMenuCursor();
         }
         // A button - select/place charge or toggle link
-        const aPressed = this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed;
+        const aPressed = controllingGamepad.buttons[0] && controllingGamepad.buttons[0].pressed;
         if (aPressed && !this.prevPauseAPressed) {
             if (this.linkMode) {
                 // Toggle link at current link cursor position
@@ -17700,7 +19338,7 @@ class GameScene extends Phaser.Scene {
             }
         }
         // B button - cancel selection or ask to discard
-        const bPressed = this.gamepad.buttons[1] && this.gamepad.buttons[1].pressed;
+        const bPressed = controllingGamepad.buttons[1] && controllingGamepad.buttons[1].pressed;
         if (bPressed && !this.prevPauseBPressed) {
             if (this.pauseMenuSelectedCharge !== -1) {
                 // Cancel selection
@@ -17723,7 +19361,7 @@ class GameScene extends Phaser.Scene {
             }
         }
         // X button - discard element
-        const xPressed = this.gamepad.buttons[2] && this.gamepad.buttons[2].pressed;
+        const xPressed = controllingGamepad.buttons[2] && controllingGamepad.buttons[2].pressed;
         if (xPressed && !this.prevPauseXPressed && this.pauseMenuCursorIndex < 12) {
             // Check if slot has an element to discard
             let hasElement = false;
@@ -17739,7 +19377,7 @@ class GameScene extends Phaser.Scene {
             }
         }
         // Y button - toggle link mode
-        const yPressed = this.gamepad.buttons[3] && this.gamepad.buttons[3].pressed;
+        const yPressed = controllingGamepad.buttons[3] && controllingGamepad.buttons[3].pressed;
         if (yPressed && !this.prevPauseYPressed) {
             this.linkMode = !this.linkMode;
             if (this.linkMode) {
@@ -17841,6 +19479,252 @@ class GameScene extends Phaser.Scene {
             enemy.body.enable = false;
         }
     }
+
+    // ===== ANIMATION CLEANUP SYSTEM FOR ENEMIES =====
+    // These functions ensure animations transition cleanly, especially for enemies
+    // with multiple states like cacodaemon that switch between animations during their lifetime
+
+    /**
+     * Safely transitions an enemy to a death animation
+     * Handles cleanup of current animations and prevents race conditions
+     * @param {Phaser.GameObjects.Sprite} enemy - The enemy sprite
+     * @param {string} deathAnimKey - The key of the death animation to play
+     * @returns {boolean} - Whether the transition was successful
+     */
+    safePlayDeathAnimation(enemy, deathAnimKey) {
+        if (!enemy || !enemy.active || enemy.deathAnimationLocked) {
+            return false;
+        }
+
+        try {
+            // Lock the death animation to prevent any further animation changes
+            enemy.deathAnimationLocked = true;
+
+            // Step 1: Clear all animation event listeners to prevent conflicts
+            enemy.removeAllListeners('animationcomplete');
+            enemy.removeAllListeners('animationupdate');
+            enemy.removeAllListeners('animationrepeat');
+            enemy.removeAllListeners('animationstart');
+            enemy.removeAllListeners('animationstop');
+
+            // Step 2: Force stop any current animation
+            if (enemy.anims) {
+                try {
+                    // Stop the animation manager
+                    enemy.anims.stop();
+
+                    // Clear the current animation state
+                    enemy.anims.currentAnim = null;
+                    enemy.anims.currentFrame = null;
+
+                    // Reset to frame 0 of current texture
+                    if (enemy.texture && enemy.texture.key) {
+                        enemy.setFrame(0);
+                    }
+                } catch (animError) {
+                    console.warn(`Animation stop error for ${enemy.enemyType}:`, animError.message);
+                    // Continue anyway - we'll try to play the death animation
+                }
+            }
+
+            // Step 3: Kill any tweens on the enemy
+            this.tweens.killTweensOf(enemy);
+
+            // Step 4: Stop all movement
+            if (enemy.setVelocity) {
+                enemy.setVelocity(0, 0);
+            }
+
+            // Step 5: Wait one frame to ensure animation state is cleared
+            this.time.delayedCall(16, () => { // 16ms = 1 frame at 60fps
+                if (!enemy || !enemy.active) return;
+
+                try {
+                    // Now play the death animation
+                    if (this.anims.exists(deathAnimKey)) {
+                        enemy.play(deathAnimKey, true); // Force restart
+
+                        // Set up animation complete listener HERE, after we know animation started
+                        enemy.once('animationcomplete', () => {
+                            if (enemy && enemy.active && enemy.deathAnimCallbackPending) {
+                                enemy.deathAnimCallbackPending();
+                            }
+                        });
+                    } else {
+                        console.warn(`Death animation '${deathAnimKey}' does not exist for ${enemy.enemyType}`);
+                        // Fallback: just fade out
+                        this.tweens.add({
+                            targets: enemy,
+                            alpha: 0,
+                            duration: 300,
+                            onComplete: () => {
+                                if (enemy && enemy.body) enemy.body.enable = false;
+                                if (enemy && enemy.active) enemy.destroy();
+                            }
+                        });
+                    }
+                } catch (playError) {
+                    console.warn(`Death animation play error for ${enemy.enemyType}:`, playError.message);
+                    // Fallback: immediate destroy with fade
+                    this.tweens.add({
+                        targets: enemy,
+                        alpha: 0,
+                        duration: 200,
+                        onComplete: () => {
+                            if (enemy && enemy.body) enemy.body.enable = false;
+                            if (enemy && enemy.active) enemy.destroy();
+                        }
+                    });
+                }
+            });
+
+            return true;
+        } catch (error) {
+            console.error(`Fatal error in safePlayDeathAnimation for ${enemy.enemyType}:`, error);
+            // Emergency cleanup
+            if (enemy && enemy.body) enemy.body.enable = false;
+            return false;
+        }
+    }
+
+    /**
+     * Clears all enemy-specific timers and AI state
+     * Call this before playing death animations for enemies with complex AI
+     * @param {Phaser.GameObjects.Sprite} enemy - The enemy sprite
+     */
+    clearEnemyAIState(enemy) {
+        if (!enemy) return;
+
+        try {
+            // Clear enemy-specific state flags
+            const stateFlags = [
+                'isPursuing', 'isTired', 'preparingCharge', 'isAttacking',
+                'isRolling', 'isCharging', 'isChanneling', 'isCasting',
+                'isReviving', 'isBlocking', 'isEvading'
+            ];
+
+            stateFlags.forEach(flag => {
+                if (enemy.hasOwnProperty(flag)) {
+                    enemy[flag] = false;
+                }
+            });
+
+            // Clear targets and references
+            enemy.chargeTarget = null;
+            enemy.attackTarget = null;
+            enemy.currentTarget = null;
+
+            // Clear all timers (common timer property names)
+            const timerProps = [
+                'chargeTimer', 'attackTimer', 'preparationTimer', 'castTimer',
+                'tiredTimer', 'chargePreparationTimer', 'recoveryTimer',
+                'stateTimer', 'cooldownTimer', 'phaseTimer'
+            ];
+
+            timerProps.forEach(timerProp => {
+                if (enemy[timerProp]) {
+                    try {
+                        if (enemy[timerProp].destroy) {
+                            enemy[timerProp].destroy();
+                        } else if (enemy[timerProp].remove) {
+                            enemy[timerProp].remove();
+                        }
+                    } catch (e) {
+                        // Timer already destroyed
+                    }
+                    enemy[timerProp] = null;
+                }
+            });
+
+            // Clear warning circles/indicators
+            if (enemy.warningCircle) {
+                // Remove from danger warnings tracking array
+                if (this.dangerWarnings && this.dangerWarnings.includes(enemy.warningCircle)) {
+                    const index = this.dangerWarnings.indexOf(enemy.warningCircle);
+                    if (index > -1) {
+                        this.dangerWarnings.splice(index, 1);
+                    }
+                }
+                // Stop tweens on the warning
+                this.tweens.killTweensOf(enemy.warningCircle);
+                // Destroy it
+                if (enemy.warningCircle.destroy) {
+                    enemy.warningCircle.destroy();
+                }
+                enemy.warningCircle = null;
+            }
+
+            // Clear any visual indicators
+            const indicators = ['targetIndicator', 'chargeIndicator', 'statusIndicator', 'shieldEffect', 'auraEffect'];
+            indicators.forEach(ind => {
+                if (enemy[ind]) {
+                    this.tweens.killTweensOf(enemy[ind]);
+                    if (enemy[ind].destroy) {
+                        enemy[ind].destroy();
+                    }
+                    enemy[ind] = null;
+                }
+            });
+
+        } catch (error) {
+            console.warn(`Error clearing AI state for ${enemy.enemyType}:`, error.message);
+        }
+    }
+
+    /**
+     * Master function to safely initiate enemy death with animation
+     * Use this for all enemies with multiple animation states
+     * @param {Phaser.GameObjects.Sprite} enemy - The enemy sprite
+     * @param {string} deathAnimKey - The death animation key
+     * @param {Function} onComplete - Callback when death sequence completes
+     * @param {number} fallbackTimeout - Max time to wait for animation (default 1000ms)
+     */
+    initiateEnemyDeath(enemy, deathAnimKey, onComplete, fallbackTimeout = 1000) {
+        if (!enemy || enemy.isDying) return;
+
+        // Mark as dying IMMEDIATELY
+        enemy.isDying = true;
+
+        // Disable physics immediately
+        if (enemy.body) {
+            enemy.body.enable = false;
+        }
+
+        // Clear AI state
+        this.clearEnemyAIState(enemy);
+
+        // Set up completion tracking
+        let deathCompleted = false;
+        const safeComplete = () => {
+            if (deathCompleted) return;
+            deathCompleted = true;
+            if (onComplete) {
+                onComplete();
+            }
+        };
+
+        // Store the callback on the enemy so safePlayDeathAnimation can call it
+        enemy.deathAnimCallbackPending = safeComplete;
+
+        // Play death animation safely
+        const animSuccess = this.safePlayDeathAnimation(enemy, deathAnimKey);
+
+        // Always set up fallback timer to ensure cleanup
+        this.time.delayedCall(fallbackTimeout, () => {
+            if (enemy && enemy.active && !deathCompleted) {
+                console.warn(`Fallback timer triggered for ${enemy.enemyType} - forcing cleanup`);
+                safeComplete();
+            } else if (enemy && enemy.active) {
+                // Force cleanup if still somehow active
+                console.warn(`Force destroying stuck enemy: ${enemy.enemyType}`);
+                if (enemy.body) enemy.body.enable = false;
+                enemy.destroy();
+            }
+        });
+    }
+
+    // ===== END ANIMATION CLEANUP SYSTEM =====
+
     killEnemy(enemy) {
         if (!enemy || enemy.isDying) return;
         // Store position before any operations that might fail
@@ -18024,80 +19908,67 @@ class GameScene extends Phaser.Scene {
                 }
             });
         } else if (enemy.enemyType === 'cacodemon') {
-            // Prevent double death handling
-            if (enemy.isDying) return;
-            // CRITICAL: Mark as dying FIRST to prevent any further AI updates
+            // Mark as dying to prevent AI updates
             enemy.isDying = true;
-            // IMMEDIATELY stop all movement and disable physics
+
+            // Stop all movement
             enemy.setVelocity(0, 0);
+
+            // Disable physics immediately
             if (enemy.body) {
                 enemy.body.enable = false;
             }
-            // Clear ALL cacodemon-specific states to prevent any lingering behaviors
+
+            // Clear cacodemon AI state
             enemy.isPursuing = false;
             enemy.isTired = false;
             enemy.preparingCharge = false;
             enemy.chargeTarget = null;
-            enemy.chargeTimer = null;
-            // CRITICAL: Stop ANY current animation before doing anything else
-            if (enemy.anims && enemy.anims.currentAnim) {
-                // Store current animation name for debugging
-                const currentAnim = enemy.anims.currentAnim.key;
-                // Force stop and clear
-                enemy.anims.stop();
-                enemy.anims.currentAnim = null;
-                enemy.anims.currentFrame = null;
-                // Reset texture to ensure clean state
-                if (enemy.texture) {
-                    enemy.setFrame(0);
-                }
-            }
-            // Clear ALL animation event listeners
-            enemy.removeAllListeners('animationcomplete');
-            enemy.removeAllListeners('animationupdate');
-            enemy.removeAllListeners('animationrepeat');
-            enemy.removeAllListeners('animationstart');
-            enemy.removeAllListeners('animationstop');
-            // Clear warning circle and any associated danger warnings
+
+            // Clear warning circle
             if (enemy.warningCircle) {
-                // Remove from danger warnings array if it exists
                 if (this.dangerWarnings && this.dangerWarnings.includes(enemy.warningCircle)) {
                     const index = this.dangerWarnings.indexOf(enemy.warningCircle);
                     if (index > -1) {
                         this.dangerWarnings.splice(index, 1);
                     }
                 }
-                // Force stop any tweens on the warning circle
-                if (enemy.warningCircle.isTweening) {
-                    this.tweens.killTweensOf(enemy.warningCircle);
-                }
-                // Destroy the warning circle
+                this.tweens.killTweensOf(enemy.warningCircle);
                 if (enemy.warningCircle.destroy) {
                     enemy.warningCircle.destroy();
                 }
                 enemy.warningCircle = null;
             }
-            // Clear any charge preparation timers that might be running
+
+            // Clear timers
             if (enemy.chargePreparationTimer) {
                 enemy.chargePreparationTimer.destroy();
                 enemy.chargePreparationTimer = null;
             }
-            // Clear any tired recovery timers
             if (enemy.tiredTimer) {
                 enemy.tiredTimer.destroy();
                 enemy.tiredTimer = null;
             }
-            // Kill any tweens on the enemy itself
-            this.tweens.killTweensOf(enemy);
-            // Store position and drop data before playing animation
+
+            // Store position for drops
             const deathX = enemyX;
             const deathY = enemyY;
-            const shouldDropChest = true;
+
+            // Stop any current animations
+            if (enemy.anims && enemy.anims.isPlaying) {
+                enemy.anims.stop();
+            }
+
             // Play death animation
-            enemy.play('cacodemon-dying', true); // Force play even if another animation is playing
-            // Function to handle death completion
+            enemy.play('cacodemon-dying');
+
+            // Handle completion with both animation end AND fallback timer
+            let completed = false;
+
             const completeDeathSequence = () => {
-                if (!enemy || !enemy.active) return;
+                if (completed) return;
+                completed = true;
+
                 // Drop XP jewels
                 const baseXP = 5;
                 const waveBonus = Math.floor(this.currentWave / 2);
@@ -18115,36 +19986,29 @@ class GameScene extends Phaser.Scene {
                     this.dropCoin(deathX + offsetX, deathY + offsetY, coinValue, 2.0);
                 }
                 // Always drop a chest with element or chess piece
-                if (shouldDropChest) {
-                    this.dropCacodemonChest(deathX, deathY);
-                }
+                this.dropCacodemonChest(deathX, deathY);
+
                 this.enemiesKilled++;
-                if (enemy.body) {
+                if (enemy && enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                if (enemy && enemy.active) {
+                    enemy.destroy();
+                }
             };
-            // Clear any existing animation listeners
-            enemy.off('animationcomplete');
-            // Set up both animation complete AND fallback timer
-            let deathCompleted = false;
-            const safeCompleteDeathSequence = () => {
-                if (deathCompleted) return; // Prevent double execution
-                deathCompleted = true;
-                completeDeathSequence();
-            };
-            // Try to wait for animation to complete
+
+            // Listen for animation complete
             enemy.once('animationcomplete', () => {
-                if (enemy && enemy.active && !deathCompleted) {
-                    safeCompleteDeathSequence();
+                if (enemy && enemy.active && !completed) {
+                    completeDeathSequence();
                 }
             });
-            // ALWAYS use fallback timer to guarantee destruction
-            this.time.delayedCall(800, () => {
-                if (enemy && enemy.active && !deathCompleted) {
-                    safeCompleteDeathSequence();
+
+            // Fallback timer to ensure cleanup
+            this.time.delayedCall(1000, () => {
+                if (enemy && enemy.active && !completed) {
+                    completeDeathSequence();
                 } else if (enemy && enemy.active) {
-                    // Force destroy if somehow still alive
                     if (enemy.body) enemy.body.enable = false;
                     enemy.destroy();
                 }
@@ -18418,6 +20282,282 @@ class GameScene extends Phaser.Scene {
                 if (dropRoll < 0.03) {
                     this.dropStandaloneItem(deathX, deathY + 20, 'butterflyjar'); // Shield drop
                 } else if (dropRoll < 0.05) {
+                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
+                }
+                if (enemy.body) {
+                    enemy.body.enable = false;
+                }
+                enemy.destroy();
+            });
+        } else if (enemy.enemyType === 'snowy') {
+            // Snowy has custom death animation
+            enemy.isDying = true;
+            enemy.setVelocity(0, 0);
+            // Store position for drops
+            const deathX = enemyX;
+            const deathY = enemyY;
+            // Play death animation
+            enemy.play('snowy-dying');
+            enemy.once('animationcomplete', () => {
+                if (!enemy || !enemy.active) return;
+                // Drop jewel - XP scales with wave
+                const baseXP = 3;
+                const waveBonus = Math.floor(this.currentWave / 2);
+                const xpValue = baseXP + waveBonus;
+                this.dropJewel(deathX, deathY, xpValue, 0.1);
+                // Item drop chances
+                const dropRoll = Math.random();
+                if (dropRoll < 0.02) {
+                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
+                }
+                if (enemy.body) {
+                    enemy.body.enable = false;
+                }
+                enemy.destroy();
+            });
+        } else if (enemy.enemyType === 'elkman') {
+            // Elkman has custom death animation
+            enemy.isDying = true;
+            enemy.setVelocity(0, 0);
+            // Store position for drops
+            const deathX = enemyX;
+            const deathY = enemyY;
+            // Play death animation
+            enemy.play('elkman-dying');
+            enemy.once('animationcomplete', () => {
+                if (!enemy || !enemy.active) return;
+                // Drop jewel - Higher XP for warrior enemy
+                const baseXP = 4;
+                const waveBonus = Math.floor(this.currentWave / 2);
+                const xpValue = baseXP + waveBonus;
+                this.dropJewel(deathX, deathY, xpValue, 0.1);
+                // Better item drop chances
+                const dropRoll = Math.random();
+                if (dropRoll < 0.025) {
+                    this.dropStandaloneItem(deathX, deathY + 20, 'butterflyjar');
+                } else if (dropRoll < 0.04) {
+                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
+                }
+                if (enemy.body) {
+                    enemy.body.enable = false;
+                }
+                enemy.destroy();
+            });
+        } else if (enemy.enemyType === 'frost-golem') {
+            // Frost golem has custom death animation
+            enemy.isDying = true;
+            enemy.setVelocity(0, 0);
+            // Store position for drops
+            const deathX = enemyX;
+            const deathY = enemyY;
+            // Play death animation
+            enemy.play('frost-golem-dying');
+            enemy.once('animationcomplete', () => {
+                if (!enemy || !enemy.active) return;
+                // Drop jewel - High XP for tanky enemy
+                const baseXP = 6;
+                const waveBonus = Math.floor(this.currentWave / 2);
+                const xpValue = baseXP + waveBonus;
+                this.dropJewel(deathX, deathY, xpValue, 0.1);
+                // Good item drop chances for elite enemy
+                const dropRoll = Math.random();
+                if (dropRoll < 0.03) {
+                    this.dropStandaloneItem(deathX, deathY + 20, 'butterflyjar');
+                } else if (dropRoll < 0.05) {
+                    this.dropStandaloneItem(deathX, deathY + 20, 'flamethrower');
+                } else if (dropRoll < 0.07) {
+                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
+                }
+                if (enemy.body) {
+                    enemy.body.enable = false;
+                }
+                enemy.destroy();
+            });
+        } else if (enemy.enemyType === 'spiked-slime') {
+            // Spiked slime has custom death animation
+            enemy.isDying = true;
+            enemy.setVelocity(0, 0);
+            // Store position for drops
+            const deathX = enemyX;
+            const deathY = enemyY;
+            // Play death animation
+            enemy.play('spiked-slime-dying');
+            enemy.once('animationcomplete', () => {
+                if (!enemy || !enemy.active) return;
+                // Drop jewel - Medium XP for fast enemy
+                const baseXP = 3;
+                const waveBonus = Math.floor(this.currentWave / 2);
+                const xpValue = baseXP + waveBonus;
+                this.dropJewel(deathX, deathY, xpValue, 0.1);
+                // Item drop chances
+                const dropRoll = Math.random();
+                if (dropRoll < 0.02) {
+                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
+                }
+                if (enemy.body) {
+                    enemy.body.enable = false;
+                }
+                enemy.destroy();
+            });
+        } else if (enemy.enemyType === 'northerner') {
+            // Northerner has custom death animation
+            enemy.isDying = true;
+            enemy.setVelocity(0, 0);
+            // Store position for drops
+            const deathX = enemyX;
+            const deathY = enemyY;
+            // Play death animation
+            enemy.play('northerner-dying');
+            enemy.once('animationcomplete', () => {
+                if (!enemy || !enemy.active) return;
+                // Drop jewel - Good XP for warrior enemy
+                const baseXP = 4;
+                const waveBonus = Math.floor(this.currentWave / 2);
+                const xpValue = baseXP + waveBonus;
+                this.dropJewel(deathX, deathY, xpValue, 0.1);
+                // Item drop chances
+                const dropRoll = Math.random();
+                if (dropRoll < 0.025) {
+                    this.dropStandaloneItem(deathX, deathY + 20, 'butterflyjar');
+                } else if (dropRoll < 0.04) {
+                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
+                }
+                if (enemy.body) {
+                    enemy.body.enable = false;
+                }
+                enemy.destroy();
+            });
+        } else if (enemy.enemyType === 'jellyfish') {
+            // Jellyfish has custom death animation
+            enemy.isDying = true;
+            enemy.setVelocity(0, 0);
+            // Store position for drops
+            const deathX = enemyX;
+            const deathY = enemyY;
+            // Play death animation
+            enemy.play('jellyfish-dying');
+            enemy.once('animationcomplete', () => {
+                if (!enemy || !enemy.active) return;
+                // Drop jewel - Low XP for basic enemy
+                const baseXP = 2;
+                const waveBonus = Math.floor(this.currentWave / 2);
+                const xpValue = baseXP + waveBonus;
+                this.dropJewel(deathX, deathY, xpValue, 0.1);
+                // Basic item drop chances
+                const dropRoll = Math.random();
+                if (dropRoll < 0.015) {
+                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
+                }
+                if (enemy.body) {
+                    enemy.body.enable = false;
+                }
+                enemy.destroy();
+            });
+        } else if (enemy.enemyType === 'crabby') {
+            // Crabby has custom death animation
+            enemy.isDying = true;
+            enemy.setVelocity(0, 0);
+            // Store position for drops
+            const deathX = enemyX;
+            const deathY = enemyY;
+            // Play death animation
+            enemy.play('crabby-dying');
+            enemy.once('animationcomplete', () => {
+                if (!enemy || !enemy.active) return;
+                // Drop jewel - Medium XP for fast enemy
+                const baseXP = 3;
+                const waveBonus = Math.floor(this.currentWave / 2);
+                const xpValue = baseXP + waveBonus;
+                this.dropJewel(deathX, deathY, xpValue, 0.1);
+                // Item drop chances
+                const dropRoll = Math.random();
+                if (dropRoll < 0.02) {
+                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
+                }
+                if (enemy.body) {
+                    enemy.body.enable = false;
+                }
+                enemy.destroy();
+            });
+        } else if (enemy.enemyType === 'shark') {
+            // Shark has custom death animation
+            enemy.isDying = true;
+            enemy.setVelocity(0, 0);
+            // Store position for drops
+            const deathX = enemyX;
+            const deathY = enemyY;
+            // Play death animation
+            enemy.play('shark-dying');
+            enemy.once('animationcomplete', () => {
+                if (!enemy || !enemy.active) return;
+                // Drop jewel - High XP for apex predator
+                const baseXP = 5;
+                const waveBonus = Math.floor(this.currentWave / 2);
+                const xpValue = baseXP + waveBonus;
+                this.dropJewel(deathX, deathY, xpValue, 0.1);
+                // Good item drop chances for predator
+                const dropRoll = Math.random();
+                if (dropRoll < 0.03) {
+                    this.dropStandaloneItem(deathX, deathY + 20, 'butterflyjar');
+                } else if (dropRoll < 0.05) {
+                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
+                }
+                if (enemy.body) {
+                    enemy.body.enable = false;
+                }
+                enemy.destroy();
+            });
+        } else if (enemy.enemyType === 'squid') {
+            // Squid has custom death animation
+            enemy.isDying = true;
+            enemy.setVelocity(0, 0);
+            // Store position for drops
+            const deathX = enemyX;
+            const deathY = enemyY;
+            // Play death animation
+            enemy.play('squid-dying');
+            enemy.once('animationcomplete', () => {
+                if (!enemy || !enemy.active) return;
+                // Drop jewel - Good XP for smart enemy
+                const baseXP = 4;
+                const waveBonus = Math.floor(this.currentWave / 2);
+                const xpValue = baseXP + waveBonus;
+                this.dropJewel(deathX, deathY, xpValue, 0.1);
+                // Item drop chances
+                const dropRoll = Math.random();
+                if (dropRoll < 0.025) {
+                    this.dropStandaloneItem(deathX, deathY + 20, 'butterflyjar');
+                } else if (dropRoll < 0.04) {
+                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
+                }
+                if (enemy.body) {
+                    enemy.body.enable = false;
+                }
+                enemy.destroy();
+            });
+        } else if (enemy.enemyType === 'crablore') {
+            // Crablore has custom death animation
+            enemy.isDying = true;
+            enemy.setVelocity(0, 0);
+            // Store position for drops
+            const deathX = enemyX;
+            const deathY = enemyY;
+            // Play death animation
+            enemy.play('crablore-dying');
+            enemy.once('animationcomplete', () => {
+                if (!enemy || !enemy.active) return;
+                // Drop jewel - High XP for elite enemy
+                const baseXP = 6;
+                const waveBonus = Math.floor(this.currentWave / 2);
+                const xpValue = baseXP + waveBonus;
+                this.dropJewel(deathX, deathY, xpValue, 0.1);
+                // Excellent item drop chances for elite
+                const dropRoll = Math.random();
+                if (dropRoll < 0.035) {
+                    this.dropStandaloneItem(deathX, deathY + 20, 'butterflyjar');
+                } else if (dropRoll < 0.055) {
+                    this.dropStandaloneItem(deathX, deathY + 20, 'flamethrower');
+                } else if (dropRoll < 0.075) {
                     this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
                 }
                 if (enemy.body) {
@@ -19625,7 +21765,10 @@ class GameScene extends Phaser.Scene {
             const mushroom = this.physics.add.sprite(x, y, 'mushroom-run', 0);
             // Apply scale from config
             this.applySavedScale(mushroom, 'mushroom');
-            mushroom.setFlipY(true); // Reverse vertical facing
+            // Apply flip from config
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyFlip(mushroom, 'mushroom');
+            }
             mushroom.health = 5; // Increased by 50%
             mushroom.maxHealth = mushroom.health;
             mushroom.enemyType = 'mushroom';
@@ -19751,7 +21894,12 @@ class GameScene extends Phaser.Scene {
             const isGrave = this.stage === 'grave';
             const spriteKey = isGrave ? 'soul-move-grave' : 'soul-move';
             const soul = this.physics.add.sprite(x, y, spriteKey, 0);
-            soul.setScale(isGrave ? 1.0 : 0.8); // Larger in grave stage
+            // Apply scale from config, or use stage-specific fallbacks
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(soul, 'soul');
+            } else {
+                soul.setScale(isGrave ? 1.0 : 0.8); // Fallback: Larger in grave stage
+            }
             soul.health = 6; // Increased by 50%
             soul.maxHealth = soul.health;
             soul.enemyType = 'soul';
@@ -19776,8 +21924,10 @@ class GameScene extends Phaser.Scene {
             const bloboid = this.physics.add.sprite(x, y, 'bloboid-walk', 0);
             // Apply scale from config
             this.applySavedScale(bloboid, 'bloboid');
-            bloboid.setFlipX(true);
-            bloboid.setFlipY(true); // Reverse vertical facing
+            // Apply flip from config
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyFlip(bloboid, 'bloboid');
+            }
             bloboid.health = 8; // Increased by 50%
             bloboid.maxHealth = bloboid.health;
             bloboid.enemyType = 'bloboid';
@@ -19987,7 +22137,10 @@ class GameScene extends Phaser.Scene {
             const demon = this.physics.add.sprite(x, y, 'flying-demon', 0);
             // Apply scale from config
             this.applySavedScale(demon, 'flyingdemon');
-            demon.setFlipX(false); // Remove horizontal flip - sprite faces correct direction
+            // Apply flip from config
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyFlip(demon, 'flyingdemon');
+            }
             demon.health = 8;
             demon.maxHealth = demon.health;
             demon.enemyType = 'flyingdemon';
@@ -20020,7 +22173,11 @@ class GameScene extends Phaser.Scene {
             this.addEnemyToGroup(skeleton);
         } else if (enemyType === 'skeletonseeker') {
             const seeker = this.physics.add.sprite(x, y, 'skeleton-seeker-spawn', 0);
-            seeker.setScale(0.8);
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(seeker, 'skeletonseeker');
+            } else {
+                seeker.setScale(0.8); // Fallback scale
+            }
             seeker.health = 6;
             seeker.maxHealth = seeker.health;
             seeker.enemyType = 'skeletonseeker';
@@ -20041,7 +22198,11 @@ class GameScene extends Phaser.Scene {
             this.addEnemyToGroup(seeker);
         } else if (enemyType === 'castle-knight') {
             const knight = this.physics.add.sprite(x, y, 'castle-knight', 0);
-            knight.setScale(0.4); // 180x180 scaled down to ~72x72
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(knight, 'castle-knight');
+            } else {
+                knight.setScale(0.4); // Fallback scale
+            }
             knight.health = 8;
             knight.maxHealth = knight.health;
             knight.enemyType = 'castle-knight';
@@ -20063,7 +22224,11 @@ class GameScene extends Phaser.Scene {
             this.addEnemyToGroup(knight);
         } else if (enemyType === 'castle-rogue') {
             const rogue = this.physics.add.sprite(x, y, 'castle-rogue', 0);
-            rogue.setScale(2.0); // 61x33 scaled up to ~122x66
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(rogue, 'castle-rogue');
+            } else {
+                rogue.setScale(2.0); // Fallback scale
+            }
             rogue.health = 5;
             rogue.maxHealth = rogue.health;
             rogue.enemyType = 'castle-rogue';
@@ -20085,7 +22250,11 @@ class GameScene extends Phaser.Scene {
             this.addEnemyToGroup(rogue);
         } else if (enemyType === 'castle-bladekeeper') {
             const bladekeeper = this.physics.add.sprite(x, y, 'castle-bladekeeper-1');
-            bladekeeper.setScale(0.35); // 288x128 scaled down to ~100x45
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(bladekeeper, 'castle-bladekeeper');
+            } else {
+                bladekeeper.setScale(0.35); // Fallback scale
+            }
             bladekeeper.health = 12;
             bladekeeper.maxHealth = bladekeeper.health;
             bladekeeper.enemyType = 'castle-bladekeeper';
@@ -20111,7 +22280,11 @@ class GameScene extends Phaser.Scene {
             this.addEnemyToGroup(bladekeeper);
         } else if (enemyType === 'castle-soldier') {
             const soldier = this.physics.add.sprite(x, y, 'castle-soldier', 0);
-            soldier.setScale(0.5); // 135x135 scaled down to ~67x67
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(soldier, 'castle-soldier');
+            } else {
+                soldier.setScale(0.5); // Fallback scale
+            }
             soldier.health = 10;
             soldier.maxHealth = soldier.health;
             soldier.enemyType = 'castle-soldier';
@@ -20133,7 +22306,11 @@ class GameScene extends Phaser.Scene {
             this.addEnemyToGroup(soldier);
         } else if (enemyType === 'castle-squire') {
             const squire = this.physics.add.sprite(x, y, 'castle-squire', 0);
-            squire.setScale(0.45); // 150x150 scaled down to ~67x67
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(squire, 'castle-squire');
+            } else {
+                squire.setScale(0.45); // Fallback scale
+            }
             squire.health = 4;
             squire.maxHealth = squire.health;
             squire.enemyType = 'castle-squire';
@@ -20198,7 +22375,11 @@ class GameScene extends Phaser.Scene {
             this.addEnemyToGroup(cactuse);
         } else if (enemyType === 'armadillo') {
             const armadillo = this.physics.add.sprite(x, y, 'armadillo-walk', 0);
-            armadillo.setScale(2.0); // Scale up the 32x32 sprite
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(armadillo, 'armadillo');
+            } else {
+                armadillo.setScale(2.0); // Fallback scale
+            }
             armadillo.health = 10; // High health - armored
             armadillo.maxHealth = armadillo.health;
             armadillo.enemyType = 'armadillo';
@@ -20220,7 +22401,11 @@ class GameScene extends Phaser.Scene {
             this.addEnemyToGroup(armadillo);
         } else if (enemyType === 'swampmerchant') {
             const swampmerchant = this.physics.add.sprite(x, y, 'swampmerchant-walk', 0);
-            swampmerchant.setScale(1.5); // Scale up the 64x64 sprite
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(swampmerchant, 'swampmerchant');
+            } else {
+                swampmerchant.setScale(1.5); // Fallback scale
+            }
             swampmerchant.health = 12; // High health - mysterious merchant
             swampmerchant.maxHealth = swampmerchant.health;
             swampmerchant.enemyType = 'swampmerchant';
@@ -20246,7 +22431,11 @@ class GameScene extends Phaser.Scene {
             this.addEnemyToGroup(swampmerchant);
         } else if (enemyType === 'torchboy') {
             const torchboy = this.physics.add.sprite(x, y, 'torchboy-walk', 0);
-            torchboy.setScale(1.2); // Scale for visibility
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(torchboy, 'torchboy');
+            } else {
+                torchboy.setScale(1.2); // Fallback scale
+            }
             torchboy.health = 8; // Medium health
             torchboy.maxHealth = torchboy.health;
             torchboy.enemyType = 'torchboy';
@@ -20275,7 +22464,11 @@ class GameScene extends Phaser.Scene {
             this.addEnemyToGroup(torchboy);
         } else if (enemyType === 'mudguard') {
             const mudguard = this.physics.add.sprite(x, y, 'mudguard-walk', 0);
-            mudguard.setScale(1.8); // Scale for visibility
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(mudguard, 'mudguard');
+            } else {
+                mudguard.setScale(1.8); // Fallback scale
+            }
             mudguard.health = 15; // High health - tough guard
             mudguard.maxHealth = mudguard.health;
             mudguard.enemyType = 'mudguard';
@@ -20314,7 +22507,11 @@ class GameScene extends Phaser.Scene {
         } else if (enemyType === 'eyewalker') {
             // Elite enemy with multi-phase animations
             const eyewalker = this.physics.add.sprite(x, y, 'eyewalker-walk', 0);
-            eyewalker.setScale(2.2); // Large elite enemy
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(eyewalker, 'eyewalker');
+            } else {
+                eyewalker.setScale(2.2); // Fallback scale
+            }
             eyewalker.health = 80; // Very high health for elite
             eyewalker.maxHealth = eyewalker.health;
             eyewalker.enemyType = 'eyewalker';
@@ -20372,14 +22569,62 @@ class GameScene extends Phaser.Scene {
                     eyewalker.setVelocity(0, 0); // Stop moving
                     eyewalker.play('eyewalker-stomp');
                     
+                    console.log('Eyewalker starting stomp phase - should spawn allies');
+                    
                     // After stomp animation, spawn eyegoompas
-                    eyewalker.once('animationcomplete-eyewalker-stomp', () => {
-                        // Spawn 3 eyegoompas around the eyewalker
+                    eyewalker.once('animationcomplete', () => {
+                        console.log('Eyewalker stomp animation completed - spawning allies');
+                        // Spawn 3 eyegoompas around the eyewalker (using direct creation like summoner)
                         for (let i = 0; i < 3; i++) {
                             const angle = (i * 120) * Math.PI / 180; // Spread evenly
                             const spawnX = eyewalker.x + Math.cos(angle) * 100;
                             const spawnY = eyewalker.y + Math.sin(angle) * 100;
-                            this.createEnemy(spawnX, spawnY, 'eyegoompa');
+                            console.log(`Spawning eyegoompa ${i + 1} at ${spawnX}, ${spawnY}`);
+                            
+                            // Create eyegoompa directly like summoner does
+                            const eyegoompa = this.physics.add.sprite(spawnX, spawnY, 'eyegoompa-walk', 0);
+                            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(eyegoompa, 'eyegoompa');
+            } else {
+                eyegoompa.setScale(1.5); // Fallback scale
+            }
+                            eyegoompa.health = 8; // Low health minion
+                            eyegoompa.maxHealth = eyegoompa.health;
+                            eyegoompa.enemyType = 'eyegoompa';
+                            eyegoompa.moveSpeed = 60; // Fast minion
+                            eyegoompa.damage = 10;
+                            
+                            // Create animation (all 18 frames from 9x2 sheet)
+                            if (!this.anims.exists('eyegoompa-walking')) {
+                                this.anims.create({
+                                    key: 'eyegoompa-walking',
+                                    frames: this.anims.generateFrameNumbers('eyegoompa-walk', { start: 0, end: 17 }),
+                                    frameRate: 12,
+                                    repeat: -1
+                                });
+                            }
+                            eyegoompa.play('eyegoompa-walking');
+                            
+                            // Apply hitbox
+                            if (!this.applyHitboxConfig(eyegoompa, 'eyegoompa')) {
+                                eyegoompa.body.setSize(20, 18);
+                                eyegoompa.body.setOffset(2, 3);
+                            }
+                            
+                            eyegoompa.isSummoned = true; // Mark as summoned
+                            
+                            // Add spawn effect for each minion
+                            const spawnPoof = this.add.circle(spawnX, spawnY, 20, 0x44ff44, 0.6);
+                            spawnPoof.setDepth(10);
+                            this.tweens.add({
+                                targets: spawnPoof,
+                                scale: { from: 0, to: 1.5 },
+                                alpha: { from: 1, to: 0 },
+                                duration: 300,
+                                onComplete: () => spawnPoof.destroy()
+                            });
+                            
+                            this.addEnemyToGroup(eyegoompa);
                         }
                         
                         // Transition to final phase
@@ -20389,6 +22634,8 @@ class GameScene extends Phaser.Scene {
                         
                         // Screen shake for dramatic effect
                         this.cameras.main.shake(300, 0.015);
+                        
+                        console.log('Eyewalker summoning complete - transitioned to summoned phase');
                     });
                 }
             };
@@ -20422,6 +22669,421 @@ class GameScene extends Phaser.Scene {
             }
             
             this.addEnemyToGroup(eyegoompa);
+        } else if (enemyType === 'snowy') {
+            const snowy = this.physics.add.sprite(x, y, 'snowy-walk', 0);
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(snowy, 'snowy');
+            } else {
+                snowy.setScale(1.5); // Fallback scale
+            }
+            snowy.health = 6; // Medium health
+            snowy.maxHealth = snowy.health;
+            snowy.enemyType = 'snowy';
+            snowy.moveSpeed = 45; // Medium speed
+            snowy.damage = 12; // Medium damage
+            
+            // Create walk animation if it doesn't exist
+            if (!this.anims.exists('snowy-walking')) {
+                this.anims.create({
+                    key: 'snowy-walking',
+                    frames: this.anims.generateFrameNumbers('snowy-walk', { start: 0, end: 5 }),
+                    frameRate: 8,
+                    repeat: -1
+                });
+            }
+            // Create death animation if it doesn't exist
+            if (!this.anims.exists('snowy-dying')) {
+                this.anims.create({
+                    key: 'snowy-dying',
+                    frames: this.anims.generateFrameNumbers('snowy-death', { start: 0, end: 5 }),
+                    frameRate: 10,
+                    repeat: 0
+                });
+            }
+            snowy.play('snowy-walking');
+            
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(snowy, 'snowy')) {
+                snowy.body.setSize(30, 35);
+                snowy.body.setOffset(9, 8);
+            }
+            this.addEnemyToGroup(snowy);
+        } else if (enemyType === 'elkman') {
+            const elkman = this.physics.add.sprite(x, y, 'elkman-walk', 0);
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(elkman, 'elkman');
+            } else {
+                elkman.setScale(1.6); // Fallback scale
+            }
+            elkman.health = 8; // Higher health
+            elkman.maxHealth = elkman.health;
+            elkman.enemyType = 'elkman';
+            elkman.moveSpeed = 40; // Medium-slow speed for heavy warrior
+            elkman.damage = 18; // Higher damage
+            
+            // Create walk animation if it doesn't exist
+            if (!this.anims.exists('elkman-walking')) {
+                this.anims.create({
+                    key: 'elkman-walking',
+                    frames: this.anims.generateFrameNumbers('elkman-walk', { start: 0, end: 3 }),
+                    frameRate: 6,
+                    repeat: -1
+                });
+            }
+            // Create death animation if it doesn't exist
+            if (!this.anims.exists('elkman-dying')) {
+                this.anims.create({
+                    key: 'elkman-dying',
+                    frames: this.anims.generateFrameNumbers('elkman-death', { start: 0, end: 3 }),
+                    frameRate: 8,
+                    repeat: 0
+                });
+            }
+            elkman.play('elkman-walking');
+            
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(elkman, 'elkman')) {
+                elkman.body.setSize(32, 38);
+                elkman.body.setOffset(8, 6);
+            }
+            this.addEnemyToGroup(elkman);
+        } else if (enemyType === 'frost-golem') {
+            const frostGolem = this.physics.add.sprite(x, y, 'frost-golem-walk', 0);
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(frostGolem, 'frost-golem');
+            } else {
+                frostGolem.setScale(1.8); // Fallback scale
+            }
+            frostGolem.health = 12; // High health
+            frostGolem.maxHealth = frostGolem.health;
+            frostGolem.enemyType = 'frost-golem';
+            frostGolem.moveSpeed = 30; // Slow but powerful
+            frostGolem.damage = 22; // High damage
+            
+            // Create walk animation if it doesn't exist
+            if (!this.anims.exists('frost-golem-walking')) {
+                this.anims.create({
+                    key: 'frost-golem-walking',
+                    frames: this.anims.generateFrameNumbers('frost-golem-walk', { start: 0, end: 3 }),
+                    frameRate: 5,
+                    repeat: -1
+                });
+            }
+            // Create death animation if it doesn't exist
+            if (!this.anims.exists('frost-golem-dying')) {
+                this.anims.create({
+                    key: 'frost-golem-dying',
+                    frames: this.anims.generateFrameNumbers('frost-golem-death', { start: 0, end: 5 }),
+                    frameRate: 8,
+                    repeat: 0
+                });
+            }
+            frostGolem.play('frost-golem-walking');
+            
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(frostGolem, 'frost-golem')) {
+                frostGolem.body.setSize(35, 40);
+                frostGolem.body.setOffset(6, 4);
+            }
+            
+            // Frost golem special: ice damage and slow effect
+            frostGolem.element = 'ice';
+            frostGolem.slowEffect = true;
+            this.addEnemyToGroup(frostGolem);
+        } else if (enemyType === 'spiked-slime') {
+            const spikedSlime = this.physics.add.sprite(x, y, 'spiked-slime-walk', 0);
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(spikedSlime, 'spiked-slime');
+            } else {
+                spikedSlime.setScale(1.4); // Fallback scale
+            }
+            spikedSlime.health = 5; // Medium-low health
+            spikedSlime.maxHealth = spikedSlime.health;
+            spikedSlime.enemyType = 'spiked-slime';
+            spikedSlime.moveSpeed = 50; // Fast but fragile
+            spikedSlime.damage = 15; // Medium damage
+            
+            // Create walk animation if it doesn't exist
+            if (!this.anims.exists('spiked-slime-walking')) {
+                this.anims.create({
+                    key: 'spiked-slime-walking',
+                    frames: this.anims.generateFrameNumbers('spiked-slime-walk', { start: 0, end: 3 }),
+                    frameRate: 8,
+                    repeat: -1
+                });
+            }
+            // Create death animation if it doesn't exist
+            if (!this.anims.exists('spiked-slime-dying')) {
+                this.anims.create({
+                    key: 'spiked-slime-dying',
+                    frames: this.anims.generateFrameNumbers('spiked-slime-death', { start: 0, end: 3 }),
+                    frameRate: 10,
+                    repeat: 0
+                });
+            }
+            spikedSlime.play('spiked-slime-walking');
+            
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(spikedSlime, 'spiked-slime')) {
+                spikedSlime.body.setSize(28, 30);
+                spikedSlime.body.setOffset(10, 9);
+            }
+            
+            // Spiked slime special: reflects some damage back to attacker
+            spikedSlime.thornDamage = 3;
+            this.addEnemyToGroup(spikedSlime);
+        } else if (enemyType === 'northerner') {
+            const northerner = this.physics.add.sprite(x, y, 'northerner-walk', 0);
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(northerner, 'northerner');
+            } else {
+                northerner.setScale(1.5); // Fallback scale
+            }
+            northerner.health = 7; // Medium health
+            northerner.maxHealth = northerner.health;
+            northerner.enemyType = 'northerner';
+            northerner.moveSpeed = 42; // Medium speed
+            northerner.damage = 16; // Medium-high damage
+            
+            // Create walk animation if it doesn't exist
+            if (!this.anims.exists('northerner-walking')) {
+                this.anims.create({
+                    key: 'northerner-walking',
+                    frames: this.anims.generateFrameNumbers('northerner-walk', { start: 0, end: 5 }),
+                    frameRate: 8,
+                    repeat: -1
+                });
+            }
+            // Create death animation if it doesn't exist
+            if (!this.anims.exists('northerner-dying')) {
+                this.anims.create({
+                    key: 'northerner-dying',
+                    frames: this.anims.generateFrameNumbers('northerner-death', { start: 0, end: 3 }),
+                    frameRate: 8,
+                    repeat: 0
+                });
+            }
+            northerner.play('northerner-walking');
+            
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(northerner, 'northerner')) {
+                northerner.body.setSize(30, 36);
+                northerner.body.setOffset(9, 6);
+            }
+            this.addEnemyToGroup(northerner);
+        } else if (enemyType === 'jellyfish') {
+            const jellyfish = this.physics.add.sprite(x, y, 'jellyfish-walk', 0);
+            // Apply scale from config
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(jellyfish, 'jellyfish');
+            } else {
+                jellyfish.setScale(1.8); // Fallback scale
+            }
+            jellyfish.health = 4; // Low health, floating creature
+            jellyfish.maxHealth = jellyfish.health;
+            jellyfish.enemyType = 'jellyfish';
+            jellyfish.moveSpeed = 35; // Slow, graceful movement
+            jellyfish.damage = 10; // Low damage but can poison
+            jellyfish.isFlying = true; // Can move over obstacles
+            
+            // Create walk animation if it doesn't exist
+            if (!this.anims.exists('jellyfish-floating')) {
+                this.anims.create({
+                    key: 'jellyfish-floating',
+                    frames: this.anims.generateFrameNumbers('jellyfish-walk', { start: 0, end: 3 }),
+                    frameRate: 6,
+                    repeat: -1
+                });
+            }
+            // Create death animation if it doesn't exist
+            if (!this.anims.exists('jellyfish-dying')) {
+                this.anims.create({
+                    key: 'jellyfish-dying',
+                    frames: this.anims.generateFrameNumbers('jellyfish-death', { start: 0, end: 4 }),
+                    frameRate: 8,
+                    repeat: 0
+                });
+            }
+            jellyfish.play('jellyfish-floating');
+
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(jellyfish, 'jellyfish')) {
+                jellyfish.body.setSize(35, 40);
+                jellyfish.body.setOffset(6, 4);
+            }
+
+
+            // Jellyfish special: poison on contact
+            jellyfish.element = 'poison';
+            jellyfish.poisonDamage = 2;
+            this.addEnemyToGroup(jellyfish);
+        } else if (enemyType === 'crabby') {
+            const crabby = this.physics.add.sprite(x, y, 'crabby-walk', 0);
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(crabby, 'crabby');
+            } else {
+                crabby.setScale(1.5); // Fallback scale
+            }
+            crabby.health = 6; // Medium health
+            crabby.maxHealth = crabby.health;
+            crabby.enemyType = 'crabby';
+            crabby.moveSpeed = 50; // Fast scuttling movement
+            crabby.damage = 14; // Medium damage
+            
+            // Create walk animation if it doesn't exist
+            if (!this.anims.exists('crabby-walking')) {
+                this.anims.create({
+                    key: 'crabby-walking',
+                    frames: this.anims.generateFrameNumbers('crabby-walk', { start: 0, end: 5 }),
+                    frameRate: 10,
+                    repeat: -1
+                });
+            }
+            // Create death animation if it doesn't exist
+            if (!this.anims.exists('crabby-dying')) {
+                this.anims.create({
+                    key: 'crabby-dying',
+                    frames: this.anims.generateFrameNumbers('crabby-death', { start: 0, end: 4 }),
+                    frameRate: 8,
+                    repeat: 0
+                });
+            }
+            crabby.play('crabby-walking');
+            
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(crabby, 'crabby')) {
+                crabby.body.setSize(45, 35);
+                crabby.body.setOffset(10, 8);
+            }
+            this.addEnemyToGroup(crabby);
+        } else if (enemyType === 'shark') {
+            const shark = this.physics.add.sprite(x, y, 'shark-walk', 0);
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(shark, 'shark');
+            } else {
+                shark.setScale(1.2); // Fallback scale
+            }
+            shark.health = 10; // High health for apex predator
+            shark.maxHealth = shark.health;
+            shark.enemyType = 'shark';
+            shark.moveSpeed = 65; // Fast swimming speed
+            shark.damage = 20; // High damage
+            
+            // Create walk animation if it doesn't exist
+            if (!this.anims.exists('shark-swimming')) {
+                this.anims.create({
+                    key: 'shark-swimming',
+                    frames: this.anims.generateFrameNumbers('shark-walk', { start: 0, end: 5 }),
+                    frameRate: 8,
+                    repeat: -1
+                });
+            }
+            // Create death animation if it doesn't exist
+            if (!this.anims.exists('shark-dying')) {
+                this.anims.create({
+                    key: 'shark-dying',
+                    frames: this.anims.generateFrameNumbers('shark-death', { start: 0, end: 5 }),
+                    frameRate: 8,
+                    repeat: 0
+                });
+            }
+            shark.play('shark-swimming');
+            
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(shark, 'shark')) {
+                shark.body.setSize(70, 45);
+                shark.body.setOffset(13, 25);
+            }
+            
+            // Shark special: blood frenzy - speed increases when damaged
+            shark.bloodFrenzy = false;
+            this.addEnemyToGroup(shark);
+        } else if (enemyType === 'squid') {
+            const squid = this.physics.add.sprite(x, y, 'squid-walk', 0);
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(squid, 'squid');
+            } else {
+                squid.setScale(1.4); // Fallback scale
+            }
+            squid.health = 8; // Good health
+            squid.maxHealth = squid.health;
+            squid.enemyType = 'squid';
+            squid.moveSpeed = 45; // Medium speed with tentacle propulsion
+            squid.damage = 16; // Medium-high damage
+            
+            // Create walk animation if it doesn't exist
+            if (!this.anims.exists('squid-swimming')) {
+                this.anims.create({
+                    key: 'squid-swimming',
+                    frames: this.anims.generateFrameNumbers('squid-walk', { start: 0, end: 5 }),
+                    frameRate: 8,
+                    repeat: -1
+                });
+            }
+            // Create death animation if it doesn't exist
+            if (!this.anims.exists('squid-dying')) {
+                this.anims.create({
+                    key: 'squid-dying',
+                    frames: this.anims.generateFrameNumbers('squid-death', { start: 0, end: 5 }),
+                    frameRate: 8,
+                    repeat: 0
+                });
+            }
+            squid.play('squid-swimming');
+            
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(squid, 'squid')) {
+                squid.body.setSize(55, 60);
+                squid.body.setOffset(20, 18);
+            }
+            
+            // Squid special: ink cloud defense
+            squid.canInkCloud = true;
+            squid.lastInkTime = 0;
+            this.addEnemyToGroup(squid);
+        } else if (enemyType === 'crablore') {
+            const crablore = this.physics.add.sprite(x, y, 'crablore-walk', 0);
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyScale(crablore, 'crablore');
+            } else {
+                crablore.setScale(1.6); // Fallback scale
+            }
+            crablore.health = 12; // High health for elite
+            crablore.maxHealth = crablore.health;
+            crablore.enemyType = 'crablore';
+            crablore.moveSpeed = 35; // Slower but powerful
+            crablore.damage = 22; // High damage
+            
+            // Create walk animation if it doesn't exist
+            if (!this.anims.exists('crablore-walking')) {
+                this.anims.create({
+                    key: 'crablore-walking',
+                    frames: this.anims.generateFrameNumbers('crablore-walk', { start: 0, end: 5 }),
+                    frameRate: 6,
+                    repeat: -1
+                });
+            }
+            // Create death animation if it doesn't exist
+            if (!this.anims.exists('crablore-dying')) {
+                this.anims.create({
+                    key: 'crablore-dying',
+                    frames: this.anims.generateFrameNumbers('crablore-death', { start: 0, end: 5 }),
+                    frameRate: 8,
+                    repeat: 0
+                });
+            }
+            crablore.play('crablore-walking');
+            
+            // Apply hitbox from config or use defaults
+            if (!this.applyHitboxConfig(crablore, 'crablore')) {
+                crablore.body.setSize(65, 50);
+                crablore.body.setOffset(15, 23);
+            }
+            
+            // Crablore special: armored shell - reduced damage from projectiles
+            crablore.hasArmor = true;
+            crablore.armorReduction = 0.3; // Takes 30% less damage
+            this.addEnemyToGroup(crablore);
         }
     }
     triggerSpecialEvent(event) {
@@ -22754,7 +25416,8 @@ class GameScene extends Phaser.Scene {
             'sand': 'desert-tile',     // Use desert tile
             'lava': 'lava-tile',
             'grave': 'skullfloor-tile',
-            'castle': 'stone-tile'
+            'castle': 'stone-tile',
+            'snow': 'snow-tile'        // Use snow tile for snowland
         };
         const texture = floorTextures[biome] || 'grass-tile';
         if (this.textures.exists(texture)) {
@@ -22778,7 +25441,10 @@ class GameScene extends Phaser.Scene {
         boss.damage = 50;
         boss.moveSpeed = 0; // Stationary
         boss.body.setImmovable(true);
-        boss.body.setSize(80, 120);
+        // Apply hitbox configuration or use defaults
+        if (!this.applyHitboxConfig(boss, boss.enemyType)) {
+            boss.body.setSize(80, 120);
+        }
         // Track phases
         boss.phase = 1;
         boss.lastAttackTime = 0;
@@ -40391,6 +43057,12 @@ class GameScene extends Phaser.Scene {
             bossType = 'nekros';
         } else if (this.stage === 'castle') {
             bossType = 'kingnothing';
+        } else if (this.stage === 'snow') {
+            bossType = 'frostguardian';
+        } else if (this.stage === 'swamp') {
+            bossType = 'amphibian';
+        } else if (this.stage === 'ocean') {
+            bossType = 'seakings';
         } else {
             bossType = 'obelisk';
         }
@@ -40407,6 +43079,12 @@ class GameScene extends Phaser.Scene {
                 this.createDemonSlimeBoss();
             } else if (this.stage === 'castle') {
                 this.createCastleBoss();
+            } else if (this.stage === 'snow') {
+                this.createFrostGuardianBoss();
+            } else if (this.stage === 'swamp') {
+                this.createAmphibianBoss();
+            } else if (this.stage === 'ocean') {
+                this.createSeaKingsBoss();
             } else {
                 this.createBoss(); // Default Obelisk boss
             }
@@ -40479,16 +43157,16 @@ class GameScene extends Phaser.Scene {
         // Start in stationary mode - immovable
         boss.body.setImmovable(true);
         boss.body.moves = false; // Prevent all physics-based movement
-        // Apply hitbox configuration (enemyType already set to 'obelisk-boss')
-        this.applyHitboxConfig(boss, boss.enemyType);
         // Boss properties
         boss.attackCooldown = 0;
         boss.currentPhase = 1; // Boss has multiple phases
         boss.shieldActive = false;
         boss.immuneTime = 0;
-        // Set up physics
-        boss.body.setSize(80, 90);
-        boss.body.setOffset(10, 5);
+        // Apply hitbox configuration or use defaults
+        if (!this.applyHitboxConfig(boss, boss.enemyType)) {
+            boss.body.setSize(80, 90);
+            boss.body.setOffset(10, 5);
+        }
         // Play idle animation
         boss.play('obelisk-idle');
         // Add to enemies group
@@ -40566,17 +43244,17 @@ class GameScene extends Phaser.Scene {
         boss.isBoss = true;
         boss.moveSpeed = 28; // Reduced by 20% from 35
         boss.isArcherBoss = true; // Mark as archer boss
-        // Apply hitbox configuration (enemyType already set to 'archer-boss')
-        this.applyHitboxConfig(boss, boss.enemyType);
         // Boss properties
         boss.attackCooldown = 0;
         boss.rollCooldown = 0;
         boss.currentPhase = 1; // Boss has multiple phases
         boss.isRolling = false;
         boss.immuneTime = 0;
-        // Set up physics
-        boss.body.setSize(50, 45);
-        boss.body.setOffset(7, 5);
+        // Apply hitbox configuration or use defaults
+        if (!this.applyHitboxConfig(boss, boss.enemyType)) {
+            boss.body.setSize(50, 45);
+            boss.body.setOffset(7, 5);
+        }
         // Play walk animation
         boss.play('archer-boss-walk');
         // Add to enemies group
@@ -40702,9 +43380,11 @@ class GameScene extends Phaser.Scene {
         boss.visionConeAngle = Math.PI / 3; // 60 degree vision cone
         boss.attackCooldown = 0;
         boss.currentPhase = 1;
-        // Set up physics
-        boss.body.setSize(100, 100);
-        boss.body.setOffset(14, 14);
+        // Apply hitbox configuration or use defaults
+        if (!this.applyHitboxConfig(boss, boss.enemyType)) {
+            boss.body.setSize(100, 100);
+            boss.body.setOffset(14, 14);
+        }
         // Play move animation
         boss.play('eyelor-move');
         // Add to enemies group
@@ -41269,9 +43949,11 @@ class GameScene extends Phaser.Scene {
         boss.bombardmentCount = 0;
         boss.barrageFiredCount = 0;
         boss.isDamageImmune = false; // Immune during flight mode
-        // Set up physics
-        boss.body.setSize(60, 80);
-        boss.body.setOffset(30, 20);
+        // Apply hitbox configuration or use defaults
+        if (!this.applyHitboxConfig(boss, boss.enemyType)) {
+            boss.body.setSize(60, 80);
+            boss.body.setOffset(30, 20);
+        }
         // Play walk animation
         boss.play('nekros-walk');
         // Add to enemies group
@@ -41391,17 +44073,16 @@ class GameScene extends Phaser.Scene {
         boss.isBoss = true;
         boss.isDemonSlime = true;
         boss.moveSpeed = 20; // Reduced by 20% from 25
-        // Apply hitbox configuration (enemyType already set to 'demon-slime-boss')
-        this.applyHitboxConfig(boss, boss.enemyType);
         // Boss properties
         boss.attackCooldown = 0;
         boss.cleaveCooldown = 0;
         boss.currentPhase = 1;
         boss.isCleaving = false;
-        // Set up physics - adjusted to match demon slime sprite dimensions
-        // The demon slime sprite is wider and taller than the default hitbox
-        boss.body.setSize(120, 100);
-        boss.body.setOffset(60, 50);
+        // Apply hitbox configuration or use defaults
+        if (!this.applyHitboxConfig(boss, boss.enemyType)) {
+            boss.body.setSize(120, 100);
+            boss.body.setOffset(60, 50);
+        }
         // Play idle animation
         boss.play('demon-slime-idle');
         // Add to enemies group
@@ -41444,6 +44125,1053 @@ class GameScene extends Phaser.Scene {
         this.bossNameText.setScrollFactor(0);
         this.bossNameText.setDepth(502);
     }
+    createFrostGuardianBoss() {
+        // Fade out and stop stage music if in snow land
+        if (this.stage === 'snow' && this.bgMusic && this.bgMusic.isPlaying) {
+            this.tweens.add({
+                targets: this.bgMusic,
+                volume: 0,
+                duration: 1000,
+                ease: 'Power2',
+                onComplete: () => {
+                    if (this.bgMusic) {
+                        this.bgMusic.stop();
+                    }
+                    // Start frost guardian boss music
+                    this.bossMusic = this.sound.add('boss3-bgm', {
+                        loop: true,
+                        volume: 0
+                    });
+                    this.bossMusic.play();
+                    // Fade in boss music
+                    this.tweens.add({
+                        targets: this.bossMusic,
+                        volume: 0.5,
+                        duration: 1000,
+                        ease: 'Power2'
+                    });
+                }
+            });
+        }
+        // Calculate boss spawn position
+        const bossX = this.wizard.x;
+        const bossY = this.wizard.y - 200;
+        // Create boss sprite using first frame of idle animation
+        const boss = this.physics.add.sprite(bossX, bossY, 'frost-guardian-idle-1');
+        boss.enemyType = 'frost-guardian-boss';
+        // Apply saved scale
+        this.applySavedScale(boss, 'frost-guardian-boss');
+        // Apply flip configuration
+        if (typeof hitboxConfig !== 'undefined' && hitboxConfig.flips && hitboxConfig.flips['frost-guardian-boss']) {
+            const flipData = hitboxConfig.flips['frost-guardian-boss'];
+            if (flipData.flipX) boss.setFlipX(true);
+            if (flipData.flipY) boss.setFlipY(true);
+        }
+        // Adjust boss health based on enemy density setting
+        const baseHealth = 7200;
+        const densityMultipliers = {
+            'beginner': 0.1,
+            'sparse': 0.25,
+            'normal': 0.5,
+            'dense': 0.75,
+            'swarm': 1.0
+        };
+        const enemyDensity = localStorage.getItem('enemyDensity') || 'normal';
+        const healthMultiplier = densityMultipliers[enemyDensity] || 0.5;
+        boss.health = Math.floor(baseHealth * healthMultiplier);
+        boss.maxHealth = boss.health;
+        boss.isBoss = true;
+        boss.isFrostGuardian = true;
+        boss.moveSpeed = 80;
+        boss.attackRange = 200;
+        boss.slamDamage = 80;
+        boss.slamRadius = 250;
+        // Apply hitbox configuration
+        console.log(`[FROST GUARDIAN] About to apply hitbox config for ${boss.enemyType}`);
+        console.log(`[FROST GUARDIAN] hitboxConfig loaded: ${typeof hitboxConfig !== 'undefined' ? hitboxConfig.loaded : 'undefined'}`);
+        if (typeof hitboxConfig !== 'undefined' && hitboxConfig.hitboxes) {
+            console.log(`[FROST GUARDIAN] Available hitbox configs:`, Object.keys(hitboxConfig.hitboxes));
+            console.log(`[FROST GUARDIAN] frost-guardian-boss config:`, hitboxConfig.hitboxes['frost-guardian-boss']);
+        }
+        this.applyHitboxConfig(boss, boss.enemyType);
+        console.log(`[FROST GUARDIAN] After hitbox config - Size: ${boss.body.width}x${boss.body.height}, Offset: (${boss.body.offset.x}, ${boss.body.offset.y})`);
+        // Boss properties
+        boss.attackCooldown = 0;
+        boss.slamCooldown = 0;
+        boss.currentPhase = 1;
+        boss.isAttacking = false;
+        // Physics configuration is now handled by applyHitboxConfig
+        // Play idle animation
+        boss.play('frost-guardian-idle');
+        // Add to enemies group
+        this.addEnemyToGroup(boss);
+        // Store boss reference
+        this.boss = boss;
+        // Initialize health threshold tracking for phase changes
+        this.bossHealthThresholds = new Set([75, 50, 25]);
+        // Create boss health bar
+        this.createFrostGuardianBossHealthBar();
+        // Start boss AI
+        this.bossAITimer = this.time.addEvent({
+            delay: 1800 / this.speedMultiplier,
+            callback: () => this.updateFrostGuardianBossAI(),
+            loop: true,
+            paused: false
+        });
+    }
+    createFrostGuardianBossHealthBar() {
+        // Boss health bar background
+        const barWidth = 600;
+        const barHeight = 30;
+        this.bossHealthBarBg = this.add.rectangle(400, 550, barWidth, barHeight, 0x000000);
+        this.bossHealthBarBg.setStrokeStyle(3, 0x00ccff); // Ice blue border
+        this.bossHealthBarBg.setScrollFactor(0);
+        this.bossHealthBarBg.setDepth(500);
+        // Boss health bar fill
+        this.bossHealthBar = this.add.rectangle(400, 550, barWidth - 6, barHeight - 6, 0x00ccff);
+        this.bossHealthBar.setScrollFactor(0);
+        this.bossHealthBar.setDepth(501);
+        // Boss name
+        this.bossNameText = this.add.text(400, 525, 'FROST GUARDIAN', {
+            fontSize: '20px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        this.bossNameText.setOrigin(0.5);
+        this.bossNameText.setScrollFactor(0);
+        this.bossNameText.setDepth(502);
+    }
+    updateFrostGuardianBossAI() {
+        if (!this.boss || !this.boss.active || this.boss.health <= 0) return;
+        // Don't update boss during pause or chest opening
+        if (this.isPaused || this.chestOpening || this.chestSelectionActive) return;
+        // Don't update if attacking
+        if (this.boss.isAttacking) return;
+        // Update boss health bar
+        const healthPercent = this.boss.health / this.boss.maxHealth;
+        this.bossHealthBar.width = (600 - 6) * healthPercent;
+        // Check health thresholds for phase changes
+        const healthPercentage = Math.floor(healthPercent * 100);
+        for (const threshold of this.bossHealthThresholds) {
+            if (healthPercentage <= threshold) {
+                this.bossHealthThresholds.delete(threshold);
+                this.boss.currentPhase = Math.floor((100 - threshold) / 25) + 1;
+                this.createIceWave(); // Spawn ice minions
+                break;
+            }
+        }
+        // Basic AI: move towards player and attack
+        const target = this.getNearestActiveWizard(this.boss.x, this.boss.y);
+        if (!target) return;
+        const distance = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, target.x, target.y);
+        // Face the player
+        this.boss.setFlipX(target.x < this.boss.x);
+        // Movement and attack logic
+        if (distance > this.boss.attackRange) {
+            // Move towards player
+            this.physics.moveToObject(this.boss, target, this.boss.moveSpeed);
+            if (!this.boss.anims.isPlaying || this.boss.anims.currentAnim.key !== 'frost-guardian-walk') {
+                this.boss.play('frost-guardian-walk');
+            }
+        } else {
+            // Stop moving and attack
+            this.boss.setVelocity(0, 0);
+            if (this.boss.attackCooldown <= 0) {
+                this.frostGuardianAttack();
+                this.boss.attackCooldown = 3000 / this.speedMultiplier; // 3 second cooldown
+            }
+        }
+        // Update cooldowns
+        if (this.boss.attackCooldown > 0) {
+            this.boss.attackCooldown -= 16; // 60fps approximation
+        }
+    }
+    frostGuardianAttack() {
+        this.boss.isAttacking = true;
+        this.boss.play('frost-guardian-attack');
+        // Create ice slam warning
+        this.createIceSlamWarning();
+        // Execute slam after animation delay
+        this.time.delayedCall(800, () => {
+            if (this.boss && this.boss.active) {
+                this.executeIceSlam();
+            }
+        });
+        // Reset attacking state
+        this.time.delayedCall(2000, () => {
+            if (this.boss && this.boss.active) {
+                this.boss.isAttacking = false;
+                this.boss.play('frost-guardian-idle');
+            }
+        });
+    }
+    createIceSlamWarning() {
+        // Create warning circle for slam attack
+        const warning = this.add.graphics();
+        warning.lineStyle(6, 0xff4400, 0.8);
+        warning.fillStyle(0xff0000, 0.1);
+        warning.fillCircle(0, 0, this.boss.slamRadius);
+        warning.strokeCircle(0, 0, this.boss.slamRadius);
+        warning.x = this.boss.x;
+        warning.y = this.boss.y;
+        warning.setDepth(90);
+        // Warning text
+        const warningText = this.add.text(this.boss.x, this.boss.y - 50, '⚠ ICE SLAM ⚠', {
+            fontSize: '24px',
+            color: '#00ccff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+        warningText.setOrigin(0.5);
+        warningText.setDepth(200);
+        // Pulse animation
+        this.tweens.add({
+            targets: [warning, warningText],
+            scale: { from: 0.8, to: 1.3 },
+            alpha: { from: 0.6, to: 1 },
+            duration: 400,
+            yoyo: true,
+            repeat: 1,
+            onComplete: () => {
+                warning.destroy();
+                warningText.destroy();
+            }
+        });
+    }
+    executeIceSlam() {
+        // Screen shake
+        this.cameras.main.shake(400, 0.04);
+        // Damage area
+        const target = this.getNearestActiveWizard(this.boss.x, this.boss.y);
+        if (target) {
+            const distance = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, target.x, target.y);
+            if (distance <= this.boss.slamRadius && target.takeDamage) {
+                target.takeDamage(this.boss.slamDamage);
+                // Apply freeze effect
+                this.applyFreezeEffect(target);
+            }
+        }
+        // Create ice effect
+        const iceEffect = this.add.sprite(this.boss.x, this.boss.y, 'ice-spell');
+        iceEffect.setScale(6);
+        iceEffect.setTint(0x66ccff);
+        if (iceEffect.anims && this.anims.exists('ice-spell-anim')) {
+            iceEffect.play('ice-spell-anim');
+        }
+        iceEffect.once('animationcomplete', () => iceEffect.destroy());
+    }
+    applyFreezeEffect(target) {
+        if (target.moveSpeed) {
+            const originalSpeed = target.moveSpeed;
+            target.moveSpeed *= 0.5;
+            target.setTint(0x88ccff);
+            // Restore after 2 seconds
+            this.time.delayedCall(2000, () => {
+                if (target.active) {
+                    target.moveSpeed = originalSpeed;
+                    target.clearTint();
+                }
+            });
+        }
+    }
+    createIceWave() {
+        // Spawn ice-themed enemies during phase changes
+        for (let i = 0; i < 3; i++) {
+            const angle = (Math.PI * 2 / 3) * i;
+            const distance = 300;
+            const x = this.boss.x + Math.cos(angle) * distance;
+            const y = this.boss.y + Math.sin(angle) * distance;
+            // Spawn closest available ice enemies
+            if (this.spawnSpecificEnemy) {
+                this.spawnSpecificEnemy('golem-blue', x, y);
+            }
+        }
+    }
+
+    // ===== AMPHIBIAN BOSS (Swampland Boss - Frogger) =====
+    createAmphibianBoss() {
+        // Fade out and stop stage music if in swamp land
+        if (this.stage === 'swamp' && this.bgMusic && this.bgMusic.isPlaying) {
+            this.tweens.add({
+                targets: this.bgMusic,
+                volume: 0,
+                duration: 1000,
+                ease: 'Power2',
+                onComplete: () => {
+                    if (this.bgMusic) {
+                        this.bgMusic.stop();
+                    }
+                    // Start Amphibian boss music (use boss1 music for swampland boss)
+                    this.bossMusic = this.sound.add('boss1-bgm', {
+                        loop: true,
+                        volume: 0
+                    });
+                    this.bossMusic.play();
+                    // Fade in boss music
+                    this.tweens.add({
+                        targets: this.bossMusic,
+                        volume: 0.5,
+                        duration: 1000,
+                        ease: 'Power2'
+                    });
+                }
+            });
+        }
+
+        // Calculate boss spawn position
+        const bossX = this.wizard.x;
+        const bossY = this.wizard.y - 200;
+
+        // Create boss sprite
+        const boss = this.physics.add.sprite(bossX, bossY, 'amphibian-idle');
+        boss.enemyType = 'amphibian-boss';
+
+        // Apply saved scale
+        this.applySavedScale(boss, 'amphibian-boss');
+
+        // Apply flip configuration
+        if (typeof hitboxConfig !== 'undefined' && hitboxConfig.flips && hitboxConfig.flips['amphibian-boss']) {
+            const flipData = hitboxConfig.flips['amphibian-boss'];
+            if (flipData.flipX) boss.setFlipX(true);
+            if (flipData.flipY) boss.setFlipY(true);
+        }
+
+        // Adjust boss health based on enemy density setting
+        const baseHealth = 6000;
+        const densityMultipliers = {
+            'beginner': 0.1,
+            'sparse': 0.25,
+            'normal': 0.5,
+            'dense': 0.75,
+            'swarm': 1.0
+        };
+        const enemyDensity = localStorage.getItem('enemyDensity') || 'normal';
+        const healthMultiplier = densityMultipliers[enemyDensity] || 0.5;
+        boss.health = Math.floor(baseHealth * healthMultiplier);
+        boss.maxHealth = boss.health;
+        boss.isBoss = true;
+        boss.isAmphibian = true;
+        boss.moveSpeed = 90;
+        boss.attackRange = 250;
+
+        // Amphibian-specific attack properties
+        boss.spitDamage = 30;
+        boss.spitSpeed = 250;
+        boss.tongueDamage = 50;
+        boss.tongueRange = 300;
+        boss.healAmount = Math.floor(boss.maxHealth * 0.15); // Heals 15% of max HP
+
+        // Apply hitbox configuration
+        this.applyHitboxConfig(boss, boss.enemyType);
+
+        // Boss attack cooldowns
+        boss.spitCooldown = 0;
+        boss.tongueCooldown = 0;
+        boss.healCooldown = 0;
+        boss.currentPhase = 1;
+        boss.isAttacking = false;
+        boss.canHeal = true; // Can only heal once per phase
+
+        // Play idle animation
+        boss.play('amphibian-idle');
+
+        // Add to enemies group
+        this.addEnemyToGroup(boss);
+
+        // Store boss reference
+        this.boss = boss;
+
+        // Initialize health threshold tracking for phase changes
+        this.bossHealthThresholds = new Set([75, 50, 25]);
+
+        // Create boss health bar
+        this.createAmphibianBossHealthBar();
+
+        // Start boss AI
+        this.bossAITimer = this.time.addEvent({
+            delay: 1600 / this.speedMultiplier,
+            callback: () => this.updateAmphibianBossAI(),
+            loop: true,
+            paused: false
+        });
+    }
+
+    createAmphibianBossHealthBar() {
+        // Boss health bar background
+        const barWidth = 600;
+        const barHeight = 30;
+        this.bossHealthBarBg = this.add.rectangle(400, 550, barWidth, barHeight, 0x000000);
+        this.bossHealthBarBg.setStrokeStyle(3, 0x44ff44); // Swamp green border
+        this.bossHealthBarBg.setScrollFactor(0);
+        this.bossHealthBarBg.setDepth(500);
+
+        // Boss health bar fill
+        this.bossHealthBar = this.add.rectangle(400, 550, barWidth - 6, barHeight - 6, 0x66aa44);
+        this.bossHealthBar.setScrollFactor(0);
+        this.bossHealthBar.setDepth(501);
+
+        // Boss name
+        this.bossNameText = this.add.text(400, 525, 'AMPHIBIAN', {
+            fontSize: '20px',
+            color: '#44ff44',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        this.bossNameText.setOrigin(0.5);
+        this.bossNameText.setScrollFactor(0);
+        this.bossNameText.setDepth(502);
+    }
+
+    updateAmphibianBossAI() {
+        if (!this.boss || !this.boss.active || this.boss.health <= 0) return;
+
+        // Don't update boss during pause or chest opening
+        if (this.isPaused || this.chestOpening || this.chestSelectionActive) return;
+
+        // Don't update if attacking
+        if (this.boss.isAttacking) return;
+
+        // Update boss health bar
+        const healthPercent = this.boss.health / this.boss.maxHealth;
+        this.bossHealthBar.width = (600 - 6) * healthPercent;
+
+        // Check health thresholds for phase changes
+        const healthPercentage = Math.floor(healthPercent * 100);
+        for (const threshold of this.bossHealthThresholds) {
+            if (healthPercentage <= threshold) {
+                this.bossHealthThresholds.delete(threshold);
+                this.boss.currentPhase = Math.floor((100 - threshold) / 25) + 1;
+                this.boss.canHeal = true; // Allow healing again in new phase
+                this.spawnSwampMinions(); // Spawn swamp enemies
+                break;
+            }
+        }
+
+        // Get nearest active wizard
+        const target = this.getNearestActiveWizard(this.boss.x, this.boss.y);
+        if (!target) return;
+
+        const distance = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, target.x, target.y);
+
+        // Face the player
+        this.boss.setFlipX(target.x < this.boss.x);
+
+        // Heal when health is low (once per phase at <40% health)
+        if (healthPercent < 0.4 && this.boss.canHeal && this.boss.healCooldown <= 0) {
+            this.amphibianHeal();
+            return; // Don't do other actions while healing
+        }
+
+        // Attack patterns based on distance and cooldowns
+        if (distance <= this.boss.tongueRange && this.boss.tongueCooldown <= 0) {
+            // Tongue attack (pull player)
+            this.amphibianTongueAttack(target);
+        } else if (distance > this.boss.tongueRange && this.boss.spitCooldown <= 0) {
+            // Spit attack (ranged projectile)
+            this.amphibianSpitAttack(target);
+        } else {
+            // Movement
+            if (distance > this.boss.attackRange) {
+                // Move towards player
+                this.physics.moveToObject(this.boss, target, this.boss.moveSpeed);
+                if (!this.boss.anims.isPlaying || this.boss.anims.currentAnim.key !== 'amphibian-walk') {
+                    this.boss.play('amphibian-walk');
+                }
+            } else {
+                // Stop moving
+                this.boss.setVelocity(0, 0);
+                if (!this.boss.anims.isPlaying || this.boss.anims.currentAnim.key !== 'amphibian-idle') {
+                    this.boss.play('amphibian-idle');
+                }
+            }
+        }
+
+        // Update cooldowns
+        if (this.boss.spitCooldown > 0) {
+            this.boss.spitCooldown -= 16; // 60fps approximation
+        }
+        if (this.boss.tongueCooldown > 0) {
+            this.boss.tongueCooldown -= 16;
+        }
+        if (this.boss.healCooldown > 0) {
+            this.boss.healCooldown -= 16;
+        }
+    }
+
+    amphibianSpitAttack(target) {
+        this.boss.isAttacking = true;
+        this.boss.setVelocity(0, 0);
+        this.boss.play('amphibian-spit');
+
+        // Fire spit projectile after animation delay
+        this.time.delayedCall(500, () => {
+            if (this.boss && this.boss.active && target && target.active) {
+                // Calculate angle to target
+                const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, target.x, target.y);
+
+                // Create poison spit projectile
+                const spit = this.add.sprite(this.boss.x, this.boss.y, 'poison-spell');
+                spit.setScale(1.5);
+                spit.setTint(0x88ff44);
+                spit.setRotation(angle);
+                spit.setDepth(100);
+
+                // Add physics
+                this.physics.add.existing(spit);
+                spit.body.setSize(20, 20);
+
+                // Set velocity towards target
+                const velocityX = Math.cos(angle) * this.boss.spitSpeed;
+                const velocityY = Math.sin(angle) * this.boss.spitSpeed;
+                spit.body.setVelocity(velocityX, velocityY);
+
+                // Damage collision with all wizards
+                const wizards = [this.wizard, this.wizard2, this.wizard3, this.wizard4].filter(w => w && w.active);
+                wizards.forEach(wizard => {
+                    const damageOverlap = this.physics.add.overlap(spit, wizard, () => {
+                        if (wizard.takeDamage) {
+                            wizard.takeDamage(this.boss.spitDamage);
+                            // Apply poison effect
+                            this.applyPoisonEffect(wizard);
+                        }
+                        damageOverlap.destroy();
+                        spit.destroy();
+                    });
+                });
+
+                // Auto-destroy after time
+                this.time.delayedCall(3000, () => {
+                    if (spit.active) {
+                        spit.destroy();
+                    }
+                });
+            }
+        });
+
+        // Reset attacking state
+        this.time.delayedCall(1200, () => {
+            if (this.boss && this.boss.active) {
+                this.boss.isAttacking = false;
+                this.boss.spitCooldown = 2500 / this.speedMultiplier;
+                this.boss.play('amphibian-idle');
+            }
+        });
+    }
+
+    amphibianTongueAttack(target) {
+        this.boss.isAttacking = true;
+        this.boss.setVelocity(0, 0);
+        this.boss.play('amphibian-tongue');
+
+        // Create tongue visual warning
+        const tongueWarning = this.add.graphics();
+        tongueWarning.lineStyle(4, 0xff44ff, 0.6);
+        tongueWarning.lineBetween(this.boss.x, this.boss.y, target.x, target.y);
+        tongueWarning.setDepth(90);
+
+        this.tweens.add({
+            targets: tongueWarning,
+            alpha: 0,
+            duration: 800,
+            onComplete: () => tongueWarning.destroy()
+        });
+
+        // Execute tongue pull after animation delay
+        this.time.delayedCall(400, () => {
+            if (this.boss && this.boss.active && target && target.active) {
+                const currentDistance = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, target.x, target.y);
+
+                if (currentDistance <= this.boss.tongueRange) {
+                    // Deal damage
+                    if (target.takeDamage) {
+                        target.takeDamage(this.boss.tongueDamage);
+                    }
+
+                    // Pull player towards boss
+                    const angle = Phaser.Math.Angle.Between(target.x, target.y, this.boss.x, this.boss.y);
+                    const pullStrength = 400;
+
+                    if (target.body) {
+                        target.body.setVelocity(
+                            Math.cos(angle) * pullStrength,
+                            Math.sin(angle) * pullStrength
+                        );
+                    }
+
+                    // Create visual effect
+                    const pullEffect = this.add.sprite(target.x, target.y, 'holy-spell');
+                    pullEffect.setTint(0xff44ff);
+                    pullEffect.setScale(2);
+                    pullEffect.setDepth(100);
+
+                    this.tweens.add({
+                        targets: pullEffect,
+                        alpha: 0,
+                        scale: 0.5,
+                        duration: 500,
+                        onComplete: () => pullEffect.destroy()
+                    });
+                }
+            }
+        });
+
+        // Reset attacking state
+        this.time.delayedCall(1000, () => {
+            if (this.boss && this.boss.active) {
+                this.boss.isAttacking = false;
+                this.boss.tongueCooldown = 3500 / this.speedMultiplier;
+                this.boss.play('amphibian-idle');
+            }
+        });
+    }
+
+    amphibianHeal() {
+        this.boss.isAttacking = true;
+        this.boss.canHeal = false; // Can only heal once per phase
+        this.boss.setVelocity(0, 0);
+        this.boss.play('amphibian-heal');
+
+        // Create heal visual warning
+        const healWarning = this.add.text(this.boss.x, this.boss.y - 80, 'HEALING!', {
+            fontSize: '32px',
+            color: '#44ff44',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        healWarning.setOrigin(0.5);
+        healWarning.setDepth(200);
+
+        this.tweens.add({
+            targets: healWarning,
+            y: healWarning.y - 50,
+            alpha: 0,
+            duration: 2000,
+            onComplete: () => healWarning.destroy()
+        });
+
+        // Create heal circle effect
+        const healCircle = this.add.circle(this.boss.x, this.boss.y, 80, 0x44ff44, 0.3);
+        healCircle.setDepth(90);
+
+        this.tweens.add({
+            targets: healCircle,
+            scale: { from: 0.5, to: 2 },
+            alpha: { from: 0.6, to: 0 },
+            duration: 1700,
+            onComplete: () => healCircle.destroy()
+        });
+
+        // Execute heal after animation delay
+        this.time.delayedCall(1000, () => {
+            if (this.boss && this.boss.active) {
+                // Heal boss
+                const previousHealth = this.boss.health;
+                this.boss.health = Math.min(this.boss.health + this.boss.healAmount, this.boss.maxHealth);
+                const actualHeal = this.boss.health - previousHealth;
+
+                // Show heal number
+                const healText = this.add.text(this.boss.x, this.boss.y - 40, `+${actualHeal}`, {
+                    fontSize: '28px',
+                    color: '#44ff44',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 3
+                });
+                healText.setOrigin(0.5);
+                healText.setDepth(200);
+
+                this.tweens.add({
+                    targets: healText,
+                    y: healText.y - 60,
+                    alpha: 0,
+                    duration: 1500,
+                    onComplete: () => healText.destroy()
+                });
+            }
+        });
+
+        // Reset attacking state
+        this.time.delayedCall(1800, () => {
+            if (this.boss && this.boss.active) {
+                this.boss.isAttacking = false;
+                this.boss.healCooldown = 8000 / this.speedMultiplier; // Long cooldown
+                this.boss.play('amphibian-idle');
+            }
+        });
+    }
+
+    spawnSwampMinions() {
+        // Spawn swamp-themed enemies during phase changes
+        const swampEnemies = ['mudguard', 'cactuse', 'cobra'];
+        for (let i = 0; i < 4; i++) {
+            const angle = (Math.PI * 2 / 4) * i;
+            const distance = 350;
+            const x = this.boss.x + Math.cos(angle) * distance;
+            const y = this.boss.y + Math.sin(angle) * distance;
+
+            // Spawn swamp enemy
+            const enemyType = swampEnemies[Math.floor(Math.random() * swampEnemies.length)];
+            if (this.spawnSpecificEnemy) {
+                this.spawnSpecificEnemy(enemyType, x, y);
+            }
+        }
+    }
+
+    applyPoisonEffect(target) {
+        if (!target || !target.active) return;
+
+        // Apply poison DoT effect
+        target.setTint(0x88ff44);
+
+        let poisonTicks = 0;
+        const maxTicks = 3; // 3 seconds of poison
+        const poisonDamage = 5;
+
+        const poisonInterval = this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                if (target && target.active && target.takeDamage) {
+                    target.takeDamage(poisonDamage);
+                    poisonTicks++;
+
+                    if (poisonTicks >= maxTicks) {
+                        target.clearTint();
+                        poisonInterval.destroy();
+                    }
+                } else {
+                    poisonInterval.destroy();
+                }
+            },
+            loop: true
+        });
+    }
+    // ===== END AMPHIBIAN BOSS =====
+
+    // ===== SEA KINGS BOSS (Ocean Land Boss - Three Kings) =====
+    createSeaKingsBoss() {
+        // Fade out and stop stage music if in ocean land
+        if (this.stage === 'ocean' && this.bgMusic && this.bgMusic.isPlaying) {
+            this.tweens.add({
+                targets: this.bgMusic,
+                volume: 0,
+                duration: 1000,
+                ease: 'Power2',
+                onComplete: () => {
+                    if (this.bgMusic) {
+                        this.bgMusic.stop();
+                    }
+                    // Start Sea Kings boss music (use boss3 music)
+                    this.bossMusic = this.sound.add('boss3-bgm', {
+                        loop: true,
+                        volume: 0
+                    });
+                    this.bossMusic.play();
+                    // Fade in boss music
+                    this.tweens.add({
+                        targets: this.bossMusic,
+                        volume: 0.5,
+                        duration: 1000,
+                        ease: 'Power2'
+                    });
+                }
+            });
+        }
+
+        // Calculate spawn positions for 3 kings in a triangle formation
+        const centerX = this.wizard.x;
+        const centerY = this.wizard.y - 150;
+        const spacing = 200;
+
+        // Adjust boss health based on enemy density setting
+        const baseHealthPerKing = 2000; // Each king has their own health
+        const densityMultipliers = {
+            'beginner': 0.1,
+            'sparse': 0.25,
+            'normal': 0.5,
+            'dense': 0.75,
+            'swarm': 1.0
+        };
+        const enemyDensity = localStorage.getItem('enemyDensity') || 'normal';
+        const healthMultiplier = densityMultipliers[enemyDensity] || 0.5;
+        const healthPerKing = Math.floor(baseHealthPerKing * healthMultiplier);
+
+        // Create array to store all 3 kings
+        this.seaKings = [];
+        this.seaKingsTotalMaxHealth = healthPerKing * 3;
+        this.seaKingsTotalHealth = this.seaKingsTotalMaxHealth;
+
+        // Spawn positions: top, bottom-left, bottom-right
+        const positions = [
+            { x: centerX, y: centerY - 100 },              // King 1: Top
+            { x: centerX - spacing, y: centerY + 100 },    // King 2: Bottom-left
+            { x: centerX + spacing, y: centerY + 100 }     // King 3: Bottom-right
+        ];
+
+        for (let i = 0; i < 3; i++) {
+            const kingNum = i + 1;
+            const king = this.physics.add.sprite(positions[i].x, positions[i].y, `seaking${kingNum}-walk`);
+            king.enemyType = `seaking${kingNum}`;
+            king.kingNumber = kingNum;
+            king.isSeaKing = true;
+            king.isBoss = true;
+
+            // Scale up by 4x
+            king.setScale(4);
+
+            // Apply saved scale (if exists, will multiply with base scale)
+            this.applySavedScale(king, `seaking${kingNum}`);
+
+            // Apply flip configuration if exists
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.flips && hitboxConfig.flips[`seaking${kingNum}`]) {
+                const flipData = hitboxConfig.flips[`seaking${kingNum}`];
+                if (flipData.flipX) king.setFlipX(true);
+                if (flipData.flipY) king.setFlipY(true);
+            }
+
+            // Individual king properties
+            king.health = healthPerKing;
+            king.maxHealth = healthPerKing;
+            king.moveSpeed = 100 + (kingNum * 10); // Each king has slightly different speed
+            king.attackRange = 250;
+            king.attackDamage = 20 + (kingNum * 5); // Each king does different damage
+            king.attackCooldown = 0;
+            king.currentDirection = 'down';
+            king.isAttacking = false;
+            king.isDead = false;
+
+            // Apply hitbox configuration
+            this.applyHitboxConfig(king, king.enemyType);
+
+            // Play initial walk animation
+            king.play(`seaking${kingNum}-walk-down`);
+
+            // Add to enemies group
+            this.addEnemyToGroup(king);
+
+            // Store reference
+            this.seaKings.push(king);
+        }
+
+        // Store reference to first king as main boss (for some legacy systems)
+        this.boss = this.seaKings[0];
+        this.boss.isMultiBoss = true;
+        this.boss.seaKingsGroup = this.seaKings;
+
+        // Initialize health threshold tracking for phase changes
+        this.bossHealthThresholds = new Set([75, 50, 25]);
+
+        // Create shared boss health bar
+        this.createSeaKingsBossHealthBar();
+
+        // Start boss AI for all kings
+        this.bossAITimer = this.time.addEvent({
+            delay: 1600 / this.speedMultiplier,
+            callback: () => this.updateSeaKingsBossAI(),
+            loop: true,
+            paused: false
+        });
+    }
+
+    createSeaKingsBossHealthBar() {
+        // Boss health bar background
+        const barWidth = 600;
+        const barHeight = 30;
+        this.bossHealthBarBg = this.add.rectangle(400, 550, barWidth, barHeight, 0x000000);
+        this.bossHealthBarBg.setStrokeStyle(3, 0x00aaff); // Ocean blue border
+        this.bossHealthBarBg.setScrollFactor(0);
+        this.bossHealthBarBg.setDepth(500);
+
+        // Boss health bar fill
+        this.bossHealthBar = this.add.rectangle(400, 550, barWidth - 6, barHeight - 6, 0x0066aa);
+        this.bossHealthBar.setScrollFactor(0);
+        this.bossHealthBar.setDepth(501);
+
+        // Boss name
+        this.bossNameText = this.add.text(400, 525, 'SEA KINGS', {
+            fontSize: '20px',
+            color: '#00aaff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        this.bossNameText.setOrigin(0.5);
+        this.bossNameText.setScrollFactor(0);
+        this.bossNameText.setDepth(502);
+    }
+
+    updateSeaKingsBossAI() {
+        // Update combined health from all living kings
+        this.seaKingsTotalHealth = 0;
+        let aliveKings = 0;
+
+        this.seaKings.forEach(king => {
+            if (king && king.active && !king.isDead && king.health > 0) {
+                this.seaKingsTotalHealth += king.health;
+                aliveKings++;
+            }
+        });
+
+        // If all kings are dead, end boss fight
+        if (aliveKings === 0) {
+            return;
+        }
+
+        // Don't update during pause or chest opening
+        if (this.isPaused || this.chestOpening || this.chestSelectionActive) return;
+
+        // Update shared boss health bar
+        const healthPercent = this.seaKingsTotalHealth / this.seaKingsTotalMaxHealth;
+        this.bossHealthBar.width = (600 - 6) * healthPercent;
+
+        // Check health thresholds for phase changes
+        const healthPercentage = Math.floor(healthPercent * 100);
+        for (const threshold of this.bossHealthThresholds) {
+            if (healthPercentage <= threshold) {
+                this.bossHealthThresholds.delete(threshold);
+                this.spawnOceanMinions(); // Spawn ocean enemies
+                break;
+            }
+        }
+
+        // Update each king's AI individually
+        this.seaKings.forEach((king, index) => {
+            if (!king || !king.active || king.isDead || king.health <= 0) return;
+            if (king.isAttacking) return;
+
+            // Get nearest active wizard
+            const target = this.getNearestActiveWizard(king.x, king.y);
+            if (!target) return;
+
+            const distance = Phaser.Math.Distance.Between(king.x, king.y, target.x, target.y);
+
+            // Determine direction to player
+            const dx = target.x - king.x;
+            const dy = target.y - king.y;
+            let newDirection = 'down';
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+                newDirection = dx > 0 ? 'right' : 'left';
+            } else {
+                newDirection = dy > 0 ? 'down' : 'up';
+            }
+
+            // Attack if in range
+            if (distance <= king.attackRange && king.attackCooldown <= 0) {
+                this.seaKingAttack(king, target, newDirection);
+            } else {
+                // Movement towards player
+                if (distance > king.attackRange - 50) {
+                    this.physics.moveToObject(king, target, king.moveSpeed);
+
+                    // Update animation if direction changed
+                    if (newDirection !== king.currentDirection) {
+                        king.currentDirection = newDirection;
+                        king.play(`seaking${king.kingNumber}-walk-${newDirection}`);
+                    }
+                } else {
+                    // Stop moving
+                    king.setVelocity(0, 0);
+                }
+            }
+
+            // Update cooldowns
+            if (king.attackCooldown > 0) {
+                king.attackCooldown -= 16; // 60fps approximation
+            }
+        });
+    }
+
+    seaKingAttack(king, target, direction) {
+        king.isAttacking = true;
+        king.setVelocity(0, 0);
+        king.play(`seaking${king.kingNumber}-attack-${direction}`);
+
+        // Create attack projectile after animation delay
+        this.time.delayedCall(300, () => {
+            if (king && king.active && target && target.active) {
+                // Calculate angle to target
+                const angle = Phaser.Math.Angle.Between(king.x, king.y, target.x, target.y);
+
+                // Create water projectile
+                const projectile = this.add.sprite(king.x, king.y, 'water-spell');
+                projectile.setScale(1.3);
+                projectile.setTint(0x00aaff);
+                projectile.setRotation(angle);
+                projectile.setDepth(100);
+
+                // Add physics
+                this.physics.add.existing(projectile);
+                projectile.body.setSize(20, 20);
+
+                // Set velocity towards target
+                const speed = 300;
+                const velocityX = Math.cos(angle) * speed;
+                const velocityY = Math.sin(angle) * speed;
+                projectile.body.setVelocity(velocityX, velocityY);
+
+                // Damage collision with all wizards
+                const wizards = [this.wizard, this.wizard2, this.wizard3, this.wizard4].filter(w => w && w.active);
+                wizards.forEach(wizard => {
+                    const damageOverlap = this.physics.add.overlap(projectile, wizard, () => {
+                        if (wizard.takeDamage) {
+                            wizard.takeDamage(king.attackDamage);
+                        }
+                        damageOverlap.destroy();
+                        projectile.destroy();
+                    });
+                });
+
+                // Auto-destroy after time
+                this.time.delayedCall(3000, () => {
+                    if (projectile.active) {
+                        projectile.destroy();
+                    }
+                });
+            }
+        });
+
+        // Reset attacking state
+        this.time.delayedCall(800, () => {
+            if (king && king.active) {
+                king.isAttacking = false;
+                king.attackCooldown = 2000 / this.speedMultiplier;
+                king.play(`seaking${king.kingNumber}-walk-${king.currentDirection}`);
+            }
+        });
+    }
+
+    spawnOceanMinions() {
+        // Spawn ocean-themed enemies during phase changes
+        const oceanEnemies = ['crab', 'jellyfish', 'seahorse']; // Placeholder names
+
+        // Find alive kings to spawn near
+        const aliveKings = this.seaKings.filter(k => k && k.active && !k.isDead && k.health > 0);
+
+        for (let i = 0; i < 4; i++) {
+            const angle = (Math.PI * 2 / 4) * i;
+            const distance = 350;
+
+            // Spawn near a random alive king
+            const spawnKing = aliveKings[Math.floor(Math.random() * aliveKings.length)];
+            if (!spawnKing) continue;
+
+            const x = spawnKing.x + Math.cos(angle) * distance;
+            const y = spawnKing.y + Math.sin(angle) * distance;
+
+            // Spawn ocean enemy (will use generic enemies if ocean enemies don't exist)
+            const enemyType = oceanEnemies[Math.floor(Math.random() * oceanEnemies.length)];
+            if (this.spawnSpecificEnemy) {
+                this.spawnSpecificEnemy('golem', x, y); // Use golem as placeholder
+            }
+        }
+    }
+    // ===== END SEA KINGS BOSS =====
+
     updateDemonSlimeBossAI() {
         if (!this.boss || !this.boss.active || this.boss.health <= 0) return;
         // Don't update boss during pause or chest opening
@@ -43923,8 +47651,10 @@ class GameScene extends Phaser.Scene {
         this.boss.attackCooldown = 0;
         this.boss.moveSpeed = 40; // Reduced by 20% from 50
         this.boss.voidZones = [];
-        // Set up physics
-        this.boss.body.setSize(60, 80);
+        // Apply hitbox configuration or use defaults
+        if (!this.applyHitboxConfig(this.boss, this.boss.enemyType)) {
+            this.boss.body.setSize(60, 80);
+        }
         this.boss.setCollideWorldBounds(false);
         // Create crown above boss
         this.bossCrown = this.add.text(centerX, centerY - 80, '👑', {
@@ -44295,13 +48025,25 @@ class GameScene extends Phaser.Scene {
         this.dungeonGates.add(this.dungeonGate);
         // Show the direction arrow
         this.dungeonArrow.setVisible(true);
-        // Set up collision with player
+        // Set up collision with all players
         this.physics.add.overlap(this.wizard, this.dungeonGate, () => {
             this.enterDungeon();
         });
-        // Set up collision with P2 if exists
+        
         if (this.wizard2) {
             this.physics.add.overlap(this.wizard2, this.dungeonGate, () => {
+                this.enterDungeon();
+            });
+        }
+        
+        if (this.wizard3) {
+            this.physics.add.overlap(this.wizard3, this.dungeonGate, () => {
+                this.enterDungeon();
+            });
+        }
+        
+        if (this.wizard4) {
+            this.physics.add.overlap(this.wizard4, this.dungeonGate, () => {
                 this.enterDungeon();
             });
         }
@@ -44760,12 +48502,25 @@ class GameScene extends Phaser.Scene {
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
-        // Set up exit collision
+        // Set up exit collision for all players
         this.physics.add.overlap(this.wizard, this.dungeonExit, () => {
             this.exitDungeon();
         });
+        
         if (this.wizard2) {
             this.physics.add.overlap(this.wizard2, this.dungeonExit, () => {
+                this.exitDungeon();
+            });
+        }
+        
+        if (this.wizard3) {
+            this.physics.add.overlap(this.wizard3, this.dungeonExit, () => {
+                this.exitDungeon();
+            });
+        }
+        
+        if (this.wizard4) {
+            this.physics.add.overlap(this.wizard4, this.dungeonExit, () => {
                 this.exitDungeon();
             });
         }
@@ -44947,24 +48702,54 @@ class GameScene extends Phaser.Scene {
                     this.updateHealthBar(); // Update P1 health bar
                     this.updateWizardHealthBar(); // Update wizard health bar display
                     }
-                // Resurrect P2 if dead
-                if (this.wizard2.health <= 0) {
+                // Resurrect all dead players
+                if (this.wizard2 && this.wizard2.health <= 0) {
                     this.wizard2.health = this.wizard2.maxHealth / 2; // Resurrect with half health
                     this.wizard2.setVisible(true);
                     this.wizard2.body.enable = true;
                     this.wizard2.clearTint(); // Clear any death tint
                     this.updateP2HealthBar(); // Update P2 health bar
-                    }
-                // Update camera to follow both players again after resurrection
+                }
+                
+                if (this.wizard3 && this.wizard3.health <= 0) {
+                    this.wizard3.health = this.wizard3.maxHealth / 2; // Resurrect with half health
+                    this.wizard3.setVisible(true);
+                    this.wizard3.body.enable = true;
+                    this.wizard3.clearTint(); // Clear any death tint
+                }
+                
+                if (this.wizard4 && this.wizard4.health <= 0) {
+                    this.wizard4.health = this.wizard4.maxHealth / 2; // Resurrect with half health
+                    this.wizard4.setVisible(true);
+                    this.wizard4.body.enable = true;
+                    this.wizard4.clearTint(); // Clear any death tint
+                }
+                
+                // Update camera to follow all alive players again after resurrection
                 if (this.cameraTarget) {
-                    // Calculate midpoint between both resurrected players
-                    const midX = (this.wizard.x + this.wizard2.x) / 2;
-                    const midY = (this.wizard.y + this.wizard2.y) / 2;
-                    this.cameraTarget.setPosition(midX, midY);
-                    // Reset camera to follow the target
-                    this.cameras.main.stopFollow();
-                    this.cameras.main.startFollow(this.cameraTarget, true, 0.1, 0.1);
+                    // Get all alive players after resurrection
+                    const alivePlayers = [];
+                    if (this.wizard && this.wizard.health > 0) alivePlayers.push(this.wizard);
+                    if (this.wizard2 && this.wizard2.health > 0) alivePlayers.push(this.wizard2);
+                    if (this.wizard3 && this.wizard3.health > 0) alivePlayers.push(this.wizard3);
+                    if (this.wizard4 && this.wizard4.health > 0) alivePlayers.push(this.wizard4);
+                    
+                    if (alivePlayers.length > 0) {
+                        // Calculate center point of all alive players
+                        let totalX = 0, totalY = 0;
+                        alivePlayers.forEach(player => {
+                            totalX += player.x;
+                            totalY += player.y;
+                        });
+                        const midX = totalX / alivePlayers.length;
+                        const midY = totalY / alivePlayers.length;
+                        
+                        this.cameraTarget.setPosition(midX, midY);
+                        // Reset camera to follow the target
+                        this.cameras.main.stopFollow();
+                        this.cameras.main.startFollow(this.cameraTarget, true, 0.1, 0.1);
                     }
+                }
                 // Hide the dungeon gate and arrow after resurrection
                 if (this.dungeonGate) {
                     this.dungeonGate.destroy();

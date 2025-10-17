@@ -245,6 +245,57 @@ class ObstacleManager {
                     [0, 1, 0, 0],
                     [0, 0, 0, 0]
                 ]
+            ],
+            snow: [
+                // Single ice block (rare)
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 1, 0, 0],
+                    [0, 0, 0, 0]
+                ],
+                // Snow tree corner
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 2, 0]
+                ],
+                // Empty pattern 1
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0]
+                ],
+                // Ice block and tree diagonal
+                [
+                    [1, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 2],
+                    [0, 0, 0, 0]
+                ],
+                // Empty pattern 2
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0]
+                ],
+                // Snow tree center
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 2, 0, 0],
+                    [0, 0, 0, 0]
+                ],
+                // Empty pattern 3
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0]
+                ]
             ]
         };
         // Obstacle types for each stage
@@ -255,7 +306,8 @@ class ObstacleManager {
             sand: 'cactus',
             grave: 'tombstone',
             castle: 'castle', // Castle uses mixed obstacles
-            spire: 'forest' // Spire starts with forest obstacles
+            spire: 'forest', // Spire starts with forest obstacles
+            snow: 'snow' // Snow uses mixed ice blocks and snow trees
         };
     }
     initialize(stage) {
@@ -324,13 +376,13 @@ class ObstacleManager {
         // Create obstacles based on pattern
         for (let row = 0; row < pattern.length; row++) {
             for (let col = 0; col < pattern[row].length; col++) {
-                if (pattern[row][col] === 1) {
+                if (pattern[row][col] !== 0) {
                     const x = baseX + (col + 0.5) * cellSize;
                     const y = baseY + (row + 0.5) * cellSize;
                     // Add some variation to position
                     const offsetX = this.seededRandom(cellX, cellY, row, col) * 20 - 10;
                     const offsetY = this.seededRandom(cellX, cellY, row + 100, col) * 20 - 10;
-                    const obstacle = this.createObstacle(x + offsetX, y + offsetY);
+                    const obstacle = this.createObstacle(x + offsetX, y + offsetY, pattern[row][col]);
                     if (obstacle) {
                         obstacles.push(obstacle);
                         // Debug first obstacle creation for non-forest
@@ -347,7 +399,7 @@ class ObstacleManager {
             this.debuggedObstacleCount = true;
         }
     }
-    createObstacle(x, y) {
+    createObstacle(x, y, patternValue = 1) {
         let texture;
         let scale;
         // Select texture based on stage
@@ -397,6 +449,19 @@ class ObstacleManager {
                     break;
                 }
             }
+        } else if (this.stage === 'snow') {
+            // Snow stage uses pattern values: 1 = ice block, 2 = snow tree
+            if (patternValue === 1) {
+                texture = 'snow-ice-block';
+                scale = 0.4;
+            } else if (patternValue === 2) {
+                texture = 'snow-tree';
+                scale = 0.7;
+            } else {
+                // Default to ice block
+                texture = 'snow-ice-block';
+                scale = 0.4;
+            }
         }
         // Check if texture exists
         if (!this.scene.textures.exists(texture)) {
@@ -443,6 +508,15 @@ class ObstacleManager {
             } else if (texture === 'castle-weapon-rack') {
                 obstacle.body.setSize(60, 50);
                 obstacle.body.setOffset(30, 40);
+            }
+        } else if (this.stage === 'snow') {
+            // Snow obstacle collision boxes
+            if (texture === 'snow-ice-block') {
+                obstacle.body.setSize(30, 30);
+                obstacle.body.setOffset(15, 15);
+            } else if (texture === 'snow-tree') {
+                obstacle.body.setSize(25, 25);
+                obstacle.body.setOffset(12, 35);
             }
         }
         // Refresh the physics body after scaling

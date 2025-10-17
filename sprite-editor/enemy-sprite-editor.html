@@ -592,6 +592,9 @@
                     <div class="control-group">
                         <button class="btn btn-secondary" onclick="centerHitbox()" style="width: 100%; margin-top: 10px;">Center Hitbox</button>
                     </div>
+                    <div style="color: #888; font-size: 11px; margin-top: 10px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px;">
+                        <strong>Note:</strong> Hitbox values shown are scaled for visual editing. They're automatically converted to unscaled coordinates when saved (for Phaser compatibility).
+                    </div>
                 </div>
                 
                 <div class="section">
@@ -697,1071 +700,10 @@
         // 4. Hitbox offsets are in unscaled sprite coordinates (Phaser's body.setOffset always uses unscaled)
         // 5. Order: Create sprite -> Set origin (0.5,0.5) -> Set scale -> Apply hitbox
         //
-        // Enemy configurations
-        const enemyConfigs = {
-            // Forest enemies
-            mushroom: {
-                texture: 'mushroom-run',
-                path: '../assets/enemies/mushroom/Run.png',
-                frameWidth: 150,
-                frameHeight: 46,
-                animations: {
-                    walk: { start: 0, end: 7, rate: 10 }
-                },
-                defaultScale: 0.7
-            },
-            tree: {
-                texture: 'enemy-walk',
-                path: '../assets/enemies/tree/tronchungo3/walking-sheet.png',
-                frameWidth: 48,
-                frameHeight: 60,
-                animations: {
-                    walk: { start: 0, end: 5, rate: 8 }
-                },
-                defaultScale: 1.5
-            },
-            giantfly: {
-                texture: 'giantfly-walk',
-                path: '../assets/enemies/forestlandfoes/giantflywalk4frames.png',
-                frameWidth: 32,
-                frameHeight: 29,  // Actual height from file
-                animations: {
-                    walk: { start: 0, end: 3, rate: 8 },
-                    death: { 
-                        texture: 'giantfly-death',
-                        path: '../assets/enemies/forestlandfoes/giantflydeath6frames.png',
-                        frameWidth: 32,
-                        frameHeight: 30,  // Actual height (192x30 / 6)
-                        start: 0, end: 5, rate: 10 
-                    }
-                },
-                defaultScale: 2.0
-            },
-            squirrel: {
-                texture: 'squirrel-walk',
-                path: '../assets/enemies/forestlandfoes/squirrelwalk8frames.png',
-                frameWidth: 32,
-                frameHeight: 21,  // Actual height from file
-                animations: {
-                    walk: { start: 0, end: 7, rate: 10 },
-                    death: {
-                        texture: 'squirrel-death',
-                        path: '../assets/enemies/forestlandfoes/squirreldeath4frames.png',
-                        frameWidth: 32,
-                        frameHeight: 16,  // Actual height (128x16 / 4)
-                        start: 0, end: 3, rate: 8
-                    }
-                },
-                defaultScale: 2.0
-            },
-            redpanda: {
-                texture: 'redpanda-walk',
-                path: '../assets/enemies/forestlandfoes/redpandawalk8frames.png',
-                frameWidth: 32,
-                frameHeight: 18,  // Actual height from file (256x18 / 8 frames)
-                animations: {
-                    walk: { start: 0, end: 7, rate: 8 },
-                    death: {
-                        texture: 'redpanda-death',
-                        path: '../assets/enemies/forestlandfoes/redpandadeath8frames.png',
-                        frameWidth: 32,
-                        frameHeight: 18,
-                        start: 0, end: 7, rate: 10
-                    }
-                },
-                defaultScale: 2.0
-            },
-            // Cave enemies
-            golem: {
-                texture: 'golem-orange-walk',
-                path: '../assets/Golem_1/Orange/No_Swoosh_VFX/Golem_1_walk.png',
-                frameWidth: 90,  // Actual dimensions from game.js
-                frameHeight: 64,
-                animations: {
-                    walk: { start: 0, end: 9, rate: 8 },  // 10 frames (900/90)
-                    death: {
-                        texture: 'golem-orange-die',
-                        path: '../assets/Golem_1/Orange/No_Swoosh_VFX/Golem_1_die.png',
-                        frameWidth: 90,
-                        frameHeight: 64,
-                        start: 0, end: 12, rate: 10  // 13 frames (1170/90)
-                    }
-                },
-                defaultScale: 1.5
-            },
-            slime: {
-                texture: 'bloboid-walk',
-                path: '../assets/newenemies/blob/blob%20minion%20walk.png',
-                frameWidth: 80,
-                frameHeight: 35,
-                animations: {
-                    walk: { start: 0, end: 7, rate: 10 }
-                },
-                defaultScale: 1.5
-            },
-            kobold: {
-                texture: 'kobold-walk',
-                path: '../assets/enemies/kobold/kobold8frames.png',
-                frameWidth: 148,
-                frameHeight: 96,
-                animations: {
-                    walk: { start: 0, end: 7, rate: 10 }
-                },
-                defaultScale: 1.0
-            },
-            brainmole: {
-                texture: 'brainmole-walk',
-                path: '../assets/enemies/cavelandfoes/brainmole4frames.png',
-                frameWidth: 32,
-                frameHeight: 32,  // This one is actually correct (128x32 / 4 = 32x32)
-                animations: {
-                    walk: { start: 0, end: 3, rate: 8 },
-                    death: {
-                        texture: 'brainmole-death',
-                        path: '../assets/enemies/cavelandfoes/brainmoledeath7frames.png',
-                        frameWidth: 32,
-                        frameHeight: 32,
-                        start: 0, end: 6, rate: 12
-                    }
-                },
-                defaultScale: 2.0
-            },
-            intellectdevourer: {
-                texture: 'intellectdevourer-walk',
-                path: '../assets/enemies/cavelandfoes/intellectdevourer8frames.png',
-                frameWidth: 32,
-                frameHeight: 20,  // Actual height (256x20 / 8 frames)
-                animations: {
-                    walk: { start: 0, end: 7, rate: 10 },
-                    death: {
-                        texture: 'intellectdevourer-death',
-                        path: '../assets/enemies/cavelandfoes/intellectdevourerdeath4frames.png',
-                        frameWidth: 32,
-                        frameHeight: 16,  // Actual height (128x16 / 4 frames)
-                        start: 0, end: 3, rate: 10
-                    }
-                },
-                defaultScale: 1.8
-            },
-            // Desert enemies
-            cobra: {
-                texture: 'cobra-walk',
-                path: '../assets/enemies/desertlandfoes/cobra8frames.png',
-                frameWidth: 32,
-                frameHeight: 20,
-                animations: {
-                    walk: { start: 0, end: 7, rate: 10 },
-                    death: {
-                        texture: 'cobra-death',
-                        path: '../assets/enemies/desertlandfoes/cobradeath6frames.png',
-                        frameWidth: 32,
-                        frameHeight: 20,
-                        start: 0, end: 5, rate: 8
-                    }
-                },
-                defaultScale: 2.0
-            },
-            cactuse: {
-                texture: 'cactuse-walk',
-                path: '../assets/enemies/desertlandfoes/cactuse8frames.png',
-                frameWidth: 32,
-                frameHeight: 26,
-                animations: {
-                    walk: { start: 0, end: 7, rate: 8 },
-                    death: {
-                        texture: 'cactuse-death',
-                        path: '../assets/enemies/desertlandfoes/cactusedeath5frames.png',
-                        frameWidth: 32,
-                        frameHeight: 22,
-                        start: 0, end: 4, rate: 8
-                    }
-                },
-                defaultScale: 2.0
-            },
-            armadillo: {
-                texture: 'armadillo-walk',
-                path: '../assets/enemies/desertlandfoes/armadillo8frames.png',
-                frameWidth: 32,
-                frameHeight: 18,
-                animations: {
-                    walk: { start: 0, end: 7, rate: 10 },
-                    roll: {
-                        texture: 'armadillo-ball',
-                        path: '../assets/enemies/desertlandfoes/armadilloball8frames.png',
-                        frameWidth: 32,
-                        frameHeight: 18,
-                        start: 0, end: 7, rate: 12
-                    },
-                    death: {
-                        texture: 'armadillo-death',
-                        path: '../assets/enemies/desertlandfoes/armadillodeath3frames.png',
-                        frameWidth: 32,
-                        frameHeight: 17,
-                        start: 0, end: 2, rate: 6
-                    }
-                },
-                defaultScale: 2.0
-            },
-            // Swampland enemies
-            swampmerchant: {
-                texture: 'swampmerchant-walk',
-                path: '../assets/enemies/forestlandfoes/swampmerchantwalk5frames.png',
-                frameWidth: 64,
-                frameHeight: 64,
-                animations: {
-                    walk: { start: 0, end: 4, rate: 8 }
-                },
-                defaultScale: 1.5
-            },
-            torchboy: {
-                texture: 'torchboy-walk',
-                path: '../assets/enemies/forestlandfoes/torchboi/runvertical6frames.png',
-                frameWidth: 82,
-                frameHeight: 39,  // 234 / 6 frames = 39
-                animations: {
-                    walk: { start: 0, end: 5, rate: 10 }
-                },
-                defaultScale: 1.2
-            },
-            mudguard: {
-                texture: 'mudguard-walk',
-                path: '../assets/enemies/forestlandfoes/Mud Guard/mudguardrunvertical6frames.png',
-                frameWidth: 82,
-                frameHeight: 23,  // 138 / 6 frames = 23
-                animations: {
-                    walk: { start: 0, end: 5, rate: 10 },
-                    death: {
-                        texture: 'mudguard-death',
-                        path: '../assets/enemies/forestlandfoes/Mud Guard/mudguarddeathvertical8frames.png',
-                        frameWidth: 82,
-                        frameHeight: 23,  // 184 / 8 frames = 23
-                        start: 0, end: 7, rate: 12
-                    }
-                },
-                defaultScale: 1.8
-            },
-            eyewalker: {
-                texture: 'eyewalker-walk',
-                path: '../assets/homunculiwalkerboss/Boss_Normal.png',
-                frameWidth: 64,  // 384 / 6 frames = 64
-                frameHeight: 64,  // 192 / 3 rows = 64
-                animations: {
-                    initial: { start: 0, end: 5, rate: 8 },  // First row
-                    stomp: { start: 6, end: 11, rate: 10 },  // Second row
-                    summoned: { start: 12, end: 16, rate: 8 }  // Third row (only 5 frames)
-                },
-                defaultScale: 2.2
-            },
-            eyegoompa: {
-                texture: 'eyegoompa-walk',
-                path: '../assets/homunculiwalkerboss/eyegoompawalk9x2frames.png',
-                frameWidth: 24,  // 216 / 9 frames = 24
-                frameHeight: 24,  // 49 / 2 rows ≈ 24
-                animations: {
-                    walk: { start: 0, end: 17, rate: 12 }  // All 18 frames
-                },
-                defaultScale: 1.5
-            },
-            bat: {
-                texture: 'bat-fly',
-                path: '../assets/enemies/bateye/Flight.png',
-                frameWidth: 150,
-                frameHeight: 150,
-                animations: {
-                    walk: { start: 0, end: 7, rate: 10 }
-                },
-                defaultScale: 0.5
-            },
-            darkbat: {
-                texture: 'dark-bat-fly',
-                path: '../assets/images/Bat-IdleFly9frames.png',
-                frameWidth: 64,
-                frameHeight: 64,
-                animations: {
-                    walk: { start: 0, end: 8, rate: 12 }
-                },
-                defaultScale: 1.5
-            },
-            soul: {
-                texture: 'soul-move',
-                path: '../assets/newenemies/Soul/Soul/move/Soul_move.png',
-                frameWidth: 96,
-                frameHeight: 96,
-                animations: {
-                    walk: { start: 0, end: 7, rate: 8 }
-                },
-                defaultScale: 1.0
-            },
-            fireworm: {
-                texture: 'fireworm-walk',
-                path: '../assets/fireworm/Walk.png',
-                frameWidth: 90,
-                frameHeight: 90,
-                animations: {
-                    walk: { start: 0, end: 8, rate: 10 }
-                },
-                defaultScale: 1.2
-            },
-            summoner: {
-                texture: 'summoner-idle',
-                path: '../assets/newenemies/summoner/The%20Summoner%20idle%20animation-export.png',
-                frameWidth: 80,
-                frameHeight: 80,
-                animations: {
-                    walk: { start: 0, end: 11, rate: 8 }
-                },
-                defaultScale: 1.0
-            },
-            // Missing enemies
-            bloboid: {
-                texture: 'bloboid-walk',
-                path: '../assets/newenemies/blob/blob%20minion%20walk.png',
-                frameWidth: 80,
-                frameHeight: 35,
-                animations: {
-                    walk: { start: 0, end: 7, rate: 10 }
-                },
-                defaultScale: 1.5
-            },
-            sorcerer: {
-                texture: 'sorcerer-idle',
-                individualFrames: true,
-                framePattern: 'sorcerer-idle-',
-                path: '../assets/newenemies/sorcerer villain/sorcerer attack_Animation 1_0.png',
-                frameCount: 10,
-                frameWidth: 80,
-                frameHeight: 80,
-                animations: {
-                    walk: { start: 0, end: 9, rate: 6 }
-                },
-                defaultScale: 1.5
-            },
-            // Element Symbols (Main spell projectiles)
-            'element-symbols': {
-                texture: 'element-symbols',
-                path: '../assets/images/elements.png',
-                frameWidth: 273,
-                frameHeight: 273,
-                animations: {
-                    cycle: { start: 0, end: 8, rate: 10 }
-                },
-                defaultScale: 0.3
-            },
-            'element-symbols2': {
-                texture: 'element-symbols2',
-                path: '../assets/images/elements2.PNG',
-                frameWidth: 341,
-                frameHeight: 341,
-                animations: {
-                    cycle: { start: 0, end: 8, rate: 10 }
-                },
-                defaultScale: 0.25
-            },
-            'element-symbols3': {
-                texture: 'element-symbols3',
-                path: '../assets/images/elements3.PNG',
-                frameWidth: 341,
-                frameHeight: 341,
-                animations: {
-                    cycle: { start: 0, end: 8, rate: 10 }
-                },
-                defaultScale: 0.25
-            },
-            'waterball-projectile': {
-                texture: 'waterball-projectile',
-                path: '../assets/effects/elementanimations/waterball/WaterBall%20-%20Startup%20and%20Infinite.png',
-                frameWidth: 64,
-                frameHeight: 64,
-                animations: {
-                    startup: { start: 0, end: 3, rate: 12 },
-                    travel: { start: 4, end: 19, rate: 15 }
-                },
-                defaultScale: 0.8
-            },
-            'waterball-impact': {
-                texture: 'waterball-impact',
-                path: '../assets/effects/elementanimations/waterball/WaterBall%20-%20Impact.png',
-                frameWidth: 64,
-                frameHeight: 64,
-                animations: {
-                    impact: { start: 0, end: 15, rate: 20 }
-                },
-                defaultScale: 1.2
-            },
-            'lightning-projectile': {
-                texture: 'lightning-projectile',
-                path: '../assets/effects/elementanimations/Thunder%20Projectile%201/5framesdims160x32.png',
-                frameWidth: 32,
-                frameHeight: 32,
-                animations: {
-                    travel: { start: 0, end: 4, rate: 12 }
-                },
-                defaultScale: 1.0
-            },
-            'lightning-impact': {
-                texture: 'lightning-impact',
-                path: '../assets/effects/elementanimations/Thunder%20Hit/5framesdims192x32.png',
-                frameWidth: 38,
-                frameHeight: 32,
-                animations: {
-                    hit: { start: 0, end: 4, rate: 20 }
-                },
-                defaultScale: 1.5
-            },
-            'earth-projectile': {
-                texture: 'earth-projectile',
-                path: '../assets/effects/elementanimations/earthprojectile/6framesx2framesdims288x64.png',
-                frameWidth: 48,
-                frameHeight: 32,
-                animations: {
-                    travel: { start: 0, end: 5, rate: 12 },
-                    impact: { start: 6, end: 11, rate: 18 }
-                },
-                defaultScale: 1.0
-            },
-            'wind-projectile': {
-                texture: 'wind-projectile',
-                path: '../assets/effects/elementanimations/windprojectile/proj3framesx2framesdims96x64.png',
-                frameWidth: 32,
-                frameHeight: 32,
-                animations: {
-                    travel: { start: 0, end: 5, rate: 12 }
-                },
-                defaultScale: 1.0
-            },
-            'wind-impact': {
-                texture: 'wind-impact',
-                path: '../assets/effects/elementanimations/windprojectile/hit3framesx2framesdims96x64.png',
-                frameWidth: 32,
-                frameHeight: 32,
-                animations: {
-                    hit: { start: 0, end: 5, rate: 18 }
-                },
-                defaultScale: 1.5
-            },
-            'firebolt': {
-                texture: 'firebolt',
-                path: '../assets/effects/elementanimations/firebolt/11framesdims528x48.png',
-                frameWidth: 48,
-                frameHeight: 48,
-                animations: {
-                    travel: { start: 0, end: 3, rate: 12 },
-                    impact: { start: 4, end: 10, rate: 20 }
-                },
-                defaultScale: 1.0
-            },
-            'ice-spike': {
-                texture: 'ice-spike-start1',
-                individualFrames: true,
-                framePattern: 'ice-spike-start',
-                frameCount: 3,
-                frameWidth: 32,
-                frameHeight: 48,
-                animations: {
-                    travel: { start: 1, end: 3, rate: 10 }
-                },
-                defaultScale: 1.0
-            },
-            'ice-spike-loop': {
-                texture: 'ice-spike-loop1',
-                individualFrames: true,
-                framePattern: 'ice-spike-loop',
-                frameCount: 4,
-                frameWidth: 32,
-                frameHeight: 48,
-                animations: {
-                    loop: { start: 1, end: 4, rate: 10 }
-                },
-                defaultScale: 1.0
-            },
-            'ice-spike-hit': {
-                texture: 'ice-spike-hit1',
-                individualFrames: true,
-                framePattern: 'ice-spike-hit',
-                frameCount: 8,
-                frameWidth: 48,
-                frameHeight: 48,
-                animations: {
-                    impact: { start: 1, end: 8, rate: 20 }
-                },
-                defaultScale: 1.3
-            },
-            'holy-impact': {
-                texture: 'holy-impact-1',
-                individualFrames: true,
-                framePattern: 'holy-impact-',
-                frameCount: 7,
-                frameWidth: 48,
-                frameHeight: 48,
-                animations: {
-                    impact: { start: 1, end: 7, rate: 20 }
-                },
-                defaultScale: 2.0
-            },
-            'archer-projectile': {
-                texture: 'archer-projectile',
-                isStaticImage: true,
-                path: '../assets/bosses/archerboss/projectile.png',
-                frameWidth: 32,
-                frameHeight: 32,
-                animations: {},
-                defaultScale: 1.0
-            },
-            'poison-spell': {
-                texture: 'poison-spell',
-                path: '../assets/effects/spells/poison-sheet.png',
-                frameWidth: 55,
-                frameHeight: 41,
-                animations: {
-                    active: { start: 0, end: 5, rate: 10 }
-                },
-                defaultScale: 0.75
-            },
-            'fire-spell': {
-                texture: 'fire-spell',
-                path: '../assets/effects/spells/fire1.png',
-                frameWidth: 32,
-                frameHeight: 32,
-                animations: {
-                    active: { start: 0, end: 3, rate: 10 }
-                },
-                defaultScale: 1.0
-            },
-            'arcane-spell': {
-                texture: 'arcane-spell',
-                path: '../assets/effects/spells/arcane1.png',
-                frameWidth: 32,
-                frameHeight: 32,
-                animations: {
-                    active: { start: 0, end: 3, rate: 10 }
-                },
-                defaultScale: 1.0
-            },
-            'water-spell': {
-                texture: 'water-spell',
-                path: '../assets/effects/spells/water1.png',
-                frameWidth: 32,
-                frameHeight: 32,
-                animations: {
-                    active: { start: 0, end: 3, rate: 10 }
-                },
-                defaultScale: 1.0
-            },
-            'lightning-spell': {
-                texture: 'lightning-spell',
-                path: '../assets/effects/spells/lightning1.png',
-                frameWidth: 32,
-                frameHeight: 32,
-                animations: {
-                    active: { start: 0, end: 3, rate: 10 }
-                },
-                defaultScale: 1.0
-            },
-            'earth-spell': {
-                texture: 'earth-spell',
-                path: '../assets/effects/spells/earth1.png',
-                frameWidth: 32,
-                frameHeight: 32,
-                animations: {
-                    active: { start: 0, end: 3, rate: 10 }
-                },
-                defaultScale: 1.0
-            },
-            'rock-spell': {
-                texture: 'rock-spell',
-                path: '../assets/effects/spells/rock1(6frames).PNG',
-                frameWidth: 32,
-                frameHeight: 30,
-                animations: {
-                    active: { start: 0, end: 5, rate: 10 }
-                },
-                defaultScale: 1.0
-            },
-            'storm-spell': {
-                texture: 'storm-spell',
-                path: '../assets/effects/spells/thunder1-17frames.PNG',
-                frameWidth: 64,
-                frameHeight: 68,
-                animations: {
-                    active: { start: 0, end: 16, rate: 15 }
-                },
-                defaultScale: 1.0
-            },
-            'volcano-spell': {
-                texture: 'volcano-spell',
-                path: '../assets/effects/spells/volcano1.PNG',
-                frameWidth: 64,
-                frameHeight: 64,
-                animations: {
-                    active: { start: 0, end: 3, rate: 10 }
-                },
-                defaultScale: 1.0
-            },
-            'meteor-spell': {
-                texture: 'meteor-spell',
-                path: '../assets/effects/spells/meteor1.PNG',
-                frameWidth: 32,
-                frameHeight: 38,
-                animations: {
-                    active: { start: 0, end: 3, rate: 10 }
-                },
-                defaultScale: 1.0
-            },
-            'gravity-spell': {
-                texture: 'gravity-spell',
-                path: '../assets/effects/spells/gravity1.PNG',
-                frameWidth: 64,
-                frameHeight: 59,
-                animations: {
-                    active: { start: 0, end: 3, rate: 10 }
-                },
-                defaultScale: 1.0
-            },
-            // Boss Projectiles
-            'archer-projectile': {
-                texture: 'archer-projectile',
-                path: '../assets/bosses/archerboss/projectile.png',
-                isStaticImage: true,
-                frameWidth: 32,
-                frameHeight: 32,
-                animations: {
-                    idle: { start: 0, end: 0, rate: 1 }
-                },
-                defaultScale: 1.2
-            },
-            'void-ball': {
-                texture: 'void-ball',
-                individualFrames: true,
-                framePattern: 'void-ball-',
-                frameCount: 3,
-                frameWidth: 64,
-                frameHeight: 64,
-                animations: {
-                    travel: { start: 1, end: 3, rate: 8 }
-                },
-                defaultScale: 1.0
-            },
-            'void-ball-destroyed': {
-                texture: 'projectile-destroyed-1',
-                individualFrames: true,
-                framePattern: 'projectile-destroyed-',
-                frameCount: 3,
-                frameWidth: 64,
-                frameHeight: 64,
-                animations: {
-                    destroyed: { start: 1, end: 3, rate: 12 }
-                },
-                defaultScale: 1.0
-            },
-            'boss-arm-projectile': {
-                texture: 'boss-arm-projectile',
-                path: '../assets/images/arm_projectile_glowing.png',
-                frameWidth: 100,
-                frameHeight: 100,
-                animations: {
-                    spin: { start: 0, end: 5, rate: 12 }
-                },
-                defaultScale: 1.0
-            },
-            // Bosses
-            archerBoss: {
-                texture: 'archer-boss-walk',
-                path: '../assets/bosses/archerboss/boss2archerwalk8frames.png',
-                frameWidth: 63,
-                frameHeight: 54,
-                animations: {
-                    walk: { start: 0, end: 7, rate: 10 },
-                    attack: {
-                        texture: 'archer-boss-shoot',
-                        path: '../assets/bosses/archerboss/boss2archershoot7frames.png',
-                        frameWidth: 64,
-                        frameHeight: 54,
-                        start: 0, end: 6, rate: 10
-                    },
-                    death: {
-                        texture: 'archer-boss-death',
-                        path: '../assets/bosses/archerboss/boss2archerdeath8frames.png',
-                        frameWidth: 63,
-                        frameHeight: 54,
-                        start: 0, end: 7, rate: 10
-                    }
-                },
-                defaultScale: 2.0
-            },
-            obeliskBoss: {
-                texture: 'obelisk-boss',
-                path: '../assets/images/obeliskBoss.png',
-                frameWidth: 100,
-                frameHeight: 100,
-                animations: {
-                    walk: { start: 0, end: 0, rate: 1 }
-                },
-                defaultScale: 1.5
-            },
-            // Removed obeliskIdle - it's not a boss
-            voidkin: {
-                texture: 'voidkin',
-                path: '../assets/images/voidkin15frames.png',
-                frameWidth: 224,
-                frameHeight: 240,
-                animations: {
-                    walk: { start: 0, end: 14, rate: 10 }
-                },
-                defaultScale: 1.0
-            },
-            'demon-slime-boss': {
-                texture: 'demon-slime-idle',
-                path: '../assets/bosses/demonslime/boss_demon_slime_FREE_v1.0/boss_demon_slime_FREE_v1.0/spritesheets/demon_slime_FREE_v1.0_288x160_spritesheet.png',
-                frameWidth: 96,
-                frameHeight: 80,
-                animations: {
-                    walk: { start: 0, end: 2, rate: 8 }
-                },
-                defaultScale: 2.0
-            },
-            kingNothing: {
-                texture: 'king-nothing-run',
-                path: '../assets/enemies/castlelandfoes/kingnothingboss/Run.png',
-                frameWidth: 160,  // 1280 / 8 frames
-                frameHeight: 111,  // Actual height
-                animations: {
-                    walk: { start: 0, end: 7, rate: 10 },
-                    attack: {
-                        texture: 'king-nothing-attack1',
-                        path: '../assets/enemies/castlelandfoes/kingnothingboss/Attack1.png',
-                        frameWidth: 160,
-                        frameHeight: 111,
-                        start: 0, end: 3, rate: 10
-                    },
-                    death: {
-                        texture: 'king-nothing-death',
-                        path: '../assets/enemies/castlelandfoes/kingnothingboss/Death.png',
-                        frameWidth: 160,
-                        frameHeight: 111,
-                        start: 0, end: 5, rate: 10
-                    }
-                },
-                defaultScale: 1.5
-            },
-            eyelor: {
-                texture: 'eyelor-move-1',
-                path: 'assets/bosses/Eyelor/Movement/Eye Beast Moving1.png',
-                frameWidth: 200,
-                frameHeight: 200,
-                animations: {
-                    walk: { start: 0, end: 12, rate: 10 }
-                },
-                defaultScale: 1.5,
-                individualFrames: true,
-                framePattern: 'eyelor-move-'
-            },
-            nekros: {
-                texture: 'nekros-walk-1',
-                path: 'assets/bosses/Nekros/walk/walk_1.png',
-                frameWidth: 200,
-                frameHeight: 200,
-                animations: {
-                    walk: { start: 0, end: 11, rate: 10 }
-                },
-                defaultScale: 1.5,
-                individualFrames: true,
-                framePattern: 'nekros-walk-'
-            },
-            // Castle enemies
-            'castle-knight': {
-                texture: 'castle-knight',
-                path: '../assets/enemies/castlelandfoes/knightrun8frames.png',
-                frameWidth: 180,
-                frameHeight: 180,
-                animations: {
-                    walk: { start: 0, end: 7, rate: 10 }
-                },
-                defaultScale: 0.45
-            },
-            'castle-rogue': {
-                texture: 'castle-rogue',
-                path: '../assets/enemies/castlelandfoes/roguerun6frames.png',
-                frameWidth: 64,
-                frameHeight: 33,
-                animations: {
-                    walk: { start: 0, end: 5, rate: 10 }
-                },
-                defaultScale: 0.45
-            },
-            'castle-soldier': {
-                texture: 'castle-soldier',
-                path: '../assets/enemies/castlelandfoes/soldier6frames.png',
-                frameWidth: 135,
-                frameHeight: 135,
-                animations: {
-                    walk: { start: 0, end: 5, rate: 8 }
-                },
-                defaultScale: 0.45
-            },
-            'castle-bladekeeper': {
-                individualFrames: true,
-                framePattern: 'castle-bladekeeper-',
-                path: '../assets/enemies/castlelandfoes/bladekeeper/02_run_1.png', // Base path for individual frames
-                frameCount: 8,
-                frameWidth: 64,
-                frameHeight: 64,
-                animations: {
-                    walk: { start: 0, end: 7, rate: 10 }
-                },
-                defaultScale: 0.45
-            },
-            'castle-squire': {
-                texture: 'castle-squire',
-                path: '../assets/enemies/castlelandfoes/squire8frames.png',
-                frameWidth: 150,
-                frameHeight: 150,
-                animations: {
-                    walk: { start: 0, end: 7, rate: 10 }
-                },
-                defaultScale: 0.45
-            },
-            // Grave enemies
-            yellowskeleton: {
-                texture: 'yellowskeleton',
-                path: '../assets/enemies/skeleton/Skeleton_01_Yellow_Walk10frames.png',
-                frameWidth: 96,
-                frameHeight: 64,
-                animations: {
-                    walk: { start: 0, end: 9, rate: 10 }
-                },
-                defaultScale: 1.8
-            },
-            skeletonseeker: {
-                texture: 'skeleton-seeker-walk',
-                path: '../assets/enemies/skeleton/skeleton_seeker_walk.png',
-                frameWidth: 120,
-                frameHeight: 120,
-                animations: {
-                    walk: { start: 0, end: 5, rate: 10 },
-                    spawn: {
-                        texture: 'skeleton-seeker-spawn',
-                        path: '../assets/enemies/skeleton/skeleton_seeker_spawn.png',
-                        frameWidth: 120,
-                        frameHeight: 120,
-                        start: 0, end: 10, rate: 10
-                    }
-                },
-                defaultScale: 1.5
-            },
-            clubimp: {
-                individualFrames: true,
-                framePattern: 'club-imp-walk-',
-                path: '../assets/enemies/impclub/walk_1.png',
-                frameCount: 6,
-                frameWidth: 32,
-                frameHeight: 32,
-                animations: {
-                    walk: { start: 0, end: 5, rate: 10 },
-                    fall: {
-                        individualFrames: true,
-                        framePattern: 'club-imp-fall-',
-                        path: '../assets/enemies/impclub/fall_back_1.png',
-                        frameCount: 5,
-                        start: 0, end: 4, rate: 10
-                    },
-                    standup: {
-                        individualFrames: true,
-                        framePattern: 'club-imp-standup-',
-                        path: '../assets/enemies/impclub/stand_up_1.png',
-                        frameCount: 5,
-                        start: 0, end: 4, rate: 10
-                    }
-                },
-                defaultScale: 3.0
-            },
-            axeimp: {
-                individualFrames: true,
-                framePattern: 'axe-imp-walk-',
-                path: '../assets/enemies/impaxe/walk_1.png',
-                frameCount: 6,
-                frameWidth: 32,
-                frameHeight: 32,
-                animations: {
-                    walk: { start: 0, end: 5, rate: 10 },
-                    fall: {
-                        individualFrames: true,
-                        framePattern: 'axe-imp-fall-',
-                        path: '../assets/enemies/impaxe/fall_back_1.png',
-                        frameCount: 4,
-                        start: 0, end: 3, rate: 10
-                    },
-                    standup: {
-                        individualFrames: true,
-                        framePattern: 'axe-imp-standup-',
-                        path: '../assets/enemies/impaxe/stand_up_1.png',
-                        frameCount: 5,
-                        start: 0, end: 4, rate: 10
-                    }
-                },
-                defaultScale: 3.0
-            },
-            flyingdemon: {
-                texture: 'flyingdemon',
-                path: '../assets/bosses/flyingdemon/flamedemon4frames.png',
-                frameWidth: 81,
-                frameHeight: 71,
-                animations: {
-                    walk: { start: 0, end: 3, rate: 10 }
-                },
-                defaultScale: 1.5
-            },
-            // Lava enemies
-            fireslime: {
-                texture: 'slime-idle',
-                path: '../assets/newenemies/blob/blob%20minion%20idle.png',
-                frameWidth: 80,
-                frameHeight: 35,
-                animations: {
-                    walk: { start: 0, end: 11, rate: 8 }
-                },
-                defaultScale: 1.0,
-                tint: 0xff4444
-            },
-            orangegolem: {
-                texture: 'golem-orange-walk',
-                path: '../assets/Golem_1/Orange/No_Swoosh_VFX/Golem_1_walk.png',
-                frameWidth: 90,
-                frameHeight: 64,
-                animations: {
-                    walk: { start: 0, end: 9, rate: 8 }
-                },
-                defaultScale: 1.5
-            },
-            // Special enemies
-            wraith: {
-                texture: 'wraith-walk',
-                path: 'assets/bosses/scythewraith/scythewraithwalk8frames.png',
-                frameWidth: 79.5,  // 636/8 = 79.5 - need exact value to prevent shifting
-                frameHeight: 68,  // Actual height
-                animations: {
-                    walk: { start: 0, end: 7, rate: 10 },
-                    attack: {
-                        texture: 'wraith-attack',
-                        path: 'assets/bosses/scythewraith/scythewraithattack8frames.png',
-                        frameWidth: 78,  // 624/8 = 78 - corrected width
-                        frameHeight: 68,
-                        start: 0, end: 6, rate: 12  // 7 frames (0-6) instead of 8
-                    },
-                    death: {
-                        texture: 'wraith-death',
-                        path: 'assets/bosses/scythewraith/scythewraithdeath8frames.png',
-                        frameWidth: 110,  // 880/8
-                        frameHeight: 80,   // Actual height
-                        start: 0, end: 7, rate: 10
-                    }
-                },
-                defaultScale: 1.5
-            },
-            // Homunculi (Player Characters)
-            // Note: In-game scales: wizard=1.0, orb=1.0, grim=1.3, blip=2.4
-            // When characters are scaled, hitbox offsets scale proportionally
-            // For accurate hitbox editing, consider the actual in-game scale
-            wizard: {
-                texture: 'wizard-idle',
-                path: '../assets/sprites/wizmove/newiz/wizard_idle.PNG',
-                frameWidth: 80,
-                frameHeight: 80,
-                animations: {
-                    idle: { start: 0, end: 7, rate: 8 },
-                    walk: {
-                        texture: 'wizard-fly',
-                        path: 'assets/sprites/wizmove/newiz/wizard_fly_forward.png',
-                        frameWidth: 80,
-                        frameHeight: 80,
-                        start: 0, end: 7, rate: 10
-                    },
-                    death: {
-                        texture: 'wizard-death',
-                        path: 'assets/sprites/wizmove/newiz/wizard_death.PNG',
-                        frameWidth: 80,
-                        frameHeight: 80,
-                        start: 0, end: 7, rate: 10
-                    }
-                },
-                defaultScale: 1.5
-            },
-            orb: {
-                texture: 'orb-idle',
-                path: 'assets/sprites/homunculicharacters/orbidle10framesdims640x64.png',
-                frameWidth: 64,
-                frameHeight: 64,
-                animations: {
-                    idle: { start: 0, end: 9, rate: 10 },
-                    walk: {
-                        texture: 'orb-walk',
-                        path: 'assets/sprites/homunculicharacters/orbwalk8framesdims512x64.png',
-                        frameWidth: 64,
-                        frameHeight: 64,
-                        start: 0, end: 7, rate: 12
-                    },
-                    spawn: {
-                        texture: 'orb-spawn',
-                        path: '../assets/sprites/homunculicharacters/orbspawn8framesdims512x64.png',
-                        frameWidth: 64,
-                        frameHeight: 64,
-                        start: 0, end: 7, rate: 10
-                    }
-                },
-                defaultScale: 1.5
-            },
-            blip: {
-                texture: 'blip-idle',
-                path: '../assets/sprites/homunculicharacters/blipidle5framesvertical.png',
-                frameWidth: 64,
-                frameHeight: 39,
-                verticalSheet: true,
-                animations: {
-                    idle: { start: 0, end: 4, rate: 8 },
-                    walk: {
-                        texture: 'blip-walk',
-                        path: '../assets/sprites/homunculicharacters/blipwalk8framesvertical.png',
-                        frameWidth: 64,
-                        frameHeight: 39,
-                        verticalSheet: true,
-                        start: 0, end: 7, rate: 10
-                    },
-                    death: {
-                        texture: 'blip-death',
-                        path: '../assets/sprites/homunculicharacters/blipdeath5framesvertical.png',
-                        frameWidth: 64,
-                        frameHeight: 39,
-                        verticalSheet: true,
-                        start: 0, end: 4, rate: 10
-                    }
-                },
-                defaultScale: 1.5
-            },
-            grim: {
-                texture: 'grim-idle',
-                path: '../assets/sprites/homunculicharacters/grimidle8framesx2framesdims512x128.png',
-                frameWidth: 64,  // 512/8 = 64
-                frameHeight: 64,  // 128/2 = 64
-                animations: {
-                    idle: { start: 0, end: 15, rate: 10 },  // 8x2 = 16 frames
-                    walk: {
-                        texture: 'grim-walk',
-                        path: '../assets/sprites/homunculicharacters/grimwalk6framesdimsdims384x64.png',
-                        frameWidth: 64,  // 384/6 = 64
-                        frameHeight: 64,
-                        start: 0, end: 5, rate: 10
-                    },
-                    death: {
-                        texture: 'grim-death',
-                        path: '../assets/sprites/homunculicharacters/grimdeath8framesx3framesdims512x192.png',
-                        frameWidth: 64,  // 512/8 = 64
-                        frameHeight: 64,  // 192/3 = 64
-                        start: 0, end: 23, rate: 10  // 8x3 = 24 frames
-                    }
-                },
-                defaultScale: 1.3
-            }
-        };
-        
+        // Enemy configurations - loaded from sprite-config.json at startup
+        // This is now the SINGLE SOURCE OF TRUTH - no embedded configs!
+        let enemyConfigs = {};
+
         // Player character actual game scales
         // These are the scales applied in game.js when characters are selected
         const playerCharacterScales = {
@@ -1770,7 +712,7 @@
             grim: 1.3,
             blip: 2.4
         };
-        
+
         // Global variables
         let game;
         let editorScene;
@@ -1796,41 +738,60 @@
         let collisionGridSize = 10;
         let showCollisionGrid = true;
         
-        // Load saved data from localStorage
+        // Load saved data and sprite configs from server
         async function loadSavedData() {
-            // Load from server config instead of localStorage
+            // Load from server config - this is the SINGLE SOURCE OF TRUTH
             try {
                 const response = await fetch('/load-config');
                 if (response.ok) {
                     const config = await response.json();
                     savedData = {};
-                    
-                    // Convert config format to savedData format
-                    for (const [enemy, hitbox] of Object.entries(config.hitboxes || {})) {
-                        if (!savedData[enemy]) savedData[enemy] = {};
-                        savedData[enemy].hitbox = hitbox;
+
+                    console.log('[CONFIG LOAD] Received config from server:', Object.keys(config).length, 'entries');
+
+                    // Process each enemy configuration
+                    for (const [enemy, data] of Object.entries(config)) {
+                        if (data && typeof data === 'object') {
+                            // Load sprite metadata if present (from sprite-config.json)
+                            if (data.texture || data.path) {
+                                // This is sprite metadata - update enemyConfigs
+                                enemyConfigs[enemy] = {
+                                    texture: data.texture,
+                                    path: data.path,
+                                    frameWidth: data.frameWidth,
+                                    frameHeight: data.frameHeight,
+                                    animations: data.animations,
+                                    defaultScale: data.defaultScale,
+                                    individualFrames: data.individualFrames,
+                                    framePattern: data.framePattern,
+                                    isStaticImage: data.isStaticImage
+                                };
+                                console.log(`[CONFIG LOAD] Loaded sprite config for ${enemy}`);
+                            }
+
+                            // Load hitbox/shadow/scale data (from hitbox-config.js or sprite-config.json)
+                            if (!savedData[enemy]) savedData[enemy] = {};
+
+                            if (data.hitbox) savedData[enemy].hitbox = data.hitbox;
+                            if (data.shadow) savedData[enemy].shadow = data.shadow;
+                            if (data.scale !== undefined) {
+                                savedData[enemy].scale = data.scale;
+                                console.log(`[CONFIG LOAD] Loaded scale for ${enemy}: ${data.scale}`);
+                            }
+                            if (data.flipX !== undefined) savedData[enemy].flipX = data.flipX;
+                            if (data.flipY !== undefined) savedData[enemy].flipY = data.flipY;
+                        }
                     }
-                    for (const [enemy, shadow] of Object.entries(config.shadows || {})) {
-                        if (!savedData[enemy]) savedData[enemy] = {};
-                        savedData[enemy].shadow = shadow;
-                    }
-                    for (const [enemy, scale] of Object.entries(config.scales || {})) {
-                        if (!savedData[enemy]) savedData[enemy] = {};
-                        savedData[enemy].scale = scale;
-                    }
-                    for (const [enemy, flip] of Object.entries(config.flips || {})) {
-                        if (!savedData[enemy]) savedData[enemy] = {};
-                        savedData[enemy].flipX = flip.flipX || false;
-                        savedData[enemy].flipY = flip.flipY || false;
-                    }
-                    console.log('Loaded config from server:', savedData);
+
+                    console.log('[CONFIG LOAD] Loaded sprite configs:', Object.keys(enemyConfigs).length);
+                    console.log('[CONFIG LOAD] Loaded saved data:', Object.keys(savedData).length);
                 } else {
-                    console.warn('Could not load config from server, using empty data');
-                    savedData = {};
+                    console.error('❌ Could not load config from server! Editor will not work correctly.');
+                    alert('Failed to load sprite configuration from server. Please check that the server is running.');
                 }
             } catch (error) {
-                console.error('Error loading config:', error);
-                savedData = {};
+                console.error('❌ Error loading config:', error);
+                alert('Failed to load sprite configuration: ' + error.message);
             }
         }
         
@@ -1942,7 +903,7 @@
                     // Handle bosses with individual frame images
                     if (config.individualFrames) {
                         // Load individual frames for bosses like Eyelor and Nekros
-                        const frameCount = config.frameCount || (config.animations.walk.end + 1);
+                        const frameCount = config.frameCount || (config.animations.walk ? config.animations.walk.end + 1 : config.animations.idle ? config.animations.idle.end : 1);
                         for (let i = 1; i <= frameCount; i++) {
                             assetsToLoad++;
                             let framePath;
@@ -2336,7 +1297,7 @@
                     const saved = savedData[currentEnemy]?.shadow || {
                         width: 40, height: 12, offsetX: 0, offsetY: 30, alpha: 0.5
                     };
-                    // Sprite origin is center, so shadow position is straightforward
+                    // Shadow offsets are NOT scaled in the game - use direct values
                     currentShadow.x = currentSprite.x + saved.offsetX;
                     currentShadow.y = currentSprite.y + saved.offsetY;
                 }
@@ -2378,10 +1339,12 @@
                 'Cave': ['golem', 'slime', 'kobold', 'brainmole', 'intellectdevourer', 'bloboid', 'darkbat'],
                 'Desert': ['cobra', 'cactuse', 'armadillo', 'bat', 'soul', 'fireworm', 'summoner'],
                 'Swamp': ['swampmerchant', 'torchboy', 'mudguard', 'eyewalker', 'eyegoompa'],
+                'Snowland': ['snowy', 'elkman', 'frost-golem', 'spiked-slime', 'northerner'],
+                'Oceanland': ['jellyfish', 'crabby', 'shark', 'squid', 'crablore'],
                 'Castle': ['castle-knight', 'castle-rogue', 'castle-soldier', 'castle-bladekeeper', 'castle-squire'],
                 'Grave': ['yellowskeleton', 'skeletonseeker', 'clubimp', 'axeimp', 'wraith', 'flyingdemon'],
                 'Lava': ['fireslime', 'orangegolem', 'sorcerer'],
-                'Bosses': ['archerBoss', 'obeliskBoss', 'voidkin', 'kingNothing', 'eyelor', 'nekros', 'demon-slime-boss'],
+                'Bosses': ['archerBoss', 'obeliskBoss', 'voidkin', 'kingNothing', 'eyelor', 'nekros', 'demon-slime-boss', 'frost-guardian-boss'],
                 'Homunculi (Player Characters)': ['wizard', 'orb', 'grim', 'blip'],
                 'Element Symbols': ['element-symbols', 'element-symbols2', 'element-symbols3'],
                 'Spell Projectiles': ['firebolt', 'waterball-projectile', 'lightning-projectile', 'earth-projectile', 'wind-projectile', 'ice-spike', 'ice-spike-loop'],
@@ -2521,19 +1484,26 @@
                     propsNote.style.display = 'none';
                 }
                 
-                // Apply hitbox
+                // Apply UNSCALED hitbox to the sprite body
+                // The body always stores unscaled values, but updateHitboxDisplay() scales them for rendering
                 currentSprite.body.setSize(hitbox.width, hitbox.height);
                 currentSprite.body.setOffset(hitbox.offsetX, hitbox.offsetY);
-                
-                // Update sliders
-                document.getElementById('hitbox-width').value = hitbox.width;
-                document.getElementById('width-value').textContent = hitbox.width;
-                document.getElementById('hitbox-height').value = hitbox.height;
-                document.getElementById('height-value').textContent = hitbox.height;
-                document.getElementById('hitbox-offsetx').value = hitbox.offsetX;
-                document.getElementById('offsetx-value').textContent = hitbox.offsetX;
-                document.getElementById('hitbox-offsety').value = hitbox.offsetY;
-                document.getElementById('offsety-value').textContent = hitbox.offsetY;
+
+                // Convert UNSCALED hitbox values to SCALED for display in sliders
+                const scaledHitboxWidth = Math.round(hitbox.width * scale);
+                const scaledHitboxHeight = Math.round(hitbox.height * scale);
+                const scaledHitboxOffsetX = Math.round(hitbox.offsetX * scale);
+                const scaledHitboxOffsetY = Math.round(hitbox.offsetY * scale);
+
+                // Update sliders with SCALED values (what user sees visually)
+                document.getElementById('hitbox-width').value = scaledHitboxWidth;
+                document.getElementById('width-value').textContent = scaledHitboxWidth;
+                document.getElementById('hitbox-height').value = scaledHitboxHeight;
+                document.getElementById('height-value').textContent = scaledHitboxHeight;
+                document.getElementById('hitbox-offsetx').value = scaledHitboxOffsetX;
+                document.getElementById('offsetx-value').textContent = scaledHitboxOffsetX;
+                document.getElementById('hitbox-offsety').value = scaledHitboxOffsetY;
+                document.getElementById('offsety-value').textContent = scaledHitboxOffsetY;
                 
                 // Update shadow sliders
                 document.getElementById('shadow-width').value = shadow.width;
@@ -2667,7 +1637,7 @@
             
             currentSprite.setScale(
                 flipX ? -Math.abs(scale) : Math.abs(scale),
-                flipY ? -Math.abs(currentSprite.scaleY) : Math.abs(currentSprite.scaleY)
+                flipY ? -Math.abs(scale) : Math.abs(scale)
             );
             
             // Update UI
@@ -2692,7 +1662,7 @@
             const flipY = savedData[currentEnemy].flipY || false;
             
             currentSprite.setScale(
-                flipX ? -Math.abs(currentSprite.scaleX) : Math.abs(currentSprite.scaleX),
+                flipX ? -Math.abs(scale) : Math.abs(scale),
                 flipY ? -Math.abs(scale) : Math.abs(scale)
             );
             
@@ -2733,51 +1703,72 @@
         // Update hitbox
         function updateHitbox() {
             if (!currentSprite) return;
-            
-            const width = parseInt(document.getElementById('hitbox-width').value);
-            const height = parseInt(document.getElementById('hitbox-height').value);
-            const offsetX = parseInt(document.getElementById('hitbox-offsetx').value);
-            const offsetY = parseInt(document.getElementById('hitbox-offsety').value);
-            
-            // Apply the hitbox size and offset
-            // Note: In Phaser, setOffset is from the sprite's top-left corner
-            currentSprite.body.setSize(width, height);
-            currentSprite.body.setOffset(offsetX, offsetY);
-            
-            // Update displays
-            document.getElementById('width-value').textContent = width;
-            document.getElementById('height-value').textContent = height;
-            document.getElementById('offsetx-value').textContent = offsetX;
-            document.getElementById('offsety-value').textContent = offsetY;
-            
-            // Save data
+
+            // Get current sprite scale
+            const scale = Math.abs(currentSprite.scaleX);
+
+            // Read SCALED values from sliders (what user sees visually)
+            const scaledWidth = parseInt(document.getElementById('hitbox-width').value);
+            const scaledHeight = parseInt(document.getElementById('hitbox-height').value);
+            const scaledOffsetX = parseInt(document.getElementById('hitbox-offsetx').value);
+            const scaledOffsetY = parseInt(document.getElementById('hitbox-offsety').value);
+
+            // Convert SCALED slider values to UNSCALED for Phaser body
+            const unscaledWidth = Math.round(scaledWidth / scale);
+            const unscaledHeight = Math.round(scaledHeight / scale);
+            const unscaledOffsetX = Math.round(scaledOffsetX / scale);
+            const unscaledOffsetY = Math.round(scaledOffsetY / scale);
+
+            // Apply UNSCALED values to the sprite body
+            // The body always stores unscaled values - updateHitboxDisplay() will scale them for rendering
+            currentSprite.body.setSize(unscaledWidth, unscaledHeight);
+            currentSprite.body.setOffset(unscaledOffsetX, unscaledOffsetY);
+
+            // Update displays to show SCALED values (visual)
+            document.getElementById('width-value').textContent = scaledWidth;
+            document.getElementById('height-value').textContent = scaledHeight;
+            document.getElementById('offsetx-value').textContent = scaledOffsetX;
+            document.getElementById('offsety-value').textContent = scaledOffsetY;
+
+            // Save UNSCALED data (for Phaser game compatibility)
             if (!savedData[currentEnemy]) savedData[currentEnemy] = {};
-            savedData[currentEnemy].hitbox = { width, height, offsetX, offsetY };
+            savedData[currentEnemy].hitbox = {
+                width: unscaledWidth,
+                height: unscaledHeight,
+                offsetX: unscaledOffsetX,
+                offsetY: unscaledOffsetY
+            };
             saveData();
         }
         
         // Center hitbox on sprite
         function centerHitbox() {
             if (!currentSprite) return;
-            
-            const width = parseInt(document.getElementById('hitbox-width').value);
-            const height = parseInt(document.getElementById('hitbox-height').value);
-            
-            // Get the sprite's frame dimensions (unscaled)
+
+            // Get current sprite scale
+            const scale = Math.abs(currentSprite.scaleX);
+
+            // Get SCALED width/height from sliders (visual values)
+            const scaledWidth = parseInt(document.getElementById('hitbox-width').value);
+            const scaledHeight = parseInt(document.getElementById('hitbox-height').value);
+
+            // Get the sprite's frame dimensions (unscaled) and scale them for visual calculation
             const frameWidth = currentSprite.frame.width;
             const frameHeight = currentSprite.frame.height;
-            
-            // Calculate offset to center the hitbox
+            const scaledFrameWidth = frameWidth * scale;
+            const scaledFrameHeight = frameHeight * scale;
+
+            // Calculate SCALED offset to center the hitbox (visual values)
             // IMPORTANT: body.setOffset is always from the sprite frame's top-left corner,
             // regardless of the sprite's origin setting (which is 0.5, 0.5 in both editor and game)
-            const offsetX = (frameWidth - width) / 2;
-            const offsetY = (frameHeight - height) / 2;
-            
-            // Apply the centered offset
-            document.getElementById('hitbox-offsetx').value = Math.round(offsetX);
-            document.getElementById('hitbox-offsety').value = Math.round(offsetY);
-            
-            // Update the hitbox
+            const scaledOffsetX = (scaledFrameWidth - scaledWidth) / 2;
+            const scaledOffsetY = (scaledFrameHeight - scaledHeight) / 2;
+
+            // Apply the centered offset (these are SCALED visual values)
+            document.getElementById('hitbox-offsetx').value = Math.round(scaledOffsetX);
+            document.getElementById('hitbox-offsety').value = Math.round(scaledOffsetY);
+
+            // Update the hitbox (this will convert to unscaled and save)
             updateHitbox();
             
             // Debug info
@@ -2792,27 +1783,31 @@
         // Update hitbox display
         function updateHitboxDisplay() {
             hitboxGraphics.clear();
-            
+
             if (!document.getElementById('show-hitbox').checked || !currentSprite) return;
-            
+
             const body = currentSprite.body;
-            
+
             // Draw hitbox
             // The game uses center origin (0.5, 0.5) for enemies
             // Phaser body offset is from the sprite's top-left corner regardless of origin
             hitboxGraphics.lineStyle(2, 0x00ff00, 1);
-            // Use displayOriginX/Y which already accounts for scale
-            const spriteTopLeftX = currentSprite.x - currentSprite.displayOriginX;
-            const spriteTopLeftY = currentSprite.y - currentSprite.displayOriginY;
-            const bodyX = spriteTopLeftX + body.offset.x;
-            const bodyY = spriteTopLeftY + body.offset.y;
-            hitboxGraphics.strokeRect(bodyX, bodyY, body.width, body.height);
+
+            // IMPORTANT: Use body.position for the ACTUAL collision position
+            // body.x and body.y are incorrect getter properties - use body.position instead!
+            const scale = Math.abs(currentSprite.scaleX);
+
+            // CRITICAL: Phaser's collision uses UNSCALED body size, not scaled!
+            // Even though the sprite is scaled, the collision body dimensions remain unscaled
+            hitboxGraphics.strokeRect(body.position.x, body.position.y, body.width, body.height);
             
             // Draw sprite bounds
             hitboxGraphics.lineStyle(1, 0xffffff, 0.5);
+            const spriteTopLeftX = currentSprite.x - (currentSprite.displayOriginX * scale);
+            const spriteTopLeftY = currentSprite.y - (currentSprite.displayOriginY * scale);
             hitboxGraphics.strokeRect(
-                currentSprite.x - currentSprite.displayOriginX,
-                currentSprite.y - currentSprite.displayOriginY,
+                spriteTopLeftX,
+                spriteTopLeftY,
                 currentSprite.displayWidth,
                 currentSprite.displayHeight
             );
@@ -2954,11 +1949,13 @@
             
             currentShadow.clear();
             currentShadow.fillStyle(0x000000, saved.alpha);
-            currentShadow.fillEllipse(0, 0, saved.width / 2, saved.height / 2);
+            // Scale shadow size to match sprite scale
+            const scale = Math.abs(currentSprite.scaleX);
+            currentShadow.fillEllipse(0, 0, (saved.width * scale) / 2, (saved.height * scale) / 2);
             
-            // Position shadow relative to sprite's feet (bottom)
-            // In the game, shadows are positioned based on sprite position + offsetY
-            // The offsetY in the config is the distance from sprite center to shadow center
+            // Position shadow relative to sprite's center with unscaled offsets
+            // In the game, shadows are positioned based on sprite position + unscaled offsetX/Y
+            // Only the shadow SIZE is scaled, not the position offsets
             currentShadow.x = currentSprite.x + saved.offsetX;
             currentShadow.y = currentSprite.y + saved.offsetY;
             

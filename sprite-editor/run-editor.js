@@ -117,7 +117,7 @@ const server = http.createServer((req, res) => {
                     const hitboxesText = hitboxesMatch[1];
                     // Match entries like 'blip': { width: 18, height: 18, offsetX: 23, offsetY: 11 }
                     // Also handle entries without quotes like darkbat: { width: 50, ...
-                    const hitboxPattern = /['"]?([^'":\s]+)['"]?\s*:\s*\{\s*width:\s*(\d+),\s*height:\s*(\d+),\s*offsetX:\s*([\d.-]+),\s*offsetY:\s*([\d.-]+)/g;
+                    const hitboxPattern = /['"]?([^'":\s]+)['"]?\s*:\s*\{\s*['"]*width['"]*:\s*(\d+),\s*['"]*height['"]*:\s*(\d+),\s*['"]*offsetX['"]*:\s*([\d.-]+),\s*['"]*offsetY['"]*:\s*([\d.-]+)/g;
                     let match;
                     while ((match = hitboxPattern.exec(hitboxesText)) !== null) {
                         const [, enemy, width, height, offsetX, offsetY] = match;
@@ -137,7 +137,7 @@ const server = http.createServer((req, res) => {
                 if (shadowsMatch) {
                     const shadowsText = shadowsMatch[1];
                     // Match entries with or without quotes
-                    const shadowPattern = /['"]?([^'":\s]+)['"]?\s*:\s*\{\s*width:\s*(\d+),\s*height:\s*(\d+),\s*offsetX:\s*([\d.-]+),\s*offsetY:\s*([\d.-]+),\s*alpha:\s*([\d.]+)/g;
+                    const shadowPattern = /['"]?([^'":\s]+)['"]?\s*:\s*\{\s*['"]*width['"]*:\s*(\d+),\s*['"]*height['"]*:\s*(\d+),\s*['"]*offsetX['"]*:\s*([\d.-]+),\s*['"]*offsetY['"]*:\s*([\d.-]+),\s*['"]*alpha['"]*:\s*([\d.]+)/g;
                     let match;
                     while ((match = shadowPattern.exec(shadowsText)) !== null) {
                         const [, enemy, width, height, offsetX, offsetY, alpha] = match;
@@ -198,6 +198,9 @@ const server = http.createServer((req, res) => {
             '/archerboss/', '/skeleton/', '/castlelandfoes/', '/desertlandfoes/',
             '/Obelisk_demo/', '/wizmove/', '/Eyelor/', '/Nekros/',
             '/bladekeeper/', '/flyingdemon/', '/impclub/', '/impaxe/', // Add imp folders
+            '/frostguardian/', // Add frost guardian boss assets
+            '/snowlandenemies/', // Add snowland enemy assets
+            '/oceanlandenemies/', // Add oceanland enemy assets
             'Bat-IdleFly9frames.png', 'obeliskBoss.png', 'voidkin15frames.png',
             'HitboxEditor.js', 'hitbox-config.js',
             // Add tile images for backgrounds

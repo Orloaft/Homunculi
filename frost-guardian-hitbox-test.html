@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frost Guardian Hitbox Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background: #2d5a2d; border: 1px solid #4a8f4a; }
+        .error { background: #5a2d2d; border: 1px solid #8f4a4a; }
+        .warning { background: #5a5a2d; border: 1px solid #8f8f4a; }
+        .info { background: #2d2d5a; border: 1px solid #4a4a8f; }
+        
+        #console-output {
+            background: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            padding: 15px;
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #333;
+            white-space: pre-line;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #45a049; }
+        
+        .config-display {
+            background: #333;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Frost Guardian Hitbox Configuration Test</h1>
+        
+        <div class="test-section">
+            <h2>📋 Test Instructions</h2>
+            <p>This page will help you verify the Frost Guardian hitbox fixes without needing to progress through the entire game.</p>
+            <ol>
+                <li>Click "Load Game Scripts" to load the hitbox configuration</li>
+                <li>Click "Test Hitbox Config" to verify the configuration is loaded correctly</li>
+                <li>Open the main game at <a href="http://localhost:3000" target="_blank">http://localhost:3000</a> in another tab</li>
+                <li>Progress to the snow stage and spawn the Frost Guardian boss</li>
+                <li>Check console output for the expected debug messages</li>
+            </ol>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔧 Configuration Test</h2>
+            <button onclick="loadGameScripts()">Load Game Scripts</button>
+            <button onclick="testHitboxConfig()">Test Hitbox Config</button>
+            <button onclick="clearConsole()">Clear Console</button>
+            
+            <div id="status-display"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📊 Expected Configuration</h2>
+            <div class="config-display">Expected Frost Guardian Configuration:
+- Hitbox: 120x120 with offset (30, 30)
+- Scale: 2.0
+- Flip: flipX: true, flipY: false
+
+Expected Debug Output:
+[FROST GUARDIAN] hitboxConfig loaded: true
+[FROST GUARDIAN] frost-guardian-boss config: {width: 120, height: 120, offsetX: 30, offsetY: 30}
+[HITBOX] Applied - Size: 120x120, Direct offset: (30, 30)
+[FROST GUARDIAN] After hitbox config - Size: 120x120, Offset: (30, 30)</div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🖥️ Console Output</h2>
+            <div id="console-output"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🎮 Manual Game Test</h2>
+            <div class="status info">
+                <strong>To test in the actual game:</strong><br>
+                1. Open <a href="http://localhost:3000" target="_blank">http://localhost:3000</a><br>
+                2. Open Developer Tools (F12) → Console tab<br>
+                3. Progress to snow stage (stage 4)<br>
+                4. Wait for Frost Guardian boss to spawn<br>
+                5. Look for the debug messages listed above<br>
+                6. Verify the boss appears scaled (2x) and flipped horizontally
+            </div>
+            
+            <iframe src="http://localhost:3000" width="100%" height="600" style="border: 1px solid #444; margin-top: 15px;"></iframe>
+        </div>
+    </div>
+
+    <script>
+        let consoleElement;
+        let statusElement;
+        
+        // Capture console messages
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+        
+        function initConsole() {
+            consoleElement = document.getElementById('console-output');
+            statusElement = document.getElementById('status-display');
+            
+            console.log = function(...args) {
+                originalConsoleLog.apply(console, args);
+                logToDisplay('LOG', args.join(' '));
+            };
+            
+            console.error = function(...args) {
+                originalConsoleError.apply(console, args);
+                logToDisplay('ERROR', args.join(' '));
+            };
+            
+            console.warn = function(...args) {
+                originalConsoleWarn.apply(console, args);
+                logToDisplay('WARN', args.join(' '));
+            };
+        }
+        
+        function logToDisplay(level, message) {
+            if (consoleElement) {
+                const timestamp = new Date().toLocaleTimeString();
+                const color = level === 'ERROR' ? '#ff6b6b' : level === 'WARN' ? '#ffd93d' : '#6bcf7f';
+                consoleElement.innerHTML += `<span style="color: ${color}">[${timestamp}] ${level}: ${message}</span>\n`;
+                consoleElement.scrollTop = consoleElement.scrollHeight;
+            }
+        }
+        
+        function showStatus(message, type = 'info') {
+            if (statusElement) {
+                statusElement.innerHTML = `<div class="status ${type}">${message}</div>`;
+            }
+        }
+        
+        function clearConsole() {
+            if (consoleElement) {
+                consoleElement.innerHTML = '';
+            }
+        }
+        
+        async function loadGameScripts() {
+            showStatus('Loading game scripts...', 'info');
+            
+            try {
+                // Load hitbox configuration
+                const response = await fetch('/scripts/hitbox-config.js');
+                const scriptText = await response.text();
+                
+                // Create script element and execute
+                const script = document.createElement('script');
+                script.textContent = scriptText;
+                document.head.appendChild(script);
+                
+                console.log('✅ Game scripts loaded successfully');
+                showStatus('✅ Game scripts loaded successfully', 'success');
+                
+                setTimeout(testHitboxConfig, 500);
+                
+            } catch (error) {
+                console.error('❌ Failed to load game scripts:', error);
+                showStatus(`❌ Failed to load game scripts: ${error.message}`, 'error');
+            }
+        }
+        
+        function testHitboxConfig() {
+            console.log('🧪 Testing Frost Guardian hitbox configuration...');
+            
+            try {
+                // Check if hitboxConfig is available
+                if (typeof hitboxConfig === 'undefined') {
+                    throw new Error('hitboxConfig is not loaded');
+                }
+                
+                console.log('✅ hitboxConfig object exists');
+                console.log('📊 hitboxConfig.loaded:', hitboxConfig.loaded);
+                
+                // Check if frost-guardian-boss config exists
+                const frostConfig = hitboxConfig.hitboxes['frost-guardian-boss'];
+                if (!frostConfig) {
+                    throw new Error('frost-guardian-boss config not found in hitboxes');
+                }
+                
+                console.log('✅ frost-guardian-boss hitbox config found:');
+                console.log('📋 Configuration:', JSON.stringify(frostConfig, null, 2));
+                
+                // Verify configuration values
+                const expectedWidth = 120;
+                const expectedHeight = 120;
+                const expectedOffsetX = 30;
+                const expectedOffsetY = 30;
+                
+                let configCorrect = true;
+                
+                if (frostConfig.width !== expectedWidth) {
+                    console.error(`❌ Width mismatch: expected ${expectedWidth}, got ${frostConfig.width}`);
+                    configCorrect = false;
+                }
+                
+                if (frostConfig.height !== expectedHeight) {
+                    console.error(`❌ Height mismatch: expected ${expectedHeight}, got ${frostConfig.height}`);
+                    configCorrect = false;
+                }
+                
+                if (frostConfig.offsetX !== expectedOffsetX) {
+                    console.error(`❌ OffsetX mismatch: expected ${expectedOffsetX}, got ${frostConfig.offsetX}`);
+                    configCorrect = false;
+                }
+                
+                if (frostConfig.offsetY !== expectedOffsetY) {
+                    console.error(`❌ OffsetY mismatch: expected ${expectedOffsetY}, got ${frostConfig.offsetY}`);
+                    configCorrect = false;
+                }
+                
+                // Check scale configuration
+                const scaleConfig = hitboxConfig.scales['frost-guardian-boss'];
+                if (scaleConfig !== 2) {
+                    console.error(`❌ Scale mismatch: expected 2, got ${scaleConfig}`);
+                    configCorrect = false;
+                } else {
+                    console.log('✅ Scale configuration correct: 2.0');
+                }
+                
+                // Check flip configuration
+                const flipConfig = hitboxConfig.flips['frost-guardian-boss'];
+                if (!flipConfig || flipConfig.flipX !== true || flipConfig.flipY !== false) {
+                    console.error(`❌ Flip configuration incorrect:`, flipConfig);
+                    configCorrect = false;
+                } else {
+                    console.log('✅ Flip configuration correct: flipX: true, flipY: false');
+                }
+                
+                if (configCorrect) {
+                    console.log('🎉 ALL CONFIGURATION VALUES ARE CORRECT!');
+                    showStatus('🎉 Hitbox configuration is correct! Ready for game testing.', 'success');
+                    
+                    // Test the applyHitbox function if available
+                    if (typeof hitboxConfig.applyHitbox === 'function') {
+                        console.log('🔧 Testing applyHitbox function...');
+                        
+                        // Create a mock enemy object
+                        const mockEnemy = {
+                            body: {
+                                width: 30,  // Default size
+                                height: 30,
+                                offset: { x: 0, y: 0 }
+                            },
+                            setSize: function(width, height, offsetX, offsetY) {
+                                this.body.width = width;
+                                this.body.height = height;
+                                this.body.offset.x = offsetX || 0;
+                                this.body.offset.y = offsetY || 0;
+                                console.log(`[MOCK] setSize called: ${width}x${height}, offset: (${this.body.offset.x}, ${this.body.offset.y})`);
+                            }
+                        };
+                        
+                        const result = hitboxConfig.applyHitbox(mockEnemy, 'frost-guardian-boss');
+                        
+                        if (result && mockEnemy.body.width === 120 && mockEnemy.body.height === 120) {
+                            console.log('✅ applyHitbox function works correctly!');
+                        } else {
+                            console.error('❌ applyHitbox function did not apply correct values');
+                        }
+                    }
+                    
+                } else {
+                    console.error('❌ Configuration has errors - check values above');
+                    showStatus('❌ Configuration has errors - check console for details', 'error');
+                }
+                
+            } catch (error) {
+                console.error('❌ Test failed:', error.message);
+                showStatus(`❌ Test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initConsole);
+        
+        // Auto-load scripts when page loads
+        window.addEventListener('load', () => {
+            setTimeout(loadGameScripts, 1000);
+        });
+    </script>
+</body>
+</html>
