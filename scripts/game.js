@@ -1002,6 +1002,61 @@ class LoadingScene extends Phaser.Scene {
             frameWidth: 64,
             frameHeight: 64
         });
+        // Load elemental slime sprites (8x4 grid: 8 frames across, 4 rows for down/up/left/right)
+        // Bomb Slime (drops blast orb)
+        this.load.spritesheet('bombslime-walk', 'assets/elementslimes/Top-Down-Pixel-Art-Slime-Monsters-Sprite-Pack/PNG/Slime1/Walk/Slime1_Walk_body.png', {
+            frameWidth: 64,  // 512 / 8 = 64
+            frameHeight: 64  // 256 / 4 = 64
+        });
+        this.load.spritesheet('bombslime-death', 'assets/elementslimes/Top-Down-Pixel-Art-Slime-Monsters-Sprite-Pack/PNG/Slime1/Death/Slime1_Death_body.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
+        // Fire Slime (drops fire orb)
+        this.load.spritesheet('fireslime-walk', 'assets/elementslimes/Top-Down-Pixel-Art-Slime-Monsters-Sprite-Pack/PNG/Slime2/Walk/Slime2_Walk_body.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
+        this.load.spritesheet('fireslime-death', 'assets/elementslimes/Top-Down-Pixel-Art-Slime-Monsters-Sprite-Pack/PNG/Slime2/Death/Slime2_Death_body.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
+        // Arcane Slime (drops arcane orb)
+        this.load.spritesheet('arcaneslime-walk', 'assets/elementslimes/Top-Down-Pixel-Art-Slime-Monsters-Sprite-Pack/PNG/Slime3/Walk/Slime3_Walk_body.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
+        this.load.spritesheet('arcaneslime-death', 'assets/elementslimes/Top-Down-Pixel-Art-Slime-Monsters-Sprite-Pack/PNG/Slime3/Death/Slime3_Death_body.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
+        // Water Slime (drops water orb)
+        this.load.spritesheet('waterslime-walk', 'assets/elementslimes/pixel-art-slime-enemies-top-down-sprite-pack/PNG/Slime1/Walk/Slime1_Walk_body.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
+        this.load.spritesheet('waterslime-death', 'assets/elementslimes/pixel-art-slime-enemies-top-down-sprite-pack/PNG/Slime1/Death/Slime1_Death_body.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
+        // Lightning Slime (drops lightning orb)
+        this.load.spritesheet('lightningslime-walk', 'assets/elementslimes/pixel-art-slime-enemies-top-down-sprite-pack/PNG/Slime2/Walk/Slime2_Walk_body.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
+        this.load.spritesheet('lightningslime-death', 'assets/elementslimes/pixel-art-slime-enemies-top-down-sprite-pack/PNG/Slime2/Death/Slime2_Death_body.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
+        // Earth Slime (drops earth orb)
+        this.load.spritesheet('earthslime-walk', 'assets/elementslimes/pixel-art-slime-enemies-top-down-sprite-pack/PNG/Slime3/Walk/Slime3_Walk_body.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
+        this.load.spritesheet('earthslime-death', 'assets/elementslimes/pixel-art-slime-enemies-top-down-sprite-pack/PNG/Slime3/Death/Slime3_Death_body.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
         // Load forest enemy sprites
         this.load.spritesheet('giantfly-walk', 'assets/enemies/forestlandfoes/giantflywalk4frames.png', {
             frameWidth: 32,
@@ -1010,6 +1065,10 @@ class LoadingScene extends Phaser.Scene {
         this.load.spritesheet('giantfly-death', 'assets/enemies/forestlandfoes/giantflydeath6frames.png', {
             frameWidth: 32,
             frameHeight: 30  // Actual height: 192x30 / 6 frames
+        });
+        this.load.spritesheet('bumblebee-walk', 'assets/enemies/forestlandfoes/bee4frames.png', {
+            frameWidth: 32,
+            frameHeight: 19  // Actual dimensions: 128x19 / 4 frames
         });
         this.load.spritesheet('squirrel-walk', 'assets/enemies/forestlandfoes/squirrelwalk8frames.png', {
             frameWidth: 32,
@@ -1325,6 +1384,7 @@ class TitleScene extends Phaser.Scene {
         super({ key: 'TitleScene' });
         this.debugEnabled = localStorage.getItem('debugMode') === 'true';
         this.controllerDetectionActive = false;
+        this.saveManager = null;
     }
     init(data) {
         // Store any data passed from previous scene
@@ -2640,9 +2700,16 @@ class TitleScene extends Phaser.Scene {
                     this.titleMusic.destroy();
                     this.titleMusic = null;
                 }
-                this.scene.start('StageSelectScene', {
-                    fromTitle: true,
-                    multiplayerEnabled: this.multiplayerEnabled // Pass multiplayer state
+
+                // Initialize SaveManager if not already done
+                if (!this.saveManager) {
+                    this.saveManager = new SaveManager();
+                }
+
+                // Go to save slot selection scene
+                this.scene.start('SaveSlotScene', {
+                    saveManager: this.saveManager,
+                    debugMode: this.debugEnabled
                 });
             }
         });
@@ -2928,6 +2995,25 @@ class StageSelectScene extends Phaser.Scene {
         this.isInternalTransition = false;
         // Always reset detail view state when initializing the scene
         this.detailViewActive = false;
+
+        // Get SaveManager from data or registry
+        this.saveManager = data?.saveManager || this.registry.get('saveManager');
+
+        // Check if this is a new game or resuming
+        if (data && data.newGame) {
+            console.log('Starting new game');
+        } else if (data && data.resuming) {
+            console.log('Resuming existing game');
+            // Load saved state if available
+            if (this.saveManager) {
+                const saveData = this.saveManager.getCurrentSave();
+                if (saveData) {
+                    // Apply saved progression state
+                    this.loadFromSave(saveData);
+                }
+            }
+        }
+
         // Receive multiplayer state from title screen
         if (data && data.multiplayerEnabled !== undefined) {
             this.multiplayerEnabled = data.multiplayerEnabled;
@@ -4880,6 +4966,23 @@ class StageSelectScene extends Phaser.Scene {
             // Start immediately if no music playing
             this.scene.start('ArcadeScene');
         }
+    }
+
+    /**
+     * Load saved game state and apply to stage select
+     */
+    loadFromSave(saveData) {
+        console.log('[StageSelectScene] Loading from save:', saveData);
+
+        // TODO: Apply saved progression state
+        // This will be implemented once the stages array structure is understood
+        // For now, we just log that we received the save data
+
+        // Example of what could be loaded:
+        // - Unlocked stages/worlds
+        // - Current stage position
+        // - Player stats and level
+        // - Equipped element/spells
     }
 }
 class ArcadeScene extends Phaser.Scene {
@@ -7434,12 +7537,31 @@ class GameOverScene extends Phaser.Scene {
     init(data) {
         this.survivalTime = data.survivalTime || 0;
         // Handle both old object format and new number format
-        this.enemiesKilled = typeof data.enemiesKilled === 'number' ? data.enemiesKilled : 
+        this.enemiesKilled = typeof data.enemiesKilled === 'number' ? data.enemiesKilled :
             (data.enemiesKilled ? Object.values(data.enemiesKilled).reduce((a, b) => a + b, 0) : 0);
-        this.itemsCollected = typeof data.itemsCollected === 'number' ? data.itemsCollected : 
+        this.itemsCollected = typeof data.itemsCollected === 'number' ? data.itemsCollected :
             (data.itemsCollected ? Object.values(data.itemsCollected).reduce((a, b) => a + b, 0) : 0);
         this.won = data.won || false;
         this.stage = data.stage || 'forest';
+
+        // Get managers from registry
+        this.saveManager = this.registry.get('saveManager');
+        this.achievementManager = this.registry.get('achievementManager');
+
+        // If we have a save manager and player won, update stats and auto-save
+        if (this.won && this.saveManager) {
+            this.updateSaveData();
+            this.saveManager.autoSave();
+            console.log('✅ Auto-saved after stage completion');
+        }
+
+        // Check achievements if available
+        if (this.achievementManager) {
+            const newAchievements = this.achievementManager.checkAchievements();
+            if (newAchievements.length > 0) {
+                console.log(`🏆 Unlocked ${newAchievements.length} achievement(s)!`);
+            }
+        }
     }
     create() {
         // Dark background matching main game
@@ -7580,6 +7702,50 @@ class GameOverScene extends Phaser.Scene {
             localStorage.setItem(`${nextStage}LandUnlocked`, 'true');
             } else {
             }
+    }
+
+    /**
+     * Update save data with current game statistics
+     */
+    updateSaveData() {
+        if (!this.saveManager || !this.saveManager.currentSaveData) {
+            return;
+        }
+
+        const saveData = this.saveManager.currentSaveData;
+        const stageId = `${this.stage}-1`; // e.g., 'forest-1'
+
+        // Add completed stage if not already in list
+        if (!saveData.stages.completedStages.includes(stageId)) {
+            saveData.stages.completedStages.push(stageId);
+        }
+
+        // Update stage stats
+        if (!saveData.stages.stageStats[stageId]) {
+            saveData.stages.stageStats[stageId] = {
+                attempts: 0,
+                bestTime: null,
+                deaths: 0
+            };
+        }
+
+        const stageStats = saveData.stages.stageStats[stageId];
+        stageStats.attempts += 1;
+
+        // Update best time if this is better
+        if (!stageStats.bestTime || this.survivalTime < stageStats.bestTime) {
+            stageStats.bestTime = this.survivalTime;
+        }
+
+        // Update global stats
+        saveData.stats.totalEnemiesDefeated += this.enemiesKilled;
+        saveData.stats.totalGoldCollected += this.itemsCollected;
+
+        console.log('[GameOverScene] Updated save data:', {
+            completedStage: stageId,
+            totalCompleted: saveData.stages.completedStages.length,
+            enemiesDefeated: saveData.stats.totalEnemiesDefeated
+        });
     }
 }
 class TalentTreeScene extends Phaser.Scene {
@@ -8296,7 +8462,7 @@ class GameScene extends Phaser.Scene {
         this.jewels = null;
         this.playerXP = 0;
         this.playerLevel = 0; // Start at level 0 for easier first level up
-        this.xpToNextLevel = 15; // Balanced for early game - first 5 levels are faster
+        this.xpToNextLevel = 10; // Reduced from 15 for easier progression
         // Additional game stats for game over screen
         this.enemiesKilled = 0;
         this.itemsCollected = 0;
@@ -8376,6 +8542,14 @@ class GameScene extends Phaser.Scene {
     create() {
         // Add fullscreen toggle
         setupFullscreenKey(this);
+
+        // Initialize achievement notification system if available
+        const achievementManager = this.registry.get('achievementManager');
+        if (achievementManager && typeof AchievementNotification !== 'undefined') {
+            this.achievementNotification = new AchievementNotification(this, achievementManager);
+            console.log('✅ Achievement notifications initialized');
+        }
+
         // Initialize boss cutscene system
         this.bossCutsceneSystem = new BossCutsceneSystem(this);
         // Handle WebGL context loss
@@ -8685,7 +8859,7 @@ class GameScene extends Phaser.Scene {
         this.barrels = this.physics.add.group();
         this.playerXP = 0;
         this.playerLevel = 0; // Start at level 0 for easier first level up
-        this.xpToNextLevel = 15; // Balanced for early game - first 5 levels are faster
+        this.xpToNextLevel = 10; // Reduced from 15 for easier progression
         // Additional game stats for game over screen
         this.enemiesKilled = 0;
         this.itemsCollected = 0;
@@ -11117,6 +11291,12 @@ class GameScene extends Phaser.Scene {
             repeat: -1
         });
         createAnimIfNotExists({
+            key: 'bumblebee-walking',
+            frames: this.anims.generateFrameNumbers('bumblebee-walk', { start: 0, end: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        createAnimIfNotExists({
             key: 'giantfly-dying',
             frames: this.anims.generateFrameNumbers('giantfly-death', { start: 0, end: 5 }),
             frameRate: 10,
@@ -11627,6 +11807,37 @@ class GameScene extends Phaser.Scene {
                 });
             });
         }
+        // Create elemental slime animations (8x4 grid: 8 frames across, 4 rows for down/up/left/right)
+        const slimeTypes = ['bombslime', 'fireslime', 'arcaneslime', 'waterslime', 'lightningslime', 'earthslime'];
+        const slimeDirections = ['down', 'up', 'left', 'right'];
+
+        slimeTypes.forEach(slimeType => {
+            // Walk animations for each direction
+            slimeDirections.forEach((dir, rowIndex) => {
+                createAnimIfNotExists({
+                    key: `${slimeType}-walk-${dir}`,
+                    frames: this.anims.generateFrameNumbers(`${slimeType}-walk`, {
+                        start: rowIndex * 8,
+                        end: rowIndex * 8 + 7
+                    }),
+                    frameRate: 8,
+                    repeat: -1
+                });
+            });
+
+            // Death animations for each direction
+            slimeDirections.forEach((dir, rowIndex) => {
+                createAnimIfNotExists({
+                    key: `${slimeType}-death-${dir}`,
+                    frames: this.anims.generateFrameNumbers(`${slimeType}-death`, {
+                        start: rowIndex * 8,
+                        end: rowIndex * 8 + 7
+                    }),
+                    frameRate: 8,
+                    repeat: 0
+                });
+            });
+        });
         // Create Eyelor animations
         // Movement animation (13 frames)
         const eyelorMoveFrames = [];
@@ -14275,7 +14486,7 @@ class GameScene extends Phaser.Scene {
                 }
             ];
         } else if (this.stage === 'forest' || this.stage === 'spire') {
-            // Forest and spire use the same wave patterns 
+            // Forest and spire use the same wave patterns
             baseWaves = [
                 // Wave 0 (0:00-1:00) - Introduction - Easy start with basic forest enemies
                 {
@@ -14283,7 +14494,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'mushroom', weight: 30, count: 2 },
                         { type: 'tree', weight: 30, count: 2 },
                         { type: 'squirrel', weight: 20, count: 1 },
-                        { type: 'giantfly', weight: 20, count: 1 }
+                        { type: 'bumblebee', weight: 20, count: 1 }
                     ],
                     spawnInterval: 3000,  // Slower spawn rate
                     maxEnemies: 15  // Fewer total enemies
@@ -14293,7 +14504,7 @@ class GameScene extends Phaser.Scene {
                     enemies: [
                         { type: 'tree', weight: 25, count: 2 },
                         { type: 'mushroom', weight: 25, count: 2 },
-                        { type: 'giantfly', weight: 20, count: 3 },
+                        { type: 'bumblebee', weight: 20, count: 3 },
                         { type: 'squirrel', weight: 20, count: 3 },
                         { type: 'redpanda', weight: 10, count: 1 }
                     ],
@@ -14305,22 +14516,24 @@ class GameScene extends Phaser.Scene {
                     enemies: [
                         { type: 'tree', weight: 25, count: 3 },
                         { type: 'mushroom', weight: 25, count: 3 },
-                        { type: 'giantfly', weight: 20, count: 3 },
+                        { type: 'bumblebee', weight: 20, count: 3 },
                         { type: 'squirrel', weight: 15, count: 3 },
-                        { type: 'redpanda', weight: 15, count: 2 }
+                        { type: 'redpanda', weight: 15, count: 2 },
+                        { type: 'arcaneslime', weight: 3, count: 1 }  // Element orb source
                     ],
                     spawnInterval: 1200,
                     maxEnemies: 45,
-                    specialEvent: { time: 30, type: 'swarm', enemy: 'giantfly', count: 8 }
+                    specialEvent: { time: 30, type: 'swarm', enemy: 'bumblebee', count: 8 }
                 },
                 // Wave 3 (3:00-4:00) - More variety
                 {
                     enemies: [
                         { type: 'tree', weight: 25, count: 3 },
                         { type: 'mushroom', weight: 25, count: 3 },
-                        { type: 'giantfly', weight: 20, count: 4 },
+                        { type: 'bumblebee', weight: 20, count: 4 },
                         { type: 'squirrel', weight: 15, count: 4 },
-                        { type: 'redpanda', weight: 15, count: 3 }
+                        { type: 'redpanda', weight: 15, count: 3 },
+                        { type: 'arcaneslime', weight: 3, count: 1 }  // Element orb source
                     ],
                     spawnInterval: 1000,
                     maxEnemies: 55
@@ -14330,10 +14543,12 @@ class GameScene extends Phaser.Scene {
                     enemies: [
                         { type: 'mushroom', weight: 20, count: 3 },
                         { type: 'tree', weight: 20, count: 3 },
-                        { type: 'summoner', weight: 20, count: 1 },
-                        { type: 'giantfly', weight: 15, count: 4 },
+                        { type: 'summoner', weight: 10, count: 1 },  // Reduced weight from 20 to 10 (nerf)
+                        { type: 'bumblebee', weight: 15, count: 4 },
                         { type: 'squirrel', weight: 15, count: 4 },
-                        { type: 'redpanda', weight: 10, count: 3 }
+                        { type: 'redpanda', weight: 10, count: 3 },
+                        { type: 'arcaneslime', weight: 10, count: 2 },  // Element orb source (doubled)
+                        { type: 'earthslime', weight: 3, count: 1 }  // Element orb source
                     ],
                     spawnInterval: 2000,
                     maxEnemies: 65,
@@ -14342,12 +14557,14 @@ class GameScene extends Phaser.Scene {
                 // Wave 5+ (5:00+) - Full forest roster
                 {
                     enemies: [
-                        { type: 'summoner', weight: 20, count: 2 },
+                        { type: 'summoner', weight: 10, count: 1 },  // Reduced weight from 20 to 10 and count from 2 to 1 (nerf)
                         { type: 'tree', weight: 15, count: 4 },
                         { type: 'mushroom', weight: 15, count: 4 },
-                        { type: 'giantfly', weight: 20, count: 5 },
+                        { type: 'bumblebee', weight: 20, count: 5 },
                         { type: 'squirrel', weight: 20, count: 5 },
-                        { type: 'redpanda', weight: 10, count: 3 }
+                        { type: 'redpanda', weight: 10, count: 3 },
+                        { type: 'arcaneslime', weight: 3, count: 1 },  // Element orb source
+                        { type: 'earthslime', weight: 3, count: 1 }  // Element orb source
                     ],
                     spawnInterval: 1500,
                     maxEnemies: 80
@@ -14394,7 +14611,8 @@ class GameScene extends Phaser.Scene {
                         { type: 'northerner', weight: 20, count: 3 },
                         { type: 'spiked-slime', weight: 25, count: 3 },
                         { type: 'elkman', weight: 20, count: 2 },
-                        { type: 'frost-golem', weight: 15, count: 1 }
+                        { type: 'frost-golem', weight: 15, count: 1 },
+                        { type: 'lightningslime', weight: 3, count: 1 }  // Element orb source
                     ],
                     spawnInterval: 1000,
                     maxEnemies: 55
@@ -14406,7 +14624,8 @@ class GameScene extends Phaser.Scene {
                         { type: 'northerner', weight: 20, count: 3 },
                         { type: 'spiked-slime', weight: 20, count: 3 },
                         { type: 'elkman', weight: 25, count: 3 },
-                        { type: 'frost-golem', weight: 20, count: 2 }
+                        { type: 'frost-golem', weight: 20, count: 2 },
+                        { type: 'lightningslime', weight: 3, count: 1 }  // Element orb source
                     ],
                     spawnInterval: 2000,
                     maxEnemies: 65,
@@ -14419,7 +14638,8 @@ class GameScene extends Phaser.Scene {
                         { type: 'elkman', weight: 25, count: 4 },
                         { type: 'northerner', weight: 20, count: 4 },
                         { type: 'spiked-slime', weight: 20, count: 4 },
-                        { type: 'snowy', weight: 10, count: 5 }
+                        { type: 'snowy', weight: 10, count: 5 },
+                        { type: 'lightningslime', weight: 3, count: 1 }  // Element orb source
                     ],
                     spawnInterval: 1500,
                     maxEnemies: 80
@@ -14453,7 +14673,8 @@ class GameScene extends Phaser.Scene {
                         { type: 'jellyfish', weight: 25, count: 3 },
                         { type: 'crabby', weight: 30, count: 3 },
                         { type: 'squid', weight: 25, count: 2 },
-                        { type: 'shark', weight: 20, count: 1 }
+                        { type: 'shark', weight: 20, count: 1 },
+                        { type: 'waterslime', weight: 3, count: 1 }  // Element orb source
                     ],
                     spawnInterval: 1200,
                     maxEnemies: 45,
@@ -14466,7 +14687,8 @@ class GameScene extends Phaser.Scene {
                         { type: 'crabby', weight: 25, count: 3 },
                         { type: 'squid', weight: 25, count: 3 },
                         { type: 'shark', weight: 20, count: 2 },
-                        { type: 'crablore', weight: 10, count: 1 }
+                        { type: 'crablore', weight: 10, count: 1 },
+                        { type: 'waterslime', weight: 3, count: 1 }  // Element orb source
                     ],
                     spawnInterval: 1000,
                     maxEnemies: 55
@@ -14478,7 +14700,8 @@ class GameScene extends Phaser.Scene {
                         { type: 'crabby', weight: 20, count: 3 },
                         { type: 'squid', weight: 25, count: 3 },
                         { type: 'shark', weight: 25, count: 3 },
-                        { type: 'crablore', weight: 15, count: 2 }
+                        { type: 'crablore', weight: 15, count: 2 },
+                        { type: 'waterslime', weight: 3, count: 1 }  // Element orb source
                     ],
                     spawnInterval: 2000,
                     maxEnemies: 65,
@@ -14491,7 +14714,8 @@ class GameScene extends Phaser.Scene {
                         { type: 'crablore', weight: 25, count: 3 },
                         { type: 'squid', weight: 20, count: 4 },
                         { type: 'crabby', weight: 15, count: 4 },
-                        { type: 'jellyfish', weight: 10, count: 5 }
+                        { type: 'jellyfish', weight: 10, count: 5 },
+                        { type: 'waterslime', weight: 3, count: 1 }  // Element orb source
                     ],
                     spawnInterval: 1500,
                     maxEnemies: 80
@@ -16608,6 +16832,67 @@ class GameScene extends Phaser.Scene {
                     } else {
                         enemy.setVelocity(0, 0);
                     }
+                }
+            }
+            // Handle elemental slime AI behavior (wander around, flee if player too close)
+            else if (enemy.isElementalSlime && !enemy.isDying && !enemy.stunned && !enemy.frozen) {
+                const targetPlayer = this.getClosestPlayerTo(enemy.x, enemy.y);
+                const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, targetPlayer.x, targetPlayer.y);
+
+                let moveSpeed = enemy.moveSpeed * this.speedMultiplier;
+
+                // Apply slow effects
+                if (enemy.wet && enemy.wetEndTime && this.time.now < enemy.wetEndTime) {
+                    moveSpeed *= enemy.waterSlowFactor || 0.5;
+                }
+                if (enemy.muddy && enemy.muddyEndTime && this.time.now < enemy.muddyEndTime) {
+                    moveSpeed *= enemy.mudSlowFactor || 0.2;
+                }
+
+                // Initialize wander state if not present
+                if (!enemy.wanderAngle && enemy.wanderAngle !== 0) {
+                    enemy.wanderAngle = Math.random() * Math.PI * 2;
+                    enemy.wanderTimer = 0;
+                    enemy.wanderChangeInterval = 2000 + Math.random() * 2000; // 2-4 seconds
+                }
+
+                // Update wander timer
+                enemy.wanderTimer += this.game.loop.delta;
+                if (enemy.wanderTimer >= enemy.wanderChangeInterval) {
+                    // Change direction
+                    enemy.wanderAngle = Math.random() * Math.PI * 2;
+                    enemy.wanderTimer = 0;
+                    enemy.wanderChangeInterval = 2000 + Math.random() * 2000;
+                }
+
+                // Determine behavior based on distance to player
+                if (distance < enemy.keepDistance) {
+                    // Too close - flee from player at higher speed
+                    const angle = Phaser.Math.Angle.Between(targetPlayer.x, targetPlayer.y, enemy.x, enemy.y);
+                    enemy.setVelocity(Math.cos(angle) * moveSpeed * 1.5, Math.sin(angle) * moveSpeed * 1.5);
+                } else {
+                    // Wander around at normal speed
+                    enemy.setVelocity(
+                        Math.cos(enemy.wanderAngle) * moveSpeed,
+                        Math.sin(enemy.wanderAngle) * moveSpeed
+                    );
+                }
+
+                // Update directional animation based on velocity
+                const vx = enemy.body.velocity.x;
+                const vy = enemy.body.velocity.y;
+                let newDirection = 'down';
+
+                if (Math.abs(vx) > Math.abs(vy)) {
+                    newDirection = vx > 0 ? 'right' : 'left';
+                } else if (Math.abs(vy) > 5) {
+                    newDirection = vy > 0 ? 'down' : 'up';
+                }
+
+                // Only update animation if direction changed or not playing
+                if (newDirection !== enemy.currentDirection || !enemy.anims.isPlaying) {
+                    enemy.currentDirection = newDirection;
+                    enemy.play(`${enemy.enemyType}-walk-${newDirection}`);
                 }
             }
             // Handle cacodemon AI behavior
@@ -19800,6 +20085,40 @@ class GameScene extends Phaser.Scene {
             });
             return; // Don't continue with normal death
         }
+        // Handle elemental slime death - drops element orb
+        if (enemy.isElementalSlime && enemy.elementDrop) {
+            enemy.setVelocity(0, 0);
+
+            // Play death animation in the direction they were facing
+            const direction = enemy.currentDirection || 'down';
+            try {
+                enemy.play(`${enemy.enemyType}-death-${direction}`);
+            } catch (e) {
+                console.error(`Failed to play death animation for ${enemy.enemyType}`);
+            }
+
+            // Store death position and element type for orb drop
+            const deathX = enemyX;
+            const deathY = enemyY;
+            const elementType = enemy.elementDrop;
+
+            // Wait for death animation to complete
+            enemy.once('animationcomplete', () => {
+                // Drop element orb
+                this.dropElementOrb(deathX, deathY, elementType);
+
+                // Small XP drop
+                this.dropJewel(deathX, deathY, 3, 0.075);
+
+                // Disable physics and destroy
+                if (enemy.body) {
+                    enemy.body.enable = false;
+                }
+                enemy.destroy();
+            });
+
+            return; // Don't continue with normal death
+        }
         if (enemy.enemyType === 'slime') {
             // Play slime death animation
             try {
@@ -21009,8 +21328,8 @@ class GameScene extends Phaser.Scene {
             duration: 500,
             onComplete: () => summonEffect.destroy()
         });
-        // Summon 2-3 bat minions around the summoner
-        const minionsToSummon = 2 + Math.floor(Math.random() * 2);
+        // Summon 1-2 bat minions around the summoner (reduced from 2-3 for nerf)
+        const minionsToSummon = 1 + Math.floor(Math.random() * 2);
         for (let i = 0; i < minionsToSummon; i++) {
             const angle = (Math.PI * 2 / minionsToSummon) * i;
             const distance = 60;
@@ -21740,10 +22059,8 @@ class GameScene extends Phaser.Scene {
             enemy.damage = 1; // Default damage
             enemy.play('enemy-walking');
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(enemy, 'tree')) {
-                enemy.body.setSize(26, 39);
-                enemy.body.setOffset(3, 12);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(enemy, 'tree');
             this.addEnemyToGroup(enemy);
         } else if (enemyType === 'bat') {
             const bat = this.physics.add.sprite(x, y, 'bat-fly', 0);
@@ -21753,10 +22070,8 @@ class GameScene extends Phaser.Scene {
             bat.health = 2; // Increased by 50%
             bat.maxHealth = bat.health;
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(bat, 'bat')) {
-                bat.body.setSize(60, 40);
-                bat.body.setOffset(45, 55);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(bat, 'bat');
             bat.moveSpeed = 74; // Reduced by 20% from 92
             bat.isFlying = true;
             this.addEnemyToGroup(bat);
@@ -21774,10 +22089,8 @@ class GameScene extends Phaser.Scene {
             mushroom.enemyType = 'mushroom';
             mushroom.moveSpeed = 47; // Reduced by 20% from 59
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(mushroom, 'mushroom')) {
-                mushroom.body.setSize(80, 30);  // Adjusted height for smaller sprite
-                mushroom.body.setOffset(35, 8);  // Adjusted offset for smaller sprite
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(mushroom, 'mushroom');
             this.addEnemyToGroup(mushroom);
             mushroom.play('mushroom-running');
         } else if (enemyType === 'giantfly') {
@@ -21801,11 +22114,39 @@ class GameScene extends Phaser.Scene {
             } else {
                 }
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(giantfly, 'giantfly')) {
-                giantfly.body.setSize(28, 28);
-                giantfly.body.setOffset(2, 2);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(giantfly, 'giantfly');
             this.addEnemyToGroup(giantfly);
+        } else if (enemyType === 'bumblebee') {
+            // Check if texture exists before creating sprite
+            if (!this.textures.exists('bumblebee-walk')) {
+                console.error('bumblebee-walk texture not found!');
+                return null;
+            }
+            const bumblebee = this.physics.add.sprite(x, y, 'bumblebee-walk', 0);
+            // Apply scale and flip from config
+            this.applySavedScale(bumblebee, 'bumblebee');
+
+            // Apply flip from config
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyFlip(bumblebee, 'bumblebee');
+            }
+
+            bumblebee.health = 3; // Low health, flying insects are fragile
+            bumblebee.maxHealth = bumblebee.health;
+            bumblebee.enemyType = 'bumblebee';
+            bumblebee.moveSpeed = 60; // Fast and agile
+            bumblebee.damage = 12; // Low damage
+            bumblebee.isFlying = true; // Can fly over obstacles
+
+            // Play animation if it exists
+            if (this.anims.exists('bumblebee-walking')) {
+                bumblebee.play('bumblebee-walking');
+            }
+
+            // Apply hitbox from config
+            this.applyHitboxConfig(bumblebee, 'bumblebee');
+            this.addEnemyToGroup(bumblebee);
         } else if (enemyType === 'squirrel') {
             // Check if texture exists before creating sprite
             if (!this.textures.exists('squirrel-walk')) {
@@ -21826,10 +22167,8 @@ class GameScene extends Phaser.Scene {
             } else {
                 }
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(squirrel, 'squirrel')) {
-                squirrel.body.setSize(28, 28);
-                squirrel.body.setOffset(2, 2);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(squirrel, 'squirrel');
             this.addEnemyToGroup(squirrel);
         } else if (enemyType === 'redpanda') {
             // Check if texture exists before creating sprite
@@ -21851,10 +22190,8 @@ class GameScene extends Phaser.Scene {
             } else {
                 }
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(redpanda, 'redpanda')) {
-                redpanda.body.setSize(28, 28);
-                redpanda.body.setOffset(2, 2);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(redpanda, 'redpanda');
             this.addEnemyToGroup(redpanda);
         } else if (enemyType === 'fireworm') {
             const fireworm = this.physics.add.sprite(x, y, 'fireworm-walk', 0);
@@ -21865,10 +22202,8 @@ class GameScene extends Phaser.Scene {
             fireworm.enemyType = 'fireworm';
             fireworm.moveSpeed = 61; // Reduced by 20% from 76
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(fireworm, 'fireworm')) {
-                fireworm.body.setSize(70, 50);
-                fireworm.body.setOffset(10, 20);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(fireworm, 'fireworm');
             fireworm.element = 'fire';
             this.addEnemyToGroup(fireworm);
             fireworm.play('fireworm-walking');
@@ -21882,12 +22217,10 @@ class GameScene extends Phaser.Scene {
             summoner.moveSpeed = 20; // Reduced by 20% from 25
             summoner.play('summoner-walking');
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(summoner, 'summoner')) {
-                summoner.body.setSize(80, 100);
-                summoner.body.setOffset(40, 20);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(summoner, 'summoner');
             summoner.lastSummonTime = 0;
-            summoner.summonCooldown = 5000;
+            summoner.summonCooldown = 10000;  // Doubled from 5000ms to 10000ms (nerf)
             summoner.isSummoning = false;
             this.addEnemyToGroup(summoner);
         } else if (enemyType === 'soul') {
@@ -21906,10 +22239,8 @@ class GameScene extends Phaser.Scene {
             soul.moveSpeed = 40; // Reduced by 20% from 50
             soul.play(isGrave ? 'soul-moving-grave' : 'soul-moving');
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(soul, 'soul')) {
-                soul.body.setSize(60, 60);
-                soul.body.setOffset(18, 18);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(soul, 'soul');
             soul.isFlying = true;
             soul.attackRange = 150;
             soul.attackCooldown = 2000;
@@ -21934,10 +22265,8 @@ class GameScene extends Phaser.Scene {
             bloboid.moveSpeed = 34; // Reduced by 20% from 42
             bloboid.play('bloboid-walking');
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(bloboid, 'bloboid')) {
-                bloboid.body.setSize(50, 30);
-                bloboid.body.setOffset(15, 2);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(bloboid, 'bloboid');
             bloboid.element = 'earth';
             this.addEnemyToGroup(bloboid);
         } else if (enemyType === 'slime') {
@@ -21950,10 +22279,8 @@ class GameScene extends Phaser.Scene {
             slime.moveSpeed = 30; // Reduced by 20% from 38
             slime.play('slime-idle');
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(slime, 'slime')) {
-                slime.body.setSize(40, 40);
-                slime.body.setOffset(10, 10);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(slime, 'slime');
             slime.generation = 0;
             this.addEnemyToGroup(slime);
         } else if (enemyType === 'fireslime') {
@@ -21967,14 +22294,97 @@ class GameScene extends Phaser.Scene {
             slime.moveSpeed = 30; // Reduced by 20% from 38
             slime.play('slime-idle');
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(slime, 'fireslime')) {
-                slime.body.setSize(40, 40);
-                slime.body.setOffset(10, 10);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(slime, 'fireslime');
             slime.generation = 0;
             slime.burnDamage = 2; // Applies burn on contact
             slime.burnDuration = 3000; // 3 seconds
             this.addEnemyToGroup(slime);
+        } else if (enemyType === 'bombslime') {
+            const bombslime = this.physics.add.sprite(x, y, 'bombslime-walk', 0);
+            this.applySavedScale(bombslime, 'bombslime');
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyFlip(bombslime, 'bombslime');
+            }
+            bombslime.health = 25;
+            bombslime.maxHealth = bombslime.health;
+            bombslime.enemyType = 'bombslime';
+            bombslime.moveSpeed = 40;
+            bombslime.keepDistance = 150; // Keep distance from player
+            bombslime.elementDrop = 'blast';
+            bombslime.isElementalSlime = true;
+            bombslime.currentDirection = 'down';
+            bombslime.play('bombslime-walk-down');
+            this.applyHitboxConfig(bombslime, 'bombslime');
+            this.addEnemyToGroup(bombslime);
+        } else if (enemyType === 'arcaneslime') {
+            const arcaneslime = this.physics.add.sprite(x, y, 'arcaneslime-walk', 0);
+            this.applySavedScale(arcaneslime, 'arcaneslime');
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyFlip(arcaneslime, 'arcaneslime');
+            }
+            arcaneslime.health = 25;
+            arcaneslime.maxHealth = arcaneslime.health;
+            arcaneslime.enemyType = 'arcaneslime';
+            arcaneslime.moveSpeed = 40;
+            arcaneslime.keepDistance = 150;
+            arcaneslime.elementDrop = 'arcane';
+            arcaneslime.isElementalSlime = true;
+            arcaneslime.currentDirection = 'down';
+            arcaneslime.play('arcaneslime-walk-down');
+            this.applyHitboxConfig(arcaneslime, 'arcaneslime');
+            this.addEnemyToGroup(arcaneslime);
+        } else if (enemyType === 'waterslime') {
+            const waterslime = this.physics.add.sprite(x, y, 'waterslime-walk', 0);
+            this.applySavedScale(waterslime, 'waterslime');
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyFlip(waterslime, 'waterslime');
+            }
+            waterslime.health = 25;
+            waterslime.maxHealth = waterslime.health;
+            waterslime.enemyType = 'waterslime';
+            waterslime.moveSpeed = 40;
+            waterslime.keepDistance = 150;
+            waterslime.elementDrop = 'water';
+            waterslime.isElementalSlime = true;
+            waterslime.currentDirection = 'down';
+            waterslime.play('waterslime-walk-down');
+            this.applyHitboxConfig(waterslime, 'waterslime');
+            this.addEnemyToGroup(waterslime);
+        } else if (enemyType === 'lightningslime') {
+            const lightningslime = this.physics.add.sprite(x, y, 'lightningslime-walk', 0);
+            this.applySavedScale(lightningslime, 'lightningslime');
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyFlip(lightningslime, 'lightningslime');
+            }
+            lightningslime.health = 25;
+            lightningslime.maxHealth = lightningslime.health;
+            lightningslime.enemyType = 'lightningslime';
+            lightningslime.moveSpeed = 40;
+            lightningslime.keepDistance = 150;
+            lightningslime.elementDrop = 'lightning';
+            lightningslime.isElementalSlime = true;
+            lightningslime.currentDirection = 'down';
+            lightningslime.play('lightningslime-walk-down');
+            this.applyHitboxConfig(lightningslime, 'lightningslime');
+            this.addEnemyToGroup(lightningslime);
+        } else if (enemyType === 'earthslime') {
+            const earthslime = this.physics.add.sprite(x, y, 'earthslime-walk', 0);
+            this.applySavedScale(earthslime, 'earthslime');
+            if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
+                hitboxConfig.applyFlip(earthslime, 'earthslime');
+            }
+            earthslime.health = 25;
+            earthslime.maxHealth = earthslime.health;
+            earthslime.enemyType = 'earthslime';
+            earthslime.moveSpeed = 40;
+            earthslime.keepDistance = 150;
+            earthslime.elementDrop = 'earth';
+            earthslime.isElementalSlime = true;
+            earthslime.currentDirection = 'down';
+            earthslime.play('earthslime-walk-down');
+            this.applyHitboxConfig(earthslime, 'earthslime');
+            this.addEnemyToGroup(earthslime);
         } else if (enemyType === 'golem') {
             const golemColor = Math.random() < 0.5 ? 'orange' : 'blue';
             const golem = this.physics.add.sprite(x, y, `golem-${golemColor}-walk`, 0);
@@ -21987,10 +22397,8 @@ class GameScene extends Phaser.Scene {
             golem.moveSpeed = 27; // Reduced by 20% from 34
             golem.play(`golem-${golemColor}-walk`);
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(golem, 'golem')) {
-                golem.body.setSize(60, 50);
-                golem.body.setOffset(15, 10);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(golem, 'golem');
             golem.element = golemColor === 'orange' ? 'fire' : 'water';
             this.addEnemyToGroup(golem);
         } else if (enemyType === 'orangegolem') {
@@ -22005,10 +22413,8 @@ class GameScene extends Phaser.Scene {
             golem.moveSpeed = 27; // Reduced by 20% from 34
             golem.play('golem-orange-walk');
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(golem, 'golem')) {
-                golem.body.setSize(60, 50);
-                golem.body.setOffset(15, 10);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(golem, 'golem');
             golem.element = 'fire';
             golem.burnDamage = 3; // Applies burn on contact
             golem.burnDuration = 2000; // 2 seconds
@@ -22188,10 +22594,8 @@ class GameScene extends Phaser.Scene {
             seeker.hasActivated = false;
             seeker.activationDistance = 150; // Distance to trigger spawn animation
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(seeker, 'skeletonseeker')) {
-                seeker.body.setSize(60, 80);
-                seeker.body.setOffset(30, 40);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(seeker, 'skeletonseeker');
             // Start with first frame of spawn animation (buried state)
             seeker.setFrame(0);
             this.setEnemyDepth(seeker);
@@ -22341,10 +22745,8 @@ class GameScene extends Phaser.Scene {
             cobra.damage = 20; // High damage - venomous bite
             cobra.play('cobra-walking');
             // Apply hitbox
-            if (!this.applyHitboxConfig(cobra, 'cobra')) {
-                cobra.body.setSize(24, 28);
-                cobra.body.setOffset(4, 2);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(cobra, 'cobra');
             // Cobra special: poison attack
             cobra.element = 'poison';
             cobra.poisonDamage = 2;
@@ -22365,10 +22767,8 @@ class GameScene extends Phaser.Scene {
             cactuse.damage = 15; // Medium damage
             cactuse.play('cactuse-walking');
             // Apply hitbox
-            if (!this.applyHitboxConfig(cactuse, 'cactuse')) {
-                cactuse.body.setSize(26, 30);
-                cactuse.body.setOffset(3, 1);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(cactuse, 'cactuse');
             // Cactuse special: thorns damage on contact
             cactuse.thornDamage = 5; // Extra damage when touched
             cactuse.element = 'earth';
@@ -22387,10 +22787,8 @@ class GameScene extends Phaser.Scene {
             armadillo.damage = 18; // Medium-high damage
             armadillo.play('armadillo-walking');
             // Apply hitbox
-            if (!this.applyHitboxConfig(armadillo, 'armadillo')) {
-                armadillo.body.setSize(28, 24);
-                armadillo.body.setOffset(2, 4);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(armadillo, 'armadillo');
             // Armadillo special abilities
             armadillo.isRolling = false;
             armadillo.rollCooldown = 4000; // 4 seconds between rolls
@@ -22424,10 +22822,8 @@ class GameScene extends Phaser.Scene {
             swampmerchant.play('swampmerchant-walking');
             
             // Apply hitbox
-            if (!this.applyHitboxConfig(swampmerchant, 'swampmerchant')) {
-                swampmerchant.body.setSize(50, 60);
-                swampmerchant.body.setOffset(7, 2);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(swampmerchant, 'swampmerchant');
             this.addEnemyToGroup(swampmerchant);
         } else if (enemyType === 'torchboy') {
             const torchboy = this.physics.add.sprite(x, y, 'torchboy-walk', 0);
@@ -22454,10 +22850,8 @@ class GameScene extends Phaser.Scene {
             torchboy.play('torchboy-walking');
             
             // Apply hitbox
-            if (!this.applyHitboxConfig(torchboy, 'torchboy')) {
-                torchboy.body.setSize(60, 35);
-                torchboy.body.setOffset(11, 2);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(torchboy, 'torchboy');
             
             // Torchboy emits light
             torchboy.lightRadius = 100;
@@ -22495,10 +22889,8 @@ class GameScene extends Phaser.Scene {
             mudguard.play('mudguard-walking');
             
             // Apply hitbox
-            if (!this.applyHitboxConfig(mudguard, 'mudguard')) {
-                mudguard.body.setSize(65, 20);
-                mudguard.body.setOffset(8, 3);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(mudguard, 'mudguard');
             
             // Mudguard has armor - reduced damage from projectiles
             mudguard.hasArmor = true;
@@ -22556,10 +22948,8 @@ class GameScene extends Phaser.Scene {
             eyewalker.play('eyewalker-initial');
             
             // Apply hitbox
-            if (!this.applyHitboxConfig(eyewalker, 'eyewalker')) {
-                eyewalker.body.setSize(50, 55);
-                eyewalker.body.setOffset(7, 5);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(eyewalker, 'eyewalker');
             
             // Custom update for phase transitions and stomp ability
             eyewalker.customUpdate = () => {
@@ -22606,10 +22996,8 @@ class GameScene extends Phaser.Scene {
                             eyegoompa.play('eyegoompa-walking');
                             
                             // Apply hitbox
-                            if (!this.applyHitboxConfig(eyegoompa, 'eyegoompa')) {
-                                eyegoompa.body.setSize(20, 18);
-                                eyegoompa.body.setOffset(2, 3);
-                            }
+                            // Apply hitbox from config
+                            this.applyHitboxConfig(eyegoompa, 'eyegoompa');
                             
                             eyegoompa.isSummoned = true; // Mark as summoned
                             
@@ -22663,10 +23051,8 @@ class GameScene extends Phaser.Scene {
             eyegoompa.play('eyegoompa-walking');
             
             // Apply hitbox
-            if (!this.applyHitboxConfig(eyegoompa, 'eyegoompa')) {
-                eyegoompa.body.setSize(20, 18);
-                eyegoompa.body.setOffset(2, 3);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(eyegoompa, 'eyegoompa');
             
             this.addEnemyToGroup(eyegoompa);
         } else if (enemyType === 'snowy') {
@@ -22703,10 +23089,8 @@ class GameScene extends Phaser.Scene {
             snowy.play('snowy-walking');
             
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(snowy, 'snowy')) {
-                snowy.body.setSize(30, 35);
-                snowy.body.setOffset(9, 8);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(snowy, 'snowy');
             this.addEnemyToGroup(snowy);
         } else if (enemyType === 'elkman') {
             const elkman = this.physics.add.sprite(x, y, 'elkman-walk', 0);
@@ -22742,10 +23126,8 @@ class GameScene extends Phaser.Scene {
             elkman.play('elkman-walking');
             
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(elkman, 'elkman')) {
-                elkman.body.setSize(32, 38);
-                elkman.body.setOffset(8, 6);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(elkman, 'elkman');
             this.addEnemyToGroup(elkman);
         } else if (enemyType === 'frost-golem') {
             const frostGolem = this.physics.add.sprite(x, y, 'frost-golem-walk', 0);
@@ -22781,10 +23163,8 @@ class GameScene extends Phaser.Scene {
             frostGolem.play('frost-golem-walking');
             
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(frostGolem, 'frost-golem')) {
-                frostGolem.body.setSize(35, 40);
-                frostGolem.body.setOffset(6, 4);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(frostGolem, 'frost-golem');
             
             // Frost golem special: ice damage and slow effect
             frostGolem.element = 'ice';
@@ -22824,10 +23204,8 @@ class GameScene extends Phaser.Scene {
             spikedSlime.play('spiked-slime-walking');
             
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(spikedSlime, 'spiked-slime')) {
-                spikedSlime.body.setSize(28, 30);
-                spikedSlime.body.setOffset(10, 9);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(spikedSlime, 'spiked-slime');
             
             // Spiked slime special: reflects some damage back to attacker
             spikedSlime.thornDamage = 3;
@@ -22866,10 +23244,8 @@ class GameScene extends Phaser.Scene {
             northerner.play('northerner-walking');
             
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(northerner, 'northerner')) {
-                northerner.body.setSize(30, 36);
-                northerner.body.setOffset(9, 6);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(northerner, 'northerner');
             this.addEnemyToGroup(northerner);
         } else if (enemyType === 'jellyfish') {
             const jellyfish = this.physics.add.sprite(x, y, 'jellyfish-walk', 0);
@@ -22907,10 +23283,8 @@ class GameScene extends Phaser.Scene {
             jellyfish.play('jellyfish-floating');
 
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(jellyfish, 'jellyfish')) {
-                jellyfish.body.setSize(35, 40);
-                jellyfish.body.setOffset(6, 4);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(jellyfish, 'jellyfish');
 
 
             // Jellyfish special: poison on contact
@@ -22951,10 +23325,8 @@ class GameScene extends Phaser.Scene {
             crabby.play('crabby-walking');
             
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(crabby, 'crabby')) {
-                crabby.body.setSize(45, 35);
-                crabby.body.setOffset(10, 8);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(crabby, 'crabby');
             this.addEnemyToGroup(crabby);
         } else if (enemyType === 'shark') {
             const shark = this.physics.add.sprite(x, y, 'shark-walk', 0);
@@ -22990,10 +23362,8 @@ class GameScene extends Phaser.Scene {
             shark.play('shark-swimming');
             
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(shark, 'shark')) {
-                shark.body.setSize(70, 45);
-                shark.body.setOffset(13, 25);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(shark, 'shark');
             
             // Shark special: blood frenzy - speed increases when damaged
             shark.bloodFrenzy = false;
@@ -23032,10 +23402,8 @@ class GameScene extends Phaser.Scene {
             squid.play('squid-swimming');
             
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(squid, 'squid')) {
-                squid.body.setSize(55, 60);
-                squid.body.setOffset(20, 18);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(squid, 'squid');
             
             // Squid special: ink cloud defense
             squid.canInkCloud = true;
@@ -23075,10 +23443,8 @@ class GameScene extends Phaser.Scene {
             crablore.play('crablore-walking');
             
             // Apply hitbox from config or use defaults
-            if (!this.applyHitboxConfig(crablore, 'crablore')) {
-                crablore.body.setSize(65, 50);
-                crablore.body.setOffset(15, 23);
-            }
+            // Apply hitbox from config
+            this.applyHitboxConfig(crablore, 'crablore');
             
             // Crablore special: armored shell - reduced damage from projectiles
             crablore.hasArmor = true;
@@ -27105,17 +27471,17 @@ class GameScene extends Phaser.Scene {
         while (this.playerXP >= this.xpToNextLevel) {
             this.playerXP -= this.xpToNextLevel;
             this.playerLevel++;
-            // Progressive scaling - easy first 2 levels, then much harder
+            // Progressive scaling - much gentler curve for easier leveling
             if (this.playerLevel <= 2) {
-                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.10); // Only 10% increase for levels 0-2 (very easy start)
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.05); // 5% increase for levels 0-2 (very easy start)
             } else if (this.playerLevel <= 5) {
-                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 2.00); // 100% increase for levels 3-5 (massive jump in difficulty)
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.15); // 15% increase for levels 3-5 (reduced from 100%)
             } else if (this.playerLevel <= 10) {
-                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.60); // 60% increase for levels 6-10
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.20); // 20% increase for levels 6-10 (reduced from 60%)
             } else if (this.playerLevel <= 20) {
-                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.70); // 70% increase for levels 11-20
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.25); // 25% increase for levels 11-20 (reduced from 70%)
             } else {
-                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.80); // 80% increase for levels 21+ (extremely slow)
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.30); // 30% increase for levels 21+ (reduced from 80%)
             }
             // Unlock charge slot every 10 levels
             if (this.playerLevel % 10 === 0 && this.maxCharges < 8) {
@@ -27317,6 +27683,42 @@ class GameScene extends Phaser.Scene {
                     }
                 }
             }
+            // Check passive slots (4-7) for duplicates
+            if (!placed && wizard.maxCharges > 4) {
+                for (let i = 4; i < Math.min(8, wizard.maxCharges); i++) {
+                    if (wizard.chargeSlots[i] === orb.element) {
+                        // Found same element in passive slot - upgrade its tier
+                        const tierKey = `${orb.element}_${i}`;
+                        const currentTier = wizard.elementTiers.get(tierKey) || 1;
+                        if (currentTier < 5) { // Max tier is 5
+                            wizard.elementTiers.set(tierKey, currentTier + 1);
+                            slotType = 'passive';
+                            slotIndex = i;
+                            placed = true;
+                            isTierUpgrade = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            // Check element pouch for duplicates
+            if (!placed && wizard.elementPouch) {
+                for (let i = 0; i < wizard.elementPouch.length; i++) {
+                    if (wizard.elementPouch[i] === orb.element) {
+                        // Found same element in pouch - upgrade tier (store with slot index 8+i)
+                        const tierKey = `${orb.element}_${8 + i}`;
+                        const currentTier = wizard.elementTiers.get(tierKey) || 1;
+                        if (currentTier < 5) { // Max tier is 5
+                            wizard.elementTiers.set(tierKey, currentTier + 1);
+                            slotType = 'pouch';
+                            slotIndex = 8 + i;
+                            placed = true;
+                            isTierUpgrade = true;
+                            break;
+                        }
+                    }
+                }
+            }
             // If not a tier upgrade, check for empty slot
             if (!placed) {
                 for (let i = 0; i < Math.min(4, wizard.maxCharges); i++) {
@@ -27397,6 +27799,42 @@ class GameScene extends Phaser.Scene {
                     placed = true;
                     isTierUpgrade = true;
                     break;
+                }
+            }
+        }
+        // Check passive slots (4-7) for duplicates
+        if (!placed && this.maxCharges > 4) {
+            for (let i = 4; i < Math.min(8, this.maxCharges); i++) {
+                if (this.chargeSlots[i] === orb.element) {
+                    // Found same element in passive slot - upgrade its tier
+                    const tierKey = `${orb.element}_${i}`;
+                    const currentTier = this.elementTiers.get(tierKey) || 1;
+                    if (currentTier < 5) { // Max tier is 5
+                        this.elementTiers.set(tierKey, currentTier + 1);
+                        slotType = 'passive';
+                        slotIndex = i;
+                        placed = true;
+                        isTierUpgrade = true;
+                        break;
+                    }
+                }
+            }
+        }
+        // Check element pouch for duplicates
+        if (!placed && this.elementPouch) {
+            for (let i = 0; i < this.elementPouch.length; i++) {
+                if (this.elementPouch[i] === orb.element) {
+                    // Found same element in pouch - upgrade tier (store with slot index 8+i)
+                    const tierKey = `${orb.element}_${8 + i}`;
+                    const currentTier = this.elementTiers.get(tierKey) || 1;
+                    if (currentTier < 5) { // Max tier is 5
+                        this.elementTiers.set(tierKey, currentTier + 1);
+                        slotType = 'pouch';
+                        slotIndex = 8 + i;
+                        placed = true;
+                        isTierUpgrade = true;
+                        break;
+                    }
                 }
             }
         }
@@ -40633,11 +41071,14 @@ class GameScene extends Phaser.Scene {
         // Determine which player's inventory to show based on menuControllingPlayer
         const targetWizard = (this.menuControllingPlayer === 2 && this.multiplayerEnabled && this.wizard2) ? this.wizard2 : this.wizard;
         const targetChargeSlots = targetWizard.chargeSlots || this.chargeSlots;
-        // Show all elements from all 8 slots (including pouch slots)
+        const targetElementPouch = targetWizard.elementPouch || this.elementPouch || [];
+        // Show all elements from charge slots and pouch
         let buttonIndex = 0;
+
+        // First, show elements from the 8 charge slots (4 active + 4 passive)
         for (let i = 0; i < 8; i++) {
             const element = targetChargeSlots[i];
-            if (!element) continue; // Skip empty slots
+            if (!element || element === 'none') continue; // Skip empty slots
             const config = this.elementConfig[element];
             const xPos = 200 + (buttonIndex % 4) * 100;
             const yPos = 220 + Math.floor(buttonIndex / 4) * 100;
@@ -40701,6 +41142,75 @@ class GameScene extends Phaser.Scene {
             });
             buttonIndex++; // Increment button index for next element
         }
+
+        // Second, show elements from the element pouch (separate from charge slots)
+        for (let i = 0; i < 4; i++) {
+            const element = targetElementPouch[i];
+            if (!element || element === 'none') continue; // Skip empty pouch slots
+            const config = this.elementConfig[element];
+            const xPos = 200 + (buttonIndex % 4) * 100;
+            const yPos = 220 + Math.floor(buttonIndex / 4) * 100;
+            const container = this.add.container(xPos, yPos);
+            container.setScrollFactor(0);
+            container.setDepth(922);
+            const bg = this.add.circle(0, 0, 40, 0x333333);
+            // Only show frame on first element initially
+            if (buttonIndex === 0) {
+                bg.setStrokeStyle(2, 0xffff00);
+            }
+            bg.setInteractive();
+            const sprite = this.add.sprite(0, 0, config.sheet, config.frame);
+            sprite.setScale(0.2);
+            const name = this.add.text(0, 50, config.name, {
+                fontSize: '12px',
+                color: '#ffffff'
+            });
+            name.setOrigin(0.5);
+            container.add([bg, sprite, name]);
+            // Slot index for pouch is 8 + i (slots 8-11 represent the pouch)
+            const slotIndex = 8 + i;
+            elementButtons.push({ container, element, bg, selected: false, index: buttonIndex, slotIndex });
+            bg.on('pointerdown', () => {
+                const btnIndex = buttonIndex; // Capture current buttonIndex value
+                if (!elementButtons[btnIndex].selected && selectedElements.length < 2) {
+                    // Select element
+                    elementButtons[btnIndex].selected = true;
+                    selectedElements.push({ element, slotIndex: elementButtons[btnIndex].slotIndex });
+                    bg.setFillStyle(0xff44ff, 0.5);
+                    bg.setStrokeStyle(3, 0xff44ff);
+                    if (selectedElements.length === 2) {
+                        // Show fusion button
+                        this.showFusionButton(fusionBg, title, instruction, elementButtons, selectedElements);
+                    }
+                } else if (elementButtons[btnIndex].selected) {
+                    // Deselect element
+                    elementButtons[btnIndex].selected = false;
+                    const index = selectedElements.findIndex(sel => sel.element === element && sel.slotIndex === elementButtons[btnIndex].slotIndex);
+                    if (index > -1) selectedElements.splice(index, 1);
+                    bg.setFillStyle(0x333333);
+                    bg.setStrokeStyle(0); // Remove stroke instead of white
+                    // Remove fusion button if exists
+                    if (this.fusionButton) {
+                        this.fusionButton.destroy();
+                        this.fusionButton = null;
+                    }
+                }
+            });
+            bg.on('pointerover', () => {
+                const btnIndex = buttonIndex; // Capture current buttonIndex value
+                if (!elementButtons[btnIndex].selected) {
+                    bg.setFillStyle(0x555555);
+                }
+            });
+            bg.on('pointerout', () => {
+                const btnIndex = buttonIndex; // Capture current buttonIndex value
+                if (!elementButtons[btnIndex].selected) {
+                    bg.setFillStyle(0x333333);
+                }
+            });
+            buttonIndex++; // Increment button index for next element
+        }
+
         // Store for cleanup (no cancel button)
         this.fusionUI = {
             bg: fusionBg,
@@ -41088,9 +41598,16 @@ class GameScene extends Phaser.Scene {
             // Place the result in the first removed slot
             let newSlotIndex = removedIndices[0];
             if (newSlotIndex !== undefined && newSlotIndex !== -1) {
-                fusionChargeSlots[newSlotIndex] = result;
+                if (newSlotIndex < 8) {
+                    // Regular charge slot
+                    fusionChargeSlots[newSlotIndex] = result;
+                } else {
+                    // Pouch slot (index 8-11 maps to pouch 0-3)
+                    const pouchIndex = newSlotIndex - 8;
+                    fusionPouch[pouchIndex] = result;
+                }
             } else {
-                // Fallback: find first empty slot
+                // Fallback: find first empty slot in charge slots
                 for (let i = 0; i < fusionChargeSlots.length; i++) {
                     if (fusionChargeSlots[i] === null) {
                         newSlotIndex = i;
@@ -49384,7 +49901,7 @@ const config = {
         transparent: false,
         desynchronized: true  // Better performance in Electron
     },
-    scene: [LoadingScene, TitleScene, StageSelectScene, ArcadeScene, TalentTreeScene, CutsceneScene, GameScene, GameOverScene]
+    scene: [LoadingScene, TitleScene, SaveSlotScene, StageSelectScene, ArcadeScene, TalentTreeScene, CutsceneScene, GameScene, GameOverScene]
 };
 let game;
 try {

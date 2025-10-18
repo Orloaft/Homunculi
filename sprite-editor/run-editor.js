@@ -19,6 +19,7 @@ const mimeTypes = {
 // Configuration for saving
 const CONFIG_FILE = path.join(__dirname, 'sprite-config.json');
 const HITBOX_CONFIG_FILE = path.join(__dirname, '..', 'scripts', 'hitbox-config.js');
+const HITBOX_JSON_FILE = path.join(__dirname, '..', 'scripts', 'hitbox-config.json');
 
 const server = http.createServer((req, res) => {
     console.log(`Request for ${req.url}`);
@@ -83,96 +84,63 @@ const server = http.createServer((req, res) => {
     if (req.method === 'GET' && req.url === '/load-config') {
         try {
             let config = {};
-            
+
             // Load sprite config if it exists
             if (fs.existsSync(CONFIG_FILE)) {
                 const spriteConfig = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
                 config = { ...spriteConfig };
             }
-            
-            // Also load scales and hitboxes from hitbox-config.js
-            if (fs.existsSync(HITBOX_CONFIG_FILE)) {
-                const hitboxContent = fs.readFileSync(HITBOX_CONFIG_FILE, 'utf8');
-                
-                // Extract scales object
-                const scalesMatch = hitboxContent.match(/scales:\s*\{([^}]+)\}/);
-                if (scalesMatch) {
-                    const scalesText = scalesMatch[1];
-                    const scaleLines = scalesText.match(/'([^']+)':\s*([\d.]+)/g);
-                    if (scaleLines) {
-                        scaleLines.forEach(line => {
-                            const match = line.match(/'([^']+)':\s*([\d.]+)/);
-                            if (match) {
-                                const [, enemy, scale] = match;
-                                if (!config[enemy]) config[enemy] = {};
-                                config[enemy].scale = parseFloat(scale);
-                            }
-                        });
-                    }
-                }
-                
-                // Extract hitboxes object
-                const hitboxesMatch = hitboxContent.match(/hitboxes:\s*\{([\s\S]*?)\n\s*\},/);
-                if (hitboxesMatch) {
-                    const hitboxesText = hitboxesMatch[1];
-                    // Match entries like 'blip': { width: 18, height: 18, offsetX: 23, offsetY: 11 }
-                    // Also handle entries without quotes like darkbat: { width: 50, ...
-                    const hitboxPattern = /['"]?([^'":\s]+)['"]?\s*:\s*\{\s*['"]*width['"]*:\s*(\d+),\s*['"]*height['"]*:\s*(\d+),\s*['"]*offsetX['"]*:\s*([\d.-]+),\s*['"]*offsetY['"]*:\s*([\d.-]+)/g;
-                    let match;
-                    while ((match = hitboxPattern.exec(hitboxesText)) !== null) {
-                        const [, enemy, width, height, offsetX, offsetY] = match;
+
+            // Load hitbox configuration from JSON file (much simpler than parsing JS!)
+            if (fs.existsSync(HITBOX_JSON_FILE)) {
+                console.log('[LOAD CONFIG] Loading from hitbox-config.json');
+                const hitboxData = JSON.parse(fs.readFileSync(HITBOX_JSON_FILE, 'utf8'));
+
+                // Process scales
+                if (hitboxData.scales) {
+                    for (const [enemy, scale] of Object.entries(hitboxData.scales)) {
                         if (!config[enemy]) config[enemy] = {};
-                        config[enemy].hitbox = {
-                            width: parseInt(width),
-                            height: parseInt(height),
-                            offsetX: parseFloat(offsetX),
-                            offsetY: parseFloat(offsetY)
-                        };
-                        console.log(`Loaded hitbox for ${enemy}:`, config[enemy].hitbox);
+                        config[enemy].scale = scale;
                     }
+                    console.log(`[LOAD CONFIG] Loaded ${Object.keys(hitboxData.scales).length} scales`);
                 }
-                
-                // Extract shadows object  
-                const shadowsMatch = hitboxContent.match(/shadows:\s*\{([\s\S]*?)\n\s*\},/);
-                if (shadowsMatch) {
-                    const shadowsText = shadowsMatch[1];
-                    // Match entries with or without quotes
-                    const shadowPattern = /['"]?([^'":\s]+)['"]?\s*:\s*\{\s*['"]*width['"]*:\s*(\d+),\s*['"]*height['"]*:\s*(\d+),\s*['"]*offsetX['"]*:\s*([\d.-]+),\s*['"]*offsetY['"]*:\s*([\d.-]+),\s*['"]*alpha['"]*:\s*([\d.]+)/g;
-                    let match;
-                    while ((match = shadowPattern.exec(shadowsText)) !== null) {
-                        const [, enemy, width, height, offsetX, offsetY, alpha] = match;
+
+                // Process hitboxes
+                if (hitboxData.hitboxes) {
+                    for (const [enemy, hitbox] of Object.entries(hitboxData.hitboxes)) {
                         if (!config[enemy]) config[enemy] = {};
-                        config[enemy].shadow = {
-                            width: parseInt(width),
-                            height: parseInt(height), 
-                            offsetX: parseFloat(offsetX),
-                            offsetY: parseFloat(offsetY),
-                            alpha: parseFloat(alpha)
-                        };
-                        console.log(`Loaded shadow for ${enemy}:`, config[enemy].shadow);
+                        config[enemy].hitbox = hitbox;
                     }
+                    console.log(`[LOAD CONFIG] Loaded ${Object.keys(hitboxData.hitboxes).length} hitboxes`);
                 }
-                
-                // Extract flips object
-                const flipsMatch = hitboxContent.match(/flips:\s*\{([\s\S]*?)\n\s*\},/);
-                if (flipsMatch) {
-                    const flipsText = flipsMatch[1];
-                    // Match entries like 'grim': { flipX: true, flipY: false }
-                    const flipPattern = /'([^']+)':\s*\{\s*flipX:\s*(true|false),\s*flipY:\s*(true|false)/g;
-                    let match;
-                    while ((match = flipPattern.exec(flipsText)) !== null) {
-                        const [, enemy, flipX, flipY] = match;
+
+                // Process shadows
+                if (hitboxData.shadows) {
+                    for (const [enemy, shadow] of Object.entries(hitboxData.shadows)) {
                         if (!config[enemy]) config[enemy] = {};
-                        config[enemy].flipX = flipX === 'true';
-                        config[enemy].flipY = flipY === 'true';
-                        console.log(`Loaded flip for ${enemy}: flipX=${flipX}, flipY=${flipY}`);
+                        config[enemy].shadow = shadow;
                     }
+                    console.log(`[LOAD CONFIG] Loaded ${Object.keys(hitboxData.shadows).length} shadows`);
                 }
+
+                // Process flips
+                if (hitboxData.flips) {
+                    for (const [enemy, flip] of Object.entries(hitboxData.flips)) {
+                        if (!config[enemy]) config[enemy] = {};
+                        config[enemy].flipX = flip.flipX;
+                        config[enemy].flipY = flip.flipY;
+                        console.log(`[LOAD CONFIG] Loaded flip for ${enemy}: flipX=${flip.flipX}, flipY=${flip.flipY}`);
+                    }
+                    console.log(`[LOAD CONFIG] Loaded ${Object.keys(hitboxData.flips).length} flips total`);
+                }
+            } else {
+                console.log('[LOAD CONFIG] No hitbox-config.json found');
             }
-            
+
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(config));
         } catch (error) {
+            console.error('[LOAD CONFIG] Error:', error);
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: error.message }));
         }

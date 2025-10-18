@@ -7,8 +7,18 @@ export default class TitleScene extends Phaser.Scene {
         this.maxPlayers = 4;
         this.detectionOverlay = null;
         this.playerStatusTexts = [];
+        this.saveManager = null;
     }
     create() {
+        // Initialize SaveManager
+        if (!this.saveManager) {
+            this.saveManager = new SaveManager();
+        }
+
+        // Check if there's a save manager in registry (from save slot scene)
+        if (this.registry.has('saveManager')) {
+            this.saveManager = this.registry.get('saveManager');
+        }
         // Set background to black first
         this.cameras.main.setBackgroundColor('#000000');
         // Create a black overlay that will fade out
@@ -298,12 +308,10 @@ export default class TitleScene extends Phaser.Scene {
         // Fade out
         this.cameras.main.fadeOut(500);
         this.cameras.main.once('camerafadeoutcomplete', () => {
-            // Go to stage select screen with character selection
-            this.scene.start('StageSelectScene', { 
-                debugMode: this.debugMode,
-                fromTitle: true,
-                showCharacterSelect: true,
-                currentPlayer: 'p1'
+            // Go to save slot selection scene
+            this.scene.start('SaveSlotScene', {
+                saveManager: this.saveManager,
+                debugMode: this.debugMode
             });
         });
     }

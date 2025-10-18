@@ -1,0 +1,194 @@
+{
+  "tree": {
+    "width": 26,
+    "height": 39,
+    "offsetX": 3,
+    "offsetY": 12
+  },
+  "bat": {
+    "width": 60,
+    "height": 40,
+    "offsetX": 45,
+    "offsetY": 55
+  },
+  "mushroom": {
+    "width": 80,
+    "height": 30,
+    "offsetX": 35,
+    "offsetY": 8
+  },
+  "giantfly": {
+    "width": 28,
+    "height": 28,
+    "offsetX": 2,
+    "offsetY": 2
+  },
+  "squirrel": {
+    "width": 28,
+    "height": 28,
+    "offsetX": 2,
+    "offsetY": 2
+  },
+  "redpanda": {
+    "width": 28,
+    "height": 28,
+    "offsetX": 2,
+    "offsetY": 2
+  },
+  "fireworm": {
+    "width": 70,
+    "height": 50,
+    "offsetX": 10,
+    "offsetY": 20
+  },
+  "summoner": {
+    "width": 80,
+    "height": 100,
+    "offsetX": 40,
+    "offsetY": 20
+  },
+  "soul": {
+    "width": 60,
+    "height": 60,
+    "offsetX": 18,
+    "offsetY": 18
+  },
+  "bloboid": {
+    "width": 50,
+    "height": 30,
+    "offsetX": 15,
+    "offsetY": 2
+  },
+  "slime": {
+    "width": 40,
+    "height": 40,
+    "offsetX": 10,
+    "offsetY": 10
+  },
+  "fireslime": {
+    "width": 40,
+    "height": 40,
+    "offsetX": 10,
+    "offsetY": 10
+  },
+  "golem": {
+    "width": 60,
+    "height": 50,
+    "offsetX": 15,
+    "offsetY": 10
+  },
+  "skeletonseeker": {
+    "width": 60,
+    "height": 80,
+    "offsetX": 30,
+    "offsetY": 40
+  },
+  "cobra": {
+    "width": 24,
+    "height": 28,
+    "offsetX": 4,
+    "offsetY": 2
+  },
+  "cactuse": {
+    "width": 26,
+    "height": 30,
+    "offsetX": 3,
+    "offsetY": 1
+  },
+  "armadillo": {
+    "width": 28,
+    "height": 24,
+    "offsetX": 2,
+    "offsetY": 4
+  },
+  "swampmerchant": {
+    "width": 50,
+    "height": 60,
+    "offsetX": 7,
+    "offsetY": 2
+  },
+  "torchboy": {
+    "width": 60,
+    "height": 35,
+    "offsetX": 11,
+    "offsetY": 2
+  },
+  "mudguard": {
+    "width": 65,
+    "height": 20,
+    "offsetX": 8,
+    "offsetY": 3
+  },
+  "eyewalker": {
+    "width": 50,
+    "height": 55,
+    "offsetX": 7,
+    "offsetY": 5
+  },
+  "eyegoompa": {
+    "width": 20,
+    "height": 18,
+    "offsetX": 2,
+    "offsetY": 3
+  },
+  "snowy": {
+    "width": 30,
+    "height": 35,
+    "offsetX": 9,
+    "offsetY": 8
+  },
+  "elkman": {
+    "width": 32,
+    "height": 38,
+    "offsetX": 8,
+    "offsetY": 6
+  },
+  "frost-golem": {
+    "width": 35,
+    "height": 40,
+    "offsetX": 6,
+    "offsetY": 4
+  },
+  "spiked-slime": {
+    "width": 28,
+    "height": 30,
+    "offsetX": 10,
+    "offsetY": 9
+  },
+  "northerner": {
+    "width": 30,
+    "height": 36,
+    "offsetX": 9,
+    "offsetY": 6
+  },
+  "jellyfish": {
+    "width": 35,
+    "height": 40,
+    "offsetX": 6,
+    "offsetY": 4
+  },
+  "crabby": {
+    "width": 45,
+    "height": 35,
+    "offsetX": 10,
+    "offsetY": 8
+  },
+  "shark": {
+    "width": 70,
+    "height": 45,
+    "offsetX": 13,
+    "offsetY": 25
+  },
+  "squid": {
+    "width": 55,
+    "height": 60,
+    "offsetX": 20,
+    "offsetY": 18
+  },
+  "crablore": {
+    "width": 65,
+    "height": 50,
+    "offsetX": 15,
+    "offsetY": 23
+  }
+}

@@ -125,16 +125,15 @@ if (typeof hitboxConfig === 'undefined') {
             console.log(\`[HITBOX] Applying for \${enemyType}:\`, config);
             console.log(\`[HITBOX] Sprite info - Scale: \${enemy.scaleX}, Origin: (\${enemy.originX}, \${enemy.originY})\`);
             console.log(\`[HITBOX] Sprite dimensions - Width: \${enemy.width}, Height: \${enemy.height}\`);
-            console.log(\`[HITBOX] Display dimensions - Width: \${enemy.displayWidth}, Height: \${enemy.displayHeight}\`);
-            
+            console.log(\`[HITBOX] Flip state - flipX: \${enemy.flipX}, flipY: \${enemy.flipY}\`);
+
             // The sprite editor saves offsets in unscaled sprite coordinates
             // Phaser's body.setOffset() always uses unscaled coordinates
             // DO NOT divide by scale - apply directly
             enemy.body.setSize(config.width, config.height);
             enemy.body.setOffset(config.offsetX, config.offsetY);
-            
-            console.log(\`[HITBOX] Applied - Size: \${config.width}x\${config.height}, Direct offset: (\${config.offsetX}, \${config.offsetY})\`);
-            console.log(\`[HITBOX] Body position - X: \${enemy.body.x}, Y: \${enemy.body.y}\`);
+
+            console.log(\`[HITBOX] Applied - Size: \${config.width}x\${config.height}, Offset: (\${config.offsetX}, \${config.offsetY})\`);
             return true;
         }
         console.log(\`[HITBOX] No config found for \${enemyType}\`);
@@ -156,6 +155,9 @@ if (typeof hitboxConfig === 'undefined') {
         }
         if (editorData.shadows) {
             Object.assign(this.shadows, editorData.shadows);
+        }
+        if (editorData.flips) {
+            Object.assign(this.flips, editorData.flips);
         }
     }
 };

@@ -1443,11 +1443,11 @@
                 const hitbox = saved.hitbox || { width: 30, height: 30, offsetX: 0, offsetY: 0 };
                 const shadow = saved.shadow || { width: 40, height: 12, offsetX: 0, offsetY: 30, alpha: 0.5 };
                 
-                // Apply scale with flip state
-                currentSprite.setScale(
-                    flipX ? -scale : scale,
-                    flipY ? -scale : scale
-                );
+                // Apply scale (always positive) and flip separately
+                // This matches how the game does it - using setFlipX/setFlipY instead of negative scale
+                currentSprite.setScale(scale, scale);
+                currentSprite.setFlipX(flipX);
+                currentSprite.setFlipY(flipY);
                 
                 // Update flip UI
                 document.getElementById('flip-x-checkbox').checked = flipX;
@@ -1627,23 +1627,23 @@
         // Toggle horizontal flip
         function toggleFlipX() {
             if (!currentSprite) return;
-            
+
             if (!savedData[currentEnemy]) savedData[currentEnemy] = {};
             savedData[currentEnemy].flipX = !savedData[currentEnemy].flipX;
-            
+
             const scale = savedData[currentEnemy].scale || 1;
             const flipX = savedData[currentEnemy].flipX || false;
             const flipY = savedData[currentEnemy].flipY || false;
-            
-            currentSprite.setScale(
-                flipX ? -Math.abs(scale) : Math.abs(scale),
-                flipY ? -Math.abs(scale) : Math.abs(scale)
-            );
-            
+
+            // Use setFlipX/setFlipY to match game behavior (not negative scale)
+            currentSprite.setScale(Math.abs(scale), Math.abs(scale));
+            currentSprite.setFlipX(flipX);
+            currentSprite.setFlipY(flipY);
+
             // Update UI
             document.getElementById('flip-x-checkbox').checked = flipX;
             document.getElementById('flip-x-btn').style.background = flipX ? '#4CAF50' : '#444';
-            
+
             console.log(`FlipX toggled for ${currentEnemy}: ${flipX}`);
             console.log(`Current savedData for ${currentEnemy}:`, savedData[currentEnemy]);
             saveData();
@@ -1653,23 +1653,23 @@
         // Toggle vertical flip
         function toggleFlipY() {
             if (!currentSprite) return;
-            
+
             if (!savedData[currentEnemy]) savedData[currentEnemy] = {};
             savedData[currentEnemy].flipY = !savedData[currentEnemy].flipY;
-            
+
             const scale = savedData[currentEnemy].scale || 1;
             const flipX = savedData[currentEnemy].flipX || false;
             const flipY = savedData[currentEnemy].flipY || false;
-            
-            currentSprite.setScale(
-                flipX ? -Math.abs(scale) : Math.abs(scale),
-                flipY ? -Math.abs(scale) : Math.abs(scale)
-            );
-            
+
+            // Use setFlipX/setFlipY to match game behavior (not negative scale)
+            currentSprite.setScale(Math.abs(scale), Math.abs(scale));
+            currentSprite.setFlipX(flipX);
+            currentSprite.setFlipY(flipY);
+
             // Update UI
             document.getElementById('flip-y-checkbox').checked = flipY;
             document.getElementById('flip-y-btn').style.background = flipY ? '#4CAF50' : '#444';
-            
+
             saveData();
             updateInfoPanel();
         }
@@ -1677,25 +1677,25 @@
         // Update flip from checkboxes
         function updateFlipFromCheckbox() {
             if (!currentSprite) return;
-            
+
             const flipX = document.getElementById('flip-x-checkbox').checked;
             const flipY = document.getElementById('flip-y-checkbox').checked;
-            
+
             if (!savedData[currentEnemy]) savedData[currentEnemy] = {};
             savedData[currentEnemy].flipX = flipX;
             savedData[currentEnemy].flipY = flipY;
-            
+
             const scale = savedData[currentEnemy].scale || 1;
-            
-            currentSprite.setScale(
-                flipX ? -Math.abs(scale) : Math.abs(scale),
-                flipY ? -Math.abs(scale) : Math.abs(scale)
-            );
-            
+
+            // Use setFlipX/setFlipY to match game behavior (not negative scale)
+            currentSprite.setScale(Math.abs(scale), Math.abs(scale));
+            currentSprite.setFlipX(flipX);
+            currentSprite.setFlipY(flipY);
+
             // Update button colors
             document.getElementById('flip-x-btn').style.background = flipX ? '#4CAF50' : '#444';
             document.getElementById('flip-y-btn').style.background = flipY ? '#4CAF50' : '#444';
-            
+
             saveData();
             updateInfoPanel();
         }

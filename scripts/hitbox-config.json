@@ -35,6 +35,46 @@
     "flyingdemon": {
       "flipX": false,
       "flipY": false
+    },
+    "snowy": {
+      "flipX": true,
+      "flipY": false
+    },
+    "northerner": {
+      "flipX": true,
+      "flipY": false
+    },
+    "bumblebee": {
+      "flipX": true,
+      "flipY": false
+    },
+    "blip": {
+      "flipX": true,
+      "flipY": false
+    },
+    "bombslime": {
+      "flipX": false,
+      "flipY": false
+    },
+    "fireslime": {
+      "flipX": false,
+      "flipY": false
+    },
+    "arcaneslime": {
+      "flipX": false,
+      "flipY": false
+    },
+    "waterslime": {
+      "flipX": false,
+      "flipY": false
+    },
+    "lightningslime": {
+      "flipX": false,
+      "flipY": false
+    },
+    "earthslime": {
+      "flipX": false,
+      "flipY": false
     }
   },
   "scales": {
@@ -57,7 +97,7 @@
     "intellectdevourer": 1.8,
     "bloboid": 1.5,
     "cobra": 2,
-    "cactuse": 4.8,
+    "cactuse": 3.8,
     "fireworm": 1.2,
     "summoner": 0.8,
     "fireslime": 1,
@@ -80,89 +120,21 @@
     "nekros-boss": 1.8,
     "frost-guardian-boss": 1,
     "torchboy": 3.1,
-    "jellyfish": 1.4
+    "jellyfish": 1.4,
+    "bumblebee": 2,
+    "bombslime": 1.6,
+    "fireslime": 1.6,
+    "arcaneslime": 1.6,
+    "waterslime": 1.6,
+    "lightningslime": 1.6,
+    "earthslime": 1.6
   },
   "hitboxes": {
-    "": {
-      "": 0
-    },
-    "golem-blue": {
-      "": 10
-    },
-    "golem-orange": {
-      "": 10
-    },
-    "castle-knight": {
-      "": 100
-    },
-    "castle-rogue": {
-      "": 4
-    },
-    "castle-soldier": {
-      "": 72
-    },
-    "castle-bladekeeper": {
-      "": 89
-    },
-    "castle-squire": {
-      "": 80
-    },
-    "obelisk-boss": {
-      "": 50
-    },
-    "archer-boss": {
-      "": 40
-    },
-    "demon-slime-boss": {
-      "": 40
-    },
-    "eyelor": {
-      "": 50
-    },
-    "eyelor-boss": {
-      "": 50
-    },
-    "nekros": {
-      "": 30
-    },
-    "nekros-boss": {
-      "": 30
-    },
-    "voidkin": {
-      "": 20
-    },
-    "kingNothing": {
-      "": 20
-    },
-    "blip": {
-      "": 1
-    },
-    "orb": {
-      "": 17
-    },
     "wizard": {
       "width": 35,
       "height": 59,
       "offsetX": 27,
       "offsetY": 13
-    },
-    "grim": {
-      "": 15
-    },
-    "archer-projectile": {
-      "": 8
-    },
-    "waterball-projectile": {
-      "": 22
-    },
-    "fireball-projectile": {
-      "": 22
-    },
-    "void-ball": {
-      "": 17
-    },
-    "lightning-orb": {
-      "": 22
     },
     "test": {
       "width": 50,
@@ -171,9 +143,9 @@
       "offsetY": 10
     },
     "frost-guardian-boss": {
-      "width": 62,
-      "height": 61,
-      "offsetX": 75,
+      "width": 72,
+      "height": 73,
+      "offsetX": 61,
       "offsetY": 33
     },
     "torchboy": {
@@ -183,73 +155,385 @@
       "offsetY": -8
     },
     "jellyfish": {
-      "width": 49,
-      "height": 56,
-      "offsetX": 0,
-      "offsetY": 0
+      "width": 31,
+      "height": 40,
+      "offsetX": 8,
+      "offsetY": 7
     },
     "crabby": {
-      "width": 56,
-      "height": 33,
+      "width": 50,
+      "height": 23,
       "offsetX": 6,
-      "offsetY": 16
+      "offsetY": 25
+    },
+    "tree": {
+      "width": 32,
+      "height": 39,
+      "offsetX": 5,
+      "offsetY": 12
+    },
+    "bat": {
+      "width": 38,
+      "height": 40,
+      "offsetX": 61,
+      "offsetY": 55
+    },
+    "mushroom": {
+      "width": 39,
+      "height": 46,
+      "offsetX": 59,
+      "offsetY": 1
+    },
+    "giantfly": {
+      "width": 28,
+      "height": 24,
+      "offsetX": 2,
+      "offsetY": 2
+    },
+    "squirrel": {
+      "width": 24,
+      "height": 20,
+      "offsetX": 2,
+      "offsetY": 2
+    },
+    "redpanda": {
+      "width": 23,
+      "height": 14,
+      "offsetX": 4,
+      "offsetY": 2
+    },
+    "fireworm": {
+      "width": 51,
+      "height": 34,
+      "offsetX": 23,
+      "offsetY": 29
+    },
+    "summoner": {
+      "width": 36,
+      "height": 41,
+      "offsetX": 18,
+      "offsetY": 19
+    },
+    "soul": {
+      "width": 60,
+      "height": 60,
+      "offsetX": 18,
+      "offsetY": 18
+    },
+    "bloboid": {
+      "width": 50,
+      "height": 30,
+      "offsetX": 15,
+      "offsetY": 2
+    },
+    "slime": {
+      "width": 40,
+      "height": 40,
+      "offsetX": 10,
+      "offsetY": 10
+    },
+    "fireslime": {
+      "width": 40,
+      "height": 40,
+      "offsetX": 10,
+      "offsetY": 10
+    },
+    "golem": {
+      "width": 36,
+      "height": 33,
+      "offsetX": 27,
+      "offsetY": 31
+    },
+    "skeletonseeker": {
+      "width": 60,
+      "height": 80,
+      "offsetX": 30,
+      "offsetY": 19
+    },
+    "cobra": {
+      "width": 20,
+      "height": 16,
+      "offsetX": 4,
+      "offsetY": 2
+    },
+    "cactuse": {
+      "width": 17,
+      "height": 17,
+      "offsetX": 7,
+      "offsetY": 6
+    },
+    "armadillo": {
+      "width": 28,
+      "height": 15,
+      "offsetX": 2,
+      "offsetY": 4
+    },
+    "swampmerchant": {
+      "width": 37,
+      "height": 25,
+      "offsetX": 15,
+      "offsetY": 25
+    },
+    "mudguard": {
+      "width": 24,
+      "height": 20,
+      "offsetX": -1,
+      "offsetY": 3
+    },
+    "eyewalker": {
+      "width": 50,
+      "height": 55,
+      "offsetX": 7,
+      "offsetY": 5
+    },
+    "eyegoompa": {
+      "width": 20,
+      "height": 18,
+      "offsetX": 2,
+      "offsetY": 3
+    },
+    "snowy": {
+      "width": 26,
+      "height": 29,
+      "offsetX": 2,
+      "offsetY": 17
+    },
+    "elkman": {
+      "width": 23,
+      "height": 34,
+      "offsetX": 22,
+      "offsetY": 14
+    },
+    "frost-golem": {
+      "width": 24,
+      "height": 24,
+      "offsetX": 21,
+      "offsetY": 21
+    },
+    "spiked-slime": {
+      "width": 28,
+      "height": 26,
+      "offsetX": 14,
+      "offsetY": 21
+    },
+    "northerner": {
+      "width": 26,
+      "height": 41,
+      "offsetX": 2,
+      "offsetY": 9
+    },
+    "shark": {
+      "width": 70,
+      "height": 45,
+      "offsetX": 13,
+      "offsetY": 25
+    },
+    "squid": {
+      "width": 81,
+      "height": 34,
+      "offsetX": 6,
+      "offsetY": 31
+    },
+    "crablore": {
+      "width": 65,
+      "height": 28,
+      "offsetX": 6,
+      "offsetY": 69
+    },
+    "kobold": {
+      "width": 55,
+      "height": 57,
+      "offsetX": 32,
+      "offsetY": 35
+    },
+    "brainmole": {
+      "width": 24,
+      "height": 20,
+      "offsetX": 4,
+      "offsetY": 7
+    },
+    "intellectdevourer": {
+      "width": 20,
+      "height": 18,
+      "offsetX": 4,
+      "offsetY": 3
+    },
+    "darkbat": {
+      "width": 30,
+      "height": 30,
+      "offsetX": 18,
+      "offsetY": 18
+    },
+    "castle-knight": {
+      "width": 30,
+      "height": 44,
+      "offsetX": 80,
+      "offsetY": 70
+    },
+    "castle-rogue": {
+      "width": 25,
+      "height": 26,
+      "offsetX": 18,
+      "offsetY": 4
+    },
+    "castle-soldier": {
+      "width": 26,
+      "height": 40,
+      "offsetX": 57,
+      "offsetY": 47
+    },
+    "castle-bladekeeper": {
+      "width": 30,
+      "height": 50,
+      "offsetX": 123,
+      "offsetY": 78
+    },
+    "castle-squire": {
+      "width": 25,
+      "height": 30,
+      "offsetX": 58,
+      "offsetY": 60
+    },
+    "yellowskeleton": {
+      "width": 30,
+      "height": 42,
+      "offsetX": 29,
+      "offsetY": 18
+    },
+    "clubimp": {
+      "width": 20,
+      "height": 30,
+      "offsetX": 13,
+      "offsetY": 12
+    },
+    "axeimp": {
+      "width": 25,
+      "height": 39,
+      "offsetX": 34,
+      "offsetY": 34
+    },
+    "flyingdemon": {
+      "width": 55,
+      "height": 49,
+      "offsetX": 9,
+      "offsetY": 18
+    },
+    "orangegolem": {
+      "width": 30,
+      "height": 30,
+      "offsetX": 31,
+      "offsetY": 34
+    },
+    "archerBoss": {
+      "width": 30,
+      "height": 30,
+      "offsetX": 17,
+      "offsetY": 17
+    },
+    "obeliskBoss": {
+      "width": 47,
+      "height": 47,
+      "offsetX": 27,
+      "offsetY": 27
+    },
+    "kingNothing": {
+      "width": 30,
+      "height": 53,
+      "offsetX": 65,
+      "offsetY": 55
+    },
+    "eyelor": {
+      "width": 30,
+      "height": 30,
+      "offsetX": 19,
+      "offsetY": 17
+    },
+    "nekros": {
+      "width": 53,
+      "height": 61,
+      "offsetX": 70,
+      "offsetY": 35
+    },
+    "orb": {
+      "width": 32,
+      "height": 43,
+      "offsetX": 14,
+      "offsetY": 14
+    },
+    "grim": {
+      "width": 25,
+      "height": 36,
+      "offsetX": 19,
+      "offsetY": 25
+    },
+    "blip": {
+      "width": 18,
+      "height": 22,
+      "offsetX": 26,
+      "offsetY": 12
+    },
+    "bumblebee": {
+      "width": 20,
+      "height": 14,
+      "offsetX": 6,
+      "offsetY": 2
+    },
+    "bombslime": {
+      "width": 40,
+      "height": 35,
+      "offsetX": 12,
+      "offsetY": 20
+    },
+    "fireslime": {
+      "width": 40,
+      "height": 35,
+      "offsetX": 12,
+      "offsetY": 20
+    },
+    "arcaneslime": {
+      "width": 40,
+      "height": 35,
+      "offsetX": 12,
+      "offsetY": 20
+    },
+    "waterslime": {
+      "width": 40,
+      "height": 35,
+      "offsetX": 12,
+      "offsetY": 20
+    },
+    "lightningslime": {
+      "width": 40,
+      "height": 35,
+      "offsetX": 12,
+      "offsetY": 20
+    },
+    "earthslime": {
+      "width": 40,
+      "height": 35,
+      "offsetX": 12,
+      "offsetY": 20
     }
   },
   "shadows": {
-    "": {
-      "": 0.3
-    },
-    "castle-bladekeeper": {
-      "": 89
-    },
-    "golem-blue": {
-      "": 10
-    },
-    "golem-orange": {
-      "": 10
-    },
-    "castle-knight": {
-      "": 100
-    },
-    "castle-rogue": {
-      "": 4
-    },
-    "castle-soldier": {
-      "": 72
-    },
-    "castle-squire": {
-      "": 80
-    },
-    "obelisk-boss": {
-      "": 50
-    },
-    "sand-obelisk-boss": {
-      "": 0.6
-    },
-    "demon-slime-boss": {
-      "": 40
-    },
-    "eyelor": {
-      "": 50
-    },
-    "eyelor-boss": {
-      "": 50
-    },
-    "nekros": {
-      "": 30
-    },
-    "nekros-boss": {
-      "": 30
-    },
-    "voidkin": {
-      "": 20
-    },
-    "kingNothing": {
-      "": 20
-    },
-    "archer-boss": {
-      "": 40
-    },
+    "": {},
+    "castle-bladekeeper": {},
+    "golem-blue": {},
+    "golem-orange": {},
+    "castle-knight": {},
+    "castle-rogue": {},
+    "castle-soldier": {},
+    "castle-squire": {},
+    "obelisk-boss": {},
+    "sand-obelisk-boss": {},
+    "demon-slime-boss": {},
+    "eyelor": {},
+    "eyelor-boss": {},
+    "nekros": {},
+    "nekros-boss": {},
+    "voidkin": {},
+    "kingNothing": {},
+    "archer-boss": {},
     "frost-guardian-boss": {
       "width": 40,
       "height": 15,
