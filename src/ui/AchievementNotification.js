@@ -21,6 +21,12 @@ class AchievementNotification {
      * Add an achievement to the notification queue
      */
     queueNotification(achievement) {
+        // Don't queue if scene is invalid
+        if (!this.scene || !this.scene.sys || this.scene.sys.isDestroyed || !this.scene.sys.isActive()) {
+            console.warn('Cannot queue achievement notification - scene is not active');
+            return;
+        }
+
         this.notificationQueue.push(achievement);
 
         // Start showing notifications if not already showing
@@ -48,6 +54,14 @@ class AchievementNotification {
      * Display an achievement notification
      */
     showNotification(achievement) {
+        // Safety check: ensure scene and camera are valid
+        if (!this.scene || !this.scene.cameras || !this.scene.cameras.main) {
+            console.warn('Cannot show achievement notification - scene or camera not available');
+            // Move to next notification
+            this.showNext();
+            return;
+        }
+
         const width = 400;
         const height = 120;
         const x = this.scene.cameras.main.width - width - 20; // Right side with padding
@@ -135,6 +149,17 @@ class AchievementNotification {
      * Hide and remove a notification
      */
     hideNotification(container) {
+        // Safety check: ensure scene is still valid
+        if (!this.scene || !this.scene.tweens) {
+            // Scene is gone, just destroy the container and continue
+            if (container) {
+                container.destroy();
+            }
+            this.currentNotification = null;
+            this.showNext();
+            return;
+        }
+
         // Slide out animation
         this.scene.tweens.add({
             targets: container,

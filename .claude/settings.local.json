@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node automated-4player-test.js)",
+      "Bash(node:*)",
+      "Bash(awk:*)",
+      "Read(///**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

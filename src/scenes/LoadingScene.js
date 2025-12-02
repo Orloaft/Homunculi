@@ -1,3 +1,5 @@
+import { AnimationRegistry } from '../core/AnimationRegistry.ts';
+
 export default class LoadingScene extends Phaser.Scene {
     constructor() {
         super({ key: 'LoadingScene' });
@@ -160,6 +162,11 @@ export default class LoadingScene extends Phaser.Scene {
             progressBar.destroy();
             progressBox.destroy();
             percentText.destroy();
+
+            // Register all animations centrally
+            AnimationRegistry.registerAll(this);
+            console.log(`✅ Registered ${AnimationRegistry.getCount()} animations`);
+
             // Keep the cartridge spinning - it will be cleaned up in create()
         });
 

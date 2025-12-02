@@ -40,13 +40,11 @@
           "arch": ["x64"]
         }
       ],
-      "sign": false,
+      "sign": null,
       "signAndEditExecutable": false,
       "signDlls": false,
       "forceCodeSigning": false,
-      "verifyUpdateCodeSignature": false,
-      "certificateFile": null,
-      "certificatePassword": null
+      "verifyUpdateCodeSignature": false
     },
     "mac": {
       "target": "dmg"

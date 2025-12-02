@@ -272,6 +272,7 @@ class LoadingScene extends Phaser.Scene {
         this.load.audio('bgm2', 'assets/audio/bgm2.mp3');
         // Load sound effects
         this.load.audio('danger-warning', 'sfx/dangersound.wav');
+        this.load.audio('pop', 'assets/Pickup_Coin10.wav');
         this.load.audio('stageselect-bgm', 'assets/audio/VGMA%20Challenge%2008(stageselect).ogg');
         this.load.audio('title-bgm', 'assets/audio/Ludum%20Dare%2028%2003(title).ogg');
         this.load.audio('forestland-bgm', 'assets/audio/Sketchbook%202024-08-07(forestland).ogg');
@@ -345,6 +346,7 @@ class LoadingScene extends Phaser.Scene {
         this.load.image('philosopher-orb', 'assets/effects/orbs/philosopherorb.png');
         this.load.image('blast-orb', 'assets/effects/orbs/blast.png');
         this.load.image('chaos-orb', 'assets/effects/orbs/chaos.png');
+        this.load.image('alchemy-orb', 'assets/effects/orbs/alchemy.png');
         // Load chaos missile frames for all 3 levels
         for (let level = 1; level <= 3; level++) {
             for (let i = 1; i <= 30; i++) {
@@ -527,6 +529,11 @@ class LoadingScene extends Phaser.Scene {
         this.load.spritesheet('firebolt', 'assets/effects/elementanimations/firebolt/11framesdims528x48.png', {
             frameWidth: 48,  // 528 / 11 frames
             frameHeight: 48
+        });
+        // Fire breath animation (12 frames)
+        this.load.spritesheet('firebreath', 'assets/effects/elementanimations/firebreath/12framesdims.png', {
+            frameWidth: 59.92,  // 719 / 12 frames
+            frameHeight: 47
         });
         // Earth projectile animation (6 travel frames + 6 impact frames)
         this.load.spritesheet('earth-projectile', 'assets/effects/elementanimations/earthprojectile/6framesx2framesdims288x64.png', {
@@ -857,6 +864,15 @@ class LoadingScene extends Phaser.Scene {
         this.load.image('flamethrower', 'assets/images/firebreath.png');
         // Load weakspot rune sprite
         this.load.image('weakspot-rune', 'assets/images/weakspotrune.png');
+        // Load dice sprites for loot system
+        this.load.spritesheet('dice-roll', 'assets/ui/diceroll.PNG', {
+            frameWidth: 16,
+            frameHeight: 15
+        });
+        this.load.spritesheet('dice-faces', 'assets/ui/dicerollfaces.PNG', {
+            frameWidth: 16,
+            frameHeight: 15
+        });
         // Load Arcane Archer boss sprites
         this.load.spritesheet('archer-boss-shoot', 'assets/bosses/archerboss/boss2archershoot7frames.png', {
             frameWidth: 453 / 7, // 64.7 rounded to 65
@@ -1709,8 +1725,144 @@ class TitleScene extends Phaser.Scene {
         this.prevButtonStates = null;
         // Reset transition flag when entering scene
         this.isTransitioning = false;
+
+        // ATTRACT MODE - Demo gameplay after idle timeout
+        this.attractModeTimeout = 20000; // 20 seconds of inactivity
+        this.lastInputTime = Date.now();
+        this.attractModeActive = false;
+
+        // Track any input to reset idle timer
+        this.input.on('pointerdown', () => this.resetIdleTimer());
+        this.input.on('pointermove', () => this.resetIdleTimer());
+        this.input.keyboard.on('keydown', () => this.resetIdleTimer());
+
+        // Add high score display for attract mode
+        this.createHighScoreDisplay();
+    }
+
+    resetIdleTimer() {
+        this.lastInputTime = Date.now();
+        // If attract mode was showing high scores, hide them
+        if (this.highScoreContainer && this.highScoreContainer.visible) {
+            this.highScoreContainer.setVisible(false);
+        }
+    }
+
+    createHighScoreDisplay() {
+        // Create high score container (initially hidden)
+        this.highScoreContainer = this.add.container(400, 350);
+        this.highScoreContainer.setVisible(false);
+        this.highScoreContainer.setDepth(100);
+
+        // Background
+        const bg = this.add.rectangle(0, 0, 300, 200, 0x000000, 0.8);
+        bg.setStrokeStyle(2, 0xffd700);
+        this.highScoreContainer.add(bg);
+
+        // Title
+        const title = this.add.text(0, -80, 'HIGH SCORES', {
+            fontSize: '24px',
+            color: '#ffd700',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.highScoreContainer.add(title);
+
+        // Get high scores from localStorage
+        const scores = JSON.parse(localStorage.getItem('highScores') || '[]');
+        const topScores = scores.slice(0, 5);
+
+        // Display scores
+        topScores.forEach((score, index) => {
+            const scoreText = this.add.text(0, -40 + (index * 25),
+                `${index + 1}. Wave ${score.wave || 0} - ${score.kills || 0} kills`, {
+                fontSize: '16px',
+                color: index === 0 ? '#ffd700' : '#ffffff'
+            }).setOrigin(0.5);
+            this.highScoreContainer.add(scoreText);
+        });
+
+        // If no scores, show placeholder
+        if (topScores.length === 0) {
+            const noScores = this.add.text(0, 0, 'No scores yet!\nPlay to set records!', {
+                fontSize: '16px',
+                color: '#aaaaaa',
+                align: 'center'
+            }).setOrigin(0.5);
+            this.highScoreContainer.add(noScores);
+        }
+
+        // "Press any key" text
+        const pressKey = this.add.text(0, 80, 'Press any key to play', {
+            fontSize: '14px',
+            color: '#88ff88'
+        }).setOrigin(0.5);
+        this.highScoreContainer.add(pressKey);
+
+        // Pulse animation for press key text
+        this.tweens.add({
+            targets: pressKey,
+            alpha: 0.3,
+            duration: 800,
+            yoyo: true,
+            repeat: -1
+        });
+    }
+
+    startAttractMode() {
+        if (this.attractModeActive || this.isTransitioning) return;
+
+        this.attractModeActive = true;
+        console.log('🎮 ATTRACT MODE: Starting demo gameplay');
+
+        // Show high scores first
+        if (this.highScoreContainer) {
+            this.highScoreContainer.setVisible(true);
+            this.tweens.add({
+                targets: this.highScoreContainer,
+                alpha: { from: 0, to: 1 },
+                duration: 500
+            });
+        }
+
+        // After showing scores for a bit, start demo
+        this.time.delayedCall(5000, () => {
+            if (!this.attractModeActive) return; // User interrupted
+
+            // Hide high scores
+            if (this.highScoreContainer) {
+                this.highScoreContainer.setVisible(false);
+            }
+
+            // Start game in demo mode
+            this.cameras.main.fadeOut(500, 0, 0, 0);
+            this.time.delayedCall(500, () => {
+                // Pass demo mode flag to game
+                this.scene.start('GameScene', {
+                    demoMode: true,
+                    multiplayerEnabled: false,
+                    selectedLand: 'forest',
+                    startElement: 'fire'
+                });
+
+                // Enable autoplay after a short delay
+                this.time.delayedCall(1000, () => {
+                    if (window.autoPlayer) {
+                        window.autoPlayer.enabled = true;
+                        window.autoPlayer.start();
+                    }
+                });
+            });
+        });
     }
     update() {
+        // ATTRACT MODE - Check idle timer
+        if (!this.attractModeActive && !this.isTransitioning && !this.optionsMenu && !this.controllerDetectionActive) {
+            const idleTime = Date.now() - this.lastInputTime;
+            if (idleTime >= this.attractModeTimeout) {
+                this.startAttractMode();
+            }
+        }
+
         // Draw debug hitbox visualization
         if (this.hitboxDebugGraphics && this.debugHitboxInfo && this.wizard) {
             this.hitboxDebugGraphics.clear();
@@ -1892,8 +2044,59 @@ class TitleScene extends Phaser.Scene {
             }
         });
         stagesContainer.add([stagesLabel, stagesCheckbox, stagesCheck]);
+
+        // Boss Fights toggle
+        const bossContainer = this.add.container(200, 160);
+        const bossLabel = this.add.text(-180, 0, 'Boss Fights:', {
+            fontSize: '16px',
+            color: '#ffffff'
+        }).setOrigin(0, 0.5);
+        const bossCheckbox = this.add.rectangle(130, 0, 25, 25, 0x444444);
+        bossCheckbox.setStrokeStyle(3, 0xffd700);
+        bossCheckbox.setInteractive({ useHandCursor: true });
+        // Check if boss fights are enabled (default: true)
+        const bossEnabled = localStorage.getItem('bossEnabled') !== 'false';
+        const bossCheck = this.add.text(130, 0, '✓', {
+            fontSize: '18px',
+            color: '#00ff00',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        bossCheck.setVisible(bossEnabled);
+        bossCheckbox.on('pointerdown', () => {
+            const currentState = localStorage.getItem('bossEnabled') !== 'false';
+            const newState = !currentState;
+            bossCheck.setVisible(newState);
+            localStorage.setItem('bossEnabled', newState.toString());
+        });
+        bossContainer.add([bossLabel, bossCheckbox, bossCheck]);
+
+        // Arcade Mode toggle
+        const arcadeModeContainer = this.add.container(200, 190);
+        const arcadeModeLabel = this.add.text(-180, 0, 'Arcade Mode:', {
+            fontSize: '16px',
+            color: '#ffffff'
+        }).setOrigin(0, 0.5);
+        const arcadeModeCheckbox = this.add.rectangle(130, 0, 25, 25, 0x444444);
+        arcadeModeCheckbox.setStrokeStyle(3, 0xffd700);
+        arcadeModeCheckbox.setInteractive({ useHandCursor: true });
+        // Check if arcade mode is enabled (default: false)
+        const arcadeModeEnabled = localStorage.getItem('arcadeMode') === 'true';
+        const arcadeModeCheck = this.add.text(130, 0, '✓', {
+            fontSize: '18px',
+            color: '#00ff00',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        arcadeModeCheck.setVisible(arcadeModeEnabled);
+        arcadeModeCheckbox.on('pointerdown', () => {
+            const currentState = localStorage.getItem('arcadeMode') === 'true';
+            const newState = !currentState;
+            arcadeModeCheck.setVisible(newState);
+            localStorage.setItem('arcadeMode', newState.toString());
+        });
+        arcadeModeContainer.add([arcadeModeLabel, arcadeModeCheckbox, arcadeModeCheck]);
+
         // Fullscreen toggle
-        const fullscreenContainer = this.add.container(200, 160);
+        const fullscreenContainer = this.add.container(200, 220);
         const fullscreenLabel = this.add.text(-180, 0, 'Fullscreen:', {
             fontSize: '16px',
             color: '#ffffff'
@@ -1988,7 +2191,7 @@ class TitleScene extends Phaser.Scene {
         elementContainer.add([elementLabel, elementText, leftArrow, rightArrow]);
         // Hyper mode toggle
         // Speed Mode Dial
-        const speedContainer = this.add.container(200, 220);
+        const speedContainer = this.add.container(200, 280);
         const speedLabel = this.add.text(-180, 0, 'Game Speed:', {
             fontSize: '18px',
             color: '#ffffff'
@@ -2063,7 +2266,7 @@ class TitleScene extends Phaser.Scene {
         speedRightArrow.on('pointerout', () => speedRightArrow.setScale(1));
         speedContainer.add([speedLabel, dialBg, speedText, speedLeftArrow, speedRightArrow, speedHint]);
         // Enemy Density Dial
-        const densityContainer = this.add.container(600, 220);
+        const densityContainer = this.add.container(600, 280);
         const densityLabel = this.add.text(-180, 0, 'Enemy Density:', {
             fontSize: '18px',
             color: '#ffffff'
@@ -2141,8 +2344,75 @@ class TitleScene extends Phaser.Scene {
         densityRightArrow.on('pointerover', () => densityRightArrow.setScale(1.2));
         densityRightArrow.on('pointerout', () => densityRightArrow.setScale(1));
         densityContainer.add([densityLabel, densityDialBg, densityText, densityLeftArrow, densityRightArrow, densityHint]);
+
+        // Slot Configuration Dial
+        const slotConfigContainer = this.add.container(400, 350);
+        const slotConfigLabel = this.add.text(-180, 0, 'Slot Configuration:', {
+            fontSize: '18px',
+            color: '#ffffff'
+        }).setOrigin(0, 0.5);
+        // Slot config options
+        const slotConfigModes = ['standard', 'extended'];
+        const slotConfigDescriptions = {
+            'standard': '4 Active / 4 Passive / 4 Pouch',
+            'extended': '8 Active / 8 Passive / 8 Pouch'
+        };
+        const slotConfigColors = {
+            'standard': '#00ff00',
+            'extended': '#ff8800'
+        };
+        const currentSlotConfig = localStorage.getItem('slotConfiguration') || 'standard';
+        let currentSlotConfigIndex = slotConfigModes.indexOf(currentSlotConfig);
+        if (currentSlotConfigIndex === -1) currentSlotConfigIndex = 0;
+        // Create dial display
+        const slotConfigDialBg = this.add.rectangle(130, 0, 140, 35, 0x444444);
+        slotConfigDialBg.setStrokeStyle(3, 0xffd700);
+        const slotConfigText = this.add.text(130, 0, slotConfigModes[currentSlotConfigIndex].toUpperCase(), {
+            fontSize: '16px',
+            color: slotConfigColors[slotConfigModes[currentSlotConfigIndex]],
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        // Left arrow
+        const slotConfigLeftArrow = this.add.text(60, 0, '◄', {
+            fontSize: '20px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        slotConfigLeftArrow.setInteractive({ useHandCursor: true });
+        // Right arrow
+        const slotConfigRightArrow = this.add.text(200, 0, '►', {
+            fontSize: '20px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        slotConfigRightArrow.setInteractive({ useHandCursor: true });
+        const slotConfigHint = this.add.text(0, 25, slotConfigDescriptions[slotConfigModes[currentSlotConfigIndex]], {
+            fontSize: '12px',
+            color: '#aaaaaa'
+        }).setOrigin(0.5);
+        // Update function
+        const updateSlotConfigDisplay = () => {
+            const mode = slotConfigModes[currentSlotConfigIndex];
+            slotConfigText.setText(mode.toUpperCase());
+            slotConfigText.setColor(slotConfigColors[mode]);
+            slotConfigHint.setText(slotConfigDescriptions[mode]);
+            localStorage.setItem('slotConfiguration', mode);
+        };
+        slotConfigLeftArrow.on('pointerdown', () => {
+            currentSlotConfigIndex = (currentSlotConfigIndex - 1 + slotConfigModes.length) % slotConfigModes.length;
+            updateSlotConfigDisplay();
+        });
+        slotConfigRightArrow.on('pointerdown', () => {
+            currentSlotConfigIndex = (currentSlotConfigIndex + 1) % slotConfigModes.length;
+            updateSlotConfigDisplay();
+        });
+        // Hover effects
+        slotConfigLeftArrow.on('pointerover', () => slotConfigLeftArrow.setScale(1.2));
+        slotConfigLeftArrow.on('pointerout', () => slotConfigLeftArrow.setScale(1));
+        slotConfigRightArrow.on('pointerover', () => slotConfigRightArrow.setScale(1.2));
+        slotConfigRightArrow.on('pointerout', () => slotConfigRightArrow.setScale(1));
+        slotConfigContainer.add([slotConfigLabel, slotConfigDialBg, slotConfigText, slotConfigLeftArrow, slotConfigRightArrow, slotConfigHint]);
+
         // BGM selector
-        const bgmContainer = this.add.container(400, 290);
+        const bgmContainer = this.add.container(400, 410);
         const bgmLabel = this.add.text(-180, 0, 'Background Music:', {
             fontSize: '18px',
             color: '#ffffff'
@@ -2179,7 +2449,7 @@ class TitleScene extends Phaser.Scene {
         });
         bgmContainer.add([bgmLabel, bgmText, bgmLeftArrow, bgmRightArrow]);
         // Reset Progress button
-        const resetButton = this.add.text(400, 350, 'RESET PROGRESS', {
+        const resetButton = this.add.text(400, 470, 'RESET PROGRESS', {
             fontSize: '20px',
             color: '#ff6666',
             backgroundColor: '#440000',
@@ -2201,7 +2471,7 @@ class TitleScene extends Phaser.Scene {
             this.showResetConfirmation();
         });
         // Close button
-        const closeButton = this.add.text(400, 410, 'CLOSE', {
+        const closeButton = this.add.text(400, 520, 'CLOSE', {
             fontSize: '24px',
             color: '#ffffff',
             backgroundColor: '#444444',
@@ -2229,13 +2499,15 @@ class TitleScene extends Phaser.Scene {
         };
         // Store references for cleanup and controller navigation
         this.optionsMenu = {
-            overlay, menuTitle, debugContainer, recipesContainer, stagesContainer,
-            fullscreenContainer, volumeContainer, elementContainer, speedContainer, densityContainer, bgmContainer, resetButton, closeButton,
+            overlay, menuTitle, debugContainer, recipesContainer, stagesContainer, bossContainer, arcadeModeContainer,
+            fullscreenContainer, volumeContainer, elementContainer, speedContainer, densityContainer, slotConfigContainer, bgmContainer, resetButton, closeButton,
             // Store interactive elements for controller navigation
             controls: {
                 debugCheckbox,
                 recipesCheckbox,
                 stagesCheckbox,
+                bossCheckbox,
+                arcadeModeCheckbox,
                 fullscreenCheckbox,
                 sliderHandle,
                 leftArrow,  // element left arrow
@@ -2244,6 +2516,8 @@ class TitleScene extends Phaser.Scene {
                 speedRightArrow,
                 densityLeftArrow,
                 densityRightArrow,
+                slotConfigLeftArrow,
+                slotConfigRightArrow,
                 bgmLeftArrow,
                 bgmRightArrow,
                 closeButton
@@ -2253,13 +2527,15 @@ class TitleScene extends Phaser.Scene {
                 updateVolumeText,
                 updateElementDisplay,
                 updateSpeedDisplay,
-                updateDensityDisplay
+                updateDensityDisplay,
+                updateSlotConfigDisplay
             },
             // Current values
             currentValues: {
                 elementIndex: currentElementIndex,
                 speedIndex: currentSpeedIndex,
                 densityIndex: currentDensityIndex,
+                slotConfigIndex: currentSlotConfigIndex,
                 bgmIndex: currentBGMIndex
             }
         };
@@ -2274,6 +2550,7 @@ class TitleScene extends Phaser.Scene {
             { type: 'selector', leftArrow: leftArrow, rightArrow: rightArrow, action: 'element' },
             { type: 'selector', leftArrow: speedLeftArrow, rightArrow: speedRightArrow, action: 'speed' },
             { type: 'selector', leftArrow: densityLeftArrow, rightArrow: densityRightArrow, action: 'density' },
+            { type: 'selector', leftArrow: slotConfigLeftArrow, rightArrow: slotConfigRightArrow, action: 'slotConfig' },
             { type: 'selector', leftArrow: bgmLeftArrow, rightArrow: bgmRightArrow, action: 'bgm' },
             { type: 'button', element: resetButton, action: 'reset' },
             { type: 'button', element: closeButton, action: 'close' }
@@ -2294,6 +2571,7 @@ class TitleScene extends Phaser.Scene {
             this.optionsMenu.elementContainer.destroy();
             this.optionsMenu.speedContainer.destroy();
             this.optionsMenu.densityContainer.destroy();
+            this.optionsMenu.slotConfigContainer.destroy();
             this.optionsMenu.bgmContainer.destroy();
             this.optionsMenu.resetButton.destroy();
             this.optionsMenu.closeButton.destroy();
@@ -2701,16 +2979,33 @@ class TitleScene extends Phaser.Scene {
                     this.titleMusic = null;
                 }
 
-                // Initialize SaveManager if not already done
-                if (!this.saveManager) {
-                    this.saveManager = new SaveManager();
-                }
+                // Check if arcade mode is enabled
+                const arcadeModeEnabled = localStorage.getItem('arcadeMode') === 'true';
 
-                // Go to save slot selection scene
-                this.scene.start('SaveSlotScene', {
-                    saveManager: this.saveManager,
-                    debugMode: this.debugEnabled
-                });
+                if (arcadeModeEnabled) {
+                    // Arcade mode: go straight to first stage
+                    // Define arcade stage order
+                    const arcadeStages = ['forest', 'snowland', 'desert', 'ocean', 'castle', 'volcano', 'cave'];
+                    localStorage.setItem('arcadeStages', JSON.stringify(arcadeStages));
+                    localStorage.setItem('currentArcadeStageIndex', '0');
+
+                    this.scene.start('GameScene', {
+                        multiplayerEnabled: false,
+                        selectedLand: arcadeStages[0],
+                        arcadeMode: true
+                    });
+                } else {
+                    // Normal mode: Initialize SaveManager and go to save slot selection
+                    if (!this.saveManager) {
+                        this.saveManager = new SaveManager();
+                    }
+
+                    // Go to save slot selection scene
+                    this.scene.start('SaveSlotScene', {
+                        saveManager: this.saveManager,
+                        debugMode: this.debugEnabled
+                    });
+                }
             }
         });
     }
@@ -7543,6 +7838,7 @@ class GameOverScene extends Phaser.Scene {
             (data.itemsCollected ? Object.values(data.itemsCollected).reduce((a, b) => a + b, 0) : 0);
         this.won = data.won || false;
         this.stage = data.stage || 'forest';
+        this.arcadeMode = data.arcadeMode || false;
 
         // Get managers from registry
         this.saveManager = this.registry.get('saveManager');
@@ -7627,7 +7923,13 @@ class GameOverScene extends Phaser.Scene {
             color: '#ffd700',
             fontStyle: 'bold'
         }).setOrigin(0.5);
-        const buttonText = this.won ? 'Press SPACE to Return to Stage Select' : 'Press SPACE to Try Again';
+        // Different text for arcade mode
+        let buttonText;
+        if (this.arcadeMode) {
+            buttonText = 'Press SPACE to Try Again';
+        } else {
+            buttonText = this.won ? 'Press SPACE to Return to Stage Select' : 'Press SPACE to Try Again';
+        }
         const restartText = this.add.text(400, 500, buttonText, {
             fontSize: '24px',
             color: '#ffffff'
@@ -7637,14 +7939,26 @@ class GameOverScene extends Phaser.Scene {
             color: '#ffffff'
         }).setOrigin(0.5);
         this.input.keyboard.once('keydown-SPACE', () => {
-            // If player won, unlock the next stage
-            if (this.won) {
-                this.unlockNextStage();
+            if (this.arcadeMode) {
+                // Arcade mode: restart current stage
+                const arcadeStages = JSON.parse(localStorage.getItem('arcadeStages') || '["forest"]');
+                const currentIndex = parseInt(localStorage.getItem('currentArcadeStageIndex') || '0');
+
+                this.scene.start('GameScene', {
+                    multiplayerEnabled: false,
+                    selectedLand: arcadeStages[currentIndex],
+                    arcadeMode: true
+                });
+            } else {
+                // Normal mode: unlock next stage if won, then go to stage select
+                if (this.won) {
+                    this.unlockNextStage();
+                }
+                this.scene.start('StageSelectScene', {
+                    fromCharacterSelect: true,
+                    showCharacterSelect: false
+                });
             }
-            this.scene.start('StageSelectScene', {
-                fromCharacterSelect: true,
-                showCharacterSelect: false
-            });
         });
         this.input.keyboard.once('keydown-ESC', () => {
             // Stop all sounds including boss music
@@ -7663,14 +7977,26 @@ class GameOverScene extends Phaser.Scene {
             if (pad) {
                 // A button or Start button to retry/continue
                 if (pad.buttons[0].pressed || pad.buttons[9].pressed) {
-                    // If player won, unlock the next stage
-                    if (this.won) {
-                        this.unlockNextStage();
+                    if (this.arcadeMode) {
+                        // Arcade mode: restart current stage
+                        const arcadeStages = JSON.parse(localStorage.getItem('arcadeStages') || '["forest"]');
+                        const currentIndex = parseInt(localStorage.getItem('currentArcadeStageIndex') || '0');
+
+                        this.scene.start('GameScene', {
+                            multiplayerEnabled: false,
+                            selectedLand: arcadeStages[currentIndex],
+                            arcadeMode: true
+                        });
+                    } else {
+                        // Normal mode
+                        if (this.won) {
+                            this.unlockNextStage();
+                        }
+                        this.scene.start('StageSelectScene', {
+                            fromCharacterSelect: true,
+                            showCharacterSelect: false
+                        });
                     }
-                    this.scene.start('StageSelectScene', {
-                    fromCharacterSelect: true,
-                    showCharacterSelect: false
-                });
                 }
                 // B button or Back button for main menu
                 if (pad.buttons[1].pressed || pad.buttons[8].pressed) {
@@ -8112,93 +8438,93 @@ class TalentTreeScene extends Phaser.Scene {
     createTalentTree() {
         // This method is kept for compatibility but no longer used
         return;
-        // Define talent nodes with three paths and four tiers
-        // Path positions: Left (Shadow Weaver), Center (Unending Thirst), Right (Crimson Blade)
-        const talentData = [
-            // Origin node at the bottom center
-            { id: 'origin', x: 400, y: 500, name: 'Origin', desc: 'The beginning of power', cost: 0, 
-              effect: null, iconFrame: 10, color: 0xffd700, unlocked: true, tier: 0 }, // Star icon
-            // PATH 1: CRIMSON BLADE (Right side - Offense)
-            // Tier 1
-            { id: 'serrated1', x: 550, y: 420, name: 'Serrated Edge I', desc: '+5% Base Damage', cost: 1,
-              effect: { damage: 1.05 }, iconFrame: 22, color: 0xff4444, requires: ['origin'], tier: 1, path: 'crimson', ranks: 3 },
-            { id: 'serrated2', x: 600, y: 420, name: 'Serrated Edge II', desc: '+10% Base Damage', cost: 1,
-              effect: { damage: 1.10 }, iconFrame: 22, color: 0xff4444, requires: ['serrated1'], tier: 1, path: 'crimson', ranks: 3 },
-            { id: 'serrated3', x: 650, y: 420, name: 'Serrated Edge III', desc: '+15% Base Damage', cost: 1,
-              effect: { damage: 1.15 }, iconFrame: 22, color: 0xff4444, requires: ['serrated2'], tier: 1, path: 'crimson', ranks: 3 },
-            // Tier 2
-            { id: 'reckless', x: 600, y: 340, name: 'Reckless Strike', desc: '+15% DMG, +5% DMG taken', cost: 1,
-              effect: { damage: 1.15, damageTaken: 1.05 }, iconFrame: 17, color: 0xff6666, requires: ['serrated3'], tier: 2, path: 'crimson' },
-            // Tier 3
-            { id: 'keen1', x: 570, y: 260, name: 'Keen Eye I', desc: '+5% Crit, +10% Crit DMG', cost: 1,
-              effect: { critChance: 0.05, critDamage: 1.1 }, iconFrame: 31, color: 0xff8888, requires: ['reckless'], tier: 3, path: 'crimson', ranks: 2 },
-            { id: 'keen2', x: 630, y: 260, name: 'Keen Eye II', desc: '+10% Crit, +20% Crit DMG', cost: 1,
-              effect: { critChance: 0.10, critDamage: 1.2 }, iconFrame: 31, color: 0xff8888, requires: ['keen1'], tier: 3, path: 'crimson', ranks: 2 },
-            // Tier 4
-            { id: 'frenzy', x: 600, y: 180, name: 'Frenzied Strikes', desc: 'Kill: +10% AtkSpd (3s, x3)', cost: 1,
-              effect: { onKill: 'frenzy' }, iconFrame: 16, color: 0xffaaaa, requires: ['keen2'], tier: 4, path: 'crimson' },
-            // PATH 2: UNENDING THIRST (Center - Defense)
-            // Tier 1
-            { id: 'blood1', x: 350, y: 420, name: 'Blood Pact I', desc: '+10% Max Health', cost: 1,
-              effect: { maxHealth: 1.1 }, iconFrame: 51, color: 0x44ff44, requires: ['origin'], tier: 1, path: 'thirst', ranks: 3 },
-            { id: 'blood2', x: 400, y: 420, name: 'Blood Pact II', desc: '+20% Max Health', cost: 1,
-              effect: { maxHealth: 1.2 }, iconFrame: 51, color: 0x44ff44, requires: ['blood1'], tier: 1, path: 'thirst', ranks: 3 },
-            { id: 'blood3', x: 450, y: 420, name: 'Blood Pact III', desc: '+30% Max Health', cost: 1,
-              effect: { maxHealth: 1.3 }, iconFrame: 51, color: 0x44ff44, requires: ['blood2'], tier: 1, path: 'thirst', ranks: 3 },
-            // Tier 2
-            { id: 'vampiric', x: 400, y: 340, name: 'Vampiric Touch', desc: 'Heal 2% of damage dealt', cost: 1,
-              effect: { lifesteal: 0.02 }, iconFrame: 29, color: 0x66ff66, requires: ['blood3'], tier: 2, path: 'thirst' },
-            // Tier 3
-            { id: 'iron1', x: 370, y: 260, name: 'Iron Skin I', desc: '-5% Damage Taken', cost: 1,
-              effect: { damageReduction: 0.95 }, iconFrame: 45, color: 0x88ff88, requires: ['vampiric'], tier: 3, path: 'thirst', ranks: 2 },
-            { id: 'iron2', x: 430, y: 260, name: 'Iron Skin II', desc: '-10% Damage Taken', cost: 1,
-              effect: { damageReduction: 0.90 }, iconFrame: 45, color: 0x88ff88, requires: ['iron1'], tier: 3, path: 'thirst', ranks: 2 },
-            // Tier 4
-            { id: 'immortal', x: 400, y: 180, name: 'Immortal Will', desc: '<20% HP: 2s invuln (60s CD)', cost: 1,
-              effect: { lowHealthInvuln: true }, iconFrame: 6, color: 0xaaffaa, requires: ['iron2'], tier: 4, path: 'thirst' },
-            // PATH 3: SHADOW WEAVER (Left side - Utility)
-            // Tier 1
-            { id: 'fleet1', x: 150, y: 420, name: 'Fleet Foot I', desc: '+5% Movement Speed', cost: 1,
-              effect: { moveSpeed: 1.05 }, iconFrame: 11, color: 0x4444ff, requires: ['origin'], tier: 1, path: 'shadow', ranks: 3 },
-            { id: 'fleet2', x: 200, y: 420, name: 'Fleet Foot II', desc: '+10% Movement Speed', cost: 1,
-              effect: { moveSpeed: 1.10 }, iconFrame: 11, color: 0x4444ff, requires: ['fleet1'], tier: 1, path: 'shadow', ranks: 3 },
-            { id: 'fleet3', x: 250, y: 420, name: 'Fleet Foot III', desc: '+15% Movement Speed', cost: 1,
-              effect: { moveSpeed: 1.15 }, iconFrame: 11, color: 0x4444ff, requires: ['fleet2'], tier: 1, path: 'shadow', ranks: 3 },
-            // Tier 2
-            { id: 'arcane', x: 200, y: 340, name: 'Arcane Shroud', desc: '-10% All Cooldowns', cost: 1,
-              effect: { cooldown: 0.9 }, iconFrame: 41, color: 0x6666ff, requires: ['fleet3'], tier: 2, path: 'shadow' },
-            // Tier 3
-            { id: 'expand1', x: 170, y: 260, name: 'Expanding Shadow I', desc: '+10% AoE Size', cost: 1,
-              effect: { aoeSize: 1.1 }, iconFrame: 4, color: 0x8888ff, requires: ['arcane'], tier: 3, path: 'shadow', ranks: 2 },
-            { id: 'expand2', x: 230, y: 260, name: 'Expanding Shadow II', desc: '+20% AoE Size', cost: 1,
-              effect: { aoeSize: 1.2 }, iconFrame: 4, color: 0x8888ff, requires: ['expand1'], tier: 3, path: 'shadow', ranks: 2 },
-            // Tier 4
-            { id: 'temporal', x: 200, y: 180, name: 'Temporal Flux', desc: 'Zone: -50% enemy speed (30s)', cost: 1,
-              effect: { temporalZone: true }, iconFrame: 24, color: 0xaaaaff, requires: ['expand2'], tier: 4, path: 'shadow' }
-        ];
-        // Store talent data for animation
-        this.talentData = talentData;
-        // Create center node immediately
-        const centerNode = talentData.find(t => t.id === 'origin');
-        this.createTalentNode(centerNode);
-        // Animate other nodes emerging from center
-        this.time.delayedCall(500, () => {
-            talentData.forEach((talent, index) => {
-                if (talent.id !== 'origin') {
-                    // Calculate delay based on distance from center
-                    const distance = Phaser.Math.Distance.Between(400, 300, talent.x, talent.y);
-                    const delay = index * 100 + (distance / 3);
-                    this.time.delayedCall(delay, () => {
-                        this.createTalentNodeAnimated(talent);
-                    });
-                }
-            });
-            // Draw connections after animation completes
-            const maxDelay = talentData.length * 100 + 300;
-            this.time.delayedCall(maxDelay, () => {
-                this.drawConnections();
-            });
-        });
+//         // Define talent nodes with three paths and four tiers
+//         // Path positions: Left (Shadow Weaver), Center (Unending Thirst), Right (Crimson Blade)
+//         const talentData = [
+//             // Origin node at the bottom center
+//             { id: 'origin', x: 400, y: 500, name: 'Origin', desc: 'The beginning of power', cost: 0, 
+//               effect: null, iconFrame: 10, color: 0xffd700, unlocked: true, tier: 0 }, // Star icon
+//             // PATH 1: CRIMSON BLADE (Right side - Offense)
+//             // Tier 1
+//             { id: 'serrated1', x: 550, y: 420, name: 'Serrated Edge I', desc: '+5% Base Damage', cost: 1,
+//               effect: { damage: 1.05 }, iconFrame: 22, color: 0xff4444, requires: ['origin'], tier: 1, path: 'crimson', ranks: 3 },
+//             { id: 'serrated2', x: 600, y: 420, name: 'Serrated Edge II', desc: '+10% Base Damage', cost: 1,
+//               effect: { damage: 1.10 }, iconFrame: 22, color: 0xff4444, requires: ['serrated1'], tier: 1, path: 'crimson', ranks: 3 },
+//             { id: 'serrated3', x: 650, y: 420, name: 'Serrated Edge III', desc: '+15% Base Damage', cost: 1,
+//               effect: { damage: 1.15 }, iconFrame: 22, color: 0xff4444, requires: ['serrated2'], tier: 1, path: 'crimson', ranks: 3 },
+//             // Tier 2
+//             { id: 'reckless', x: 600, y: 340, name: 'Reckless Strike', desc: '+15% DMG, +5% DMG taken', cost: 1,
+//               effect: { damage: 1.15, damageTaken: 1.05 }, iconFrame: 17, color: 0xff6666, requires: ['serrated3'], tier: 2, path: 'crimson' },
+//             // Tier 3
+//             { id: 'keen1', x: 570, y: 260, name: 'Keen Eye I', desc: '+5% Crit, +10% Crit DMG', cost: 1,
+//               effect: { critChance: 0.05, critDamage: 1.1 }, iconFrame: 31, color: 0xff8888, requires: ['reckless'], tier: 3, path: 'crimson', ranks: 2 },
+//             { id: 'keen2', x: 630, y: 260, name: 'Keen Eye II', desc: '+10% Crit, +20% Crit DMG', cost: 1,
+//               effect: { critChance: 0.10, critDamage: 1.2 }, iconFrame: 31, color: 0xff8888, requires: ['keen1'], tier: 3, path: 'crimson', ranks: 2 },
+//             // Tier 4
+//             { id: 'frenzy', x: 600, y: 180, name: 'Frenzied Strikes', desc: 'Kill: +10% AtkSpd (3s, x3)', cost: 1,
+//               effect: { onKill: 'frenzy' }, iconFrame: 16, color: 0xffaaaa, requires: ['keen2'], tier: 4, path: 'crimson' },
+//             // PATH 2: UNENDING THIRST (Center - Defense)
+//             // Tier 1
+//             { id: 'blood1', x: 350, y: 420, name: 'Blood Pact I', desc: '+10% Max Health', cost: 1,
+//               effect: { maxHealth: 1.1 }, iconFrame: 51, color: 0x44ff44, requires: ['origin'], tier: 1, path: 'thirst', ranks: 3 },
+//             { id: 'blood2', x: 400, y: 420, name: 'Blood Pact II', desc: '+20% Max Health', cost: 1,
+//               effect: { maxHealth: 1.2 }, iconFrame: 51, color: 0x44ff44, requires: ['blood1'], tier: 1, path: 'thirst', ranks: 3 },
+//             { id: 'blood3', x: 450, y: 420, name: 'Blood Pact III', desc: '+30% Max Health', cost: 1,
+//               effect: { maxHealth: 1.3 }, iconFrame: 51, color: 0x44ff44, requires: ['blood2'], tier: 1, path: 'thirst', ranks: 3 },
+//             // Tier 2
+//             { id: 'vampiric', x: 400, y: 340, name: 'Vampiric Touch', desc: 'Heal 2% of damage dealt', cost: 1,
+//               effect: { lifesteal: 0.02 }, iconFrame: 29, color: 0x66ff66, requires: ['blood3'], tier: 2, path: 'thirst' },
+//             // Tier 3
+//             { id: 'iron1', x: 370, y: 260, name: 'Iron Skin I', desc: '-5% Damage Taken', cost: 1,
+//               effect: { damageReduction: 0.95 }, iconFrame: 45, color: 0x88ff88, requires: ['vampiric'], tier: 3, path: 'thirst', ranks: 2 },
+//             { id: 'iron2', x: 430, y: 260, name: 'Iron Skin II', desc: '-10% Damage Taken', cost: 1,
+//               effect: { damageReduction: 0.90 }, iconFrame: 45, color: 0x88ff88, requires: ['iron1'], tier: 3, path: 'thirst', ranks: 2 },
+//             // Tier 4
+//             { id: 'immortal', x: 400, y: 180, name: 'Immortal Will', desc: '<20% HP: 2s invuln (60s CD)', cost: 1,
+//               effect: { lowHealthInvuln: true }, iconFrame: 6, color: 0xaaffaa, requires: ['iron2'], tier: 4, path: 'thirst' },
+//             // PATH 3: SHADOW WEAVER (Left side - Utility)
+//             // Tier 1
+//             { id: 'fleet1', x: 150, y: 420, name: 'Fleet Foot I', desc: '+5% Movement Speed', cost: 1,
+//               effect: { moveSpeed: 1.05 }, iconFrame: 11, color: 0x4444ff, requires: ['origin'], tier: 1, path: 'shadow', ranks: 3 },
+//             { id: 'fleet2', x: 200, y: 420, name: 'Fleet Foot II', desc: '+10% Movement Speed', cost: 1,
+//               effect: { moveSpeed: 1.10 }, iconFrame: 11, color: 0x4444ff, requires: ['fleet1'], tier: 1, path: 'shadow', ranks: 3 },
+//             { id: 'fleet3', x: 250, y: 420, name: 'Fleet Foot III', desc: '+15% Movement Speed', cost: 1,
+//               effect: { moveSpeed: 1.15 }, iconFrame: 11, color: 0x4444ff, requires: ['fleet2'], tier: 1, path: 'shadow', ranks: 3 },
+//             // Tier 2
+//             { id: 'arcane', x: 200, y: 340, name: 'Arcane Shroud', desc: '-10% All Cooldowns', cost: 1,
+//               effect: { cooldown: 0.9 }, iconFrame: 41, color: 0x6666ff, requires: ['fleet3'], tier: 2, path: 'shadow' },
+//             // Tier 3
+//             { id: 'expand1', x: 170, y: 260, name: 'Expanding Shadow I', desc: '+10% AoE Size', cost: 1,
+//               effect: { aoeSize: 1.1 }, iconFrame: 4, color: 0x8888ff, requires: ['arcane'], tier: 3, path: 'shadow', ranks: 2 },
+//             { id: 'expand2', x: 230, y: 260, name: 'Expanding Shadow II', desc: '+20% AoE Size', cost: 1,
+//               effect: { aoeSize: 1.2 }, iconFrame: 4, color: 0x8888ff, requires: ['expand1'], tier: 3, path: 'shadow', ranks: 2 },
+//             // Tier 4
+//             { id: 'temporal', x: 200, y: 180, name: 'Temporal Flux', desc: 'Zone: -50% enemy speed (30s)', cost: 1,
+//               effect: { temporalZone: true }, iconFrame: 24, color: 0xaaaaff, requires: ['expand2'], tier: 4, path: 'shadow' }
+//         ];
+//         // Store talent data for animation
+//         this.talentData = talentData;
+//         // Create center node immediately
+//         const centerNode = talentData.find(t => t.id === 'origin');
+//         this.createTalentNode(centerNode);
+//         // Animate other nodes emerging from center
+//         this.time.delayedCall(500, () => {
+//             talentData.forEach((talent, index) => {
+//                 if (talent.id !== 'origin') {
+//                     // Calculate delay based on distance from center
+//                     const distance = Phaser.Math.Distance.Between(400, 300, talent.x, talent.y);
+//                     const delay = index * 100 + (distance / 3);
+//                     this.time.delayedCall(delay, () => {
+//                         this.createTalentNodeAnimated(talent);
+//                     });
+//                 }
+//             });
+//             // Draw connections after animation completes
+//             const maxDelay = talentData.length * 100 + 300;
+//             this.time.delayedCall(maxDelay, () => {
+//                 this.drawConnections();
+//             });
+//         });
     }
     createTalentNodeAnimated(talent) {
         // Start at center for animation
@@ -8436,6 +8762,1506 @@ class TalentTreeScene extends Phaser.Scene {
         this.scene.restart();
     }
 }
+
+// ===== RADIAL CHARGE MENU SYSTEM =====
+// Manages element inventory with radial menu interface
+class RadialChargeMenu {
+    constructor(scene, player, playerNumber = 1) {
+        this.scene = scene;
+        this.player = player;
+        this.playerNumber = playerNumber;
+
+        // Menu state
+        this.isOpen = false;
+        this.selectedSocketIndex = -1;
+        this.highlightedSocketIndex = 0;
+
+        // Visual configuration - DUAL RING SYSTEM
+        this.OUTER_RING_RADIUS = 130; // Passive slots (outer ring) - much larger for clear separation
+        this.INNER_RING_RADIUS = 60;  // Active slots (inner ring)
+        this.SOCKET_SIZE = 25; // Socket diameter
+        this.CENTER_AVATAR_SIZE = 30; // Player avatar in center
+
+        // Player-specific colors
+        const playerColors = [
+            0xFFD700, // P1: Gold
+            0x00BFFF, // P2: Deep Sky Blue
+            0xFF4444, // P3: Red
+            0xBA55D3  // P4: Medium Orchid
+        ];
+        this.playerColor = playerColors[playerNumber - 1];
+
+        // Socket border colors
+        this.ACTIVE_BORDER_COLOR = 0xFFD700;   // Gold for active
+        this.PASSIVE_BORDER_COLOR = 0xC0C0C0; // Silver for passive
+
+        // UI containers
+        this.menuContainer = null;
+        this.sockets = [];
+        this.socketSprites = [];
+        this.tierTexts = [];
+
+        // Input state
+        this.lastStickAngle = null;
+        this.stickDeadzone = 0.3;
+
+        // Overflow pouch (max 4 extras when slots full)
+        if (!this.player.elementPouch) {
+            this.player.elementPouch = [];
+        }
+        this.OVERFLOW_MAX = 4;
+
+        // Initialize element tiers map if not exists
+        if (!this.player.elementTiers) {
+            this.player.elementTiers = new Map();
+        }
+
+        // Initialize charge slots array if not exists
+        if (!this.player.chargeSlots) {
+            const socketCount = this.getSocketCount();
+            this.player.chargeSlots = new Array(socketCount.total).fill(null);
+        }
+
+        // Initialize catalyst count for fusion (stored in center slot)
+        if (!this.player.catalystCount) {
+            this.player.catalystCount = 0;
+        }
+
+        console.log(`✅ RadialChargeMenu initialized for Player ${playerNumber}`);
+    }
+
+    /**
+     * Calculate number of sockets based on MAX_ACTIVE_SLOTS and actual chargeSlots length
+     * Returns {total, active, passive}
+     */
+    getSocketCount() {
+        // Get MAX_ACTIVE_SLOTS from scene (either 4 or 8 depending on mode)
+        const maxActiveSlots = this.scene.MAX_ACTIVE_SLOTS || 4;
+
+        // Use actual chargeSlots array length if it exists (allows dynamic expansion)
+        // All slots are now active (no passive slots in new system)
+        if (this.player.chargeSlots && this.player.chargeSlots.length > 0) {
+            const total = this.player.chargeSlots.length;
+            const active = total; // All slots are active
+            const passive = 0;
+            return { total, active, passive };
+        }
+
+        // Fallback to scene constants if chargeSlots not initialized
+        // All slots are now active (no passive slots)
+        const active = maxActiveSlots;
+        const passive = 0; // No passive slots in new system
+        const total = active;
+
+        return { total, active, passive };
+    }
+
+    /**
+     * Open the radial menu
+     */
+    open() {
+        if (this.isOpen) return;
+
+        this.isOpen = true;
+        this.highlightedSocketIndex = 0;
+
+        // Pause the game when radial menu opens
+        this.scene.pauseGame('radial-menu');
+
+        // Create container for all menu elements
+        this.menuContainer = this.scene.add.container(0, 0);
+        this.menuContainer.setDepth(2000); // Very high depth to ensure visibility
+
+        // Semi-transparent overlay (darker for pause visibility)
+        const overlay = this.scene.add.rectangle(
+            this.scene.cameras.main.scrollX + 400,
+            this.scene.cameras.main.scrollY + 300,
+            800, 600,
+            0x000000, 0.5
+        );
+        overlay.setScrollFactor(0);
+        this.menuContainer.add(overlay);
+
+        // Position menu at player location (world coordinates)
+        const centerX = this.player.x;
+        const centerY = this.player.y;
+
+        // Outer ring indicator (for passive slots)
+        const outerRingIndicator = this.scene.add.circle(centerX, centerY, this.OUTER_RING_RADIUS, 0x000000, 0);
+        outerRingIndicator.setStrokeStyle(2, 0xC0C0C0, 0.5); // Silver for passive
+        this.menuContainer.add(outerRingIndicator);
+
+        // Inner ring indicator (for active slots)
+        const innerRingIndicator = this.scene.add.circle(centerX, centerY, this.INNER_RING_RADIUS, 0x000000, 0);
+        innerRingIndicator.setStrokeStyle(2, 0xFFD700, 0.5); // Gold for active
+        this.menuContainer.add(innerRingIndicator);
+
+        // Store references for updates
+        this.outerRingIndicator = outerRingIndicator;
+        this.innerRingIndicator = innerRingIndicator;
+
+        // Ring labels
+        const activeLabel = this.scene.add.text(centerX, centerY - this.INNER_RING_RADIUS - 15, 'ACTIVE', {
+            fontSize: '10px',
+            color: '#FFD700',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 2
+        });
+        activeLabel.setOrigin(0.5);
+        this.menuContainer.add(activeLabel);
+        this.activeLabel = activeLabel;
+
+        const passiveLabel = this.scene.add.text(centerX, centerY - this.OUTER_RING_RADIUS - 15, 'PASSIVE', {
+            fontSize: '10px',
+            color: '#C0C0C0',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 2
+        });
+        passiveLabel.setOrigin(0.5);
+        this.menuContainer.add(passiveLabel);
+        this.passiveLabel = passiveLabel;
+
+        // Player avatar in center
+        this.avatar = this.scene.add.circle(centerX, centerY, this.CENTER_AVATAR_SIZE / 2, this.playerColor, 0.8);
+        this.avatar.setStrokeStyle(2, 0xFFFFFF, 1);
+        this.menuContainer.add(this.avatar);
+
+        // Player number text (moved up, scaled down 50%)
+        this.playerText = this.scene.add.text(centerX, centerY - 8, `P${this.playerNumber}`, {
+            fontSize: '10px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        });
+        this.playerText.setOrigin(0.5);
+        this.menuContainer.add(this.playerText);
+
+        // Catalyst slot in center (for fusion, scaled down 50%)
+        const catalystSlotSize = 15;
+        this.catalystSlot = this.scene.add.circle(centerX, centerY + 8, catalystSlotSize / 2, 0x663399, 0.8);
+        this.catalystSlot.setStrokeStyle(1, 0xaa66ff, 1);
+        this.menuContainer.add(this.catalystSlot);
+
+        // Catalyst count text (scaled down 50%)
+        this.catalystCountText = this.scene.add.text(centerX, centerY + 8, this.player.catalystCount.toString(), {
+            fontSize: '8px',
+            color: '#ffaa00',
+            fontStyle: 'bold'
+        });
+        this.catalystCountText.setOrigin(0.5);
+        this.menuContainer.add(this.catalystCountText);
+
+        // Create sockets
+        this.createSockets(centerX, centerY);
+
+        // Instructions
+        const instructions = this.getInstructions();
+        const instructionText = this.scene.add.text(
+            this.scene.cameras.main.scrollX + 400,
+            this.scene.cameras.main.scrollY + 550,
+            instructions,
+            {
+                fontSize: '14px',
+                color: '#ffffff',
+                align: 'center',
+                backgroundColor: '#000000',
+                padding: { x: 10, y: 5 }
+            }
+        );
+        instructionText.setOrigin(0.5);
+        instructionText.setScrollFactor(0);
+        this.menuContainer.add(instructionText);
+
+        // Create pouch display at bottom of screen
+        this.createPouchDisplay();
+
+        // Animate opening
+        this.menuContainer.setAlpha(0);
+        this.menuContainer.setScale(0.5);
+        this.scene.tweens.add({
+            targets: this.menuContainer,
+            alpha: 1,
+            scale: 1,
+            duration: 200,
+            ease: 'Back.easeOut'
+        });
+
+        console.log(`📖 Radial menu opened for Player ${this.playerNumber}`);
+    }
+
+    /**
+     * Create socket layout in TWO circular patterns: inner ring (active), outer ring (passive)
+     */
+    createSockets(centerX, centerY) {
+        const socketCount = this.getSocketCount();
+        const totalSockets = socketCount.total;
+        const activeCount = socketCount.active;
+        const passiveCount = socketCount.passive;
+
+        // Initialize charge slots array if needed
+        if (!this.player.chargeSlots) {
+            this.player.chargeSlots = new Array(totalSockets).fill(null);
+        }
+
+        // Clear previous sockets
+        this.sockets = [];
+        this.socketSprites = [];
+        this.tierTexts = [];
+        this.slotLabels = [];
+
+        // Create ACTIVE SLOTS (inner ring)
+        const activeAngleStep = (Math.PI * 2) / Math.max(1, activeCount);
+        const activeStartAngle = -Math.PI / 2; // Start at top (12 o'clock)
+
+        for (let i = 0; i < activeCount; i++) {
+            const angle = activeStartAngle + (activeAngleStep * i);
+            const x = centerX + Math.cos(angle) * this.INNER_RING_RADIUS;
+            const y = centerY + Math.sin(angle) * this.INNER_RING_RADIUS;
+
+            const isActive = true;
+            const borderColor = this.ACTIVE_BORDER_COLOR;
+
+            // Socket background (grey circle, scaled down 50%)
+            const socketBg = this.scene.add.circle(x, y, this.SOCKET_SIZE / 2, 0x333333, 0.9);
+            socketBg.setStrokeStyle(2, borderColor, 1);
+            socketBg.setInteractive({ useHandCursor: true });
+
+            // Store socket index for click handler
+            socketBg.socketIndex = i;
+            socketBg.on('pointerdown', () => this.onSocketClick(i));
+            socketBg.on('pointerover', () => this.highlightedSocketIndex = i);
+
+            this.menuContainer.add(socketBg);
+            this.sockets.push(socketBg);
+
+            // Element sprite (if socket has element, scaled down 50%)
+            const element = this.player.chargeSlots[i];
+            let elementSprite = null;
+
+            if (element && this.scene.elementConfig && this.scene.elementConfig[element]) {
+                const config = this.scene.elementConfig[element];
+                elementSprite = this.scene.add.sprite(x, y, config.sheet, config.frame);
+                elementSprite.setScale(0.15); // Scale down to fit smaller socket (was 0.3)
+                this.menuContainer.add(elementSprite);
+            } else {
+                // Empty socket - show "+" icon (scaled down 50%)
+                const emptyText = this.scene.add.text(x, y, '+', {
+                    fontSize: '16px',
+                    color: '#666666'
+                });
+                emptyText.setOrigin(0.5);
+                this.menuContainer.add(emptyText);
+                elementSprite = emptyText;
+            }
+
+            this.socketSprites.push(elementSprite);
+
+            // Tier indicator (Roman numerals I-V, scaled down 50%)
+            const tierKey = `${element}_${i}`;
+            const tier = this.player.elementTiers.get(tierKey) || 1;
+            const tierRoman = ['I', 'II', 'III', 'IV', 'V'][tier - 1] || 'I';
+
+            const tierText = this.scene.add.text(x + 10, y - 10, element ? tierRoman : '', {
+                fontSize: '6px',
+                color: '#FFD700',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 1
+            });
+            tierText.setOrigin(0.5);
+            this.menuContainer.add(tierText);
+            this.tierTexts.push(tierText);
+
+            // Slot type label with position number (Active/Passive + number for keyboard, scaled down 50%)
+            const labelText = `${i + 1}${isActive ? 'A' : 'P'}`;
+            const slotLabel = this.scene.add.text(x, y + 18, labelText, {
+                fontSize: '5px',
+                color: isActive ? '#FFD700' : '#C0C0C0',
+                fontStyle: 'bold'
+            });
+            slotLabel.setOrigin(0.5);
+            this.menuContainer.add(slotLabel);
+            this.slotLabels.push(slotLabel);
+        }
+
+        // Create PASSIVE SLOTS (outer ring)
+        const passiveAngleStep = (Math.PI * 2) / Math.max(1, passiveCount);
+        const passiveStartAngle = -Math.PI / 2; // Start at top (12 o'clock)
+
+        for (let i = 0; i < passiveCount; i++) {
+            const slotIndex = activeCount + i; // Passive slots come after active slots in the array
+            const angle = passiveStartAngle + (passiveAngleStep * i);
+            const x = centerX + Math.cos(angle) * this.OUTER_RING_RADIUS;
+            const y = centerY + Math.sin(angle) * this.OUTER_RING_RADIUS;
+
+            const isActive = false;
+            const borderColor = this.PASSIVE_BORDER_COLOR;
+
+            // Socket background (grey circle, scaled down 50%)
+            const socketBg = this.scene.add.circle(x, y, this.SOCKET_SIZE / 2, 0x333333, 0.9);
+            socketBg.setStrokeStyle(2, borderColor, 1);
+            socketBg.setInteractive({ useHandCursor: true });
+
+            // Store socket index for click handler
+            socketBg.socketIndex = slotIndex;
+            socketBg.on('pointerdown', () => this.onSocketClick(slotIndex));
+            socketBg.on('pointerover', () => this.highlightedSocketIndex = slotIndex);
+
+            this.menuContainer.add(socketBg);
+            this.sockets.push(socketBg);
+
+            // Element sprite (if socket has element, scaled down 50%)
+            const element = this.player.chargeSlots[slotIndex];
+            let elementSprite = null;
+
+            if (element && this.scene.elementConfig && this.scene.elementConfig[element]) {
+                const config = this.scene.elementConfig[element];
+                elementSprite = this.scene.add.sprite(x, y, config.sheet, config.frame);
+                elementSprite.setScale(0.15); // Scale down to fit smaller socket (was 0.3)
+                this.menuContainer.add(elementSprite);
+            } else {
+                // Empty socket - show "+" icon (scaled down 50%)
+                const emptyText = this.scene.add.text(x, y, '+', {
+                    fontSize: '16px',
+                    color: '#666666'
+                });
+                emptyText.setOrigin(0.5);
+                this.menuContainer.add(emptyText);
+                elementSprite = emptyText;
+            }
+
+            this.socketSprites.push(elementSprite);
+
+            // Tier indicator (Roman numerals I-V, scaled down 50%)
+            const tierKey = `${element}_${slotIndex}`;
+            const tier = this.player.elementTiers.get(tierKey) || 1;
+            const tierRoman = ['I', 'II', 'III', 'IV', 'V'][tier - 1] || 'I';
+
+            const tierText = this.scene.add.text(x + 10, y - 10, element ? tierRoman : '', {
+                fontSize: '6px',
+                color: '#FFD700',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 1
+            });
+            tierText.setOrigin(0.5);
+            this.menuContainer.add(tierText);
+            this.tierTexts.push(tierText);
+
+            // Slot type label with position number (Passive + number for keyboard, scaled down 50%)
+            const labelText = `${slotIndex + 1}P`;
+            const slotLabel = this.scene.add.text(x, y + 18, labelText, {
+                fontSize: '5px',
+                color: '#C0C0C0',
+                fontStyle: 'bold'
+            });
+            slotLabel.setOrigin(0.5);
+            this.menuContainer.add(slotLabel);
+            this.slotLabels.push(slotLabel);
+        }
+
+        // Update highlight
+        this.updateHighlight();
+    }
+
+    /**
+     * Create pouch slot display at bottom of screen
+     */
+    createPouchDisplay() {
+        this.pouchSlots = [];
+
+        // Get pouch size from scene constants
+        const maxPouchSlots = this.scene.MAX_POUCH_SLOTS || this.OVERFLOW_MAX;
+
+        // Title for pouch section
+        const pouchTitle = this.scene.add.text(
+            this.scene.cameras.main.scrollX + 400,
+            this.scene.cameras.main.scrollY + 520,
+            'POUCH (Overflow Storage)',
+            {
+                fontSize: '14px',
+                color: '#8BC34A',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 3
+            }
+        );
+        pouchTitle.setOrigin(0.5);
+        pouchTitle.setScrollFactor(0);
+        this.menuContainer.add(pouchTitle);
+
+        // Calculate starting X position to center the pouch slots
+        const slotWidth = 35;
+        const totalWidth = maxPouchSlots * slotWidth;
+        const startX = this.scene.cameras.main.scrollX + 400 - (totalWidth / 2) + (slotWidth / 2);
+        const yPos = this.scene.cameras.main.scrollY + 550;
+
+        // Create each pouch slot
+        for (let i = 0; i < maxPouchSlots; i++) {
+            const xPos = startX + (i * slotWidth);
+
+            // Background slot with pouch color
+            const slotBg = this.scene.add.rectangle(xPos, yPos, 30, 30, 0x2a4a2a, 0.9);
+            slotBg.setStrokeStyle(2, 0x4a6a4a, 1);
+            slotBg.setScrollFactor(0);
+            this.menuContainer.add(slotBg);
+
+            // Get element from pouch
+            const element = this.player.elementPouch && this.player.elementPouch[i];
+
+            // Element sprite or empty indicator
+            let elementSprite = null;
+            if (element && this.scene.elementConfig && this.scene.elementConfig[element]) {
+                const config = this.scene.elementConfig[element];
+                elementSprite = this.scene.add.sprite(xPos, yPos, config.sheet, config.frame);
+                elementSprite.setScale(0.12);
+                this.menuContainer.add(elementSprite);
+            } else {
+                // Empty slot indicator
+                const emptyText = this.scene.add.text(xPos, yPos, '•', {
+                    fontSize: '12px',
+                    color: '#666666'
+                });
+                emptyText.setOrigin(0.5);
+                this.menuContainer.add(emptyText);
+                elementSprite = emptyText;
+            }
+
+            // Slot number label
+            const slotLabel = this.scene.add.text(xPos, yPos + 18, `${i + 1}`, {
+                fontSize: '8px',
+                color: '#8BC34A',
+                fontStyle: 'bold'
+            });
+            slotLabel.setOrigin(0.5);
+            slotLabel.setScrollFactor(0);
+            this.menuContainer.add(slotLabel);
+
+            this.pouchSlots.push({
+                bg: slotBg,
+                sprite: elementSprite,
+                label: slotLabel
+            });
+        }
+    }
+
+    /**
+     * Update highlight ring around selected socket
+     */
+    updateHighlight() {
+        // Remove old highlight
+        if (this.highlightRing) {
+            // CRITICAL: Kill tween before destroying to prevent crash
+            this.scene.tweens.killTweensOf(this.highlightRing);
+            this.highlightRing.destroy();
+        }
+
+        if (this.highlightedSocketIndex >= 0 && this.highlightedSocketIndex < this.sockets.length) {
+            const socket = this.sockets[this.highlightedSocketIndex];
+            this.highlightRing = this.scene.add.circle(socket.x, socket.y, this.SOCKET_SIZE / 2 + 3, 0xFFFFFF, 0);
+            this.highlightRing.setStrokeStyle(2, 0xFFFFFF, 1);
+            this.menuContainer.add(this.highlightRing);
+
+            // Pulse animation
+            this.scene.tweens.add({
+                targets: this.highlightRing,
+                alpha: { from: 0.5, to: 1 },
+                duration: 500,
+                yoyo: true,
+                repeat: -1
+            });
+        }
+    }
+
+    /**
+     * Close the radial menu
+     */
+    close() {
+        if (!this.isOpen) return;
+
+        // Resume the game when radial menu closes
+        this.scene.resumeGame('radial-menu');
+
+        // Animate closing
+        this.scene.tweens.add({
+            targets: this.menuContainer,
+            alpha: 0,
+            scale: 0.5,
+            duration: 150,
+            ease: 'Back.easeIn',
+            onComplete: () => {
+                // CRITICAL: Kill all tweens before destroying
+                if (this.highlightRing) {
+                    this.scene.tweens.killTweensOf(this.highlightRing);
+                    this.highlightRing.destroy();
+                    this.highlightRing = null;
+                }
+                if (this.menuContainer) {
+                    this.menuContainer.destroy();
+                    this.menuContainer = null;
+                }
+                this.sockets = [];
+                this.socketSprites = [];
+                this.tierTexts = [];
+                this.pouchSlots = [];
+            }
+        });
+
+        this.isOpen = false;
+        console.log(`📕 Radial menu closed for Player ${this.playerNumber}`);
+    }
+
+    /**
+     * Toggle menu open/close
+     */
+    toggle() {
+        if (this.isOpen) {
+            this.close();
+        } else {
+            this.open();
+        }
+    }
+
+    /**
+     * Handle socket click
+     */
+    onSocketClick(socketIndex) {
+        console.log(`🖱️ Socket ${socketIndex} clicked`);
+
+        if (this.selectedSocketIndex === -1) {
+            // First selection - pick up element
+            if (this.player.chargeSlots[socketIndex] !== null) {
+                this.selectedSocketIndex = socketIndex;
+                this.sockets[socketIndex].setStrokeStyle(4, 0x00FF00, 1); // Green border
+                console.log(`Picked up element from slot ${socketIndex}`);
+            }
+        } else {
+            // Second selection - swap or place
+            this.swapElements(this.selectedSocketIndex, socketIndex);
+            // Reset selection
+            this.sockets[this.selectedSocketIndex].setStrokeStyle(3,
+                this.selectedSocketIndex < this.getSocketCount().active ?
+                this.ACTIVE_BORDER_COLOR : this.PASSIVE_BORDER_COLOR, 1);
+            this.selectedSocketIndex = -1;
+        }
+    }
+
+    /**
+     * Swap elements between two sockets (or fuse if both slots have elements and catalyst available)
+     */
+    swapElements(fromIndex, toIndex) {
+        const element1 = this.player.chargeSlots[fromIndex];
+        const element2 = this.player.chargeSlots[toIndex];
+
+        // Check if both slots have elements (not null) - attempt fusion or tier-up
+        if (element1 && element2) {
+            // PROGRESSION IMPROVEMENT: Direct tier-up with catalyst
+            // If both elements are the same, use catalyst to tier up instead of fusing
+            if (element1 === element2 && this.player.catalystCount > 0) {
+                const tierKey = `${element1}_${fromIndex}`;
+                const currentTier = this.player.elementTiers.get(tierKey) || 1;
+
+                // Check if not already max tier
+                if (currentTier < 5) {
+                    // Consume catalyst and tier up!
+                    this.player.catalystCount--;
+                    this.player.elementTiers.set(tierKey, currentTier + 1);
+
+                    // Show tier-up success feedback
+                    const config = this.scene.elementConfig[element1];
+                    const tierUpText = this.scene.add.text(this.player.x, this.player.y - 50,
+                        `${config.name.toUpperCase()} → TIER ${currentTier + 1}!`, {
+                        fontSize: '24px',
+                        color: '#ffaa00',
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 4
+                    });
+                    tierUpText.setOrigin(0.5);
+                    tierUpText.setDepth(2001);
+                    this.scene.tweens.add({
+                        targets: tierUpText,
+                        y: this.player.y - 100,
+                        scale: { from: 0.8, to: 1.5 },
+                        alpha: { from: 1, to: 0 },
+                        duration: 1500,
+                        onComplete: () => tierUpText.destroy()
+                    });
+
+                    console.log(`💎 Used catalyst to tier up ${element1} from ${currentTier} → ${currentTier + 1}`);
+
+                    // Refresh menu to show new tier
+                    this.refresh();
+                    return;
+                } else {
+                    // Already max tier
+                    const maxTierText = this.scene.add.text(this.player.x, this.player.y - 50,
+                        'Already at max tier!', {
+                        fontSize: '18px',
+                        color: '#ff8800',
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 3
+                    });
+                    maxTierText.setOrigin(0.5);
+                    maxTierText.setDepth(2001);
+                    this.scene.tweens.add({
+                        targets: maxTierText,
+                        y: this.player.y - 80,
+                        alpha: 0,
+                        duration: 1000,
+                        onComplete: () => maxTierText.destroy()
+                    });
+                    console.log(`⚠️ ${element1} already at max tier (5)`);
+                    return;
+                }
+            }
+
+            // Check if we have at least one catalyst for fusion (different elements)
+            if (this.player.catalystCount > 0) {
+                // Try to get fusion result
+                const fusionResult = this.scene.getFusionResult(element1, element2);
+
+                if (fusionResult) {
+                    // Valid fusion! Consume catalyst and perform fusion
+                    this.player.catalystCount--;
+
+                    // Clear both source slots
+                    this.player.chargeSlots[fromIndex] = null;
+                    this.player.chargeSlots[toIndex] = null;
+
+                    // Clear tier data for source elements
+                    const tier1Key = `${element1}_${fromIndex}`;
+                    const tier2Key = `${element2}_${toIndex}`;
+                    this.player.elementTiers.delete(tier1Key);
+                    this.player.elementTiers.delete(tier2Key);
+
+                    // Place fusion result in the target slot (toIndex)
+                    this.player.chargeSlots[toIndex] = fusionResult;
+                    this.player.elementTiers.set(`${fusionResult}_${toIndex}`, 1); // Start at tier 1
+
+                    // Show fusion success feedback
+                    const config = this.scene.elementConfig[fusionResult];
+                    const fusionText = this.scene.add.text(this.player.x, this.player.y - 50,
+                        `${config.name.toUpperCase()}!`, {
+                        fontSize: '24px',
+                        color: `#${config.color.toString(16).padStart(6, '0')}`,
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 4
+                    });
+                    fusionText.setOrigin(0.5);
+                    fusionText.setDepth(2001);
+                    this.scene.tweens.add({
+                        targets: fusionText,
+                        y: this.player.y - 100,
+                        scale: { from: 0.8, to: 1.5 },
+                        alpha: { from: 1, to: 0 },
+                        duration: 1500,
+                        onComplete: () => fusionText.destroy()
+                    });
+
+                    console.log(`🔮 Fused ${element1} + ${element2} = ${fusionResult}`);
+
+                    // Rebuild charges array for projectile firing (if this player is P1)
+                    if (this.player === this.scene.wizard) {
+                        this.scene.charges = [];
+                        for (let i = 0; i < this.scene.MAX_ACTIVE_SLOTS && i < this.scene.chargeSlots.length; i++) {
+                            if (this.scene.chargeSlots[i] !== null && this.scene.chargeSlots[i] !== 'catalyst') {
+                                this.scene.charges.push(this.scene.chargeSlots[i]);
+                            }
+                        }
+                        this.scene.updateChargeGroups();
+                    }
+
+                    // Refresh menu to show new element
+                    this.refresh();
+                    return;
+                } else {
+                    // No valid fusion recipe
+                    const errorText = this.scene.add.text(this.player.x, this.player.y - 50,
+                        'Cannot fuse these elements!', {
+                        fontSize: '18px',
+                        color: '#ff4444',
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 3
+                    });
+                    errorText.setOrigin(0.5);
+                    errorText.setDepth(2001);
+                    this.scene.tweens.add({
+                        targets: errorText,
+                        y: this.player.y - 80,
+                        alpha: 0,
+                        duration: 1000,
+                        onComplete: () => errorText.destroy()
+                    });
+                    console.log(`❌ No fusion recipe for ${element1} + ${element2}`);
+                    return; // Don't swap if fusion failed
+                }
+            } else {
+                // No catalysts available
+                const noFusionText = this.scene.add.text(this.player.x, this.player.y - 50,
+                    'No catalysts available!', {
+                    fontSize: '18px',
+                    color: '#ff8800',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 3
+                });
+                noFusionText.setOrigin(0.5);
+                noFusionText.setDepth(2001);
+                this.scene.tweens.add({
+                    targets: noFusionText,
+                    y: this.player.y - 80,
+                    alpha: 0,
+                    duration: 1000,
+                    onComplete: () => noFusionText.destroy()
+                });
+                console.log(`⚠️ Need catalyst for fusion`);
+                return; // Don't swap if no catalyst
+            }
+        }
+
+        // Normal swap (at least one slot is empty)
+        const temp = this.player.chargeSlots[fromIndex];
+        this.player.chargeSlots[fromIndex] = this.player.chargeSlots[toIndex];
+        this.player.chargeSlots[toIndex] = temp;
+
+        // Swap tier data
+        const fromElement = this.player.chargeSlots[toIndex];
+        const toElement = this.player.chargeSlots[fromIndex];
+
+        if (fromElement) {
+            const fromTierKey = `${fromElement}_${fromIndex}`;
+            const toTierKey = `${fromElement}_${toIndex}`;
+            const tier = this.player.elementTiers.get(fromTierKey) || 1;
+            this.player.elementTiers.delete(fromTierKey);
+            this.player.elementTiers.set(toTierKey, tier);
+        }
+
+        if (toElement) {
+            const fromTierKey = `${toElement}_${toIndex}`;
+            const toTierKey = `${toElement}_${fromIndex}`;
+            const tier = this.player.elementTiers.get(fromTierKey) || 1;
+            this.player.elementTiers.delete(fromTierKey);
+            this.player.elementTiers.set(toTierKey, tier);
+        }
+
+        console.log(`Swapped elements: slot ${fromIndex} ↔ slot ${toIndex}`);
+
+        // Refresh menu
+        this.refresh();
+    }
+
+    /**
+     * Discard element from socket (drops back into world)
+     */
+    discardElement(socketIndex) {
+        const element = this.player.chargeSlots[socketIndex];
+        if (!element) return;
+
+        // Drop orb near player
+        this.scene.dropElementOrb(this.player.x, this.player.y, element);
+
+        // Clear slot
+        this.player.chargeSlots[socketIndex] = null;
+
+        // Clear tier
+        const tierKey = `${element}_${socketIndex}`;
+        this.player.elementTiers.delete(tierKey);
+
+        console.log(`Discarded ${element} from slot ${socketIndex}`);
+
+        // Refresh menu
+        this.refresh();
+    }
+
+    /**
+     * Add element to first available slot
+     * Returns true if successful, false if slots are full
+     */
+    addElement(element) {
+        const socketCount = this.getSocketCount();
+
+        // Initialize chargeSlots if it doesn't exist
+        if (!this.player.chargeSlots) {
+            this.player.chargeSlots = new Array(socketCount.total).fill(null);
+        }
+
+        // First check for duplicate (tier upgrade)
+        for (let i = 0; i < socketCount.total; i++) {
+            if (this.player.chargeSlots[i] === element) {
+                const tierKey = `${element}_${i}`;
+                const currentTier = this.player.elementTiers.get(tierKey) || 1;
+                if (currentTier < 5) {
+                    this.player.elementTiers.set(tierKey, currentTier + 1);
+                    console.log(`Upgraded ${element} to tier ${currentTier + 1} in slot ${i}`);
+                    if (this.isOpen) this.refresh();
+                    return true;
+                }
+            }
+        }
+
+        // Find first empty slot
+        for (let i = 0; i < socketCount.total; i++) {
+            if (this.player.chargeSlots[i] === null) {
+                this.player.chargeSlots[i] = element;
+                const tierKey = `${element}_${i}`;
+                this.player.elementTiers.set(tierKey, 1);
+                console.log(`Added ${element} to slot ${i}`);
+                if (this.isOpen) this.refresh();
+                return true;
+            }
+        }
+
+        // All slots full - try overflow pouch
+        if (this.player.elementPouch.length < this.OVERFLOW_MAX) {
+            this.player.elementPouch.push(element);
+            console.log(`Added ${element} to overflow pouch (${this.player.elementPouch.length}/${this.OVERFLOW_MAX})`);
+            return true;
+        }
+
+        // Completely full - must discard
+        console.warn(`Cannot add ${element} - all slots and overflow full!`);
+        return false;
+    }
+
+    /**
+     * Refresh menu display (rebuild sockets)
+     */
+    refresh() {
+        if (!this.isOpen) return;
+
+        const centerX = this.player.x;
+        const centerY = this.player.y;
+
+        // Destroy highlight ring first (it will be recreated in updateHighlight)
+        if (this.highlightRing) {
+            this.scene.tweens.killTweensOf(this.highlightRing);
+            this.highlightRing.destroy();
+            this.highlightRing = null;
+        }
+
+        // Destroy ALL old socket visuals to prevent duplication
+        this.sockets.forEach(socket => {
+            if (socket && socket.destroy) {
+                socket.destroy();
+            }
+        });
+        this.socketSprites.forEach(sprite => {
+            if (sprite && sprite.destroy) {
+                sprite.destroy();
+            }
+        });
+        this.tierTexts.forEach(text => {
+            if (text && text.destroy) {
+                text.destroy();
+            }
+        });
+        this.slotLabels.forEach(label => {
+            if (label && label.destroy) {
+                label.destroy();
+            }
+        });
+
+        // Recreate sockets
+        this.createSockets(centerX, centerY);
+    }
+
+    /**
+     * Update menu position to follow player (called each frame)
+     */
+    update() {
+        if (!this.isOpen || !this.menuContainer) return;
+
+        // Update all menu elements to follow player position
+        const centerX = this.player.x;
+        const centerY = this.player.y;
+
+        // Update ring indicators
+        if (this.outerRingIndicator) {
+            this.outerRingIndicator.setPosition(centerX, centerY);
+        }
+        if (this.innerRingIndicator) {
+            this.innerRingIndicator.setPosition(centerX, centerY);
+        }
+
+        // Update ring labels
+        if (this.activeLabel) {
+            this.activeLabel.setPosition(centerX, centerY - this.INNER_RING_RADIUS - 15);
+        }
+        if (this.passiveLabel) {
+            this.passiveLabel.setPosition(centerX, centerY - this.OUTER_RING_RADIUS - 15);
+        }
+
+        // Update player avatar
+        if (this.avatar) {
+            this.avatar.setPosition(centerX, centerY);
+        }
+
+        // Update player number text
+        if (this.playerText) {
+            this.playerText.setPosition(centerX, centerY - 8);
+        }
+
+        // Update catalyst slot and count
+        if (this.catalystSlot) {
+            this.catalystSlot.setPosition(centerX, centerY + 8);
+        }
+        if (this.catalystCountText) {
+            this.catalystCountText.setPosition(centerX, centerY + 8);
+            this.catalystCountText.setText(this.player.catalystCount.toString());
+        }
+
+        // Update all sockets to follow player - TWO SEPARATE RINGS
+        const socketCount = this.getSocketCount();
+        const activeCount = socketCount.active;
+        const passiveCount = socketCount.passive;
+
+        // Update ACTIVE slots (inner ring)
+        const activeAngleStep = (Math.PI * 2) / Math.max(1, activeCount);
+        const activeStartAngle = -Math.PI / 2;
+
+        for (let i = 0; i < activeCount; i++) {
+            const angle = activeStartAngle + (activeAngleStep * i);
+            const x = centerX + Math.cos(angle) * this.INNER_RING_RADIUS;
+            const y = centerY + Math.sin(angle) * this.INNER_RING_RADIUS;
+
+            if (this.sockets[i]) {
+                this.sockets[i].setPosition(x, y);
+            }
+            if (this.socketSprites[i]) {
+                this.socketSprites[i].setPosition(x, y);
+            }
+            if (this.tierTexts[i]) {
+                this.tierTexts[i].setPosition(x + 10, y - 10);
+            }
+            if (this.slotLabels[i]) {
+                this.slotLabels[i].setPosition(x, y + 18);
+            }
+        }
+
+        // Update PASSIVE slots (outer ring)
+        const passiveAngleStep = (Math.PI * 2) / Math.max(1, passiveCount);
+        const passiveStartAngle = -Math.PI / 2;
+
+        for (let i = 0; i < passiveCount; i++) {
+            const slotIndex = activeCount + i;
+            const angle = passiveStartAngle + (passiveAngleStep * i);
+            const x = centerX + Math.cos(angle) * this.OUTER_RING_RADIUS;
+            const y = centerY + Math.sin(angle) * this.OUTER_RING_RADIUS;
+
+            if (this.sockets[slotIndex]) {
+                this.sockets[slotIndex].setPosition(x, y);
+            }
+            if (this.socketSprites[slotIndex]) {
+                this.socketSprites[slotIndex].setPosition(x, y);
+            }
+            if (this.tierTexts[slotIndex]) {
+                this.tierTexts[slotIndex].setPosition(x + 10, y - 10);
+            }
+            if (this.slotLabels[slotIndex]) {
+                this.slotLabels[slotIndex].setPosition(x, y + 18);
+            }
+        }
+
+        // Update highlight ring if it exists
+        if (this.highlightRing && this.highlightedSocketIndex >= 0 && this.highlightedSocketIndex < this.sockets.length) {
+            const socket = this.sockets[this.highlightedSocketIndex];
+            if (socket) {
+                this.highlightRing.setPosition(socket.x, socket.y);
+            }
+        }
+
+        // Handle input
+        this.handleInput();
+    }
+
+    /**
+     * Handle keyboard and gamepad input
+     */
+    handleInput() {
+        // Keyboard: Use mouse for navigation (hover/click)
+        // Arrow keys are reserved for player movement!
+        if (this.scene.input.keyboard) {
+            // TAB to close
+            if (Phaser.Input.Keyboard.JustDown(this.scene.input.keyboard.addKey('TAB'))) {
+                this.close();
+            }
+
+            // DELETE to discard currently highlighted socket
+            if (Phaser.Input.Keyboard.JustDown(this.scene.input.keyboard.addKey('DELETE'))) {
+                this.discardElement(this.highlightedSocketIndex);
+            }
+
+            // Number keys 1-9, 0 for direct socket selection
+            const numberKeys = [
+                'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE',
+                'SIX', 'SEVEN', 'EIGHT', 'NINE', 'ZERO'
+            ];
+
+            for (let i = 0; i < numberKeys.length && i < this.sockets.length; i++) {
+                const key = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes[numberKeys[i]]);
+                if (Phaser.Input.Keyboard.JustDown(key)) {
+                    const socketIndex = i === 9 ? 9 : i; // Handle 0 key = socket 9
+                    if (socketIndex < this.sockets.length) {
+                        this.highlightedSocketIndex = socketIndex;
+                        this.updateHighlight();
+                        this.onSocketClick(socketIndex);
+                    }
+                }
+            }
+        }
+
+        // Gamepad navigation
+        if (this.scene.gamepadManager) {
+            const padIndex = this.playerNumber - 1;
+
+            // Right stick for navigation
+            const rightStick = this.scene.gamepadManager.getRightStick(padIndex);
+            if (rightStick && (Math.abs(rightStick.x) > this.stickDeadzone || Math.abs(rightStick.y) > this.stickDeadzone)) {
+                const angle = Math.atan2(rightStick.y, rightStick.x);
+
+                // Only navigate if stick angle changed significantly
+                if (this.lastStickAngle === null || Math.abs(angle - this.lastStickAngle) > 0.5) {
+                    this.navigateByAngle(angle);
+                    this.lastStickAngle = angle;
+                }
+            } else {
+                this.lastStickAngle = null;
+            }
+
+            // A button to select
+            if (this.scene.gamepadManager.isButtonPressed(padIndex, 'A')) {
+                this.onSocketClick(this.highlightedSocketIndex);
+            }
+
+            // SELECT/BACK to close
+            if (this.scene.gamepadManager.isButtonPressed(padIndex, 'SELECT')) {
+                this.close();
+            }
+
+            // X button to discard
+            if (this.scene.gamepadManager.isButtonPressed(padIndex, 'X')) {
+                this.discardElement(this.highlightedSocketIndex);
+            }
+        }
+    }
+
+    /**
+     * Navigate to socket based on right stick angle
+     */
+    navigateByAngle(angle) {
+        const socketCount = this.getSocketCount().total;
+        const angleStep = (Math.PI * 2) / socketCount;
+        const startAngle = -Math.PI / 2;
+
+        // Find closest socket to stick angle
+        let closestIndex = 0;
+        let closestDiff = Math.PI * 2;
+
+        for (let i = 0; i < socketCount; i++) {
+            const socketAngle = startAngle + (angleStep * i);
+            let diff = Math.abs(angle - socketAngle);
+
+            // Handle wrap-around
+            if (diff > Math.PI) {
+                diff = Math.PI * 2 - diff;
+            }
+
+            if (diff < closestDiff) {
+                closestDiff = diff;
+                closestIndex = i;
+            }
+        }
+
+        this.highlightedSocketIndex = closestIndex;
+        this.updateHighlight();
+    }
+
+    /**
+     * Navigate left (counter-clockwise)
+     */
+    navigateLeft() {
+        const socketCount = this.getSocketCount().total;
+        this.highlightedSocketIndex = (this.highlightedSocketIndex - 1 + socketCount) % socketCount;
+        this.updateHighlight();
+    }
+
+    /**
+     * Navigate right (clockwise)
+     */
+    navigateRight() {
+        const socketCount = this.getSocketCount().total;
+        this.highlightedSocketIndex = (this.highlightedSocketIndex + 1) % socketCount;
+        this.updateHighlight();
+    }
+
+    /**
+     * Navigate up (opposite side of circle)
+     */
+    navigateUp() {
+        const socketCount = this.getSocketCount().total;
+        const half = Math.floor(socketCount / 2);
+        this.highlightedSocketIndex = (this.highlightedSocketIndex - half + socketCount) % socketCount;
+        this.updateHighlight();
+    }
+
+    /**
+     * Navigate down (opposite side of circle)
+     */
+    navigateDown() {
+        const socketCount = this.getSocketCount().total;
+        const half = Math.floor(socketCount / 2);
+        this.highlightedSocketIndex = (this.highlightedSocketIndex + half) % socketCount;
+        this.updateHighlight();
+    }
+
+    /**
+     * Get control instructions based on input method
+     */
+    getInstructions() {
+        const hasGamepad = this.scene.gamepadManager && this.scene.gamepadManager.getGamepad(this.playerNumber - 1);
+        const catalystInfo = `(${this.player.catalystCount} Catalyst${this.player.catalystCount !== 1 ? 's' : ''})`;
+
+        if (hasGamepad) {
+            return `A: Select/Swap | Drag to FILLED slot: FUSE ${catalystInfo} | X: Discard | SELECT: Close`;
+        } else {
+            return `Click to Select/Swap | Drag to FILLED slot: FUSE ${catalystInfo} | DELETE: Discard | TAB: Close`;
+        }
+    }
+
+    /**
+     * Clean up menu resources
+     */
+    destroy() {
+        // CRITICAL: Kill all tweens before destroying
+        if (this.highlightRing) {
+            this.scene.tweens.killTweensOf(this.highlightRing);
+            this.highlightRing.destroy();
+            this.highlightRing = null;
+        }
+        if (this.menuContainer) {
+            this.menuContainer.destroy();
+            this.menuContainer = null;
+        }
+        this.sockets = [];
+        this.socketSprites = [];
+        this.tierTexts = [];
+    }
+}
+
+// ==================== DIALOGUE MANAGER ====================
+class DialogueManager {
+    constructor(scene) {
+        this.scene = scene;
+        this.active = false;
+        this.bubbleContainer = null;
+        this.onCloseCallback = null;
+        this.conversationSteps = [];
+        this.currentStep = 0;
+        this.npcOrb = null;
+    }
+
+    // Show a conversation with multiple back-and-forth exchanges
+    showConversation(config) {
+        if (this.active) return;
+
+        const {
+            conversation = [], // Array of {speaker, text} objects
+            pauseGame = true,
+            onClose = null,
+            spawnBoss = false // Whether to spawn boss NPC instead of orb
+        } = config;
+
+        this.conversationSteps = conversation;
+        this.currentStep = 0;
+        this.onCloseCallback = onClose;
+        this.pauseGame = pauseGame;
+
+        // Pause game if requested
+        if (pauseGame) {
+            if (this.scene.physics && this.scene.physics.world) {
+                this.scene.physics.pause();
+            }
+            this.scene.time.timeScale = 0;
+        }
+
+        // Spawn appropriate NPC character in game world
+        if (spawnBoss) {
+            this.spawnNPCBoss();
+        } else {
+            this.spawnNPCOrb();
+        }
+
+        this.active = true;
+        this.showCurrentStep();
+    }
+
+    spawnNPCOrb() {
+        if (!this.scene.wizard) return;
+
+        // Position orb to the left of the player
+        const orbX = this.scene.wizard.x - 150;
+        const orbY = this.scene.wizard.y;
+
+        // Create the orb NPC sprite
+        this.npcOrb = this.scene.add.sprite(orbX, orbY, 'orb-idle');
+        this.npcOrb.setScale(2);
+        this.npcOrb.setDepth(this.scene.wizard.depth + 1);
+
+        // Play idle animation
+        if (this.scene.anims.exists('orb-idle')) {
+            this.npcOrb.play('orb-idle');
+        }
+
+        // Add floating animation
+        this.scene.tweens.add({
+            targets: this.npcOrb,
+            y: orbY - 10,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+    }
+
+    spawnNPCBoss() {
+        if (!this.scene.wizard) return;
+
+        // Spawn boss to the right of the wizard (imposing position)
+        const bossX = this.scene.wizard.x + 200;
+        const bossY = this.scene.wizard.y;
+
+        // Create the boss NPC sprite
+        this.npcBoss = this.scene.add.sprite(bossX, bossY, 'obelisk-boss', 0);
+        this.npcBoss.setScale(2);
+        this.npcBoss.setDepth(this.scene.wizard.depth + 1);
+
+        // Play idle animation
+        if (this.scene.anims.exists('obelisk-idle')) {
+            this.npcBoss.play('obelisk-idle');
+        }
+
+        // Add ominous pulsing glow effect
+        this.scene.tweens.add({
+            targets: this.npcBoss,
+            alpha: 0.8,
+            duration: 1500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+    }
+
+    showCurrentStep() {
+        // Clear previous bubble
+        if (this.bubbleContainer) {
+            this.bubbleContainer.destroy();
+            this.bubbleContainer = null;
+        }
+
+        // Check if conversation is complete
+        if (this.currentStep >= this.conversationSteps.length) {
+            this.close(this.pauseGame);
+            return;
+        }
+
+        const step = this.conversationSteps[this.currentStep];
+
+        // Determine speaker character and info
+        let speaker, speakerName, speakerColor;
+        if (step.speaker === 'orb') {
+            speaker = this.npcOrb;
+            speakerName = 'Guide Orb';
+            speakerColor = '#ffaa00';
+        } else if (step.speaker === 'obelisk') {
+            speaker = this.npcBoss;
+            speakerName = 'The Obelisk';
+            speakerColor = '#ff0000';
+        } else {
+            // Default to wizard
+            speaker = this.scene.wizard;
+            speakerName = this.scene.p1Character || 'Wizard';
+            speakerColor = '#4488ff';
+        }
+
+        if (!speaker) return;
+
+        // Create bubble container (follows camera)
+        this.bubbleContainer = this.scene.add.container(0, 0);
+        this.bubbleContainer.setDepth(5000);
+
+        // Get world position for bubble (above character's head)
+        const bubbleX = speaker.x;
+        const bubbleY = speaker.y - 80;
+        const bubbleWidth = 300;
+        const bubbleHeight = 100;
+
+        // Bubble background
+        const bubble = this.scene.add.graphics();
+        bubble.fillStyle(0xffffff, 1);
+        bubble.fillRoundedRect(bubbleX - bubbleWidth/2, bubbleY - bubbleHeight/2, bubbleWidth, bubbleHeight, 10);
+        bubble.lineStyle(3, 0x000000, 1);
+        bubble.strokeRoundedRect(bubbleX - bubbleWidth/2, bubbleY - bubbleHeight/2, bubbleWidth, bubbleHeight, 10);
+
+        // Speech bubble tail (triangle pointing down to character)
+        bubble.fillStyle(0xffffff, 1);
+        bubble.lineStyle(3, 0x000000, 1);
+        bubble.beginPath();
+        bubble.moveTo(bubbleX - 10, bubbleY + bubbleHeight/2);
+        bubble.lineTo(bubbleX, bubbleY + bubbleHeight/2 + 15);
+        bubble.lineTo(bubbleX + 10, bubbleY + bubbleHeight/2);
+        bubble.closePath();
+        bubble.fillPath();
+        bubble.strokePath();
+
+        this.bubbleContainer.add(bubble);
+
+        // Speaker name
+        const nameText = this.scene.add.text(bubbleX, bubbleY - bubbleHeight/2 - 15, speakerName, {
+            fontSize: '14px',
+            fontFamily: 'Arial',
+            color: speakerColor,
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+        this.bubbleContainer.add(nameText);
+
+        // Message text
+        const messageText = this.scene.add.text(bubbleX, bubbleY, step.text, {
+            fontSize: '12px',
+            fontFamily: 'Arial',
+            color: '#000000',
+            align: 'center',
+            wordWrap: { width: bubbleWidth - 30 }
+        }).setOrigin(0.5);
+        this.bubbleContainer.add(messageText);
+
+        // Continue indicator at bottom of screen (follows camera)
+        const isLastStep = this.currentStep === this.conversationSteps.length - 1;
+        const continueY = this.scene.cameras.main.scrollY + 560;
+        const continueX = this.scene.cameras.main.scrollX + 400;
+        const continueText = this.scene.add.text(continueX, continueY,
+            isLastStep ? 'Press SPACE to close' : 'Press SPACE to continue ▼', {
+            fontSize: '14px',
+            fontFamily: 'Arial',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+        continueText.setScrollFactor(0);
+        continueText.setDepth(5001);
+        this.bubbleContainer.add(continueText);
+
+        // Blinking animation for continue text
+        this.scene.tweens.add({
+            targets: continueText,
+            alpha: 0.3,
+            duration: 600,
+            yoyo: true,
+            repeat: -1
+        });
+
+        // Spacebar/Enter listener for advancing
+        if (!this.spaceKey) {
+            this.spaceKey = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        }
+        if (!this.enterKey) {
+            this.enterKey = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+        }
+
+        // Also listen for gamepad
+        if (this.scene.input.gamepad && this.scene.input.gamepad.total > 0) {
+            this.gamepad = this.scene.input.gamepad.getPad(0);
+        }
+    }
+
+    nextStep() {
+        this.currentStep++;
+        this.showCurrentStep();
+    }
+
+    close(resumeGame = true) {
+        if (!this.active) return;
+
+        this.active = false;
+
+        // Destroy bubble
+        if (this.bubbleContainer) {
+            this.bubbleContainer.destroy();
+            this.bubbleContainer = null;
+        }
+
+        // Destroy NPC orb
+        if (this.npcOrb) {
+            this.scene.tweens.killTweensOf(this.npcOrb);
+            this.npcOrb.destroy();
+            this.npcOrb = null;
+        }
+
+        // Destroy NPC boss
+        if (this.npcBoss) {
+            this.scene.tweens.killTweensOf(this.npcBoss);
+            this.npcBoss.destroy();
+            this.npcBoss = null;
+        }
+
+        // Resume game if it was paused
+        if (resumeGame) {
+            if (this.scene.physics && this.scene.physics.world) {
+                this.scene.physics.resume();
+            }
+            this.scene.time.timeScale = 1;
+        }
+
+        // Call onClose callback
+        if (this.onCloseCallback) {
+            this.onCloseCallback();
+            this.onCloseCallback = null;
+        }
+
+        // Clean up input
+        if (this.spaceKey) {
+            this.spaceKey.destroy();
+            this.spaceKey = null;
+        }
+        if (this.enterKey) {
+            this.enterKey.destroy();
+            this.enterKey = null;
+        }
+
+        // Reset conversation state
+        this.conversationSteps = [];
+        this.currentStep = 0;
+    }
+
+    update() {
+        if (!this.active) return;
+
+        // Check for spacebar/enter press to advance
+        if (Phaser.Input.Keyboard.JustDown(this.spaceKey) ||
+            Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+            this.nextStep();
+        }
+
+        // Check for gamepad button press (A button)
+        if (this.gamepad && this.gamepad.buttons[0] && this.gamepad.buttons[0].pressed) {
+            if (!this.gamepadButtonPressed) {
+                this.gamepadButtonPressed = true;
+                this.nextStep();
+            }
+        } else {
+            this.gamepadButtonPressed = false;
+        }
+    }
+}
+
+
 class GameScene extends Phaser.Scene {
     constructor() {
         super({ key: 'GameScene' });
@@ -8461,17 +10287,22 @@ class GameScene extends Phaser.Scene {
         this.trees = null;
         this.jewels = null;
         this.playerXP = 0;
-        this.playerLevel = 0; // Start at level 0 for easier first level up
-        this.xpToNextLevel = 10; // Reduced from 15 for easier progression
+        this.playerLevel = 0; // Start at level 0
+        this.xpToNextLevel = 50; // Increased from 10 for slower progression
         // Additional game stats for game over screen
         this.enemiesKilled = 0;
         this.itemsCollected = 0;
         this.damageDealt = 0;
         this.elementsDiscovered = 1; // Start with 1 (base element)
         // Character-specific charge slots
-        // Orb gets 4 slots, Blip gets 5, others get 3
-        this.maxCharges = (this.p1Character === 'orb') ? 4 : 
-                          (this.p1Character === 'blip') ? 5 : 3;
+        // In standard mode: Orb gets 4 slots, Blip gets 5, others get 3
+        // In extended mode: All characters get MAX_ACTIVE_SLOTS (8)
+        if (this.MAX_ACTIVE_SLOTS === 8) {
+            this.maxCharges = 8; // Extended mode
+        } else {
+            this.maxCharges = (this.p1Character === 'orb') ? 4 :
+                              (this.p1Character === 'blip') ? 5 : 3;
+        }
         // Element mastery system for Wizard
         if (this.p1Character === 'wizard') {
             this.elementMastery = new Map(); // Track mastery levels for each element
@@ -8481,6 +10312,23 @@ class GameScene extends Phaser.Scene {
             this.dimensionShiftCooldown = 0;
             this.dimensionShiftActive = false;
         }
+
+        // Passive upgrade system - New simplified system
+        this.passiveUpgrades = {
+            revive: 0,              // Number of revives available (grants 25% HP on death)
+            spellArea: 0,           // +10% spell projectile size per stack
+            moveSpeed: 0,           // +25% movement speed per stack
+            maxHealth: 0,           // +50% max HP per stack
+            damage: 0,              // +20% spell damage per stack
+            slotIncrease: 0,        // +1 active charge slot per stack
+            passiveSlotIncrease: 0  // +1 passive slot per stack (for chess pieces/modifiers)
+        };
+
+        // Revive flag - reset to false at start of each life/game
+        this.hasUsedRevive = false;
+
+        // Track which upgrades have been offered to reduce repeats
+        this.upgradeHistory = [];
         this.chargingElement = null;
         this.chargeHoldTime = 0;
         this.chargeHoldThreshold = 500;
@@ -8535,6 +10383,56 @@ class GameScene extends Phaser.Scene {
         this.playerControllers = data?.playerControllers || [];
         if (this.p2Joined) {
             }
+
+        // ATTRACT MODE / DEMO MODE
+        this.demoMode = data?.demoMode || false;
+        this.startElement = data?.startElement || null;
+
+        // ARCADE MODE
+        this.arcadeMode = data?.arcadeMode || false;
+
+        // Initialize slot configuration based on options
+        this.initSlotConfiguration();
+    }
+    initSlotConfiguration() {
+        // Get slot configuration from localStorage
+        const slotConfig = localStorage.getItem('slotConfiguration') || 'standard';
+
+        if (slotConfig === 'extended') {
+            // Extended mode: 8 active / 8 passive / 8 pouch
+            this.MAX_ACTIVE_SLOTS = 8;
+            this.MAX_PASSIVE_SLOTS = 8;
+            this.MAX_POUCH_SLOTS = 8;
+            this.MAX_CHARGE_SLOTS = 16; // Active + Passive
+            this.MAX_TOTAL_SLOTS = 24; // All slots including pouch
+        } else {
+            // Standard mode: All slots are active (no passive slots)
+            // Start with 3 active slots, grow to 7 via upgrades
+            this.MAX_ACTIVE_SLOTS = 3;
+            this.MAX_PASSIVE_SLOTS = 0;
+            this.MAX_POUCH_SLOTS = 4;
+            this.MAX_CHARGE_SLOTS = 3; // All active slots
+            this.MAX_TOTAL_SLOTS = 7; // Active + pouch
+        }
+
+        // Item drop caps - limit number of items on floor at once
+        this.MAX_JEWELS_ON_FLOOR = 50;      // XP gems and coins combined
+        this.MAX_MUFFINS_ON_FLOOR = 15;     // Healing items
+        this.MAX_ELEMENT_ORBS_ON_FLOOR = 30; // Element drops
+        this.MAX_CATALYSTS_ON_FLOOR = 10;   // Fusion catalysts
+        this.MAX_STANDALONE_ITEMS_ON_FLOOR = 20; // Muffins, character unlocks, etc.
+
+        // Helper function to get slot type by index
+        this.getSlotType = (index) => {
+            if (index < this.MAX_ACTIVE_SLOTS) return 'active';
+            if (index < this.MAX_CHARGE_SLOTS) return 'passive';
+            return 'pouch';
+        };
+
+        // Helper function to convert global slot index to pouch index
+        this.getPouchIndex = (slotIndex) => {
+            return slotIndex - this.MAX_CHARGE_SLOTS;
+        };
     }
     preload() {
         // All assets are loaded in LoadingScene
@@ -8552,6 +10450,145 @@ class GameScene extends Phaser.Scene {
 
         // Initialize boss cutscene system
         this.bossCutsceneSystem = new BossCutsceneSystem(this);
+
+        // Initialize dialogue manager
+        this.dialogueManager = new DialogueManager(this);
+
+        // Forest tutorial segments - progressive teaching
+        this.forestTutorialSegments = [
+            {
+                id: 'intro',
+                trigger: () => true, // Always trigger at start
+                conversation: [
+                    { speaker: 'orb', text: 'Welcome, young wizard! I am your guide through the Forestland.' },
+                    { speaker: 'wizard', text: 'Guide? What is this place?' },
+                    { speaker: 'orb', text: 'This is where all wizards begin their journey. I will teach you the ways of magic!' },
+                    { speaker: 'wizard', text: 'I\'m ready to learn!' }
+                ]
+            },
+            {
+                id: 'movement_combat',
+                trigger: () => this.survivalTime > 10000, // After 10 seconds
+                conversation: [
+                    { speaker: 'orb', text: 'You\'re doing well! Let me explain the basics of combat.' },
+                    { speaker: 'wizard', text: 'How do I fight these creatures?' },
+                    { speaker: 'orb', text: 'Your equipped elements attack automatically! Use arrow keys to move and dodge enemy attacks.' },
+                    { speaker: 'wizard', text: 'So I just need to survive and move strategically!' }
+                ]
+            },
+            {
+                id: 'element_collection',
+                trigger: () => this.enemiesKilled >= 5, // After killing 5 enemies
+                conversation: [
+                    { speaker: 'orb', text: 'Excellent! Notice the glowing orbs enemies drop?' },
+                    { speaker: 'wizard', text: 'Yes, what are those?' },
+                    { speaker: 'orb', text: 'Element orbs! Walk over them to collect and gain new magical powers. Each element has unique abilities!' },
+                    { speaker: 'wizard', text: 'More elements means more power!' }
+                ]
+            },
+            {
+                id: 'radial_menu',
+                trigger: () => this.charges && this.charges.length >= 2, // Has 2+ elements
+                conversation: [
+                    { speaker: 'orb', text: 'You\'re collecting elements! Now let me show you how to manage them.' },
+                    { speaker: 'wizard', text: 'How do I organize my powers?' },
+                    { speaker: 'orb', text: 'Press TAB or SELECT to open your RADIAL MENU. You can drag elements between slots to optimize your build!' },
+                    { speaker: 'wizard', text: 'That\'s incredibly useful!' }
+                ]
+            },
+            {
+                id: 'level_up',
+                trigger: () => this.playerLevel >= 2, // Reached level 2
+                conversation: [
+                    { speaker: 'orb', text: 'Congratulations on leveling up! This is important.' },
+                    { speaker: 'wizard', text: 'What happens when I level up?' },
+                    { speaker: 'orb', text: 'You get to choose from 3 powerful upgrades! Pick passive buffs, new elements, or fusion rituals to combine elements!' },
+                    { speaker: 'wizard', text: 'So I can customize my playstyle!' }
+                ]
+            },
+            {
+                id: 'boss_warning',
+                trigger: () => this.survivalTime > 120000, // After 2 minutes
+                conversation: [
+                    { speaker: 'orb', text: 'Wizard, I sense a powerful presence approaching...' },
+                    { speaker: 'wizard', text: 'What is it?' },
+                    { speaker: 'orb', text: 'The Forest Guardian - a mighty boss! It will spawn soon. Prepare yourself with strong elements and upgrades!' },
+                    { speaker: 'wizard', text: 'I\'m ready for the challenge!' },
+                    { speaker: 'orb', text: 'Remember: dodge its attacks, use your most powerful elements, and don\'t give up! Good luck!' }
+                ]
+            }
+        ];
+
+        // Stage-specific dialogue conversations
+        this.stageConversations = {
+            forest: [
+                { speaker: 'orb', text: 'Welcome, young wizard! This is the Forestland, where your journey begins.' },
+                { speaker: 'wizard', text: 'What should I know about this place?' },
+                { speaker: 'orb', text: 'Enemies here drop element orbs when defeated. Collect them to gain new magical powers!' },
+                { speaker: 'wizard', text: 'Got it! Time to hunt some creatures!' }
+            ],
+            cave: [
+                { speaker: 'orb', text: 'The Caveland... dark and treacherous. Many have lost their way here.' },
+                { speaker: 'wizard', text: 'I\'m ready for the challenge.' },
+                { speaker: 'orb', text: 'Good! Remember, you can use FUSION RITUAL at level up to combine two elements into something more powerful!' },
+                { speaker: 'wizard', text: 'Fusion magic... interesting. I\'ll try it!' }
+            ],
+            desert: [
+                { speaker: 'orb', text: 'The scorching Desertland awaits. The heat here is unbearable!' },
+                { speaker: 'wizard', text: 'How do I manage my elements effectively?' },
+                { speaker: 'orb', text: 'Open the RADIAL MENU with TAB or SELECT button. You can drag elements between slots to optimize your build!' },
+                { speaker: 'wizard', text: 'That\'ll help me adapt to different situations!' }
+            ],
+            swamp: [
+                { speaker: 'orb', text: 'Welcome to the Swampland. Poison and disease run rampant here...' },
+                { speaker: 'wizard', text: 'Sounds dangerous. Any survival tips?' },
+                { speaker: 'orb', text: 'When you level up, look for PHOENIX HEART and other defensive passives. They can save your life!' },
+                { speaker: 'wizard', text: 'I won\'t take any chances then.' }
+            ],
+            snow: [
+                { speaker: 'orb', text: 'Brrr! The Snowland... one of the harshest environments.' },
+                { speaker: 'wizard', text: 'What enemies should I watch out for?' },
+                { speaker: 'orb', text: 'Ice creatures are weak to fire elements, and snow beasts fear lightning. Use elemental advantages!' },
+                { speaker: 'wizard', text: 'Strategy over brute force. I understand.' }
+            ],
+            ocean: [
+                { speaker: 'orb', text: 'The depths of Oceanland hold ancient secrets and powerful guardians.' },
+                { speaker: 'wizard', text: 'I feel the power increasing with each level...' },
+                { speaker: 'orb', text: 'Yes! Each level grants you three choices. Pick wisely to build your perfect wizard!' },
+                { speaker: 'wizard', text: 'I\'ll choose upgrades that complement my playstyle.' }
+            ],
+            lava: [
+                { speaker: 'orb', text: 'This is Lavaland - the infernal realm. Only the strongest survive here!' },
+                { speaker: 'wizard', text: 'The enemies here are relentless!' },
+                { speaker: 'orb', text: 'Movement speed upgrades are crucial here. Dodge attacks and kite enemies!' },
+                { speaker: 'wizard', text: 'Speed is survival. Got it!' }
+            ],
+            grave: [
+                { speaker: 'orb', text: 'Graveland... where the dead don\'t rest. Steel your nerves, wizard.' },
+                { speaker: 'wizard', text: 'I need more power to face these undead hordes...' },
+                { speaker: 'orb', text: 'Search for MIND ORBS - they look like golden flasks. They\'ll expand your socket count permanently!' },
+                { speaker: 'wizard', text: 'More slots means more elements. I\'ll find them!' }
+            ],
+            castle: [
+                { speaker: 'orb', text: 'The corrupted Castle... once a beacon of hope, now a fortress of darkness.' },
+                { speaker: 'wizard', text: 'These guards are incredibly strong!' },
+                { speaker: 'orb', text: 'Look for chess piece passives from treasure chests. Each provides unique strategic bonuses!' },
+                { speaker: 'wizard', text: 'I\'ll use every advantage I can get.' }
+            ],
+            spire: [
+                { speaker: 'orb', text: 'The Spire... you\'ve reached the peak of challenge. Are you ready?' },
+                { speaker: 'wizard', text: 'I\'ve come this far. I won\'t turn back now!' },
+                { speaker: 'orb', text: 'Smart! Combine damage and spell area upgrades for devastating AoE attacks!' },
+                { speaker: 'wizard', text: 'Time to unleash my full power!' }
+            ],
+            nexus: [
+                { speaker: 'orb', text: 'The Nexus... where all magical energies converge. This is an endless trial.' },
+                { speaker: 'wizard', text: 'Endless? How long can I survive?' },
+                { speaker: 'orb', text: 'That depends on your skill! Waves will spawn forever. How long can YOU last?' },
+                { speaker: 'wizard', text: 'Let\'s find out!' }
+            ]
+        };
+
         // Handle WebGL context loss
         this.handleContextLost = () => {
             console.error('WebGL context lost - pausing game');
@@ -8574,6 +10611,56 @@ class GameScene extends Phaser.Scene {
             }
             this.resumeGame('context-lost');
         };
+
+        // Centralized collision validation function to prevent crashes from destroyed objects
+        this.validateCollision = (obj1, obj2) => {
+            try {
+                return obj1 && obj1.active && obj1.body && obj1.body.enable &&
+                       !obj1.isDestroying && !obj1.isActuallyDestroyed &&
+                       obj2 && obj2.active && obj2.body && obj2.body.enable &&
+                       !obj2.isDestroying && !obj2.isActuallyDestroyed;
+            } catch (e) {
+                return false;
+            }
+        };
+
+        // Safe forEach for enemy groups - filters out null/destroyed enemies
+        this.forEachEnemy = (callback) => {
+            if (!this.enemies || !this.enemies.children) return;
+            const entries = this.enemies.children.entries;
+            for (let i = 0; i < entries.length; i++) {
+                const enemy = entries[i];
+                // Critical null/body check to prevent crashes
+                if (enemy && enemy.body && enemy.active && !enemy.isActuallyDestroyed) {
+                    try {
+                        callback(enemy, i);
+                    } catch (e) {
+                        console.warn('Error in forEachEnemy callback:', e);
+                    }
+                }
+            }
+        };
+
+        // Safe destroy function that disables physics before destruction
+        this.safeDestroy = (obj, group = null) => {
+            if (!obj) return;
+            obj.active = false;
+            if (obj.body) {
+                obj.body.enable = false;
+            }
+            // Remove from group if specified
+            if (group && group.contains && group.contains(obj)) {
+                group.remove(obj, true, true); // removeChild, destroyChild
+            } else {
+                // Delay actual destruction to next frame to allow collision system to finish
+                this.time.delayedCall(0, () => {
+                    if (obj && obj.destroy) {
+                        obj.destroy();
+                    }
+                });
+            }
+        };
+
         // Ensure no debug borders are drawn
         if (this.physics.world.debugGraphic) {
             this.physics.world.debugGraphic.clear();
@@ -8597,6 +10684,15 @@ class GameScene extends Phaser.Scene {
         // Initialize collision processing queue to prevent simultaneous collisions
         this.collisionQueue = [];
         this.processingCollisions = false;
+
+        // DEFERRED DESTRUCTION QUEUE - prevents crashes during collision detection
+        // Enemies/projectiles marked for destruction are queued here and destroyed AFTER physics update
+        this.destroyQueue = {
+            enemies: [],
+            projectiles: [],
+            other: []
+        };
+        // Note: processDestroyQueue() is called at the END of update() loop, after all physics
         // Force time scale to 1 and ensure game is not paused
         this.time.timeScale = 1;
         this.physics.resume();
@@ -8824,7 +10920,7 @@ class GameScene extends Phaser.Scene {
         this.invulnerable = false; // Reset invulnerability flag
         this.gameStarted = false; // Will be set to true after countdown
         this.charges = []; // Start with no charges
-        this.chargeSlots = new Array(8).fill(null); // Initialize all 8 slots as empty
+        this.chargeSlots = new Array(this.MAX_CHARGE_SLOTS).fill(null); // Initialize slots based on config
         this.slotBuffs = []; // Track buffs for each charge slot: {damageMultiplier: 1, speedMultiplier: 1, linked: false}
         this.earnedLinks = 0; // Track how many links have been earned through level ups
         this.orbitingOrbs = [];
@@ -8858,14 +10954,15 @@ class GameScene extends Phaser.Scene {
         this.standaloneItems = this.physics.add.group();
         this.barrels = this.physics.add.group();
         this.playerXP = 0;
-        this.playerLevel = 0; // Start at level 0 for easier first level up
-        this.xpToNextLevel = 10; // Reduced from 15 for easier progression
+        this.playerLevel = 0; // Start at level 0
+        this.xpToNextLevel = 50; // Increased from 10 for slower progression
         // Additional game stats for game over screen
         this.enemiesKilled = 0;
         this.itemsCollected = 0;
         this.damageDealt = 0;
         this.elementsDiscovered = 1; // Start with 1 (base element)
-        this.maxCharges = 4; // Start with 4 charge slots
+        // maxCharges is set earlier based on slot configuration and character
+        // this.maxCharges = 4; // Start with 4 charge slots (removed - already set above)
         this.lastFireTime = 0;
         this.currentChargeIndex = 0;
         this.chargingElement = null;
@@ -8888,7 +10985,7 @@ class GameScene extends Phaser.Scene {
         this.discoveredElements = new Set(); // Track discovered elements
         // Initialize element pouch
         // Don't load pouch from localStorage - start fresh each game
-        this.elementPouch = [null, null, null, null];
+        this.elementPouch = new Array(this.MAX_POUCH_SLOTS).fill(null);
         // Create and start background music based on stage
         let bgmKey;
         if (this.stage === 'forest') {
@@ -8950,27 +11047,27 @@ class GameScene extends Phaser.Scene {
         this.globalSpellCooldown = 0; // Global cooldown to prevent spell spam
         // Element configuration - 18 elements with sprite frames and colors
         this.elementConfig = {
-            // Updated to use new orb images
-            fire: { frame: 0, color: 0xff4444, name: 'Fire', sheet: 'fire-orb', isImage: true, fireRate: 3150 }, // Reduced by 30%
-            water: { frame: 0, color: 0x4444ff, name: 'Water', sheet: 'water-orb', isImage: true, fireRate: 1800 },
-            earth: { frame: 0, color: 0x44ff44, name: 'Earth', sheet: 'earth-orb', isImage: true, fireRate: 3000 },
-            rock: { frame: 0, color: 0x8b4513, name: 'Rock', sheet: 'rock-orb', isImage: true, fireRate: 2250 },
-            air: { frame: 0, color: 0xcccccc, name: 'Air', sheet: 'air-orb', isImage: true, fireRate: 1200 },
-            lightning: { frame: 0, color: 0xffff44, name: 'Lightning', sheet: 'lightning-orb', isImage: true, fireRate: 1500 },
+            // Updated to use new orb images - fire rates increased for slower spell pacing
+            fire: { frame: 0, color: 0xff4444, name: 'Fire', sheet: 'fire-orb', isImage: true, fireRate: 4500 },
+            water: { frame: 0, color: 0x4444ff, name: 'Water', sheet: 'water-orb', isImage: true, fireRate: 2700 },
+            earth: { frame: 0, color: 0x44ff44, name: 'Earth', sheet: 'earth-orb', isImage: true, fireRate: 4500 },
+            rock: { frame: 0, color: 0x8b4513, name: 'Rock', sheet: 'rock-orb', isImage: true, fireRate: 3375 },
+            air: { frame: 0, color: 0xcccccc, name: 'Air', sheet: 'air-orb', isImage: true, fireRate: 1800 },
+            lightning: { frame: 0, color: 0xffff44, name: 'Lightning', sheet: 'lightning-orb', isImage: true, fireRate: 2250 },
             holy: { frame: 0, color: 0xffdd00, name: 'Holy', sheet: 'holy-orb', isImage: true },
-            arcane: { frame: 0, color: 0xff44ff, name: 'Arcane', sheet: 'arcane-orb', isImage: true, fireRate: 2400 },
-            dust: { frame: 8, color: 0xcc9966, name: 'Dust', sheet: 'element-symbols' }, // No new orb for dust
+            arcane: { frame: 0, color: 0xff44ff, name: 'Arcane', sheet: 'arcane-orb', isImage: true, fireRate: 3600 },
+            dust: { frame: 8, color: 0xcc9966, name: 'Dust', sheet: 'element-symbols', fireRate: 5000 }, // Invulnerability spell
             // Updated to use new orb images
             lava: { frame: 0, color: 0xff6600, name: 'Lava', sheet: 'lava-orb', isImage: true },
             steam: { frame: 0, color: 0xaabbcc, name: 'Steam', sheet: 'steam-orb', isImage: true },
             poison: { frame: 0, color: 0x00ff00, name: 'Poison', sheet: 'poison-orb', isImage: true },
             volcano: { frame: 0, color: 0xcc3300, name: 'Volcano', sheet: 'volcano-orb', isImage: true },
-            ice: { frame: 0, color: 0x00ddff, name: 'Ice', sheet: 'ice-orb', isImage: true, fireRate: 2500 },
-            meteor: { frame: 0, color: 0xff8800, name: 'Meteor', sheet: 'meteor-orb', isImage: true, fireRate: 1500 },
-            mud: { frame: 0, color: 0x664422, name: 'Mud', sheet: 'mud-orb', isImage: true, fireRate: 3000 },
+            ice: { frame: 0, color: 0x00ddff, name: 'Ice', sheet: 'ice-orb', isImage: true, fireRate: 3750 },
+            meteor: { frame: 0, color: 0xff8800, name: 'Meteor', sheet: 'meteor-orb', isImage: true, fireRate: 2250 },
+            mud: { frame: 0, color: 0x664422, name: 'Mud', sheet: 'mud-orb', isImage: true, fireRate: 4500 },
             storm: { frame: 0, color: 0xffff00, name: 'Storm', sheet: 'storm-orb', isImage: true },
-            thunder: { frame: 0, color: 0x9966ff, name: 'Thunder', sheet: 'tempest-orb', isImage: true, fireRate: 2000 },
-            crystal: { frame: 0, color: 0xffaaff, name: 'Crystal', sheet: 'crystal-orb', isImage: true, fireRate: 2000 },
+            thunder: { frame: 0, color: 0x9966ff, name: 'Thunder', sheet: 'tempest-orb', isImage: true, fireRate: 3000 },
+            crystal: { frame: 0, color: 0xffaaff, name: 'Crystal', sheet: 'crystal-orb', isImage: true, fireRate: 3000 },
             // Updated to use new orb images
             death: { frame: 0, color: 0x333333, name: 'Death', sheet: 'death-orb', isImage: true, fireRate: 30000 },
             time: { frame: 0, color: 0xffd700, name: 'Time', sheet: 'time-orb', isImage: true },
@@ -8978,18 +11075,18 @@ class GameScene extends Phaser.Scene {
             gravity: { frame: 0, color: 0x4b0082, name: 'Gravity', sheet: 'gravity-orb', isImage: true, fireRate: 6000 },
             sun: { frame: 0, color: 0xffeb3b, name: 'Sun', sheet: 'sun-orb', isImage: true, fireRate: 999999 },
             smoke: { frame: 0, color: 0x696969, name: 'Smoke', sheet: 'smoke-orb', isImage: true, fireRate: 10000 },
-            blast: { frame: 0, color: 0xff6600, name: 'Blast', sheet: 'blast-orb', isImage: true, fireRate: 2000 },
+            blast: { frame: 0, color: 0xff6600, name: 'Blast', sheet: 'blast-orb', isImage: true, fireRate: 3000 },
             wave: { frame: 0, color: 0x00bcd4, name: 'Wave', sheet: 'wave-orb', isImage: true },
-            vortex: { frame: 0, color: 0x0066cc, name: 'Vortex', sheet: 'vortex-orb', isImage: true, fireRate: 3000 },
-            tornado: { frame: 0, color: 0x708090, name: 'Tornado', sheet: 'tornado-orb', isImage: true, fireRate: 2500 },
-            snowball: { frame: 0, color: 0xADD8E6, name: 'Snowball', sheet: 'snowball-orb', isImage: true, fireRate: 1500 },
-            illusion: { frame: 0, color: 0x9966ff, name: 'Illusion', sheet: 'illusion-orb', isImage: true, fireRate: 3000 },
+            vortex: { frame: 0, color: 0x0066cc, name: 'Vortex', sheet: 'vortex-orb', isImage: true, fireRate: 4500 },
+            tornado: { frame: 0, color: 0x708090, name: 'Tornado', sheet: 'tornado-orb', isImage: true, fireRate: 3750 },
+            snowball: { frame: 0, color: 0xADD8E6, name: 'Snowball', sheet: 'snowball-orb', isImage: true, fireRate: 2250 },
+            illusion: { frame: 0, color: 0x9966ff, name: 'Illusion', sheet: 'illusion-orb', isImage: true, fireRate: 4500 },
             star: { frame: 0, color: 0xffffff, name: 'Star', sheet: 'star-orb', isImage: true },
             zodiac: { frame: 0, color: 0xffd700, name: 'Zodiac', sheet: 'zodiac-orb', isImage: true },
-            hex: { frame: 0, color: 0x9932cc, name: 'Hex', sheet: 'hex-orb', isImage: true, fireRate: 6000 },
-            chaos: { frame: 0, color: 0xff00ff, name: 'Chaos', sheet: 'chaos-orb', isImage: true, fireRate: 4000 },
-            laser: { frame: 0, color: 0xff0066, name: 'Laser', sheet: 'laser-orb', isImage: true, fireRate: 3000 },
-            venom: { frame: 0, color: 0x8b00ff, name: 'Venom', sheet: 'venom-orb', isImage: true, fireRate: 2000 },
+            hex: { frame: 0, color: 0x9932cc, name: 'Hex', sheet: 'hex-orb', isImage: true, fireRate: 9000 },
+            chaos: { frame: 0, color: 0xff00ff, name: 'Chaos', sheet: 'chaos-orb', isImage: true, fireRate: 6000 },
+            laser: { frame: 0, color: 0xff0066, name: 'Laser', sheet: 'laser-orb', isImage: true, fireRate: 4500 },
+            venom: { frame: 0, color: 0x8b00ff, name: 'Venom', sheet: 'venom-orb', isImage: true, fireRate: 3000 },
             moon: { frame: 0, color: 0xe0e0e0, name: 'Moon', sheet: 'moon-orb', isImage: true, fireRate: 12000 },
             nature: { frame: 0, color: 0x00ff00, name: 'Nature', sheet: 'nature-orb', isImage: true },
             life: { frame: 0, color: 0xff6666, name: 'Life', sheet: 'life-symbol', isImage: true }, // No new orb for life
@@ -9003,7 +11100,20 @@ class GameScene extends Phaser.Scene {
             king: { frame: 0, color: 0xdc143c, name: 'King', sheet: 'king-orb', isImage: true, fireRate: 999999 }, // Passive element, damage boost modifier
             pawn: { frame: 0, color: 0x708090, name: 'Pawn', sheet: 'pawn-orb', isImage: true, fireRate: 999999 }, // Passive element, double-shot modifier
             saturn: { frame: 0, color: 0xffa500, name: 'Saturn', sheet: 'saturn-orb', isImage: true, fireRate: 999999 }, // Passive element, makes projectiles orbit
-            joker: { frame: 0, color: 0x800080, name: 'Joker', sheet: 'joker-orb', isImage: true, fireRate: 999999 } // Passive element, applies all chess modifiers
+            joker: { frame: 0, color: 0x800080, name: 'Joker', sheet: 'joker-orb', isImage: true, fireRate: 999999 }, // Passive element, applies all chess modifiers
+            spiral: { frame: 0, color: 0x00ffff, name: 'Spiral', sheet: 'tornado-orb', isImage: true, fireRate: 999999 }, // Passive element, fires 4 projectiles in spiral pattern
+            // Passive orbs from chests (using Orb suffix to distinguish from active elements)
+            wizardOrb: { frame: 0, color: 0xff44ff, name: 'Wizard Orb', sheet: 'arcane-orb', isImage: true, fireRate: 999999 }, // Passive element from chests
+            summonOrb: { frame: 0, color: 0x00ff00, name: 'Summon Orb', sheet: 'nature-orb', isImage: true, fireRate: 999999 }, // Passive element from chests
+            saturnOrb: { frame: 0, color: 0xffa500, name: 'Saturn Orb', sheet: 'saturn-orb', isImage: true, fireRate: 999999 }, // Passive element from chests
+            knightOrb: { frame: 0, color: 0xffa500, name: 'Knight Orb', sheet: 'knight-orb', isImage: true, fireRate: 999999 }, // Passive element from chests
+            kingOrb: { frame: 0, color: 0xdc143c, name: 'King Orb', sheet: 'king-orb', isImage: true, fireRate: 999999 }, // Passive element from chests
+            rookOrb: { frame: 0, color: 0x8b7355, name: 'Rook Orb', sheet: 'rook-orb', isImage: true, fireRate: 999999 }, // Passive element from chests
+            flameOrb: { frame: 0, color: 0xff4444, name: 'Flame Orb', sheet: 'fire-orb', isImage: true, fireRate: 999999 }, // Passive element from chests
+            healOrb: { frame: 0, color: 0xffdd00, name: 'Heal Orb', sheet: 'holy-orb', isImage: true, fireRate: 999999 }, // Passive element from chests
+            dashOrb: { frame: 0, color: 0xcccccc, name: 'Dash Orb', sheet: 'air-orb', isImage: true, fireRate: 999999 }, // Passive element from chests
+            catalyst: { frame: 0, color: 0xffaa00, name: 'Catalyst', sheet: 'catalyst-orb', isImage: true, fireRate: 999999, symbol: '⚗️' }, // Special fusion catalyst orb
+            mind: { frame: 0, color: 0xb8860b, name: 'Mind Orb', sheet: 'alchemy-orb', isImage: true, fireRate: 999999, symbol: '🧠', isSpecial: true } // Special orb that expands socket count
         };
         // Define primary elements (can drop from enemies)
         this.primaryElements = ['fire', 'water', 'earth', 'air', 'lightning', 'arcane'];
@@ -9028,29 +11138,38 @@ class GameScene extends Phaser.Scene {
             'lava+air': 'volcano',
             'ice+fire': 'water',
             'ice+earth': 'crystal',
+            'ice+water': 'wave',
             'steam+earth': 'nature',
             'steam+lightning': 'storm',
             'poison+water': 'venom',
+            'poison+smoke': 'smoke',
             'crystal+fire': 'arcane',
             // Special fusions
             'arcane+nature': 'life',
+            'air+arcane': 'illusion',
             'death+life': 'time',
             'time+earth': 'sand',
-            'time+space': 'gravity',
+            'earth+arcane': 'gravity',
+            'rock+arcane': 'metal',
             'water+gravity': 'vortex',
+            'gravity+fire': 'meteor',
+            'gravity+rock': 'meteor',
+            'fire+nature': 'smoke',
             'fire+holy': 'sun',
             'water+holy': 'moon',
             'lightning+arcane': 'star',
             'crystal+arcane': 'zodiac',
             'poison+arcane': 'hex',
-            'earth+arcane': 'metal',
+            'metal+arcane': 'philosopherstone',
+            'holy+moon': 'halo',
+            'ice+air': 'snowball',
             'lightning+lava': 'laser',
             'air+gravity': 'tornado',
             'vortex+tornado': 'chaos'
         };
-        // Tier scaling configuration - only damage scaling for now
+        // Tier scaling configuration - reduced for better late-game balance
         this.tierScaling = {
-            damage: [1.0, 1.5, 2.0, 2.5, 3.0] // Damage multiplier per tier
+            damage: [1.0, 1.2, 1.4, 1.6, 1.8] // Damage multiplier per tier (reduced from 1.0-3.0)
         };
         // Tier-specific spell progression framework
         // Each spell can have unique effects at different tiers
@@ -9077,11 +11196,11 @@ class GameScene extends Phaser.Scene {
                 5: { description: "Tectonic devastation", lineLength: 2.0, stunChance: 0.5 }
             },
             lightning: {
-                1: { description: "Single homing bolt", chainCount: 0, sparkRadius: 0 },
-                2: { description: "Faster bolt with sparks", chainCount: 0, sparkRadius: 30 },
-                3: { description: "Chain lightning (2 jumps)", chainCount: 2, sparkRadius: 40 },
-                4: { description: "Storm bolt (3 jumps)", chainCount: 3, sparkRadius: 50 },
-                5: { description: "Thunder god's wrath (5 jumps)", chainCount: 5, sparkRadius: 60 }
+                1: { description: "Homing bolt (2 chains)", chainCount: 2, sparkRadius: 30 },
+                2: { description: "Chain lightning (3 chains)", chainCount: 3, sparkRadius: 40 },
+                3: { description: "Storm bolt (4 chains)", chainCount: 4, sparkRadius: 45 },
+                4: { description: "Thunder strike (5 chains)", chainCount: 5, sparkRadius: 50 },
+                5: { description: "Thunder god's wrath (6 chains)", chainCount: 6, sparkRadius: 60 }
             },
             // Add more elements here following the same pattern
             // This framework allows you to define unique progression for each spell
@@ -9719,14 +11838,18 @@ class GameScene extends Phaser.Scene {
             this.wizard2.lastStableDirection = 'down';
             // Initialize P2 properties
             this.wizard2.charges = [];
-            this.wizard2.chargeSlots = new Array(8).fill(null);
+            this.wizard2.chargeSlots = new Array(this.MAX_CHARGE_SLOTS).fill(null);
             // Character-specific charge slots for P2
-            this.wizard2.maxCharges = (this.p2Character === 'orb') ? 4 : 
-                                       (this.p2Character === 'blip') ? 5 : 3;
+            if (this.MAX_ACTIVE_SLOTS === 8) {
+                this.wizard2.maxCharges = 8; // Extended mode
+            } else {
+                this.wizard2.maxCharges = (this.p2Character === 'orb') ? 4 :
+                                           (this.p2Character === 'blip') ? 5 : 3;
+            }
             this.wizard2.currentChargeIndex = 0;
             this.wizard2.elementTiers = new Map(); // Track element tiers
             this.wizard2.chargeGroups = []; // For grouping linked charges
-            this.wizard2.elementPouch = []; // Initialize pouch for storing elements
+            this.wizard2.elementPouch = new Array(this.MAX_POUCH_SLOTS).fill(null); // Initialize pouch for storing elements
             // Element mastery for P2 wizard
             if (this.p2Character === 'wizard') {
                 this.wizard2.elementMastery = new Map();
@@ -9776,16 +11899,20 @@ class GameScene extends Phaser.Scene {
                 this.createCharacterAnimations(this.p3Character, false);
                 this.wizard3.setFrame(0);
                 this.createShadowFor(this.wizard3, 25, 12);
-                
+
                 // Initialize P3 properties
                 this.wizard3.charges = [];
-                this.wizard3.chargeSlots = new Array(8).fill(null);
-                this.wizard3.maxCharges = (this.p3Character === 'orb') ? 4 : 
-                                           (this.p3Character === 'blip') ? 5 : 3;
+                this.wizard3.chargeSlots = new Array(this.MAX_CHARGE_SLOTS).fill(null);
+                if (this.MAX_ACTIVE_SLOTS === 8) {
+                    this.wizard3.maxCharges = 8; // Extended mode
+                } else {
+                    this.wizard3.maxCharges = (this.p3Character === 'orb') ? 4 :
+                                               (this.p3Character === 'blip') ? 5 : 3;
+                }
                 this.wizard3.currentChargeIndex = 0;
                 this.wizard3.elementTiers = new Map();
                 this.wizard3.chargeGroups = [];
-                this.wizard3.elementPouch = [];
+                this.wizard3.elementPouch = new Array(this.MAX_POUCH_SLOTS).fill(null);
                 this.wizard3.health = 200;
                 this.wizard3.maxHealth = 200;
                 this.wizard3.invulnerable = false;
@@ -9823,16 +11950,20 @@ class GameScene extends Phaser.Scene {
                 this.createCharacterAnimations(this.p4Character, true);
                 this.wizard4.setFrame(0);
                 this.createShadowFor(this.wizard4, 25, 12);
-                
+
                 // Initialize P4 properties
                 this.wizard4.charges = [];
-                this.wizard4.chargeSlots = new Array(8).fill(null);
-                this.wizard4.maxCharges = (this.p4Character === 'orb') ? 4 : 
-                                           (this.p4Character === 'blip') ? 5 : 3;
+                this.wizard4.chargeSlots = new Array(this.MAX_CHARGE_SLOTS).fill(null);
+                if (this.MAX_ACTIVE_SLOTS === 8) {
+                    this.wizard4.maxCharges = 8; // Extended mode
+                } else {
+                    this.wizard4.maxCharges = (this.p4Character === 'orb') ? 4 :
+                                               (this.p4Character === 'blip') ? 5 : 3;
+                }
                 this.wizard4.currentChargeIndex = 0;
                 this.wizard4.elementTiers = new Map();
                 this.wizard4.chargeGroups = [];
-                this.wizard4.elementPouch = [];
+                this.wizard4.elementPouch = new Array(this.MAX_POUCH_SLOTS).fill(null);
                 this.wizard4.health = 200;
                 this.wizard4.maxHealth = 200;
                 this.wizard4.invulnerable = false;
@@ -10052,7 +12183,9 @@ class GameScene extends Phaser.Scene {
         });
         // Add collision between enemies and walls in Spireland
         if (this.stage === 'spire' && this.walls) {
-            this.physics.add.collider(this.enemies, this.walls);
+            this.physics.add.collider(this.enemies, this.walls, null, (enemy, wall) => {
+                return this.validateCollision(enemy, wall);
+            });
             }
         this.projectiles = this.physics.add.group({
             runChildUpdate: false,
@@ -10128,13 +12261,42 @@ class GameScene extends Phaser.Scene {
         this.dungeonArrow.setScrollFactor(0);
         this.dungeonArrow.setVisible(false);
         this.dungeonArrow.setAlpha(0.9);
-        this.jewels = this.physics.add.group();
-        this.coins = this.physics.add.group(); // Initialize coins group for performance tracking
-        this.muffins = this.physics.add.group();
-        this.elementOrbs = this.physics.add.group();
-        this.chargeExpansions = this.physics.add.group();
+        this.jewels = this.physics.add.group({
+            removeCallback: (jewel) => {
+                if (jewel && jewel.body) jewel.body.enable = false;
+            }
+        });
+        this.coins = this.physics.add.group({
+            removeCallback: (coin) => {
+                if (coin && coin.body) coin.body.enable = false;
+            }
+        });
+        this.muffins = this.physics.add.group({
+            removeCallback: (muffin) => {
+                if (muffin && muffin.body) muffin.body.enable = false;
+            }
+        });
+        this.elementOrbs = this.physics.add.group({
+            removeCallback: (orb) => {
+                if (orb && orb.body) orb.body.enable = false;
+            }
+        });
+        this.fusionCatalysts = this.physics.add.group({
+            removeCallback: (catalyst) => {
+                if (catalyst && catalyst.body) catalyst.body.enable = false;
+            }
+        });
+        this.chargeExpansions = this.physics.add.group({
+            removeCallback: (expansion) => {
+                if (expansion && expansion.body) expansion.body.enable = false;
+            }
+        });
         // Initialize barrels group
-        this.barrels = this.physics.add.group();
+        this.barrels = this.physics.add.group({
+            removeCallback: (barrel) => {
+                if (barrel && barrel.body) barrel.body.enable = false;
+            }
+        });
         this.enemyProjectiles = this.physics.add.group({
             runChildUpdate: false,
             removeCallback: (projectile) => {
@@ -10151,47 +12313,43 @@ class GameScene extends Phaser.Scene {
             }
         });
         // Set up collision between wizard and enemy projectiles
-        this.physics.add.overlap(this.wizard, this.enemyProjectiles, this.handleEnemyProjectileHit, 
+        this.physics.add.overlap(this.wizard, this.enemyProjectiles, this.handleEnemyProjectileHit,
             // Process callback to filter out invalid projectiles
             (wizard, projectile) => {
-                return wizard && wizard.active && wizard.body && wizard.body.enable &&
-                       projectile && projectile.active && projectile.body && projectile.body.enable &&
-                       !projectile.isDestroying;
+                return this.validateCollision(wizard, projectile) && !projectile.isDestroying;
             }, this);
-        this.physics.add.overlap(this.wizard, this.enemies, this.hitEnemy, 
+        this.physics.add.overlap(this.wizard, this.enemies, this.hitEnemy,
             // Process callback to filter out invalid enemies
             (wizard, enemy) => {
                 // Allow armadillos to damage even when invulnerable (rolling)
                 const canDamage = enemy.enemyType === 'armadillo' && enemy.isRolling ? true : !enemy.isInvulnerable;
-                return enemy && enemy.active && enemy.body && enemy.body.enable && !enemy.isDying && enemy.health > 0 && canDamage;
+                return this.validateCollision(wizard, enemy) && !enemy.isDying && enemy.health > 0 && canDamage;
             }, this);
         // Add P2 collision detection if multiplayer
         if (this.multiplayerEnabled && this.wizard2) {
             this.physics.add.overlap(this.wizard2, this.enemies, (wizard2, enemy) => {
                 // Call hitEnemy but with P2
                 this.hitEnemy(wizard2, enemy, true); // true indicates P2
-            }, 
+            },
             (wizard2, enemy) => {
                 // Allow armadillos to damage even when invulnerable (rolling)
                 const canDamage = enemy.enemyType === 'armadillo' && enemy.isRolling ? true : !enemy.isInvulnerable;
-                return enemy && enemy.active && enemy.body && enemy.body.enable && !enemy.isDying && enemy.health > 0 && canDamage;
+                return this.validateCollision(wizard2, enemy) && !enemy.isDying && enemy.health > 0 && canDamage;
             }, this);
             // P2 vs enemy projectiles
             this.physics.add.overlap(this.enemyProjectiles, this.wizard2, (projectile, wizard2) => {
                 this.bossProjectileHitPlayer(projectile, wizard2, true); // true indicates P2
-            }, 
-            (projectile, wizard2) => {
-                return projectile && projectile.active && projectile.body && projectile.body.enable && 
-                       wizard2 && wizard2.active && wizard2.body && wizard2.body.enable;
-            }, this);
+            }, this.validateCollision, this);
             // P2 can collect items too
             this.physics.add.overlap(this.wizard2, this.jewels, (wizard2, jewel) => {
                 this.collectJewel(wizard2, jewel, true); // true indicates P2
-            }, null, this);
+            }, (wizard2, jewel) => {
+                return this.validateCollision(wizard2, jewel) && !jewel.isDestroying;
+            }, this);
             this.physics.add.overlap(this.wizard2, this.elementOrbs, (wizard2, orb) => {
                 this.collectElementOrb(wizard2, orb); // Use the correct function name
             }, (wizard2, orb) => {
-                return wizard2 && wizard2.active && orb && orb.active && !orb.isDestroying && orb.canCollect;
+                return this.validateCollision(wizard2, orb) && !orb.isDestroying && orb.canCollect;
             }, this);
         }
         
@@ -10199,27 +12357,28 @@ class GameScene extends Phaser.Scene {
         if (this.playerCount > 2 && this.wizard3) {
             this.physics.add.overlap(this.wizard3, this.enemies, (wizard3, enemy) => {
                 this.hitEnemy(wizard3, enemy, false, 3); // Player 3
-            }, 
+            },
             (wizard3, enemy) => {
                 const canDamage = enemy.enemyType === 'armadillo' && enemy.isRolling ? true : !enemy.isInvulnerable;
-                return enemy && enemy.active && enemy.body && enemy.body.enable && !enemy.isDying && enemy.health > 0 && canDamage;
+                return this.validateCollision(wizard3, enemy) && !enemy.isDying && enemy.health > 0 && canDamage;
             }, this);
             // P3 vs enemy projectiles
             this.physics.add.overlap(this.enemyProjectiles, this.wizard3, (projectile, wizard3) => {
                 this.bossProjectileHitPlayer(projectile, wizard3, false, 3); // Player 3
             }, 
             (projectile, wizard3) => {
-                return projectile && projectile.active && projectile.body && projectile.body.enable && 
-                       wizard3 && wizard3.active && wizard3.body && wizard3.body.enable;
+                return this.validateCollision(projectile, wizard3);
             }, this);
             // P3 can collect items
             this.physics.add.overlap(this.wizard3, this.jewels, (wizard3, jewel) => {
                 this.collectJewel(wizard3, jewel, false, 3); // Player 3
-            }, null, this);
+            }, (wizard3, jewel) => {
+                return this.validateCollision(wizard3, jewel) && !jewel.isDestroying;
+            }, this);
             this.physics.add.overlap(this.wizard3, this.elementOrbs, (wizard3, orb) => {
                 this.collectElementOrb(wizard3, orb);
             }, (wizard3, orb) => {
-                return wizard3 && wizard3.active && orb && orb.active && !orb.isDestroying && orb.canCollect;
+                return this.validateCollision(wizard3, orb) && !orb.isDestroying && orb.canCollect;
             }, this);
         }
         
@@ -10227,35 +12386,41 @@ class GameScene extends Phaser.Scene {
         if (this.playerCount > 3 && this.wizard4) {
             this.physics.add.overlap(this.wizard4, this.enemies, (wizard4, enemy) => {
                 this.hitEnemy(wizard4, enemy, false, 4); // Player 4
-            }, 
+            },
             (wizard4, enemy) => {
                 const canDamage = enemy.enemyType === 'armadillo' && enemy.isRolling ? true : !enemy.isInvulnerable;
-                return enemy && enemy.active && enemy.body && enemy.body.enable && !enemy.isDying && enemy.health > 0 && canDamage;
+                return this.validateCollision(wizard4, enemy) && !enemy.isDying && enemy.health > 0 && canDamage;
             }, this);
             // P4 vs enemy projectiles
             this.physics.add.overlap(this.enemyProjectiles, this.wizard4, (projectile, wizard4) => {
                 this.bossProjectileHitPlayer(projectile, wizard4, false, 4); // Player 4
             }, 
             (projectile, wizard4) => {
-                return projectile && projectile.active && projectile.body && projectile.body.enable && 
-                       wizard4 && wizard4.active && wizard4.body && wizard4.body.enable;
+                return this.validateCollision(projectile, wizard4);
             }, this);
             // P4 can collect items
             this.physics.add.overlap(this.wizard4, this.jewels, (wizard4, jewel) => {
                 this.collectJewel(wizard4, jewel, false, 4); // Player 4
-            }, null, this);
+            }, (wizard4, jewel) => {
+                return this.validateCollision(wizard4, jewel) && !jewel.isDestroying;
+            }, this);
             this.physics.add.overlap(this.wizard4, this.elementOrbs, (wizard4, orb) => {
                 this.collectElementOrb(wizard4, orb);
             }, (wizard4, orb) => {
-                return wizard4 && wizard4.active && orb && orb.active && !orb.isDestroying && orb.canCollect;
+                return this.validateCollision(wizard4, orb) && !orb.isDestroying && orb.canCollect;
             }, this);
         }
         // Store the collider reference so we can manage it
-        this.projectileEnemyCollider = this.physics.add.overlap(this.projectiles, this.enemies, this.projectileHitEnemy, 
+        this.projectileEnemyCollider = this.physics.add.overlap(this.projectiles, this.enemies, this.projectileHitEnemy,
             // Process callback to filter out invalid enemies AND projectiles
             (projectile, enemy) => {
                 // Extra safety - check for undefined objects
                 if (!projectile || !enemy) {
+                    return false;
+                }
+                // Check if being destroyed
+                if (projectile.isDestroying || projectile.isActuallyDestroyed ||
+                    enemy.isDestroying || enemy.isActuallyDestroyed) {
                     return false;
                 }
                 // Check if objects exist in scene
@@ -10286,49 +12451,79 @@ class GameScene extends Phaser.Scene {
                 return projectile && projectile.active && barrel && barrel.active && !barrel.isBreaking;
             }, this);
         // Add player-barrel collision (barrels act as obstacles for players only)
-        this.physics.add.collider(this.wizard, this.barrels);
+        this.physics.add.collider(this.wizard, this.barrels, null, (wizard, barrel) => {
+            return this.validateCollision(wizard, barrel);
+        });
         if (this.multiplayerEnabled && this.wizard2) {
-            this.physics.add.collider(this.wizard2, this.barrels);
+            this.physics.add.collider(this.wizard2, this.barrels, null, (wizard, barrel) => {
+                return this.validateCollision(wizard, barrel);
+            });
         }
         // Enemies can pass through barrels (no collision)
         this.physics.add.overlap(this.enemyProjectiles, this.wizard, this.bossProjectileHitPlayer, 
             // Process callback for boss projectiles
             (projectile, wizard) => {
-                return projectile && projectile.active && projectile.body && projectile.body.enable && 
-                       wizard && wizard.active && wizard.body && wizard.body.enable;
+                return this.validateCollision(projectile, wizard);
             }, this);
-        this.physics.add.overlap(this.wizard, this.jewels, this.collectJewel, 
+        this.physics.add.overlap(this.wizard, this.jewels, this.collectJewel,
             // Process callback to ensure both objects are valid
             (wizard, jewel) => {
-                return wizard && wizard.active && jewel && jewel.active && !jewel.isDestroying;
+                return this.validateCollision(wizard, jewel) && !jewel.isDestroying;
             }, this);
-        this.physics.add.overlap(this.wizard, this.muffins, this.collectMuffin, 
+        this.physics.add.overlap(this.wizard, this.muffins, this.collectMuffin,
             (wizard, muffin) => {
-                return wizard && wizard.active && muffin && muffin.active && !muffin.isDestroying;
+                return this.validateCollision(wizard, muffin) && !muffin.isDestroying;
             }, this);
-        this.physics.add.overlap(this.wizard, this.elementOrbs, this.collectElementOrb, 
+        this.physics.add.overlap(this.wizard, this.elementOrbs, this.collectElementOrb,
             (wizard, orb) => {
-                return wizard && wizard.active && orb && orb.active && !orb.isDestroying && orb.canCollect;
+                return this.validateCollision(wizard, orb) && !orb.isDestroying && orb.canCollect;
             }, this);
-        this.physics.add.overlap(this.wizard, this.chests, this.openChest, 
+
+        // Add wizard-to-catalyst collision for collection
+        this.physics.add.overlap(this.wizard, this.fusionCatalysts, this.collectCatalyst,
+            (wizard, catalyst) => {
+                return this.validateCollision(wizard, catalyst) && catalyst.isCatalyst;
+            }, this);
+
+        // Add catalyst collection for other players in multiplayer
+        if (this.multiplayerEnabled && this.wizard2) {
+            this.physics.add.overlap(this.wizard2, this.fusionCatalysts, this.collectCatalyst,
+                (wizard, catalyst) => {
+                    return this.validateCollision(wizard, catalyst) && catalyst.isCatalyst;
+                }, this);
+        }
+        if (this.playerCount > 2 && this.wizard3) {
+            this.physics.add.overlap(this.wizard3, this.fusionCatalysts, this.collectCatalyst,
+                (wizard, catalyst) => {
+                    return this.validateCollision(wizard, catalyst) && catalyst.isCatalyst;
+                }, this);
+        }
+        if (this.playerCount > 3 && this.wizard4) {
+            this.physics.add.overlap(this.wizard4, this.fusionCatalysts, this.collectCatalyst,
+                (wizard, catalyst) => {
+                    return this.validateCollision(wizard, catalyst) && catalyst.isCatalyst;
+                }, this);
+        }
+
+        this.physics.add.overlap(this.wizard, this.chests, this.openChest,
             (wizard, chest) => {
-                return wizard && wizard.active && chest && chest.active && !chest.opened;
+                return this.validateCollision(wizard, chest) && !chest.opened;
             }, this);
         // Add overlap for standalone items (muffin, shield, flamethrower)
         this.physics.add.overlap(this.wizard, this.standaloneItems, this.collectStandaloneItem,
             (wizard, item) => {
-                return wizard && wizard.active && item && item.active;
+                return this.validateCollision(wizard, item);
             }, this);
         // Add overlap for P2 to collect items
         if (this.multiplayerEnabled && this.wizard2) {
             this.physics.add.overlap(this.wizard2, this.standaloneItems, this.collectStandaloneItem,
                 (wizard, item) => {
-                    return wizard && wizard.active && item && item.active;
+                    return this.validateCollision(wizard, item);
                 }, this);
         }
-        this.physics.add.overlap(this.wizard, this.chargeExpansions, this.collectChargeExpansion, 
+        this.physics.add.overlap(this.wizard, this.chargeExpansions, this.collectChargeExpansion,
             (wizard, expansion) => {
-                return wizard && wizard.active && expansion && expansion.active && !expansion.isDestroying;
+                return this.validateCollision(wizard, expansion) && !expansion.isDestroying;
             }, this);
         // Add laser-rune collision for weakspot mechanic
         this.physics.add.overlap(this.projectiles, this.runeGroup, this.laserHitRune,
@@ -10338,29 +12533,56 @@ class GameScene extends Phaser.Scene {
             }, this);
         // Add collisions with obstacles (only for player)
         const obstacles = this.obstacleManager.getObstaclesGroup();
-        this.physics.add.collider(this.wizard, obstacles);
+        this.physics.add.collider(this.wizard, obstacles, null, (wizard, obstacle) => {
+            return this.validateCollision(wizard, obstacle);
+        });
         // Enemies and projectiles can now pass through obstacles
         // Add overlap detection for obelisks
-        this.physics.add.overlap(this.wizard, this.obelisks, this.handleObeliskInteraction, null, this);
+        this.physics.add.overlap(this.wizard, this.obelisks, this.handleObeliskInteraction,
+            (wizard, obelisk) => {
+                return this.validateCollision(wizard, obelisk);
+            }, this);
         // Add overlap detection for blood towers
-        this.physics.add.overlap(this.wizard, this.bloodTowers, this.handleBloodTowerInteraction, null, this);
+        this.physics.add.overlap(this.wizard, this.bloodTowers, this.handleBloodTowerInteraction,
+            (wizard, tower) => {
+                return this.validateCollision(wizard, tower);
+            }, this);
         // Add overlap detection for vortex towers
-        this.physics.add.overlap(this.wizard, this.vortexTowers, this.handleVortexTowerActivation, null, this);
+        this.physics.add.overlap(this.wizard, this.vortexTowers, this.handleVortexTowerActivation,
+            (wizard, tower) => {
+                return this.validateCollision(wizard, tower);
+            }, this);
         // Add overlap for P2 in multiplayer
         if (this.multiplayerEnabled && this.wizard2) {
-            this.physics.add.overlap(this.wizard2, this.obelisks, this.handleObeliskInteraction, null, this);
-            this.physics.add.overlap(this.wizard2, this.bloodTowers, this.handleBloodTowerInteraction, null, this);
-            this.physics.add.overlap(this.wizard2, this.vortexTowers, this.handleVortexTowerActivation, null, this);
+            this.physics.add.overlap(this.wizard2, this.obelisks, this.handleObeliskInteraction,
+                (wizard, obelisk) => {
+                    return this.validateCollision(wizard, obelisk);
+                }, this);
+            this.physics.add.overlap(this.wizard2, this.bloodTowers, this.handleBloodTowerInteraction,
+                (wizard, tower) => {
+                    return this.validateCollision(wizard, tower);
+                }, this);
+            this.physics.add.overlap(this.wizard2, this.vortexTowers, this.handleVortexTowerActivation,
+                (wizard, tower) => {
+                    return this.validateCollision(wizard, tower);
+                }, this);
         }
         // Add collisions with barriers (only in cave stage, only for player)
         if (this.stage === 'cave' && this.barriers) {
             this.barriers.forEach(barrier => {
-                this.physics.add.collider(this.wizard, barrier);
+                this.physics.add.collider(this.wizard, barrier, null, (wizard, wall) => {
+                    return this.validateCollision(wizard, wall);
+                });
                 // Enemies can now pass through barriers
             });
         }
         // Add enemy-to-enemy collision to prevent stacking (but allow passing through frozen enemies)
         this.physics.add.collider(this.enemies, this.enemies, null, (enemy1, enemy2) => {
+            // Validate both enemies exist and have bodies
+            if (!enemy1 || !enemy2 || !enemy1.active || !enemy2.active ||
+                !enemy1.body || !enemy2.body || !enemy1.body.enable || !enemy2.body.enable) {
+                return false;
+            }
             // If either enemy is frozen, allow them to pass through each other
             if (enemy1.frozen || enemy2.frozen) {
                 return false; // No collision
@@ -10371,12 +12593,53 @@ class GameScene extends Phaser.Scene {
         // No physics trees are spawned
         // Cave obstacles are now handled by chunk generation system
         // No need to spawn them separately
-        this.createChargeUI();
+        // this.createChargeUI(); // OLD UI - Disabled in favor of radial menu
+
+        // Initialize Radial Charge Menus for all players
+        this.radialChargeMenu = new RadialChargeMenu(this, this.wizard, 1);
+
+        // CRITICAL: Link scene's chargeSlots to wizard's chargeSlots for auto-firing
+        // The auto-fire system reads from this.chargeSlots, but radial menu uses this.wizard.chargeSlots
+        this.chargeSlots = this.wizard.chargeSlots;
+        this.elementTiers = this.wizard.elementTiers;
+        this.elementPouch = this.wizard.elementPouch;
+
+        if (this.multiplayerEnabled && this.wizard2) {
+            this.radialChargeMenu2 = new RadialChargeMenu(this, this.wizard2, 2);
+        }
+        if (this.playerCount > 2 && this.wizard3) {
+            this.radialChargeMenu3 = new RadialChargeMenu(this, this.wizard3, 3);
+        }
+        if (this.playerCount > 3 && this.wizard4) {
+            this.radialChargeMenu4 = new RadialChargeMenu(this, this.wizard4, 4);
+        }
+        console.log('✅ Radial Charge Menus initialized for all players');
+
+        // Create minimal level/XP text (since old charge UI is disabled)
+        this.levelText = this.add.text(20, 20, `Level ${this.playerLevel}`, {
+            fontSize: '16px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        });
+        this.levelText.setScrollFactor(0);
+        this.levelText.setDepth(560);
+
+        this.xpText = this.add.text(20, 45, `XP: ${this.playerXP}/${this.xpToNextLevel}`, {
+            fontSize: '14px',
+            color: '#aaaaaa'
+        });
+        this.xpText.setScrollFactor(0);
+        this.xpText.setDepth(560);
+
+        // Initialize empty charge indicators array for compatibility
+        this.chargeIndicators = [];
+
         this.elementCards = []; // Initialize element cards array
         this.createSpellbookUI();
         this.createHealthBar(); // Create UI health bars for both players
         this.createWizardHealthBar();
-        this.createPauseMenu();
+        // DEPRECATED: Old pause menu removed - using radial menu system instead
+        // this.createPauseMenu();
         this.createXPBar();
         // Helper function to safely create animations
         const createAnimIfNotExists = (config) => {
@@ -10608,6 +12871,13 @@ class GameScene extends Phaser.Scene {
             key: 'firebolt-impact',
             frames: this.anims.generateFrameNumbers('firebolt', { start: 4, end: 10 }),
             frameRate: 20,
+            repeat: 0
+        });
+        // Fire breath animation
+        createAnimIfNotExists({
+            key: 'firebreath-cast',
+            frames: this.anims.generateFrameNumbers('firebreath', { start: 0, end: 11 }),
+            frameRate: 24,
             repeat: 0
         });
         // Earth projectile animations (first 6 frames for travel, last 6 for impact)
@@ -11923,7 +14193,7 @@ class GameScene extends Phaser.Scene {
         });
         // Initialize chargeSlots array early
         if (!this.chargeSlots) {
-            this.chargeSlots = new Array(8).fill(null);
+            this.chargeSlots = new Array(this.MAX_CHARGE_SLOTS).fill(null);
         }
         // Start game immediately
         if (!this.gameStarted) {
@@ -12083,7 +14353,9 @@ class GameScene extends Phaser.Scene {
             obstacle.refreshBody();
         }
         // Add collisions (only for player)
-        this.physics.add.collider(this.wizard, this.obstacles);
+        this.physics.add.collider(this.wizard, this.obstacles, null, (wizard, obstacle) => {
+            return this.validateCollision(wizard, obstacle);
+        });
         // Enemies can now pass through obstacles
         }
     startGameSequence() {
@@ -12255,13 +14527,12 @@ class GameScene extends Phaser.Scene {
                 // Primary elements
                 'fire', 'water', 'earth', 'air', 'lightning', 'arcane',
                 // Fusion elements
-                'ice', 'lava', 'steam', 'poison', 'volcano', 'meteor', 'mud', 
+                'ice', 'lava', 'steam', 'poison', 'volcano', 'meteor', 'mud',
                 'storm', 'thunder', 'crystal', 'death', 'time', 'sand', 'gravity',
                 'sun', 'moon', 'smoke', 'blast', 'wave', 'vortex', 'tornado', 'snowball', 'star', 'zodiac',
                 'hex', 'venom', 'nature', 'life', 'metal', 'rock', 'dust', 'holy',
-                'philosopherstone', 'halo',
-                // Chess passive orbs
-                'rook', 'bishop', 'knight', 'queen', 'king', 'saturn', 'pawn', 'joker'
+                'philosopherstone', 'halo'
+                // Chess passive orbs removed - not used in game
             ];
             // Create element cards using chest UI style in a grid layout
             const buttons = [];
@@ -12330,7 +14601,7 @@ class GameScene extends Phaser.Scene {
                     const selectElement = () => {
                         // Add selected element to charges
                         if (!this.chargeSlots) {
-                            this.chargeSlots = new Array(8).fill(null);
+                            this.chargeSlots = new Array(this.MAX_CHARGE_SLOTS).fill(null);
                         }
                         // Check if it's a chess piece element (rook/bishop/joker)
                         if (element === 'rook' || element === 'bishop' || element === 'joker') {
@@ -12511,7 +14782,7 @@ class GameScene extends Phaser.Scene {
         const element = selectedButton.element;
         // Add selected element to charges
         if (!this.chargeSlots) {
-            this.chargeSlots = new Array(8).fill(null);
+            this.chargeSlots = new Array(this.MAX_CHARGE_SLOTS).fill(null);
         }
         // Check if it's a chess piece element (rook/bishop/joker/saturn/knight/queen/king)
         if (element === 'rook' || element === 'bishop' || element === 'joker' || element === 'saturn' || element === 'knight' || element === 'queen' || element === 'king') {
@@ -13365,13 +15636,27 @@ class GameScene extends Phaser.Scene {
         // keyboardGuide.setDepth(60);
         // Initialize charge indicators array
         this.chargeIndicators = [];
-        // Create 8 charge indicators using sprites (4 per row)
-        for (let i = 0; i < 8; i++) {
-            // Calculate position - 4 slots per row
-            const row = Math.floor(i / 4);
-            const col = i % 4;
-            const xPos = 380 + (col * 38); // Reduced margin by 50% (was 42, now 38)
-            const yPos = 50 + (row * 38); // Second row below first with same margin
+        // Create charge indicators using sprites
+        // In standard mode: 4 per row (active, passive)
+        // In extended mode: 8 per row (active, passive)
+        const slotsPerRow = this.MAX_ACTIVE_SLOTS; // 4 in standard, 8 in extended
+        for (let i = 0; i < this.MAX_CHARGE_SLOTS; i++) {
+            // Calculate position based on slot type
+            const slotType = this.getSlotType(i);
+            let row, col;
+
+            if (slotType === 'active') {
+                // Active slots (0-3 or 0-7) in row 0
+                row = 0;
+                col = i;
+            } else {
+                // Passive slots (4-7 or 8-15) in row 1
+                row = 1;
+                col = i - this.MAX_ACTIVE_SLOTS;
+            }
+
+            const xPos = 380 + (col * 38);
+            const yPos = 50 + (row * 38);
             // Background slot using socket sprite
             const slotBg = this.add.image(xPos, yPos, 'grey-socket');
             slotBg.setScale(0.108); // Scale down 50% from menu size (0.217 * 0.5)
@@ -13399,8 +15684,8 @@ class GameScene extends Phaser.Scene {
                     }
                     // Rebuild charges array
                     this.charges = [];
-                    for (let j = 0; j < 4 && j < this.chargeSlots.length; j++) {
-                        if (this.chargeSlots[j] !== null) {
+                    for (let j = 0; j < this.MAX_ACTIVE_SLOTS && j < this.chargeSlots.length; j++) {
+                        if (this.chargeSlots[j] !== null && this.chargeSlots[j] !== 'catalyst') {
                             this.charges.push(this.chargeSlots[j]);
                         }
                     }
@@ -13528,15 +15813,25 @@ class GameScene extends Phaser.Scene {
             rightVisual.setDepth(10);
         }
         // Add collisions
-        this.physics.add.collider(this.wizard, this.ceiling);
-        this.physics.add.collider(this.wizard, this.walls);
+        this.physics.add.collider(this.wizard, this.ceiling, null, (wizard, ceiling) => {
+            return this.validateCollision(wizard, ceiling);
+        });
+        this.physics.add.collider(this.wizard, this.walls, null, (wizard, wall) => {
+            return this.validateCollision(wizard, wall);
+        });
         if (this.wizard2) {
-            this.physics.add.collider(this.wizard2, this.ceiling);
-            this.physics.add.collider(this.wizard2, this.walls);
+            this.physics.add.collider(this.wizard2, this.ceiling, null, (wizard, ceiling) => {
+                return this.validateCollision(wizard, ceiling);
+            });
+            this.physics.add.collider(this.wizard2, this.walls, null, (wizard, wall) => {
+                return this.validateCollision(wizard, wall);
+            });
         }
         // Add collision for enemies
         if (this.enemies) {
-            this.physics.add.collider(this.enemies, this.walls);
+            this.physics.add.collider(this.enemies, this.walls, null, (enemy, wall) => {
+                return this.validateCollision(enemy, wall);
+            });
         }
         }
     getTierBonusDescription(element, tier) {
@@ -13547,14 +15842,18 @@ class GameScene extends Phaser.Scene {
         return '';
     }
     showAllChargeSlots() {
-        // Create additional charge indicators for pouch slots (indices 8-11)
+        // Create additional charge indicators for pouch slots
         if (!this.extraChargeIndicators) {
             this.extraChargeIndicators = [];
-            // Create 4 additional slots for pouch
-            for (let i = 8; i < 12; i++) {
-                const col = (i - 8) % 4;
-                const xPos = 380 + (col * 35);
-                const yPos = 50 + (2 * 35); // Third row
+            const pouchStartIndex = this.MAX_CHARGE_SLOTS;
+            const pouchEndIndex = this.MAX_CHARGE_SLOTS + this.MAX_POUCH_SLOTS;
+            // Create pouch slots - always in row 2, extending horizontally
+            for (let i = pouchStartIndex; i < pouchEndIndex; i++) {
+                const pouchIndex = i - pouchStartIndex;
+                const col = pouchIndex; // 0-3 in standard, 0-7 in extended
+                const row = 2; // Always third row
+                const xPos = 380 + (col * 38);
+                const yPos = 50 + (row * 38);
                 // Background slot with pouch color
                 const slotBg = this.add.rectangle(xPos, yPos, 32, 32, 0x2a4a2a, 0.7);
                 slotBg.setStrokeStyle(2, 0x4a6a4a);
@@ -13576,7 +15875,7 @@ class GameScene extends Phaser.Scene {
                         const selectedSlot = i;
                         let discardedElement = null;
                         // Discarding from pouch
-                        const pouchIndex = selectedSlot - 8;
+                        const pouchIndex = this.getPouchIndex(selectedSlot);
                         discardedElement = this.elementPouch[pouchIndex];
                         this.elementPouch[pouchIndex] = this.pendingFusionElement;
                         // Don't save pouch to localStorage
@@ -13678,8 +15977,8 @@ class GameScene extends Phaser.Scene {
         }
     }
     updateAllChargeIndicators() {
-        // Update regular charge indicators (0-7)
-        for (let i = 0; i < 8; i++) {
+        // Update regular charge indicators
+        for (let i = 0; i < this.MAX_CHARGE_SLOTS; i++) {
             if (i < this.chargeIndicators.length) {
                 // Reset background scale and tint in case it was changed by obelisk functions
                 this.chargeIndicators[i].bg.setScale(0.108);
@@ -13706,9 +16005,9 @@ class GameScene extends Phaser.Scene {
                 }
             }
         }
-        // Update pouch indicators (8-11)
+        // Update pouch indicators
         if (this.extraChargeIndicators) {
-            for (let i = 0; i < 4; i++) {
+            for (let i = 0; i < this.MAX_POUCH_SLOTS; i++) {
                 // Reset background scale and style in case it was changed by obelisk functions
                 if (this.extraChargeIndicators[i].bg.setScale) {
                     this.extraChargeIndicators[i].bg.setScale(1);
@@ -13732,7 +16031,7 @@ class GameScene extends Phaser.Scene {
         }
     }
     highlightChargeIndicator(index, highlight) {
-        if (index < 8 && this.chargeIndicators && this.chargeIndicators[index]) {
+        if (index < this.MAX_CHARGE_SLOTS && this.chargeIndicators && this.chargeIndicators[index]) {
             if (highlight) {
                 // Apply glow effect instead of scaling
                 this.chargeIndicators[index].bg.setTint(0xffff00);
@@ -13764,8 +16063,8 @@ class GameScene extends Phaser.Scene {
                     this.chargeIndicators[index].glow = null;
                 }
             }
-        } else if (index >= 8 && this.extraChargeIndicators) {
-            const pouchIndex = index - 8;
+        } else if (index >= this.MAX_CHARGE_SLOTS && this.extraChargeIndicators) {
+            const pouchIndex = this.getPouchIndex(index);
             if (this.extraChargeIndicators[pouchIndex]) {
                 if (highlight) {
                     // Apply glow effect instead of scaling
@@ -13806,7 +16105,7 @@ class GameScene extends Phaser.Scene {
         this.chargeLastFireTimes = this.chargeLastFireTimes.slice(0, this.charges.length);
         // Initialize chargeSlots if needed
         if (!this.chargeSlots) {
-            this.chargeSlots = new Array(8).fill(null);
+            this.chargeSlots = new Array(this.MAX_CHARGE_SLOTS).fill(null);
         }
         // Sync new elements from charges array to chargeSlots
         // Count how many elements are in chargeSlots (excluding nulls)
@@ -13815,7 +16114,7 @@ class GameScene extends Phaser.Scene {
         if (this.charges.length > elementsInSlots) {
             // Find which elements from charges are not in chargeSlots
             let chargeIndex = 0;
-            for (let slotIndex = 0; slotIndex < 8 && chargeIndex < this.charges.length; slotIndex++) {
+            for (let slotIndex = 0; slotIndex < this.MAX_CHARGE_SLOTS && chargeIndex < this.charges.length; slotIndex++) {
                 if (this.chargeSlots[slotIndex] === null) {
                     // Found empty slot, fill it with next element from charges
                     this.chargeSlots[slotIndex] = this.charges[chargeIndex];
@@ -13838,7 +16137,7 @@ class GameScene extends Phaser.Scene {
             const showInMainUI = isActiveSlot;
             indicator.bg.setVisible(showInMainUI);
             const element = this.chargeSlots ? this.chargeSlots[index] : null;
-            if (index < 4) {  // Only log for the main UI slots to reduce noise
+            if (index < this.MAX_ACTIVE_SLOTS) {  // Only log for the main UI slots to reduce noise
                 }
             // Show the element sprite if there's an element AND this slot should be visible in main UI
             if (element && showInMainUI) {
@@ -13937,6 +16236,59 @@ class GameScene extends Phaser.Scene {
         this.difficultyText.setScrollFactor(0);
         this.difficultyText.setDepth(560);
     }
+    checkForestTutorialSegments() {
+        // Check each tutorial segment to see if it should trigger
+        for (const segment of this.forestTutorialSegments) {
+            // Skip if already shown
+            if (this.forestTutorialShown.has(segment.id)) {
+                continue;
+            }
+
+            // Check if trigger condition is met
+            if (segment.trigger()) {
+                // Mark as shown
+                this.forestTutorialShown.add(segment.id);
+
+                // Show the dialogue
+                this.dialogueManager.showConversation({
+                    conversation: segment.conversation,
+                    pauseGame: true,
+                    onClose: () => {
+                        // Resume game after dialogue
+                    }
+                });
+
+                // Only show one segment at a time
+                break;
+            }
+        }
+    }
+
+    showForestBossDialogue(onComplete) {
+        // Dramatic boss encounter dialogue
+        const bossConversation = [
+            { speaker: 'obelisk', text: 'Foolish mortal... You dare tread into MY domain?' },
+            { speaker: 'wizard', text: 'The Obelisk! You\'re the guardian of this forest?' },
+            { speaker: 'obelisk', text: 'I am the ETERNAL SENTINEL. For eons I have protected these woods from intruders.' },
+            { speaker: 'wizard', text: 'I\'m not here to harm the forest. I seek only to prove my worth!' },
+            { speaker: 'obelisk', text: 'Prove your worth? Then face my WRATH! Only the strongest may pass!' },
+            { speaker: 'wizard', text: 'I won\'t back down. Let\'s end this!' }
+        ];
+
+        // Show the boss conversation with the boss NPC spawned
+        this.dialogueManager.showConversation({
+            conversation: bossConversation,
+            pauseGame: true,
+            spawnBoss: true, // Signal to spawn boss NPC instead of orb
+            onClose: () => {
+                // Call completion callback to spawn actual boss
+                if (onComplete) {
+                    onComplete();
+                }
+            }
+        });
+    }
+
     startGame() {
         // SAFETY: Force unpause if somehow still paused
         if (this.time.timeScale === 0 || this.gamePaused) {
@@ -13947,8 +16299,110 @@ class GameScene extends Phaser.Scene {
             this.physics.resume();
             this.tweens.resumeAll();
         }
-        // Enable player controls
-        this.gameStarted = true;
+
+        // DEMO MODE - Show indicator and setup exit handler
+        if (this.demoMode) {
+            // Create DEMO indicator
+            this.demoText = this.add.text(400, 30, 'DEMO - Press any key to play', {
+                fontSize: '20px',
+                color: '#ff0000',
+                backgroundColor: '#000000',
+                padding: { x: 10, y: 5 }
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+
+            // Pulse animation
+            this.tweens.add({
+                targets: this.demoText,
+                alpha: 0.3,
+                duration: 500,
+                yoyo: true,
+                repeat: -1
+            });
+
+            // Exit demo on any input
+            const exitDemo = () => {
+                // Stop autoplay
+                if (window.autoPlayer) {
+                    window.autoPlayer.stop();
+                    window.autoPlayer.enabled = false;
+                }
+                // Return to title
+                this.cameras.main.fadeOut(300, 0, 0, 0);
+                this.time.delayedCall(300, () => {
+                    this.scene.start('TitleScene');
+                });
+            };
+
+            this.input.on('pointerdown', exitDemo);
+            this.input.keyboard.on('keydown', exitDemo);
+
+            // Skip tutorial in demo mode
+            this.gameStarted = true;
+
+            // Skip to barrel spawning and rest of setup
+            this.spawnRandomBarrels();
+            this.barrelSpawnTimer = this.time.addEvent({
+                delay: Phaser.Math.Between(30000, 60000),
+                callback: () => {
+                    const numBarrels = Phaser.Math.Between(1, 3);
+                    for (let i = 0; i < numBarrels; i++) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const distance = Phaser.Math.Between(300, 600);
+                        const x = this.wizard.x + Math.cos(angle) * distance;
+                        const y = this.wizard.y + Math.sin(angle) * distance;
+                        const distToPlayer = Phaser.Math.Distance.Between(x, y, this.wizard.x, this.wizard.y);
+                        if (distToPlayer > 200) {
+                            this.spawnBarrel(x, y);
+                        }
+                    }
+                    this.barrelSpawnTimer.delay = Phaser.Math.Between(30000, 60000);
+                },
+                loop: true
+            });
+            this.updateChargeUI();
+            return; // Skip normal tutorial flow
+        }
+
+        // Check if this is forest stage with segmented tutorial
+        if (this.stage === 'forest' && !this.multiplayerEnabled) {
+            // Initialize forest tutorial tracking
+            this.forestTutorialShown = new Set(); // Track which segments have been shown
+            this.forestTutorialActive = true;
+
+            // Show first segment immediately
+            const firstSegment = this.forestTutorialSegments[0];
+            if (firstSegment) {
+                this.forestTutorialShown.add(firstSegment.id);
+                this.dialogueManager.showConversation({
+                    conversation: firstSegment.conversation,
+                    pauseGame: true,
+                    onClose: () => {
+                        // Enable player controls after first dialogue
+                        this.gameStarted = true;
+                    }
+                });
+            } else {
+                this.gameStarted = true;
+            }
+        } else {
+            // Show stage-specific dialogue conversation for other stages
+            const conversation = this.stageConversations[this.stage];
+            if (conversation) {
+                this.dialogueManager.showConversation({
+                    conversation: conversation,
+                    pauseGame: true,
+                    onClose: () => {
+                        // Enable player controls after dialogue closes
+                        this.gameStarted = true;
+                    }
+                });
+            } else {
+                // No conversation - enable controls immediately
+                this.gameStarted = true;
+            }
+        }
+
+        // NOTE: gameStarted is now set either after dialogue closes or immediately above
         // Spawn random barrels at game start
         this.spawnRandomBarrels();
         // Set up periodic barrel spawning (every 30-60 seconds)
@@ -14015,28 +16469,8 @@ class GameScene extends Phaser.Scene {
                 this.shouldAutoActivatePhilosopherStone = false;
             }
         });
-        // CRITICAL: Add periodic checks for first 3 seconds to ensure game stays unpaused
-        let checkCount = 0;
-        const unpauseCheckInterval = setInterval(() => {
-            checkCount++;
-            // Only check if no legitimate pause sources
-            if (!this.isPaused && !this.spellbookOpen && !this.chestSelectionActive && 
-                !this.fusionUI && (!this.hitboxEditor || !this.hitboxEditor.enabled)) {
-                if (this.time.timeScale === 0 || this.gamePaused) {
-                    console.error(`=== GAME BECAME PAUSED! Check #${checkCount}, forcing unpause ===`);
-                    this.gamePaused = false;
-                    this.pauseSource = null;
-                    this.time.timeScale = 1;
-                    this.physics.resume();
-                    this.tweens.resumeAll();
-                }
-            }
-            // Stop checking after 3 seconds (30 checks)
-            if (checkCount >= 30) {
-                clearInterval(unpauseCheckInterval);
-                }
-        }, 100); // Check every 100ms
     }
+
     getWaveDefinition(waveNumber) {
         // Wave definitions inspired by Vampire Survivors
         // Each wave lasts 60 seconds, with specific enemy types and spawn patterns
@@ -14061,7 +16495,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'fireslime', weight: 35, count: 2 },
                         { type: 'fireworm', weight: 40, count: 2 }
                     ],
-                    spawnInterval: 1500,
+                    spawnInterval: 2000,
                     maxEnemies: 35
                 },
                 // Wave 2 (2:00-3:00) - Add orange golems
@@ -14072,7 +16506,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'fireworm', weight: 30, count: 2 },
                         { type: 'orangegolem', weight: 25, count: 1 }
                     ],
-                    spawnInterval: 1200,
+                    spawnInterval: 1500,
                     maxEnemies: 45,
                     specialEvent: { time: 30, type: 'swarm', enemy: 'fireworm', count: 10 }
                 },
@@ -14084,7 +16518,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'orangegolem', weight: 25, count: 2 },
                         { type: 'summoner', weight: 25, count: 1 }
                     ],
-                    spawnInterval: 1000,
+                    spawnInterval: 1200,
                     maxEnemies: 55
                 },
                 // Wave 4 (4:00-5:00) - Intense heat
@@ -14095,7 +16529,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'summoner', weight: 20, count: 1 },
                         { type: 'fireworm', weight: 30, count: 3 }
                     ],
-                    spawnInterval: 2000,
+                    spawnInterval: 1000,
                     maxEnemies: 65,
                     specialEvent: { time: 30, type: 'circle', enemy: 'fireslime', count: 12 }
                 },
@@ -14108,7 +16542,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'fireworm', weight: 20, count: 4 },
                         { type: 'bat', weight: 15, count: 5 }
                     ],
-                    spawnInterval: 1500,
+                    spawnInterval: 800,
                     maxEnemies: 80
                 }
             ];
@@ -14132,7 +16566,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'soul', weight: 25, count: 2 },
                         { type: 'wraith', weight: 15, count: 1 }
                     ],
-                    spawnInterval: 1500,
+                    spawnInterval: 2000,
                     maxEnemies: 35
                 },
                 // Wave 2 (2:00-3:00) - Add imps and more wraiths
@@ -14145,7 +16579,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'axeimp', weight: 10, count: 1 },
                         { type: 'wraith', weight: 20, count: 1 }
                     ],
-                    spawnInterval: 1200,
+                    spawnInterval: 1500,
                     maxEnemies: 45,
                     specialEvent: { time: 30, type: 'swarm', enemy: 'yellowskeleton', count: 10 }
                 },
@@ -14159,7 +16593,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'axeimp', weight: 15, count: 2 },
                         { type: 'wraith', weight: 15, count: 2 }
                     ],
-                    spawnInterval: 1000,
+                    spawnInterval: 1200,
                     maxEnemies: 55
                 },
                 // Wave 4 (4:00-5:00) - Increased soul and wraith spawn rate
@@ -14172,7 +16606,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'yellowskeleton', weight: 15, count: 3 },
                         { type: 'wraith', weight: 15, count: 2 }
                     ],
-                    spawnInterval: 2000,
+                    spawnInterval: 1000,
                     maxEnemies: 65,
                     specialEvent: { time: 30, type: 'circle', enemy: 'wraith', count: 4 }
                 },
@@ -14185,7 +16619,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'clubimp', weight: 12, count: 2 },
                         { type: 'axeimp', weight: 13, count: 2 }
                     ],
-                    spawnInterval: 1500,
+                    spawnInterval: 800,
                     maxEnemies: 80
                 }
             ];
@@ -14210,7 +16644,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'soul', weight: 20, count: 2 },
                         { type: 'brainmole', weight: 25, count: 2 }
                     ],
-                    spawnInterval: 1500,
+                    spawnInterval: 2000,
                     maxEnemies: 35
                 },
                 // Wave 2 (2:00-3:00) - Add golems and intellect devourers
@@ -14222,7 +16656,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'golem', weight: 15, count: 1 },
                         { type: 'intellectdevourer', weight: 20, count: 1 }
                     ],
-                    spawnInterval: 1200,
+                    spawnInterval: 1500,
                     maxEnemies: 45,
                     specialEvent: { time: 30, type: 'swarm', enemy: 'brainmole', count: 8 }
                 },
@@ -14236,7 +16670,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'brainmole', weight: 15, count: 2 },
                         { type: 'intellectdevourer', weight: 10, count: 1 }
                     ],
-                    spawnInterval: 1000,
+                    spawnInterval: 1200,
                     maxEnemies: 55
                 },
                 // Wave 4 (4:00-5:00) - Intensify challenge with more brain creatures
@@ -14248,7 +16682,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'intellectdevourer', weight: 20, count: 2 },
                         { type: 'brainmole', weight: 10, count: 2 }
                     ],
-                    spawnInterval: 2000,
+                    spawnInterval: 1000,
                     maxEnemies: 65,
                     specialEvent: { time: 30, type: 'circle', enemy: 'intellectdevourer', count: 6 }
                 },
@@ -14263,7 +16697,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'brainmole', weight: 10, count: 2 },
                         { type: 'intellectdevourer', weight: 10, count: 2 }
                     ],
-                    spawnInterval: 1500,
+                    spawnInterval: 800,
                     maxEnemies: 80
                 }
             ];
@@ -14286,7 +16720,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'castle-soldier', weight: 35, count: 2 },
                         { type: 'castle-rogue', weight: 35, count: 2 }
                     ],
-                    spawnInterval: 1500,
+                    spawnInterval: 2000,
                     maxEnemies: 35
                 },
                 // Wave 2 (2:00-3:00) - Add knights
@@ -14297,7 +16731,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'castle-knight', weight: 25, count: 1 },
                         { type: 'castle-squire', weight: 25, count: 3 }
                     ],
-                    spawnInterval: 1200,
+                    spawnInterval: 1500,
                     maxEnemies: 45,
                     specialEvent: { time: 30, type: 'swarm', enemy: 'castle-squire', count: 8 }
                 },
@@ -14309,7 +16743,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'castle-bladekeeper', weight: 20, count: 1 },
                         { type: 'castle-rogue', weight: 30, count: 3 }
                     ],
-                    spawnInterval: 1000,
+                    spawnInterval: 1200,
                     maxEnemies: 55
                 },
                 // Wave 4 (4:00-5:00) - Intense castle forces
@@ -14320,7 +16754,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'castle-soldier', weight: 20, count: 3 },
                         { type: 'castle-rogue', weight: 30, count: 3 }
                     ],
-                    spawnInterval: 2000,
+                    spawnInterval: 1000,
                     maxEnemies: 65,
                     specialEvent: { time: 30, type: 'circle', enemy: 'castle-knight', count: 6 }
                 },
@@ -14333,7 +16767,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'castle-rogue', weight: 20, count: 4 },
                         { type: 'castle-squire', weight: 15, count: 4 }
                     ],
-                    spawnInterval: 1500,
+                    spawnInterval: 800,
                     maxEnemies: 80
                 }
             ];
@@ -14358,7 +16792,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'armadillo', weight: 30, count: 2 },
                         { type: 'bat', weight: 15, count: 2 }
                     ],
-                    spawnInterval: 1500,
+                    spawnInterval: 2000,
                     maxEnemies: 35
                 },
                 // Wave 2 (2:00-3:00) - Add souls and more variety
@@ -14370,7 +16804,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'soul', weight: 15, count: 2 },
                         { type: 'bat', weight: 15, count: 3 }
                     ],
-                    spawnInterval: 1200,
+                    spawnInterval: 1500,
                     maxEnemies: 45,
                     specialEvent: { time: 30, type: 'swarm', enemy: 'cobra', count: 8 }
                 },
@@ -14383,7 +16817,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'golem', weight: 15, count: 1 },
                         { type: 'soul', weight: 10, count: 2 }
                     ],
-                    spawnInterval: 1000,
+                    spawnInterval: 1200,
                     maxEnemies: 55
                 },
                 // Wave 4 (4:00-5:00) - Desert storm
@@ -14394,7 +16828,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'cactuse', weight: 20, count: 3 },
                         { type: 'golem', weight: 15, count: 2 }
                     ],
-                    spawnInterval: 2000,
+                    spawnInterval: 1000,
                     maxEnemies: 65,
                     specialEvent: { time: 30, type: 'circle', enemy: 'armadillo', count: 6 }
                 },
@@ -14407,7 +16841,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'golem', weight: 10, count: 2 },
                         { type: 'soul', weight: 10, count: 3 }
                     ],
-                    spawnInterval: 1500,
+                    spawnInterval: 800,
                     maxEnemies: 80
                 }
             ];
@@ -14456,7 +16890,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'bloboid', weight: 20, count: 4 },
                         { type: 'giantfly', weight: 20, count: 4 }
                     ],
-                    spawnInterval: 2000,
+                    spawnInterval: 1000,
                     maxEnemies: 40
                 },
                 // Wave 4 (4:00-5:00) - Eye walker becomes regular enemy
@@ -14481,7 +16915,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'bloboid', weight: 10, count: 5 },
                         { type: 'giantfly', weight: 5, count: 5 }
                     ],
-                    spawnInterval: 1500,
+                    spawnInterval: 800,
                     maxEnemies: 60
                 }
             ];
@@ -14508,7 +16942,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'squirrel', weight: 20, count: 3 },
                         { type: 'redpanda', weight: 10, count: 1 }
                     ],
-                    spawnInterval: 1500,
+                    spawnInterval: 2000,
                     maxEnemies: 35
                 },
                 // Wave 2 (2:00-3:00) - More forest creatures
@@ -14521,7 +16955,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'redpanda', weight: 15, count: 2 },
                         { type: 'arcaneslime', weight: 3, count: 1 }  // Element orb source
                     ],
-                    spawnInterval: 1200,
+                    spawnInterval: 1500,
                     maxEnemies: 45,
                     specialEvent: { time: 30, type: 'swarm', enemy: 'bumblebee', count: 8 }
                 },
@@ -14535,7 +16969,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'redpanda', weight: 15, count: 3 },
                         { type: 'arcaneslime', weight: 3, count: 1 }  // Element orb source
                     ],
-                    spawnInterval: 1000,
+                    spawnInterval: 1200,
                     maxEnemies: 55
                 },
                 // Wave 4 (4:00-5:00) - Add summoners
@@ -14550,7 +16984,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'arcaneslime', weight: 10, count: 2 },  // Element orb source (doubled)
                         { type: 'earthslime', weight: 3, count: 1 }  // Element orb source
                     ],
-                    spawnInterval: 2000,
+                    spawnInterval: 1000,
                     maxEnemies: 65,
                     specialEvent: { time: 30, type: 'circle', enemy: 'squirrel', count: 10 }
                 },
@@ -14566,7 +17000,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'arcaneslime', weight: 3, count: 1 },  // Element orb source
                         { type: 'earthslime', weight: 3, count: 1 }  // Element orb source
                     ],
-                    spawnInterval: 1500,
+                    spawnInterval: 800,
                     maxEnemies: 80
                 }
             ];
@@ -14589,7 +17023,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'northerner', weight: 30, count: 2 },
                         { type: 'spiked-slime', weight: 35, count: 2 }
                     ],
-                    spawnInterval: 1500,
+                    spawnInterval: 2000,
                     maxEnemies: 35
                 },
                 // Wave 2 (2:00-3:00) - Add elkman warriors
@@ -14614,7 +17048,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'frost-golem', weight: 15, count: 1 },
                         { type: 'lightningslime', weight: 3, count: 1 }  // Element orb source
                     ],
-                    spawnInterval: 1000,
+                    spawnInterval: 1200,
                     maxEnemies: 55
                 },
                 // Wave 4 (4:00-5:00) - Frozen chaos
@@ -14641,7 +17075,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'snowy', weight: 10, count: 5 },
                         { type: 'lightningslime', weight: 3, count: 1 }  // Element orb source
                     ],
-                    spawnInterval: 1500,
+                    spawnInterval: 800,
                     maxEnemies: 80
                 }
             ];
@@ -15008,6 +17442,22 @@ class GameScene extends Phaser.Scene {
         // Fallback to wizard death
         return 'wizard-death';
     }
+    getCharacterIdleAnimation(wizard) {
+        // Get the appropriate idle animation based on character type
+        const characterType = wizard.characterType || 'wizard';
+        const isP2 = wizard === this.wizard2;
+        if (characterType === 'wizard') {
+            return isP2 ? 'wizard-idle-loop-p2' : 'wizard-idle-loop';
+        } else if (characterType === 'orb') {
+            return 'orb-idle';
+        } else if (characterType === 'grim') {
+            return 'grim-idle';
+        } else if (characterType === 'blip') {
+            return 'blip-idle';
+        }
+        // Fallback to wizard idle
+        return 'wizard-idle-loop';
+    }
     createCharacterAnimations(characterType, isP2) {
         // Create animations based on character type
         if (characterType === 'wizard') {
@@ -15185,6 +17635,76 @@ class GameScene extends Phaser.Scene {
         }*/
         }
     update(time, delta) {
+        // Update dialogue manager
+        if (this.dialogueManager) {
+            this.dialogueManager.update();
+        }
+
+        // Check for forest tutorial segments
+        if (this.forestTutorialActive && !this.dialogueManager.active && this.gameStarted) {
+            this.checkForestTutorialSegments();
+        }
+
+        // Update radial charge menus
+        if (this.radialChargeMenu) {
+            this.radialChargeMenu.update();
+        }
+        if (this.radialChargeMenu2) {
+            this.radialChargeMenu2.update();
+        }
+        if (this.radialChargeMenu3) {
+            this.radialChargeMenu3.update();
+        }
+        if (this.radialChargeMenu4) {
+            this.radialChargeMenu4.update();
+        }
+
+        // Handle TAB key to toggle radial menu (P1)
+        if (this.input.keyboard) {
+            const tabKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TAB);
+            if (Phaser.Input.Keyboard.JustDown(tabKey)) {
+                if (this.radialChargeMenu) {
+                    this.radialChargeMenu.toggle();
+                }
+            }
+        }
+
+        // Handle SELECT button to toggle radial menus (All players)
+        // Track previous button states to detect "just pressed"
+        if (!this.radialMenuSelectPressed) {
+            this.radialMenuSelectPressed = [false, false, false, false];
+        }
+
+        if (this.gamepadManager) {
+            // P1
+            const p1SelectPressed = this.gamepadManager.isButtonPressed(0, 'SELECT');
+            if (p1SelectPressed && !this.radialMenuSelectPressed[0] && this.radialChargeMenu) {
+                this.radialChargeMenu.toggle();
+            }
+            this.radialMenuSelectPressed[0] = p1SelectPressed;
+
+            // P2
+            const p2SelectPressed = this.gamepadManager.isButtonPressed(1, 'SELECT');
+            if (this.multiplayerEnabled && p2SelectPressed && !this.radialMenuSelectPressed[1] && this.radialChargeMenu2) {
+                this.radialChargeMenu2.toggle();
+            }
+            this.radialMenuSelectPressed[1] = p2SelectPressed;
+
+            // P3
+            const p3SelectPressed = this.gamepadManager.isButtonPressed(2, 'SELECT');
+            if (this.playerCount > 2 && p3SelectPressed && !this.radialMenuSelectPressed[2] && this.radialChargeMenu3) {
+                this.radialChargeMenu3.toggle();
+            }
+            this.radialMenuSelectPressed[2] = p3SelectPressed;
+
+            // P4
+            const p4SelectPressed = this.gamepadManager.isButtonPressed(3, 'SELECT');
+            if (this.playerCount > 3 && p4SelectPressed && !this.radialMenuSelectPressed[3] && this.radialChargeMenu4) {
+                this.radialChargeMenu4.toggle();
+            }
+            this.radialMenuSelectPressed[3] = p4SelectPressed;
+        }
+
         // Stop all updates if game has ended
         if (this.gameEnded) return;
         // Debug: Check tween system status (disabled to reduce spam)
@@ -15263,6 +17783,8 @@ class GameScene extends Phaser.Scene {
             this.gamepad = null;
             // Removed controller text
         }
+
+        // Catalysts are now collectible items, no pulling behavior
         // Update survival time (only when not paused and game started)
         if (!this.gamePaused && this.gameStarted) {
             this.survivalTime += delta * this.speedMultiplier;
@@ -15290,7 +17812,7 @@ class GameScene extends Phaser.Scene {
                                 duration: 1000,
                                 onComplete: () => {
                                     if (enemy && enemy.active) {
-                                        enemy.destroy();
+                                        this.safeDestroyEnemy(enemy);
                                     }
                                 }
                             });
@@ -15485,10 +18007,10 @@ class GameScene extends Phaser.Scene {
                 this.lastRuneSpawnY = this.wizard.y;
             }
         }
-        // Update spawn rate over time (every minute)
+        // Update spawn rate over time (every minute) - Vampire Survivors style
         const currentMinute = Math.floor(this.survivalTime / 60000);
-        // Start slower and ramp up more gradually
-        this.spawnRateMultiplier = 1 + (currentMinute * 0.3); // 30% faster each minute instead of 50%
+        // Aggressive scaling: +40% faster spawn rate per minute (was 30%)
+        this.spawnRateMultiplier = 1 + (currentMinute * 0.4);
         // Elite enemy spawning disabled - no longer needed
         // const current60Seconds = Math.floor(this.survivalTime / 60000);
         // if (current60Seconds > this.lastEliteSpawn && this.survivalTime > 120000) {
@@ -15532,68 +18054,76 @@ class GameScene extends Phaser.Scene {
             'warp': 1.67      // 10 / 6 minutes
         };
         const winMinutes = winMinutesByMode[this.speedMode] || 10;
-        if (minutes >= winMinutes && !this.bossSpawned) {
+        // Check if boss fights are enabled in settings (or disabled if in arcade mode)
+        const bossEnabled = localStorage.getItem('bossEnabled') !== 'false' && !this.arcadeMode;
+        if (minutes >= winMinutes && !this.bossSpawned && bossEnabled) {
             this.spawnBoss();
+        }
+        // In arcade mode without bosses, automatically win when time is up
+        if (minutes >= winMinutes && this.arcadeMode && !this.bossSpawned) {
+            this.bossSpawned = true; // Prevent re-triggering
+            this.handleArcadeModeVictory();
         }
         // Removed duplicate timer update
         // Initialize gamepad button tracking
         if (!this.gamepadButtonStates) {
             this.gamepadButtonStates = [];
         }
+        // DEPRECATED: Old pause menu system removed - use TAB/ESC for radial menu instead
         // P key or Start button (button 9) for pause/charge management
-        let startPressed = [false, false, false, false]; // For players 1-4
-        let initiatingPlayer = 1;
-        
+        // let startPressed = [false, false, false, false]; // For players 1-4
+        // let initiatingPlayer = 1;
+
         // Check keyboard (P1)
-        const keyboardPressed = this.pKey && Phaser.Input.Keyboard.JustDown(this.pKey);
-        
+        // const keyboardPressed = this.pKey && Phaser.Input.Keyboard.JustDown(this.pKey);
+
         // Check all player controllers
-        for (let i = 0; i < this.playerCount; i++) {
-            const playerNum = i + 1;
-            let gamepad = null;
-            
-            if (playerNum === 1) {
-                // P1 can use keyboard or first controller
-                if (this.playerControllers.length >= 1) {
-                    const p1Controller = this.playerControllers.find(p => p.playerNumber === 1);
-                    if (p1Controller && p1Controller.padIndex >= 0) {
-                        gamepad = this.input.gamepad.getPad(p1Controller.padIndex);
-                    }
-                } else if (!this.multiplayerEnabled) {
-                    gamepad = this.gamepad; // Fallback for single player
-                }
-            } else {
-                // P2-P4 use their assigned controllers
-                const playerController = this.playerControllers.find(p => p.playerNumber === playerNum);
-                if (playerController && playerController.padIndex >= 0) {
-                    gamepad = this.input.gamepad.getPad(playerController.padIndex);
-                }
-            }
-            
-            if (gamepad && gamepad.buttons[9]) {
-                const buttonPressed = gamepad.buttons[9].pressed;
-                const wasPressed = this.gamepadButtonStates && this.gamepadButtonStates[`p${playerNum}_start`];
-                startPressed[i] = buttonPressed && !wasPressed;
-                
-                if (startPressed[i]) {
-                    initiatingPlayer = playerNum;
-                    break; // First player to press gets control
-                }
-            }
-        }
-        
+        // for (let i = 0; i < this.playerCount; i++) {
+        //     const playerNum = i + 1;
+        //     let gamepad = null;
+        //
+        //     if (playerNum === 1) {
+        //         // P1 can use keyboard or first controller
+        //         if (this.playerControllers.length >= 1) {
+        //             const p1Controller = this.playerControllers.find(p => p.playerNumber === 1);
+        //             if (p1Controller && p1Controller.padIndex >= 0) {
+        //                 gamepad = this.input.gamepad.getPad(p1Controller.padIndex);
+        //             }
+        //         } else if (!this.multiplayerEnabled) {
+        //             gamepad = this.gamepad; // Fallback for single player
+        //         }
+        //     } else {
+        //         // P2-P4 use their assigned controllers
+        //         const playerController = this.playerControllers.find(p => p.playerNumber === playerNum);
+        //         if (playerController && playerController.padIndex >= 0) {
+        //             gamepad = this.input.gamepad.getPad(playerController.padIndex);
+        //         }
+        //     }
+        //
+        //     if (gamepad && gamepad.buttons[9]) {
+        //         const buttonPressed = gamepad.buttons[9].pressed;
+        //         const wasPressed = this.gamepadButtonStates && this.gamepadButtonStates[`p${playerNum}_start`];
+        //         startPressed[i] = buttonPressed && !wasPressed;
+        //
+        //         if (startPressed[i]) {
+        //             initiatingPlayer = playerNum;
+        //             break; // First player to press gets control
+        //         }
+        //     }
+        // }
+
         // Check if any start button was pressed or keyboard
-        const anyStartPressed = startPressed.some(pressed => pressed) || keyboardPressed;
-        
-        if (anyStartPressed) {
-            if (this.spellbookOpen || this.chestSelectionActive || this.fusionUI ||
-                this.elementSelectionActive || this.discardConfirmation || this.discardConfirmUI || this.obeliskMenuOpen) {
-                } else {
-                // Track which player opened the pause menu
-                this.pauseMenuPlayer = keyboardPressed ? 1 : initiatingPlayer;
-                this.togglePause();
-            }
-        }
+        // const anyStartPressed = startPressed.some(pressed => pressed) || keyboardPressed;
+
+        // if (anyStartPressed) {
+        //     if (this.spellbookOpen || this.chestSelectionActive || this.fusionUI ||
+        //         this.elementSelectionActive || this.discardConfirmation || this.discardConfirmUI || this.obeliskMenuOpen) {
+        //         } else {
+        //         // Track which player opened the pause menu
+        //         this.pauseMenuPlayer = keyboardPressed ? 1 : initiatingPlayer;
+        //         this.togglePause();
+        //     }
+        // }
         // TAB or ESC key to open spellbook (consolidated menu)
         let selectPressed = false;
         
@@ -15650,6 +18180,10 @@ class GameScene extends Phaser.Scene {
             localStorage.setItem('debugMode', newDebugState.toString());
             // Update physics debug
             if (this.physics.world) {
+                // Create debug graphic if it doesn't exist and we're enabling debug mode
+                if (newDebugState && !this.physics.world.debugGraphic) {
+                    this.physics.world.debugGraphic = this.add.graphics();
+                }
                 this.physics.world.drawDebug = newDebugState;
                 if (this.physics.world.debugGraphic) {
                     this.physics.world.debugGraphic.setVisible(newDebugState);
@@ -15734,7 +18268,12 @@ class GameScene extends Phaser.Scene {
                 }
             }
         }
-        // Handle fusion UI controller input FIRST (highest priority)
+        // Handle upgrade UI controller input FIRST (highest priority)
+        if (this.upgradeUI && this.upgradeUI.active) {
+            this.handleUpgradeController();
+            return;
+        }
+        // Handle fusion UI controller input (high priority)
         if (this.fusionUI && this.fusionUI.active) {
             this.handleFusionController();
             return;
@@ -15818,11 +18357,17 @@ class GameScene extends Phaser.Scene {
                 }
             }
         }
-        // Handle pause menu controller input when paused
-        if (this.isPaused) {
-            this.handlePauseMenuController();
+        // Handle upgrade selection input
+        if (this.upgradeSelectionActive && this.upgradeCardData) {
+            this.handleUpgradeSelectionInput();
             return;
         }
+        // DEPRECATED: Old pause menu system removed
+        // Handle pause menu controller input when paused
+        // if (this.isPaused) {
+        //     this.handlePauseMenuController();
+        //     return;
+        // }
         // Handle element selection controls before game starts
         if (this.elementSelectionActive && this.elementSelectionButtons) {
             // Check for left/right navigation (D-pad or left stick)
@@ -15898,7 +18443,7 @@ class GameScene extends Phaser.Scene {
             // Hide debug text if debug mode is off
             this.waveDebugText.setVisible(false);
         }
-        if (this.gameStarted && !this.bossSpawned && !this.inDungeon) {
+        if (this.gameStarted && !this.bossSpawned && !this.inDungeon && !this.gamePaused) {
             // Check if it's time to start a new wave (every 60 seconds)
             const waveTime = (this.time.now - this.waveStartTime) / 1000; // Convert to seconds
             if (waveTime >= (60 / this.speedMultiplier)) {
@@ -15926,6 +18471,16 @@ class GameScene extends Phaser.Scene {
                 for (let i = 0; i < enemyEntries.length; i++) {
                     if (enemyEntries[i].active) currentEnemyCount++;
                 }
+
+                // VAMPIRE SURVIVORS: Global 300 enemy cap
+                const GLOBAL_ENEMY_CAP = 300;
+                if (currentEnemyCount >= GLOBAL_ENEMY_CAP) {
+                    // Stop all spawning when at cap (only bosses/events can spawn)
+                    this.lastPlayerX = this.wizard.x;
+                    this.lastPlayerY = this.wizard.y;
+                    return;
+                }
+
                 // Movement-based spawning (Vampire Survivors style)
                 if (!this.wizard) {
                     const debugEnabled = localStorage.getItem('debugMode') === 'true';
@@ -15941,19 +18496,27 @@ class GameScene extends Phaser.Scene {
                 const deltaY = this.wizard.y - this.lastPlayerY;
                 const distanceMoved = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
                 this.distanceTraveled += distanceMoved;
+
+                // VAMPIRE SURVIVORS: Minimum spawn quota enforcement
+                const minEnemies = waveDef.minEnemies || Math.floor(waveDef.maxEnemies * 0.3);
+                const belowMinimum = currentEnemyCount < minEnemies;
+
                 // Spawn enemy every 50 pixels of movement OR based on time
                 const spawnByMovement = this.distanceTraveled > 50;
                 const spawnByTime = this.time.now > this.lastWaveSpawn + (waveDef.spawnInterval / this.speedMultiplier);
+
                 // Add debug info about spawn conditions (only if debug mode is on)
                 if (debugEnabled && this.waveDebugText && this.waveDebugText.scene && !this.waveDebugText.destroyed) {
                     try {
-                        this.waveDebugText.setText(this.waveDebugText.text + 
-                            `\nSpawn: move=${spawnByMovement}(${this.distanceTraveled?.toFixed(0)}px), time=${spawnByTime}, count=${currentEnemyCount}/${waveDef.maxEnemies}`);
+                        this.waveDebugText.setText(this.waveDebugText.text +
+                            `\nSpawn: move=${spawnByMovement}(${this.distanceTraveled?.toFixed(0)}px), time=${spawnByTime}, count=${currentEnemyCount}/${waveDef.maxEnemies}, min=${minEnemies}`);
                     } catch (e) {
                         this.waveDebugText = null;
                     }
                 }
-                if (currentEnemyCount < waveDef.maxEnemies && (spawnByMovement || spawnByTime)) {
+
+                // Spawn immediately if below minimum, otherwise use normal triggers
+                if (belowMinimum || (currentEnemyCount < waveDef.maxEnemies && (spawnByMovement || spawnByTime))) {
                     this.spawnWaveEnemy(waveDef);
                     this.lastWaveSpawn = this.time.now;
                     if (spawnByMovement) {
@@ -16152,7 +18715,12 @@ class GameScene extends Phaser.Scene {
         }
         // Function to apply movement and animations to a wizard
         const applyWizardMovement = (wizard, velocityX, velocityY, moving, isP2 = false, playerNumber = 1) => {
-            const speed = 192 * this.speedMultiplier;
+            // Safety check: ensure wizard and physics body exist and are enabled
+            if (!wizard || !wizard.active || !wizard.body || !wizard.body.enable) {
+                return;
+            }
+
+            const speed = 192 * this.speedMultiplier * this.getMoveSpeedMultiplier();
             // Normalize diagonal movement
             if (velocityX !== 0 && velocityY !== 0) {
                 const magnitude = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
@@ -16435,11 +19003,12 @@ class GameScene extends Phaser.Scene {
         }
         // Also fire element projectiles from active slots only
         if (this.chargeSlots && this.chargeSlots.length > 0) {
-            // Only check first 4 slots (active slots)
-            for (let slotIndex = 0; slotIndex < 4; slotIndex++) {
+            // Check active slots (4 in standard, 8 in extended)
+            const maxActiveSlots = this.MAX_ACTIVE_SLOTS || 4;
+            for (let slotIndex = 0; slotIndex < maxActiveSlots; slotIndex++) {
                 const element = this.chargeSlots[slotIndex];
                 // Skip passive elements (chess orbs don't fire directly)
-                if (element && element !== 'rook' && element !== 'bishop' && element !== 'knight' && element !== 'queen' && element !== 'king' && element !== 'saturn' && element !== 'pawn' && element !== 'joker') {
+                if (element && element !== 'rook' && element !== 'bishop' && element !== 'knight' && element !== 'queen' && element !== 'king' && element !== 'saturn' && element !== 'pawn' && element !== 'joker' && element !== 'spiral') {
                     const elementConfig = this.elementConfig[element];
                     const fireRate = (elementConfig.fireRate || 1000) / this.speedMultiplier; // Apply hyper mode multiplier
                     // Check if this charge can fire using the new cooldown system
@@ -16468,11 +19037,12 @@ class GameScene extends Phaser.Scene {
             }
             // P2 element projectiles (using charge slots like P1)
             if (this.wizard2.chargeSlots && this.wizard2.chargeSlots.length > 0) {
-                // Only check first 4 slots (active slots)
-                for (let slotIndex = 0; slotIndex < 4; slotIndex++) {
+                // Check active slots (4 in standard, 8 in extended)
+                const maxActiveSlots = this.MAX_ACTIVE_SLOTS || 4;
+                for (let slotIndex = 0; slotIndex < maxActiveSlots; slotIndex++) {
                     const element = this.wizard2.chargeSlots[slotIndex];
                     // Skip passive elements (chess orbs don't fire directly)
-                    if (element && element !== 'rook' && element !== 'bishop' && element !== 'knight' && element !== 'queen' && element !== 'king' && element !== 'joker') {
+                    if (element && element !== 'rook' && element !== 'bishop' && element !== 'knight' && element !== 'queen' && element !== 'king' && element !== 'joker' && element !== 'spiral') {
                         const elementConfig = this.elementConfig[element];
                         const fireRate = (elementConfig.fireRate || 1000) / this.speedMultiplier;
                         // Track P2's individual charge cooldowns
@@ -16489,6 +19059,78 @@ class GameScene extends Phaser.Scene {
                             }
                             this.fireIndividualChargeForWizard(this.wizard2, chargeIndex, element);
                             this.wizard2.chargeLastFireTimes[slotIndex] = time;
+                        }
+                    }
+                }
+            }
+        }
+        // Handle P3's projectile firing if player count > 2
+        if (this.playerCount > 2 && this.wizard3 && this.wizard3.active) {
+            // P3 basic projectile
+            if (!this.wizard3.lastFireTime || time > this.wizard3.lastFireTime + this.fireRate) {
+                this.fireBasicProjectileForWizard(this.wizard3);
+                this.wizard3.lastFireTime = time;
+            }
+            // P3 element projectiles (using charge slots like P1)
+            if (this.wizard3.chargeSlots && this.wizard3.chargeSlots.length > 0) {
+                // Check active slots (4 in standard, 8 in extended)
+                const maxActiveSlots = this.MAX_ACTIVE_SLOTS || 4;
+                for (let slotIndex = 0; slotIndex < maxActiveSlots; slotIndex++) {
+                    const element = this.wizard3.chargeSlots[slotIndex];
+                    // Skip passive elements (chess orbs don't fire directly)
+                    if (element && element !== 'rook' && element !== 'bishop' && element !== 'knight' && element !== 'queen' && element !== 'king' && element !== 'joker' && element !== 'spiral') {
+                        const elementConfig = this.elementConfig[element];
+                        const fireRate = (elementConfig.fireRate || 1000) / this.speedMultiplier;
+                        // Track P3's individual charge cooldowns
+                        if (!this.wizard3.chargeLastFireTimes) {
+                            this.wizard3.chargeLastFireTimes = [];
+                        }
+                        if (!this.wizard3.chargeLastFireTimes[slotIndex] || time > this.wizard3.chargeLastFireTimes[slotIndex] + fireRate) {
+                            // Find the charge index in the charges array
+                            let chargeIndex = 0;
+                            for (let i = 0; i < slotIndex && i < this.wizard3.chargeSlots.length; i++) {
+                                if (this.wizard3.chargeSlots[i] !== null) {
+                                    chargeIndex++;
+                                }
+                            }
+                            this.fireIndividualChargeForWizard(this.wizard3, chargeIndex, element);
+                            this.wizard3.chargeLastFireTimes[slotIndex] = time;
+                        }
+                    }
+                }
+            }
+        }
+        // Handle P4's projectile firing if player count > 3
+        if (this.playerCount > 3 && this.wizard4 && this.wizard4.active) {
+            // P4 basic projectile
+            if (!this.wizard4.lastFireTime || time > this.wizard4.lastFireTime + this.fireRate) {
+                this.fireBasicProjectileForWizard(this.wizard4);
+                this.wizard4.lastFireTime = time;
+            }
+            // P4 element projectiles (using charge slots like P1)
+            if (this.wizard4.chargeSlots && this.wizard4.chargeSlots.length > 0) {
+                // Check active slots (4 in standard, 8 in extended)
+                const maxActiveSlots = this.MAX_ACTIVE_SLOTS || 4;
+                for (let slotIndex = 0; slotIndex < maxActiveSlots; slotIndex++) {
+                    const element = this.wizard4.chargeSlots[slotIndex];
+                    // Skip passive elements (chess orbs don't fire directly)
+                    if (element && element !== 'rook' && element !== 'bishop' && element !== 'knight' && element !== 'queen' && element !== 'king' && element !== 'joker' && element !== 'spiral') {
+                        const elementConfig = this.elementConfig[element];
+                        const fireRate = (elementConfig.fireRate || 1000) / this.speedMultiplier;
+                        // Track P4's individual charge cooldowns
+                        if (!this.wizard4.chargeLastFireTimes) {
+                            this.wizard4.chargeLastFireTimes = [];
+                        }
+                        if (!this.wizard4.chargeLastFireTimes[slotIndex] || time > this.wizard4.chargeLastFireTimes[slotIndex] + fireRate) {
+                            // Find the charge index in the charges array
+                            let chargeIndex = 0;
+                            for (let i = 0; i < slotIndex && i < this.wizard4.chargeSlots.length; i++) {
+                                if (this.wizard4.chargeSlots[i] !== null) {
+                                    chargeIndex++;
+                                }
+                            }
+                            this.fireIndividualChargeForWizard(this.wizard4, chargeIndex, element);
+                            this.wizard4.chargeLastFireTimes[slotIndex] = time;
                         }
                     }
                 }
@@ -16583,7 +19225,7 @@ class GameScene extends Phaser.Scene {
             }
             // Destroy regular enemy if extremely far away (beyond 1000 pixels) to prevent accumulation
             if (distance > 1000 && !enemy.isDying) {
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
                 continue;
             }
             // Teleport regular enemy if too far from wizard (beyond 500 pixels) - but not if dying
@@ -17013,8 +19655,26 @@ class GameScene extends Phaser.Scene {
                 const targetDistance = Phaser.Math.Distance.Between(enemy.x, enemy.y, targetPlayer.x, targetPlayer.y);
                 if (targetDistance > stopDistance) {
                     const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, targetPlayer.x, targetPlayer.y);
-                    const velocityX = Math.cos(angle) * moveSpeed;
-                    const velocityY = Math.sin(angle) * moveSpeed;
+                    let velocityX = Math.cos(angle) * moveSpeed;
+                    let velocityY = Math.sin(angle) * moveSpeed;
+
+                    // VAMPIRE SURVIVORS: Wavy movement patterns for flying enemies
+                    const wavyEnemies = ['bat', 'darkbat', 'flyingdemon', 'giantfly', 'soul'];
+                    if (wavyEnemies.includes(enemy.enemyType)) {
+                        // Initialize wave phase if not present
+                        if (!enemy.wavePhase && enemy.wavePhase !== 0) {
+                            enemy.wavePhase = Math.random() * Math.PI * 2;
+                        }
+                        // Update wave phase
+                        enemy.wavePhase += 0.05;
+                        // Add sinusoidal perpendicular movement
+                        const waveAmplitude = 30; // How far from straight path
+                        const perpAngle = angle + Math.PI / 2; // Perpendicular to chase direction
+                        const waveOffset = Math.sin(enemy.wavePhase) * waveAmplitude;
+                        velocityX += Math.cos(perpAngle) * waveOffset;
+                        velocityY += Math.sin(perpAngle) * waveOffset;
+                    }
+
                     enemy.setVelocity(velocityX, velocityY);
                     // Keep walk animation playing for golems (if not dying)
                     if (enemy.enemyType === 'golem' && !enemy.isDying && enemy.anims) {
@@ -17107,6 +19767,36 @@ class GameScene extends Phaser.Scene {
                 } catch (e) {
                     this.safeDestroyProjectile(projectile);
                 }
+            }
+            // Update orbiting projectiles (Orb character's basic projectiles)
+            if (projectile.isOrbiting && projectile.active) {
+                projectile.lifetime += delta;
+
+                // Destroy after max lifetime
+                if (projectile.lifetime >= projectile.maxLifetime) {
+                    this.safeDestroyProjectile(projectile);
+                    return;
+                }
+
+                // Update orbit angle
+                projectile.orbitAngle += (projectile.orbitSpeed * delta) / 1000;
+
+                // Update orbit center to the projectile's wizard's current position
+                const orbitWizard = projectile.orbitWizard || this.wizard;
+                projectile.orbitCenter.x = orbitWizard.x;
+                projectile.orbitCenter.y = orbitWizard.y;
+
+                // Calculate new position
+                const newX = projectile.orbitCenter.x + Math.cos(projectile.orbitAngle) * projectile.orbitRadius;
+                const newY = projectile.orbitCenter.y + Math.sin(projectile.orbitAngle) * projectile.orbitRadius;
+
+                // Update position
+                projectile.setPosition(newX, newY);
+
+                // Disable velocity for orbiting projectiles
+                projectile.setVelocity(0, 0);
+
+                return; // Skip bounds check for orbiting projectiles
             }
             // Skip bounds check for bouncing projectiles (like star) and boomerangs
             if (projectile.isBouncing || projectile.isBoomerang) {
@@ -17508,7 +20198,8 @@ class GameScene extends Phaser.Scene {
                             if (!enemy.lastFireDamage || time > enemy.lastFireDamage + 500) {
                                 // Check for damage immunity (Nekros in flight mode)
                                 if (!enemy.isDamageImmune) {
-                                    enemy.health -= 1;
+                                    const firePoolDamage = 1 * this.getDamageMultiplier();
+                                    enemy.health -= firePoolDamage;
                                     enemy.lastFireDamage = time;
                                     enemy.setTint(0xff6666);
                                     this.time.delayedCall(200, () => {
@@ -17539,7 +20230,8 @@ class GameScene extends Phaser.Scene {
                             if (!enemy.lastEarthDamage || time > enemy.lastEarthDamage + 500) {
                                 // Check for damage immunity (Nekros in flight mode)
                                 if (!enemy.isDamageImmune) {
-                                    enemy.health -= 2;
+                                    const earthZoneDamage = 2 * this.getDamageMultiplier();
+                                    enemy.health -= earthZoneDamage;
                                     enemy.lastEarthDamage = time;
                                     enemy.setTint(0x8B4513); // Brown tint
                                     this.time.delayedCall(200, () => {
@@ -17572,7 +20264,8 @@ class GameScene extends Phaser.Scene {
                         // Check for damage immunity (Nekros in flight mode)
                         if (!enemy.isDamageImmune) {
                             // Orbiting orbs deal 3 damage
-                            enemy.health -= 3;
+                            const orbDamage = 3 * this.getDamageMultiplier();
+                            enemy.health -= orbDamage;
                         }
                         if (enemy.health <= 0) {
                             // Immediately disable physics body
@@ -17664,33 +20357,20 @@ class GameScene extends Phaser.Scene {
             });
             chestsToRemove.forEach(chest => {
                 if (chest.body) chest.body.enable = false;
-                chest.destroy();
+                chest.active = false;
+                if (!this.destroyQueue.other.includes(chest)) {
+                    this.destroyQueue.other.push(chest);
+                }
             });
         }
+
+        // CRITICAL: Process deferred destruction queue at END of update loop
+        // This ensures all physics/collision processing is complete before destroying objects
+        this.processDestroyQueue();
     }
     castSpell() {
-        // Use spell system if available, otherwise fall back to original implementation
-        if (this.spellSystem) {
-            this.spellSystem.castSpell(this.wizard);
-            return;
-        }
-        // Original implementation (kept for backwards compatibility)
-        const spellCombo = this.charges.join('-');
-        if (spellCombo === 'water-water-lightning') {
-            this.createOrbitingOrbs();
-            this.discoverSpell('water-water-lightning', 'Shield of Waves');
-        } else if (spellCombo === 'fire-lightning-fire') {
-            this.fireExplodingProjectile();
-            this.discoverSpell('fire-lightning-fire', 'Explosive Bolt');
-        } else if (spellCombo === 'water-lightning-water') {
-            this.fireShotgunBlast();
-            this.discoverSpell('water-lightning-water', 'Storm Shotgun');
-        } else if (spellCombo === 'lightning-water-earth') {
-            this.fireMagnetizingOrb();
-            this.discoverSpell('lightning-water-earth', 'Magnetic Vortex');
-        } else {
-            this.fireProjectile();
-        }
+        // DEPRECATED: This function is not used - the game uses auto-firing system instead
+        // See update loop around line 16697 for actual firing mechanism
     }
     discoverSpell(combo, name) {
         if (!this.discoveredSpells.find(spell => spell.combo === combo)) {
@@ -17863,18 +20543,26 @@ class GameScene extends Phaser.Scene {
         return card;
     }
     createPauseMenu() {
+        // DEPRECATED: Old pause menu is no longer used
+        // Create a dummy container to avoid errors in existing code that references this.pauseMenu
         this.pauseMenu = this.add.container(400, 300);
-        this.pauseMenu.setDepth(900); // High depth to render above everything
-        // Set the container size but don't make the container itself interactive
-        this.pauseMenu.setSize(700, 500);
+        this.pauseMenu.setVisible(false);
+        this.pauseMenu.setDepth(1100);
+        return; // Early return - don't create the old UI
+
+        this.pauseMenu = this.add.container(400, 300);
+        this.pauseMenu.setDepth(1100); // High depth to render above everything including dice (1000)
+        // Set the container size dynamically based on slot configuration
+        // Standard (4 slots): 700px wide, Extended (8 slots): 800px wide
+        const menuWidth = this.MAX_ACTIVE_SLOTS === 8 ? 800 : 700;
+        const menuHeight = 550; // Increased from 500 to prevent cutoff
+        this.pauseMenu.setSize(menuWidth, menuHeight);
         // Controller support variables
         this.pauseMenuCursorIndex = 0;
         this.pauseMenuSelectedCharge = -1;
         this.pauseMenuCursor = null;
-        this.linkMode = false; // Track if we're in link mode
-        this.linkCursorIndex = 0; // Which link we're hovering over in link mode
         // Background - make it interactive to block clicks to game underneath
-        const bg = this.add.rectangle(0, 0, 700, 500, 0x000000, 0.9);
+        const bg = this.add.rectangle(0, 0, menuWidth, menuHeight, 0x000000, 0.9);
         bg.setStrokeStyle(3, 0xffffff);
         bg.setInteractive(); // This blocks clicks from going through
         this.pauseMenu.add(bg);
@@ -17886,25 +20574,72 @@ class GameScene extends Phaser.Scene {
         }).setOrigin(0.5);
         this.pauseMenu.add(title);
         // Compact instructions
-        const instructions = this.add.text(0, -195, 'Drag to rearrange • X to discard • Click between to link/unlink', {
-            fontSize: '12px',
-            color: '#aaaaaa'
+        const instructions = this.add.text(0, -195, 'Drag to rearrange • X to discard • Enable Fusion Mode to fuse elements (10 essence)', {
+            fontSize: '11px',
+            color: '#aaaaaa',
+            wordWrap: { width: 650 },
+            align: 'center'
         }).setOrigin(0.5);
         this.pauseMenu.add(instructions);
-        // Active/Passive labels
-        const activeLabel = this.add.text(-250, -100, 'ACTIVE', {
+
+        // Essence display in pause menu
+        const playerEssence = parseInt(localStorage.getItem('talentPoints') || '0');
+        this.essenceDisplayText = this.add.text(-100, -170, `Essence: ${playerEssence}`, {
+            fontSize: '14px',
+            fontFamily: 'Arial',
+            color: '#ff88ff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.pauseMenu.add(this.essenceDisplayText);
+
+        // Catalyst count display
+        const catalystCount = this.countCatalysts();
+        this.catalystDisplayText = this.add.text(100, -170, `Catalysts: ${catalystCount}`, {
+            fontSize: '14px',
+            fontFamily: 'Arial',
+            color: '#ffaa00',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.pauseMenu.add(this.catalystDisplayText);
+
+        // Use Catalyst button
+        const fusionButtonBg = this.add.rectangle(0, -140, 200, 35, 0x443355);
+        fusionButtonBg.setStrokeStyle(2, 0x8866aa);
+        fusionButtonBg.setInteractive({ useHandCursor: true });
+        this.pauseMenu.add(fusionButtonBg);
+
+        const fusionButtonText = this.add.text(0, -140, 'Use Catalyst', {
+            fontSize: '16px',
+            fontFamily: 'Arial',
+            color: catalystCount > 0 ? '#ffaa00' : '#666666',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.pauseMenu.add(fusionButtonText);
+
+        this.fusionButtonBg = fusionButtonBg;
+        this.fusionButtonText = fusionButtonText;
+
+        // Click handler for catalyst fusion
+        fusionButtonBg.on('pointerdown', () => {
+            if (this.countCatalysts() > 0) {
+                this.openCatalystFusionUI();
+            }
+        });
+        // Active/Passive labels - adjust X position based on slot count
+        const labelX = this.MAX_ACTIVE_SLOTS === 8 ? -350 : -250;
+        const activeLabel = this.add.text(labelX, -100, 'ACTIVE', {
             fontSize: '14px',
             color: '#44ff44',
             fontStyle: 'bold'
         }).setOrigin(0, 0.5);
         this.pauseMenu.add(activeLabel);
-        const passiveLabel = this.add.text(-250, -20, 'PASSIVE', {
+        const passiveLabel = this.add.text(labelX, -20, 'PASSIVE', {
             fontSize: '14px',
             color: '#aaaaaa',
             fontStyle: 'bold'
         }).setOrigin(0, 0.5);
         this.pauseMenu.add(passiveLabel);
-        const pouchLabel = this.add.text(-250, 60, 'POUCH', {
+        const pouchLabel = this.add.text(labelX, 60, 'POUCH', {
             fontSize: '14px',
             color: '#88cc88',
             fontStyle: 'bold'
@@ -17912,10 +20647,13 @@ class GameScene extends Phaser.Scene {
         this.pauseMenu.add(pouchLabel);
         // Charge slot visuals
         this.pauseChargeSlots = [];
-        this.linkButtons = [];
+        this.linkButtons = []; // Initialize as empty array (linking system removed)
         this.draggedCharge = null;
-        const slotStartX = -150;
-        const slotSpacing = 80; // Reduced from 100 to make slots side by side
+        // Adjust spacing based on slot count
+        // Standard (4): 80px spacing starting at -150
+        // Extended (8): 70px spacing starting at -245
+        const slotStartX = this.MAX_ACTIVE_SLOTS === 8 ? -245 : -150;
+        const slotSpacing = this.MAX_ACTIVE_SLOTS === 8 ? 70 : 80;
         const slotY = 0;
         const slotRowY1 = -100;  // First row Y position (active)
         const slotRowY2 = -20;   // Second row Y position (passive)
@@ -17923,18 +20661,36 @@ class GameScene extends Phaser.Scene {
         // Initialize pouch if not exists
         if (!this.elementPouch) {
             // Don't load pouch from localStorage - start fresh each game
-            this.elementPouch = [null, null, null, null];
+            this.elementPouch = new Array(this.MAX_POUCH_SLOTS).fill(null);
         }
-        // Create slots for charges (8) and pouch (4)
-        for (let i = 0; i < 12; i++) {
-            // Slot background - arrange in 3 rows of 4
-            const row = Math.floor(i / 4);
-            const col = i % 4;
+        // Create slots for charges and pouch
+        const totalSlots = this.MAX_CHARGE_SLOTS + this.MAX_POUCH_SLOTS;
+        for (let i = 0; i < totalSlots; i++) {
+            // Determine which row and column based on slot index
+            let row, col, slotY_pos;
+
+            if (i < this.MAX_ACTIVE_SLOTS) {
+                // Active slots - row 0
+                row = 0;
+                col = i;
+                slotY_pos = slotRowY1;
+            } else if (i < this.MAX_CHARGE_SLOTS) {
+                // Passive slots - row 1
+                row = 1;
+                col = i - this.MAX_ACTIVE_SLOTS;
+                slotY_pos = slotRowY2;
+            } else {
+                // Pouch slots - row 2
+                row = 2;
+                col = i - this.MAX_CHARGE_SLOTS;
+                slotY_pos = slotRowY3;
+            }
+
             const slotX = slotStartX + col * slotSpacing;
-            const slotY_pos = row === 0 ? slotRowY1 : (row === 1 ? slotRowY2 : slotRowY3);
+
             // Different colors for active, passive, and pouch slots
-            const isActiveSlot = row === 0;
-            const isPouchSlot = row === 2;
+            const isActiveSlot = i < this.MAX_ACTIVE_SLOTS;
+            const isPouchSlot = i >= this.MAX_CHARGE_SLOTS;
             // Use socket sprite instead of rectangle
             const slotBg = this.add.image(slotX, slotY_pos, 'grey-socket');
             slotBg.setScale(0.217); // Scale 368px to 80px (80/368 = 0.217)
@@ -18005,25 +20761,7 @@ class GameScene extends Phaser.Scene {
                 x: slotX,
                 y: slotY_pos
             });
-            // Link button (between slots) - only for charge slots in the same row, not pouch
-            if (i < 7 && (i % 4) < 3 && !isPouchSlot) {
-                const linkX = slotX + slotSpacing / 2;
-                const linkY = slotY_pos;
-                const linkBtn = this.add.rectangle(linkX, linkY, 30, 20, 0x555555);
-                linkBtn.setInteractive({
-                    hitArea: new Phaser.Geom.Rectangle(-15, -10, 30, 20),
-                    hitAreaCallback: Phaser.Geom.Rectangle.Contains
-                });
-                linkBtn.setStrokeStyle(1, 0xaaaaaa);
-                this.pauseMenu.add(linkBtn);
-                const linkText = this.add.text(linkX, linkY, '-', {
-                    fontSize: '16px',
-                    color: '#ffffff'
-                }).setOrigin(0.5);
-                this.pauseMenu.add(linkText);
-                // Event handlers will be set up in togglePause when menu is shown
-                this.linkButtons.push({ btn: linkBtn, text: linkText, linked: false });
-            }
+            // Link buttons removed - linking system disabled
         }
         // Current combo display (moved down due to pouch row)
         this.comboDisplay = this.add.text(0, 140, '', {
@@ -18056,7 +20794,7 @@ class GameScene extends Phaser.Scene {
         }).setOrigin(0.5);
         this.pauseMenu.add(closeText);
         // Controller instructions (smaller and at bottom)
-        const controllerText = this.add.text(0, 190, 'Controller: D-pad to navigate • A to select • Y for link mode', {
+        const controllerText = this.add.text(0, 190, 'Controller: D-pad to navigate • A to select • X to discard', {
             fontSize: '12px',
             color: '#888888'
         }).setOrigin(0.5);
@@ -18070,11 +20808,10 @@ class GameScene extends Phaser.Scene {
         this.input.off('dragend');
         this.input.on('dragstart', (pointer, gameObject) => {
             // Check if this is one of our charge circles
-            if (gameObject.getData('slotIndex') !== undefined && this.pauseChargeSlots.some(slot => slot.circle === gameObject)) {
+            const slotIndex = gameObject.getData('slotIndex');
+            if (slotIndex !== undefined) {
                 this.draggedCharge = gameObject;
-                // Don't set depth on sprites in containers - they inherit container depth
                 gameObject.setAlpha(0.8);
-                // Store the initial position relative to the container
                 gameObject.setData('dragStartX', gameObject.x);
                 gameObject.setData('dragStartY', gameObject.y);
             }
@@ -18091,11 +20828,12 @@ class GameScene extends Phaser.Scene {
                 // Find which slot we're over
                 let targetSlot = null;
                 let targetIndex = -1;
-                // Current position relative to container
                 const currentX = gameObject.x;
                 const currentY = gameObject.y;
+                const totalNavigableSlots = this.MAX_CHARGE_SLOTS + this.MAX_POUCH_SLOTS;
+
                 this.pauseChargeSlots.forEach((slot, index) => {
-                    if (index < 12) { // Check all 12 slots (8 charge + 4 pouch)
+                    if (index < totalNavigableSlots) {
                         const dist = Phaser.Math.Distance.Between(
                             currentX,
                             currentY,
@@ -18109,9 +20847,24 @@ class GameScene extends Phaser.Scene {
                     }
                 });
                 const sourceIndex = gameObject.getData('slotIndex');
+
                 if (targetSlot && targetIndex !== -1 && targetIndex !== sourceIndex) {
-                    // Swap charges
-                    this.swapCharges(sourceIndex, targetIndex);
+                    // Check if target slot has an element (potential fusion)
+                    const sourceElement = sourceIndex < this.MAX_CHARGE_SLOTS ?
+                        this.chargeSlots[sourceIndex] :
+                        this.elementPouch[sourceIndex - this.MAX_CHARGE_SLOTS];
+                    const targetElement = targetIndex < this.MAX_CHARGE_SLOTS ?
+                        this.chargeSlots[targetIndex] :
+                        this.elementPouch[targetIndex - this.MAX_CHARGE_SLOTS];
+
+                    // Only attempt fusion if fusion mode is active AND both slots have different elements
+                    if (this.fusionModeActive && sourceElement && targetElement && sourceElement !== targetElement) {
+                        // Both slots have different elements - attempt fusion!
+                        this.attemptFusionInPauseMenu(sourceIndex, targetIndex, sourceElement, targetElement);
+                    } else {
+                        // Swap charges (empty slot, same element, or fusion mode is off)
+                        this.swapCharges(sourceIndex, targetIndex);
+                    }
                 } else {
                     // Return to original position
                     gameObject.x = gameObject.getData('originalX');
@@ -18125,6 +20878,543 @@ class GameScene extends Phaser.Scene {
             }
         });
     }
+
+    /**
+     * Open catalyst fusion UI for manual fusion
+     */
+    // Helper function to count catalysts in inventory
+    countCatalysts() {
+        let count = 0;
+
+        // Count in charge slots
+        if (this.chargeSlots) {
+            for (let i = 0; i < this.chargeSlots.length; i++) {
+                if (this.chargeSlots[i] === 'catalyst') {
+                    count++;
+                }
+            }
+        }
+
+        // Count in pouch
+        if (this.elementPouch) {
+            for (let i = 0; i < this.elementPouch.length; i++) {
+                if (this.elementPouch[i] === 'catalyst') {
+                    count++;
+                }
+            }
+        }
+
+        return count;
+    }
+
+    openCatalystFusionUI() {
+        // Create fusion UI container
+        this.catalystFusionUI = this.add.container(400, 300);
+        this.catalystFusionUI.setDepth(1200); // Above pause menu
+
+        // Background
+        const bg = this.add.rectangle(0, 0, 600, 400, 0x000000, 0.95);
+        bg.setStrokeStyle(4, 0xffaa00);
+        bg.setInteractive();
+        this.catalystFusionUI.add(bg);
+
+        // Title
+        const title = this.add.text(0, -170, 'CATALYST FUSION', {
+            fontSize: '24px',
+            color: '#ffaa00',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.catalystFusionUI.add(title);
+
+        // Instructions
+        const instructions = this.add.text(0, -140, 'Select 2 orbs to fuse with a catalyst', {
+            fontSize: '14px',
+            color: '#aaaaaa'
+        }).setOrigin(0.5);
+        this.catalystFusionUI.add(instructions);
+
+        // Get all available elements from charge slots and pouch
+        const availableElements = [];
+        const chargeSlots = this.chargeSlots || [];
+        const pouchSlots = this.pouchSlots || [];
+
+        // Collect from active slots (exclude catalysts - they can't be fused)
+        for (let i = 0; i < chargeSlots.length; i++) {
+            if (chargeSlots[i] && chargeSlots[i] !== 'catalyst') {
+                availableElements.push({ element: chargeSlots[i], slotIndex: i, isPouch: false });
+            }
+        }
+
+        // Collect from pouch (exclude catalysts)
+        for (let i = 0; i < pouchSlots.length; i++) {
+            if (pouchSlots[i] && pouchSlots[i] !== 'catalyst') {
+                availableElements.push({ element: pouchSlots[i], slotIndex: i, isPouch: true });
+            }
+        }
+
+        // Display available elements
+        this.fusionSelectedOrbs = [];
+        const startY = -80;
+        const itemSpacing = 50;
+
+        availableElements.forEach((item, index) => {
+            const row = Math.floor(index / 8);
+            const col = index % 8;
+            const x = -175 + (col * itemSpacing);
+            const y = startY + (row * itemSpacing);
+
+            const config = this.elementConfig[item.element];
+            if (!config) return;
+
+            // Orb circle
+            const orb = this.add.circle(x, y, 20, config.color);
+            orb.setStrokeStyle(2, 0xffffff);
+            orb.setInteractive({ useHandCursor: true });
+            this.catalystFusionUI.add(orb);
+
+            // Element symbol
+            const symbol = this.add.text(x, y, config.symbol, {
+                fontSize: '18px',
+                color: '#ffffff',
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+            this.catalystFusionUI.add(symbol);
+
+            // Click handler
+            orb.on('pointerdown', () => {
+                if (this.fusionSelectedOrbs.includes(item)) {
+                    // Deselect
+                    this.fusionSelectedOrbs = this.fusionSelectedOrbs.filter(o => o !== item);
+                    orb.setStrokeStyle(2, 0xffffff);
+                } else if (this.fusionSelectedOrbs.length < 2) {
+                    // Select
+                    this.fusionSelectedOrbs.push(item);
+                    orb.setStrokeStyle(4, 0xffaa00);
+                } else {
+                    // Already have 2 selected
+                    return;
+                }
+                this.updateCatalystFusionPreview();
+            });
+
+            // Store reference
+            orb.fusionOrbData = item;
+        });
+
+        // Preview area
+        this.fusionPreviewText = this.add.text(0, 100, 'Select 2 orbs', {
+            fontSize: '16px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.catalystFusionUI.add(this.fusionPreviewText);
+
+        // Fuse button
+        this.fuseButton = this.add.rectangle(0, 150, 150, 40, 0x666666);
+        this.fuseButton.setStrokeStyle(2, 0x888888);
+        this.fuseButton.setInteractive({ useHandCursor: true });
+        this.catalystFusionUI.add(this.fuseButton);
+
+        this.fuseButtonText = this.add.text(0, 150, 'Fuse', {
+            fontSize: '18px',
+            color: '#666666',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.catalystFusionUI.add(this.fuseButtonText);
+
+        this.fuseButton.on('pointerdown', () => {
+            if (this.fusionSelectedOrbs.length === 2) {
+                this.performCatalystFusion();
+            }
+        });
+
+        // Close button
+        const closeButton = this.add.rectangle(270, -170, 40, 40, 0x880000);
+        closeButton.setStrokeStyle(2, 0xff0000);
+        closeButton.setInteractive({ useHandCursor: true });
+        this.catalystFusionUI.add(closeButton);
+
+        const closeText = this.add.text(270, -170, 'X', {
+            fontSize: '24px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.catalystFusionUI.add(closeText);
+
+        closeButton.on('pointerdown', () => {
+            this.closeCatalystFusionUI();
+        });
+    }
+
+    updateCatalystFusionPreview() {
+        if (this.fusionSelectedOrbs.length !== 2) {
+            this.fusionPreviewText.setText('Select 2 orbs');
+            this.fuseButton.setFillStyle(0x666666);
+            this.fuseButton.setStrokeStyle(2, 0x888888);
+            this.fuseButtonText.setColor('#666666');
+            return;
+        }
+
+        const element1 = this.fusionSelectedOrbs[0].element;
+        const element2 = this.fusionSelectedOrbs[1].element;
+        const fusionResult = this.getFusionResult(element1, element2);
+
+        if (fusionResult) {
+            const resultConfig = this.elementConfig[fusionResult];
+            this.fusionPreviewText.setText(`${resultConfig.name}!`);
+            this.fusionPreviewText.setColor(`#${resultConfig.color.toString(16).padStart(6, '0')}`);
+            this.fuseButton.setFillStyle(0x00aa00);
+            this.fuseButton.setStrokeStyle(2, 0x00ff00);
+            this.fuseButtonText.setColor('#ffffff');
+        } else {
+            this.fusionPreviewText.setText('Cannot fuse these elements');
+            this.fusionPreviewText.setColor('#ff4444');
+            this.fuseButton.setFillStyle(0x666666);
+            this.fuseButton.setStrokeStyle(2, 0x888888);
+            this.fuseButtonText.setColor('#666666');
+        }
+    }
+
+    performCatalystFusion() {
+        if (this.fusionSelectedOrbs.length !== 2) return;
+
+        const element1 = this.fusionSelectedOrbs[0].element;
+        const element2 = this.fusionSelectedOrbs[1].element;
+        const fusionResult = this.getFusionResult(element1, element2);
+
+        if (!fusionResult) return;
+
+        // Remove one catalyst from slots
+        let catalystRemoved = false;
+        // Check charge slots first
+        for (let i = 0; i < this.chargeSlots.length; i++) {
+            if (this.chargeSlots[i] === 'catalyst') {
+                this.chargeSlots[i] = null;
+                catalystRemoved = true;
+                break;
+            }
+        }
+        // If not found in charge slots, check pouch
+        if (!catalystRemoved && this.elementPouch) {
+            for (let i = 0; i < this.elementPouch.length; i++) {
+                if (this.elementPouch[i] === 'catalyst') {
+                    this.elementPouch[i] = null;
+                    catalystRemoved = true;
+                    break;
+                }
+            }
+        }
+
+        // Remove the two orbs from inventory
+        const sorted = this.fusionSelectedOrbs.sort((a, b) => {
+            if (a.isPouch && !b.isPouch) return 1;
+            if (!a.isPouch && b.isPouch) return -1;
+            return b.slotIndex - a.slotIndex; // Remove from higher index first
+        });
+
+        sorted.forEach(item => {
+            if (item.isPouch) {
+                this.pouchSlots[item.slotIndex] = null;
+            } else {
+                this.chargeSlots[item.slotIndex] = null;
+            }
+        });
+
+        // Add fused element to first empty slot
+        let placed = false;
+        for (let i = 0; i < this.chargeSlots.length; i++) {
+            if (!this.chargeSlots[i]) {
+                this.chargeSlots[i] = fusionResult;
+                placed = true;
+                break;
+            }
+        }
+
+        // If no space in active, try pouch
+        if (!placed && this.pouchSlots) {
+            for (let i = 0; i < this.pouchSlots.length; i++) {
+                if (!this.pouchSlots[i]) {
+                    this.pouchSlots[i] = fusionResult;
+                    placed = true;
+                    break;
+                }
+            }
+        }
+
+        // Show fusion effect
+        const resultConfig = this.elementConfig[fusionResult];
+        this.showFloatingText(400, 200, `Created ${resultConfig.name}!`, `#${resultConfig.color.toString(16).padStart(6, '0')}`, 24);
+
+        // Update UI
+        this.updateChargeUI();
+        this.updateAllChargeIndicators();
+        if (this.catalystDisplayText) {
+            this.catalystDisplayText.setText(`Catalysts: ${this.countCatalysts()}`);
+        }
+
+        // Close fusion UI
+        this.closeCatalystFusionUI();
+    }
+
+    closeCatalystFusionUI() {
+        if (this.catalystFusionUI) {
+            this.catalystFusionUI.destroy();
+            this.catalystFusionUI = null;
+            this.fusionSelectedOrbs = [];
+        }
+    }
+
+    /**
+     * Attempt fusion in pause menu with essence cost
+     */
+    attemptFusionInPauseMenu(sourceIndex, targetIndex, sourceElement, targetElement) {
+        // Determine which player's inventory to modify
+        const targetWizard = (this.pauseMenuPlayer === 2 && this.multiplayerEnabled && this.wizard2) ? this.wizard2 : this.wizard;
+        const targetChargeSlots = targetWizard.chargeSlots || this.chargeSlots;
+        const targetCharges = targetWizard.charges || this.charges;
+        const targetPouch = targetWizard.elementPouch || this.elementPouch;
+        const targetTiers = targetWizard.elementTiers || this.elementTiers;
+
+        // Get tiers using Map key format: ${element}_${index}
+        const sourceTier = targetTiers.get(`${sourceElement}_${sourceIndex}`) || 1;
+        const targetTier = targetTiers.get(`${targetElement}_${targetIndex}`) || 1;
+
+        // Try to get fusion result
+        const fusionResult = this.getFusionResult(sourceElement, targetElement);
+
+        if (!fusionResult) {
+            // No valid fusion exists
+            this.showFusionError(`${sourceElement} and ${targetElement} cannot be fused!`);
+            return;
+        }
+
+        // Fixed fusion cost of 10 essence
+        const fusionCost = 10;
+
+        // Check if player has enough essence
+        const playerEssence = parseInt(localStorage.getItem('talentPoints') || '0');
+
+        if (playerEssence < fusionCost) {
+            // Not enough essence - show error message
+            this.showFusionError(`Not enough essence! Need ${fusionCost} essence.`);
+            return;
+        }
+
+        // Perform fusion - result goes to target slot
+        const newElement = fusionResult;
+        const newTier = 1; // Fused elements start at tier 1
+
+        // Deduct essence
+        const newEssence = playerEssence - fusionCost;
+        localStorage.setItem('talentPoints', newEssence.toString());
+
+        // Update the target slot with new element
+        if (targetIndex < this.MAX_CHARGE_SLOTS) {
+            // Update all possible inventory references
+            targetChargeSlots[targetIndex] = newElement;
+            if (targetIndex < targetCharges.length) {
+                targetCharges[targetIndex] = newElement;
+            }
+            // Force update to wizard's arrays
+            if (targetWizard && targetWizard.chargeSlots) {
+                targetWizard.chargeSlots[targetIndex] = newElement;
+            }
+            if (targetWizard && targetWizard.charges && targetIndex < targetWizard.charges.length) {
+                targetWizard.charges[targetIndex] = newElement;
+            }
+            // Force update to main game arrays
+            this.chargeSlots[targetIndex] = newElement;
+            if (targetIndex < this.charges.length) {
+                this.charges[targetIndex] = newElement;
+            }
+        } else {
+            // Update pouch
+            const pouchIndex = targetIndex - this.MAX_CHARGE_SLOTS;
+            targetPouch[pouchIndex] = newElement;
+            // Force update to wizard's pouch
+            if (targetWizard && targetWizard.elementPouch) {
+                targetWizard.elementPouch[pouchIndex] = newElement;
+            }
+            // Force update to main game pouch
+            this.elementPouch[pouchIndex] = newElement;
+        }
+
+        // Set tier for new element
+        targetTiers.delete(`${targetElement}_${targetIndex}`);
+        targetTiers.set(`${newElement}_${targetIndex}`, newTier);
+        // Also update main tier map if different
+        if (this.elementTiers !== targetTiers) {
+            this.elementTiers.delete(`${targetElement}_${targetIndex}`);
+            this.elementTiers.set(`${newElement}_${targetIndex}`, newTier);
+        }
+
+        // Clear the source slot
+        if (sourceIndex < this.MAX_CHARGE_SLOTS) {
+            // Update all possible inventory references
+            targetChargeSlots[sourceIndex] = null;
+            if (sourceIndex < targetCharges.length) {
+                targetCharges[sourceIndex] = null;
+            }
+            // Force update to wizard's arrays
+            if (targetWizard && targetWizard.chargeSlots) {
+                targetWizard.chargeSlots[sourceIndex] = null;
+            }
+            if (targetWizard && targetWizard.charges && sourceIndex < targetWizard.charges.length) {
+                targetWizard.charges[sourceIndex] = null;
+            }
+            // Force update to main game arrays
+            this.chargeSlots[sourceIndex] = null;
+            if (sourceIndex < this.charges.length) {
+                this.charges[sourceIndex] = null;
+            }
+        } else {
+            // Clear pouch
+            const pouchIndex = sourceIndex - this.MAX_CHARGE_SLOTS;
+            targetPouch[pouchIndex] = null;
+            // Force update to wizard's pouch
+            if (targetWizard && targetWizard.elementPouch) {
+                targetWizard.elementPouch[pouchIndex] = null;
+            }
+            // Force update to main game pouch
+            this.elementPouch[pouchIndex] = null;
+        }
+
+        // Delete the source tier from Map
+        targetTiers.delete(`${sourceElement}_${sourceIndex}`);
+        // Also update main tier map if different
+        if (this.elementTiers !== targetTiers) {
+            this.elementTiers.delete(`${sourceElement}_${sourceIndex}`);
+        }
+
+        // Mark element as discovered
+        if (!this.discoveredElements.has(newElement)) {
+            this.discoveredElements.add(newElement);
+            localStorage.setItem('discoveredElements', JSON.stringify(Array.from(this.discoveredElements)));
+        }
+
+        // Show fusion success animation
+        this.showFusionSuccess(targetIndex, newElement, newTier, fusionCost);
+
+        // Update charge UI
+        this.updateChargeUI();
+        this.updatePauseMenuDisplay();
+    }
+
+    /**
+     * Calculate fusion cost based on tier
+     */
+    getFusionCost(currentTier) {
+        // Exponential cost increase
+        const baseCost = 10;
+        return Math.floor(baseCost * Math.pow(2, currentTier - 1));
+        // Tier 1->2: 10 essence
+        // Tier 2->3: 20 essence
+        // Tier 3->4: 40 essence
+        // Tier 4->5: 80 essence
+        // Tier 5->6: 160 essence
+    }
+
+    /**
+     * Show fusion error message
+     */
+    showFusionError(message) {
+        const errorText = this.add.text(400, 250, message, {
+            fontSize: '24px',
+            fontFamily: 'Arial',
+            color: '#ff4444',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4,
+            backgroundColor: '#000000',
+            padding: { x: 20, y: 10 }
+        });
+        errorText.setOrigin(0.5);
+        errorText.setDepth(2500);
+        errorText.setScrollFactor(0);
+
+        // Flash and fade out
+        this.tweens.add({
+            targets: errorText,
+            alpha: { from: 1, to: 0 },
+            y: 200,
+            duration: 2000,
+            ease: 'Cubic.easeOut',
+            onComplete: () => errorText.destroy()
+        });
+    }
+
+    /**
+     * Show fusion success animation
+     */
+    showFusionSuccess(targetIndex, element, newTier, cost) {
+        // Get target slot position
+        const slot = this.pauseChargeSlots[targetIndex];
+        if (!slot) return;
+
+        const worldX = this.pauseMenu.x + slot.x;
+        const worldY = this.pauseMenu.y + slot.y;
+
+        // Create fusion burst effect
+        const burst = this.add.circle(worldX, worldY, 10, 0xffff00, 0.8);
+        burst.setDepth(2000);
+        burst.setScrollFactor(0);
+
+        this.tweens.add({
+            targets: burst,
+            radius: 80,
+            alpha: 0,
+            duration: 500,
+            ease: 'Cubic.easeOut',
+            onComplete: () => burst.destroy()
+        });
+
+        // Show success text
+        const config = this.elementConfig[element];
+        const elementName = config ? config.name : element;
+
+        const successText = this.add.text(worldX, worldY - 60, `${elementName} TIER ${newTier}!`, {
+            fontSize: '20px',
+            fontFamily: 'Arial',
+            color: '#00ff00',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        successText.setOrigin(0.5);
+        successText.setDepth(2001);
+        successText.setScrollFactor(0);
+
+        // Show cost
+        const costText = this.add.text(worldX, worldY + 60, `-${cost} Essence`, {
+            fontSize: '16px',
+            fontFamily: 'Arial',
+            color: '#ff88ff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+        costText.setOrigin(0.5);
+        costText.setDepth(2001);
+        costText.setScrollFactor(0);
+
+        this.tweens.add({
+            targets: [successText, costText],
+            y: `-=40`,
+            alpha: 0,
+            duration: 1500,
+            ease: 'Cubic.easeOut',
+            onComplete: () => {
+                successText.destroy();
+                costText.destroy();
+            }
+        });
+
+        // Play sound if available
+        if (this.sound.get('power-up')) {
+            this.sound.play('power-up', { volume: 0.5 });
+        }
+    }
+
     // Centralized pause system
     pauseGame(source = 'unknown') {
         // Only log the FIRST pause to find the culprit
@@ -18168,6 +21458,10 @@ class GameScene extends Phaser.Scene {
         }
     }
     togglePause() {
+        // DEPRECATED: This old pause menu is no longer used
+        // Use TAB or ESC to open the radial menu instead
+        return; // Early return to disable this function
+
         this.isPaused = !this.isPaused;
         this.pauseMenu.setVisible(this.isPaused);
         if (this.isPaused) {
@@ -18194,8 +21488,6 @@ class GameScene extends Phaser.Scene {
             this.prevPauseAPressed = false;
             this.prevPauseBPressed = false;
             this.prevPauseYPressed = false;
-            this.linkMode = false;
-            this.linkCursorIndex = 0;
             // Create cursor indicator for controller with enhanced visibility
             if (!this.pauseMenuCursor) {
                 // Create a container for multiple visual elements
@@ -18211,7 +21503,7 @@ class GameScene extends Phaser.Scene {
                 innerHighlight.setStrokeStyle(2, 0xffffff, 0.8);
                 // Add all elements to the container
                 this.pauseMenuCursor.add([outerGlow, mainCursor, innerHighlight]);
-                this.pauseMenuCursor.setDepth(350); // Ensure it's above menu
+                this.pauseMenuCursor.setDepth(1200); // Ensure it's above pause menu (1100) and dice (1000)
                 this.pauseMenuCursor.setScrollFactor(0);
                 // Add pulsing animation for better visibility
                 this.tweens.add({
@@ -18509,6 +21801,12 @@ class GameScene extends Phaser.Scene {
         }
     }
     updatePauseMenuDisplay() {
+        // Update essence display if it exists
+        if (this.essenceDisplayText) {
+            const playerEssence = parseInt(localStorage.getItem('talentPoints') || '0');
+            this.essenceDisplayText.setText(`Essence: ${playerEssence}`);
+        }
+
         // Determine which player's inventory to show
         const targetWizard = (this.pauseMenuPlayer === 2 && this.multiplayerEnabled && this.wizard2) ? this.wizard2 : this.wizard;
         const targetChargeSlots = targetWizard.chargeSlots || this.chargeSlots;
@@ -18517,21 +21815,26 @@ class GameScene extends Phaser.Scene {
         const targetTiers = targetWizard.elementTiers || this.elementTiers;
         // Initialize chargeSlots if needed
         if (!targetChargeSlots) {
-            targetWizard.chargeSlots = new Array(8).fill(null);
+            targetWizard.chargeSlots = new Array(this.MAX_CHARGE_SLOTS).fill(null);
             // Sync from charges array if it exists
             for (let i = 0; i < targetCharges.length && i < 8; i++) {
                 targetWizard.chargeSlots[i] = targetCharges[i];
             }
         }
-        // Update charge slot displays - show all 8 charge slots + 4 pouch slots
-        for (let i = 0; i < 12; i++) {
+        // Update charge slot displays - show all charge slots + pouch slots
+        const totalDisplaySlots = this.MAX_CHARGE_SLOTS + this.MAX_POUCH_SLOTS;
+        for (let i = 0; i < totalDisplaySlots; i++) {
+            // Skip if this slot doesn't have UI created
+            if (!this.pauseChargeSlots[i]) continue;
+
             let element;
-            if (i < 8) {
-                // Charge slots
+            if (i < this.MAX_CHARGE_SLOTS) {
+                // Charge slots (active + passive)
                 element = targetChargeSlots ? targetChargeSlots[i] : (i < targetCharges.length ? targetCharges[i] : null);
             } else {
-                // Pouch slots (i - 8 gives us index 0-3)
-                element = targetPouch ? targetPouch[i - 8] : null;
+                // Pouch slots
+                const pouchIndex = i - this.MAX_CHARGE_SLOTS;
+                element = targetPouch ? targetPouch[pouchIndex] : null;
             }
             if (i < 4) { // Only log first 4 to reduce noise
                 }
@@ -18637,29 +21940,15 @@ class GameScene extends Phaser.Scene {
     }
     getChargeGroupsPreview() {
         const groups = [];
-        let currentGroup = [];
-        // Only consider first 4 slots as active slots
-        for (let i = 0; i < 4; i++) {
+        // Consider all active slots - each charge is its own group (linking removed)
+        const maxActiveSlots = this.MAX_ACTIVE_SLOTS || 4;
+        for (let i = 0; i < maxActiveSlots; i++) {
             // Skip empty slots
             if (!this.chargeSlots || !this.chargeSlots[i]) {
-                // If we had a group building, end it
-                if (currentGroup.length > 0) {
-                    groups.push([...currentGroup]);
-                    currentGroup = [];
-                }
                 continue;
             }
-            currentGroup.push(this.chargeSlots[i]);
-            // Check if this slot is linked to the next (within active slots)
-            if (i < 3 && this.linkButtons[i] && this.linkButtons[i].linked && this.chargeSlots[i + 1]) {
-                // Continue group
-            } else {
-                // End current group
-                if (currentGroup.length > 0) {
-                    groups.push([...currentGroup]);
-                    currentGroup = [];
-                }
-            }
+            // Each charge is its own group
+            groups.push([this.chargeSlots[i]]);
         }
         return groups;
     }
@@ -18683,11 +21972,12 @@ class GameScene extends Phaser.Scene {
             onKillEffects: [],
             auraEffects: []
         };
-        // Get passive elements (slots 4-7)
+        // Get passive elements (slots after active slots)
         const passiveElements = [];
-        for (let i = 4; i < 8 && i < this.charges.length; i++) {
-            if (this.charges[i]) {
-                passiveElements.push(this.charges[i]);
+        const maxPassiveEnd = (this.MAX_ACTIVE_SLOTS || 4) + (this.MAX_PASSIVE_SLOTS || 4);
+        for (let i = (this.MAX_ACTIVE_SLOTS || 4); i < maxPassiveEnd && i < this.chargeSlots.length; i++) {
+            if (this.chargeSlots[i]) {
+                passiveElements.push(this.chargeSlots[i]);
             }
         }
         // Apply bonuses for each passive element
@@ -18781,7 +22071,7 @@ class GameScene extends Phaser.Scene {
             water: '+2 HP/sec regeneration. +10% lifesteal on all damage.',
             earth: '+30% max health. Reflects 25% of melee damage back to attackers.',
             air: '+20% movement speed. 15% chance to dodge attacks.',
-            lightning: '+30% faster spell casting. Kills chain lightning to 2 nearby enemies.',
+            lightning: '+30% faster spell casting. Kills chain lightning to nearby enemies.',
             ice: 'Slowing aura reduces enemy speed. +20% resistance to all elements.',
             holy: '+3 HP/sec regeneration. +30% damage when at full health.',
             dark: '+15% lifesteal. Instantly kill enemies below 20% health.',
@@ -18817,26 +22107,28 @@ class GameScene extends Phaser.Scene {
         const targetChargeSlots = targetWizard === this.wizard ? this.chargeSlots : targetWizard.chargeSlots;
         const targetPouch = targetWizard === this.wizard ? this.elementPouch : targetWizard.elementPouch;
         const targetTiers = targetWizard === this.wizard ? this.elementTiers : targetWizard.elementTiers;
-        // Ensure both indices are valid slot indices (0-11 for charge + pouch)
-        if (fromIndex < 0 || toIndex < 0 || fromIndex >= 12 || toIndex >= 12) {
+
+        // Ensure both indices are valid slot indices (use dynamic max)
+        const totalSlots = this.MAX_CHARGE_SLOTS + this.MAX_POUCH_SLOTS;
+        if (fromIndex < 0 || toIndex < 0 || fromIndex >= totalSlots || toIndex >= totalSlots) {
             return;
         }
         // Initialize arrays if they don't exist
         if (!targetChargeSlots) {
-            targetWizard.chargeSlots = new Array(8).fill(null);
+            targetWizard.chargeSlots = new Array(this.MAX_CHARGE_SLOTS).fill(null);
             // Copy existing charges to slots
             for (let i = 0; i < targetCharges.length; i++) {
                 targetWizard.chargeSlots[i] = targetCharges[i];
             }
         }
         if (!targetPouch) {
-            targetWizard.elementPouch = [null, null, null, null];
+            targetWizard.elementPouch = new Array(this.MAX_POUCH_SLOTS).fill(null);
         }
         // Determine which arrays we're working with
-        const fromIsCharge = fromIndex < 8;
-        const toIsCharge = toIndex < 8;
-        const fromPouchIndex = fromIndex - 8;
-        const toPouchIndex = toIndex - 8;
+        const fromIsCharge = fromIndex < this.MAX_CHARGE_SLOTS;
+        const toIsCharge = toIndex < this.MAX_CHARGE_SLOTS;
+        const fromPouchIndex = fromIndex - this.MAX_CHARGE_SLOTS;
+        const toPouchIndex = toIndex - this.MAX_CHARGE_SLOTS;
         // Get the elements
         const elementToMove = fromIsCharge ? targetChargeSlots[fromIndex] : targetPouch[fromPouchIndex];
         if (!elementToMove) {
@@ -18884,17 +22176,17 @@ class GameScene extends Phaser.Scene {
         }
         // Save pouch state
         // Don't save pouch to localStorage
-        // Rebuild charges array from first 4 charge slots only
+        // Rebuild charges array from active charge slots
         if (targetWizard === this.wizard) {
             this.charges = [];
-            for (let i = 0; i < 4 && i < targetChargeSlots.length; i++) {
-                if (targetChargeSlots[i] !== null) {
+            for (let i = 0; i < this.MAX_ACTIVE_SLOTS && i < targetChargeSlots.length; i++) {
+                if (targetChargeSlots[i] !== null && targetChargeSlots[i] !== 'catalyst') {
                     this.charges.push(targetChargeSlots[i]);
                 }
             }
         } else {
             targetWizard.charges = [];
-            for (let i = 0; i < 4 && i < targetChargeSlots.length; i++) {
+            for (let i = 0; i < this.MAX_ACTIVE_SLOTS && i < targetChargeSlots.length; i++) {
                 if (targetChargeSlots[i] !== null) {
                     targetWizard.charges.push(targetChargeSlots[i]);
                 }
@@ -19133,7 +22425,7 @@ class GameScene extends Phaser.Scene {
         // Initialize pouch if needed
         if (!this.elementPouch) {
             // Don't load pouch from localStorage - start fresh each game
-            this.elementPouch = [null, null, null, null];
+            this.elementPouch = new Array(this.MAX_POUCH_SLOTS).fill(null);
         }
         // Get source and target elements
         let sourceElement = null;
@@ -19161,10 +22453,10 @@ class GameScene extends Phaser.Scene {
         }
         // Save pouch state
         // Don't save pouch to localStorage
-        // Rebuild charges array from first 4 chargeSlots
+        // Rebuild charges array from active chargeSlots
         this.charges = [];
-        for (let i = 0; i < 4 && i < this.chargeSlots.length; i++) {
-            if (this.chargeSlots[i] !== null) {
+        for (let i = 0; i < this.MAX_ACTIVE_SLOTS && i < this.chargeSlots.length; i++) {
+            if (this.chargeSlots[i] !== null && this.chargeSlots[i] !== 'catalyst') {
                 this.charges.push(this.chargeSlots[i]);
             }
         }
@@ -19224,18 +22516,18 @@ class GameScene extends Phaser.Scene {
                     onComplete: () => dropText.destroy()
                 });
             }
-            // Rebuild charges array from first 4 slots only
+            // Rebuild charges array from active slots
             if (targetWizard === this.wizard) {
                 this.charges = [];
-                for (let i = 0; i < 4 && i < targetChargeSlots.length; i++) {
-                    if (targetChargeSlots[i] !== null) {
+                for (let i = 0; i < this.MAX_ACTIVE_SLOTS && i < targetChargeSlots.length; i++) {
+                    if (targetChargeSlots[i] !== null && targetChargeSlots[i] !== 'catalyst') {
                         this.charges.push(targetChargeSlots[i]);
                     }
                 }
             } else {
                 targetWizard.charges = [];
-                for (let i = 0; i < 4 && i < targetChargeSlots.length; i++) {
-                    if (targetChargeSlots[i] !== null) {
+                for (let i = 0; i < this.MAX_ACTIVE_SLOTS && i < targetChargeSlots.length; i++) {
+                    if (targetChargeSlots[i] !== null && targetChargeSlots[i] !== 'catalyst') {
                         targetWizard.charges.push(targetChargeSlots[i]);
                     }
                 }
@@ -19417,83 +22709,264 @@ class GameScene extends Phaser.Scene {
     }
     updatePauseMenuCursor() {
         if (!this.pauseMenuCursor || !this.pauseMenu.visible) return;
-        if (this.linkMode) {
-            // In link mode, position cursor over the current link
-            if (this.linkCursorIndex < this.linkButtons.length) {
-                const link = this.linkButtons[this.linkCursorIndex];
-                this.pauseMenuCursor.x = this.pauseMenu.x + link.btn.x;
-                this.pauseMenuCursor.y = this.pauseMenu.y + link.btn.y;
-                // Scale down for link buttons
-                this.pauseMenuCursor.setScale(0.5, 0.3);
-            }
-        } else {
-            // Normal mode cursor positioning
-            this.pauseMenuCursor.setScale(1, 1); // Reset to normal size
-            if (this.pauseMenuCursorIndex < 12) {
-                // Clear previous slot highlights
-                this.pauseChargeSlots.forEach((s, idx) => {
-                    if (idx < 12 && s && s.bg) {
-                        // Reset to normal socket texture
-                        s.bg.setTexture('grey-socket');
-                    }
-                });
-                // Hovering over a charge slot (supports all 12 slots)
-                const slot = this.pauseChargeSlots[this.pauseMenuCursorIndex];
-                if (slot) {
-                    this.pauseMenuCursor.x = this.pauseMenu.x + slot.x;
-                    this.pauseMenuCursor.y = this.pauseMenu.y + slot.y;
-                    // Change to highlighted socket texture
-                    if (slot.bg) {
-                        slot.bg.setTexture('grey-socket-select');
-                    }
-                    // Show element description for controller navigation
-                    let element = null;
-                    let isPouchSlot = false;
-                    if (this.pauseMenuCursorIndex < 8 && this.chargeSlots && this.chargeSlots[this.pauseMenuCursorIndex]) {
-                        element = this.chargeSlots[this.pauseMenuCursorIndex];
-                    } else if (this.pauseMenuCursorIndex >= 8 && this.pauseMenuCursorIndex < 12 && 
-                               this.elementPouch && this.elementPouch[this.pauseMenuCursorIndex - 8]) {
-                        element = this.elementPouch[this.pauseMenuCursorIndex - 8];
-                        isPouchSlot = true;
-                    }
-                    if (element) {
-                        const config = this.elementConfig[element];
-                        const isPassiveSlot = this.pauseMenuCursorIndex >= 4 && this.pauseMenuCursorIndex < 8;
-                        if (config) {
-                            const activeDesc = this.elementDescriptions[element];
-                            const passiveDesc = this.getPassiveDescription(element);
-                            let slotType = isPouchSlot ? ' (Pouch)' : (isPassiveSlot ? ' (Passive)' : ' (Active)');
-                            this.elementDescriptionTitle.setText(config.name + slotType);
-                            this.elementDescriptionText.setText(isPouchSlot ? activeDesc : (isPassiveSlot ? passiveDesc : activeDesc));
-                            this.elementDescriptionTitle.setVisible(true);
-                            this.elementDescriptionText.setVisible(true);
-                            this.elementDescriptionBg.setVisible(true);
-                        }
-                    } else {
-                        // Clear description if no element in slot
-                        this.elementDescriptionTitle.setText('');
-                        this.elementDescriptionText.setText('');
-                    }
+
+        // Cursor positioning
+        const totalNavigableSlots = this.MAX_CHARGE_SLOTS + this.MAX_POUCH_SLOTS;
+        const fusionButtonIndex = totalNavigableSlots;
+
+        this.pauseMenuCursor.setScale(1, 1); // Reset to normal size
+        if (this.pauseMenuCursorIndex < totalNavigableSlots) {
+            // Clear previous slot highlights
+            this.pauseChargeSlots.forEach((s, idx) => {
+                if (idx < totalNavigableSlots && s && s.bg) {
+                    // Reset to normal socket texture
+                    s.bg.setTexture('grey-socket');
                 }
-            } else {
-                // Hovering over a link button
-                const linkIndex = this.pauseMenuCursorIndex - 12; // 12 slots before link buttons
-                if (linkIndex < this.linkButtons.length) {
-                    const link = this.linkButtons[linkIndex];
-                    this.pauseMenuCursor.x = this.pauseMenu.x + link.btn.x;
-                    this.pauseMenuCursor.y = this.pauseMenu.y + link.btn.y;
-                    // Make cursor smaller for link buttons
-                    this.pauseMenuCursor.setSize(35, 25);
+            });
+            // Hovering over a charge slot (supports all slots)
+            const slot = this.pauseChargeSlots[this.pauseMenuCursorIndex];
+            if (slot) {
+                this.pauseMenuCursor.x = this.pauseMenu.x + slot.x;
+                this.pauseMenuCursor.y = this.pauseMenu.y + slot.y;
+                // Change to highlighted socket texture
+                if (slot.bg) {
+                    slot.bg.setTexture('grey-socket-select');
                 }
-                // Clear element description when hovering over link button
-                this.elementDescriptionTitle.setText('');
-                this.elementDescriptionText.setText('');
+                // Show element description for controller navigation
+                let element = null;
+                let isPouchSlot = false;
+                if (this.pauseMenuCursorIndex < this.MAX_CHARGE_SLOTS && this.chargeSlots && this.chargeSlots[this.pauseMenuCursorIndex]) {
+                    element = this.chargeSlots[this.pauseMenuCursorIndex];
+                } else if (this.pauseMenuCursorIndex >= this.MAX_CHARGE_SLOTS && this.pauseMenuCursorIndex < totalNavigableSlots &&
+                           this.elementPouch && this.elementPouch[this.pauseMenuCursorIndex - this.MAX_CHARGE_SLOTS]) {
+                    element = this.elementPouch[this.pauseMenuCursorIndex - this.MAX_CHARGE_SLOTS];
+                    isPouchSlot = true;
+                }
+                if (element) {
+                    const config = this.elementConfig[element];
+                    const isPassiveSlot = this.pauseMenuCursorIndex >= this.MAX_ACTIVE_SLOTS && this.pauseMenuCursorIndex < this.MAX_CHARGE_SLOTS;
+                    if (config) {
+                        const activeDesc = this.elementDescriptions[element];
+                        const passiveDesc = this.getPassiveDescription(element);
+                        let slotType = isPouchSlot ? ' (Pouch)' : (isPassiveSlot ? ' (Passive)' : ' (Active)');
+                        this.elementDescriptionTitle.setText(config.name + slotType);
+                        this.elementDescriptionText.setText(isPouchSlot ? activeDesc : (isPassiveSlot ? passiveDesc : activeDesc));
+                        this.elementDescriptionTitle.setVisible(true);
+                        this.elementDescriptionText.setVisible(true);
+                        this.elementDescriptionBg.setVisible(true);
+                    }
+                } else {
+                    // Clear description if no element in slot
+                    this.elementDescriptionTitle.setText('');
+                    this.elementDescriptionText.setText('');
+                }
             }
+        } else if (this.pauseMenuCursorIndex === fusionButtonIndex) {
+            // Hovering over fusion mode button
+            this.pauseMenuCursor.x = this.pauseMenu.x + this.fusionButtonBg.x;
+            this.pauseMenuCursor.y = this.pauseMenu.y + this.fusionButtonBg.y;
+            this.pauseMenuCursor.setScale(1.5, 0.6); // Scale to fit button
+            // Clear element description
+            this.elementDescriptionTitle.setText('');
+            this.elementDescriptionText.setText('');
+        }
+    }
+    handleUpgradeSelectionInput() {
+        if (!this.upgradeSelectionActive || !this.upgradeCardData) return;
+
+        const numCards = this.upgradeCardData.length;
+
+        // Keyboard navigation (check if keys are initialized)
+        const leftJustPressed = (this.leftKey && Phaser.Input.Keyboard.JustDown(this.leftKey)) || (this.aKey && Phaser.Input.Keyboard.JustDown(this.aKey));
+        const rightJustPressed = (this.rightKey && Phaser.Input.Keyboard.JustDown(this.rightKey)) || (this.dKey && Phaser.Input.Keyboard.JustDown(this.dKey));
+        const enterJustPressed = (this.enterKey && Phaser.Input.Keyboard.JustDown(this.enterKey)) || (this.spaceKey && Phaser.Input.Keyboard.JustDown(this.spaceKey));
+
+        if (leftJustPressed) {
+            this.upgradeSelectionIndex = (this.upgradeSelectionIndex - 1 + numCards) % numCards;
+            this.updateUpgradeSelection();
+        } else if (rightJustPressed) {
+            this.upgradeSelectionIndex = (this.upgradeSelectionIndex + 1) % numCards;
+            this.updateUpgradeSelection();
+        } else if (enterJustPressed) {
+            const selectedCard = this.upgradeCardData[this.upgradeSelectionIndex];
+            if (selectedCard && this.selectUpgrade) {
+                // Get the stored references from the card
+                const card = selectedCard.card;
+                // Need to pass the stored upgradeCards array - we'll need to store this
+                this.selectUpgrade(selectedCard.upgradeKey, this.storedUpgradeCards, this.storedOverlay, this.storedTitle);
+            }
+        }
+
+        // Controller navigation - check all gamepads
+        const gamepads = this.input.gamepad ? this.input.gamepad.gamepads : [];
+        for (let i = 0; i < gamepads.length; i++) {
+            const pad = gamepads[i];
+            if (!pad) continue;
+
+            // D-pad left
+            const leftPressed = pad.buttons[14] && pad.buttons[14].pressed;
+            if (leftPressed && !this.prevUpgradeLeftPressed) {
+                this.upgradeSelectionIndex = (this.upgradeSelectionIndex - 1 + numCards) % numCards;
+                this.updateUpgradeSelection();
+            }
+            this.prevUpgradeLeftPressed = leftPressed;
+
+            // D-pad right
+            const rightPressed = pad.buttons[15] && pad.buttons[15].pressed;
+            if (rightPressed && !this.prevUpgradeRightPressed) {
+                this.upgradeSelectionIndex = (this.upgradeSelectionIndex + 1) % numCards;
+                this.updateUpgradeSelection();
+            }
+            this.prevUpgradeRightPressed = rightPressed;
+
+            // Left stick horizontal
+            if (pad.leftStick.x < -0.5 && !this.upgradeLeftStickPressed) {
+                this.upgradeSelectionIndex = (this.upgradeSelectionIndex - 1 + numCards) % numCards;
+                this.updateUpgradeSelection();
+                this.upgradeLeftStickPressed = true;
+            } else if (pad.leftStick.x > 0.5 && !this.upgradeRightStickPressed) {
+                this.upgradeSelectionIndex = (this.upgradeSelectionIndex + 1) % numCards;
+                this.updateUpgradeSelection();
+                this.upgradeRightStickPressed = true;
+            }
+
+            // Reset stick pressed state when stick returns to center
+            if (Math.abs(pad.leftStick.x) < 0.3) {
+                this.upgradeLeftStickPressed = false;
+                this.upgradeRightStickPressed = false;
+            }
+
+            // A button to select
+            const aPressed = pad.buttons[0] && pad.buttons[0].pressed;
+            if (aPressed && !this.prevUpgradeAPressed) {
+                const selectedCard = this.upgradeCardData[this.upgradeSelectionIndex];
+                if (selectedCard && this.selectUpgrade) {
+                    this.selectUpgrade(selectedCard.upgradeKey, this.storedUpgradeCards, this.storedOverlay, this.storedTitle);
+                }
+            }
+            this.prevUpgradeAPressed = aPressed;
+
+            // Only process first active gamepad
+            break;
         }
     }
     handlePauseMenuController() {
+        // DEPRECATED: Old pause menu is no longer used
+        return; // Early return to disable this function
+
         if (!this.pauseMenu.visible) return;
-        
+
+        // Handle keyboard input for pause menu (only for player 1)
+        if (this.pauseMenuPlayer === 1 || !this.pauseMenuPlayer) {
+            const totalNavigableSlots = this.MAX_CHARGE_SLOTS + this.MAX_POUCH_SLOTS;
+            const fusionButtonIndex = totalNavigableSlots;
+
+            // Arrow key navigation
+            const leftJustPressed = Phaser.Input.Keyboard.JustDown(this.cursors.left);
+            const rightJustPressed = Phaser.Input.Keyboard.JustDown(this.cursors.right);
+
+            if (leftJustPressed) {
+                this.pauseMenuCursorIndex--;
+                if (this.pauseMenuCursorIndex < 0) {
+                    this.pauseMenuCursorIndex = totalNavigableSlots; // wrap to fusion button
+                }
+                this.updatePauseMenuCursor();
+            }
+            if (rightJustPressed) {
+                this.pauseMenuCursorIndex++;
+                if (this.pauseMenuCursorIndex > fusionButtonIndex) {
+                    this.pauseMenuCursorIndex = 0;
+                }
+                this.updatePauseMenuCursor();
+            }
+
+            // Enter/Space to activate fusion button or select slot
+            const confirmJustPressed = Phaser.Input.Keyboard.JustDown(this.spaceKey) ||
+                                      Phaser.Input.Keyboard.JustDown(this.enterKey);
+
+            if (confirmJustPressed) {
+                if (this.pauseMenuCursorIndex === fusionButtonIndex) {
+                    // Toggle fusion mode
+                    this.fusionModeActive = !this.fusionModeActive;
+                    if (this.fusionModeActive) {
+                        this.fusionButtonBg.setFillStyle(0x664488);
+                        this.fusionButtonBg.setStrokeStyle(2, 0xaa88ff);
+                        this.fusionButtonText.setText('Fusion Mode (10 essence)');
+                        this.fusionButtonText.setColor('#ffaa00');
+                    } else {
+                        this.fusionButtonBg.setFillStyle(0x443355);
+                        this.fusionButtonBg.setStrokeStyle(2, 0x8866aa);
+                        this.fusionButtonText.setText('Swap Mode');
+                        this.fusionButtonText.setColor('#ffffff');
+                    }
+                } else if (this.pauseMenuCursorIndex < totalNavigableSlots) {
+                    // Handle slot selection (pick up/place element)
+                    const slotIndex = this.pauseMenuCursorIndex;
+
+                    // Get the correct wizard's inventory
+                    const targetWizard = (this.pauseMenuPlayer === 2 && this.multiplayerEnabled && this.wizard2) ? this.wizard2 : this.wizard;
+                    const targetChargeSlots = targetWizard.chargeSlots || this.chargeSlots;
+                    const targetPouch = targetWizard.elementPouch || this.elementPouch;
+
+                    if (this.pauseMenuSelectedCharge === -1) {
+                        // Pick up charge if there is one
+                        let hasElement = false;
+                        if (slotIndex < this.MAX_CHARGE_SLOTS && targetChargeSlots && targetChargeSlots[slotIndex]) {
+                            hasElement = true;
+                        } else if (slotIndex >= this.MAX_CHARGE_SLOTS && slotIndex < totalNavigableSlots &&
+                                   targetPouch && targetPouch[slotIndex - this.MAX_CHARGE_SLOTS]) {
+                            hasElement = true;
+                        }
+                        if (hasElement) {
+                            this.pauseMenuSelectedCharge = slotIndex;
+                            // Visual feedback
+                            this.pauseChargeSlots[slotIndex].circle.setScale(0.25);
+                            this.pauseChargeSlots[slotIndex].circle.setAlpha(0.5);
+                        }
+                    } else {
+                        // Place charge
+                        if (slotIndex !== this.pauseMenuSelectedCharge) {
+                            // Get source and target elements from correct inventory
+                            let sourceElement = null;
+                            let targetElement = null;
+
+                            if (this.pauseMenuSelectedCharge < this.MAX_CHARGE_SLOTS) {
+                                sourceElement = targetChargeSlots[this.pauseMenuSelectedCharge];
+                            } else {
+                                sourceElement = targetPouch[this.pauseMenuSelectedCharge - this.MAX_CHARGE_SLOTS];
+                            }
+
+                            if (slotIndex < this.MAX_CHARGE_SLOTS) {
+                                targetElement = targetChargeSlots[slotIndex];
+                            } else {
+                                targetElement = targetPouch[slotIndex - this.MAX_CHARGE_SLOTS];
+                            }
+
+                            // Check if we should fuse or swap
+                            if (this.fusionModeActive && sourceElement && targetElement && sourceElement !== targetElement) {
+                                this.attemptFusionInPauseMenu(this.pauseMenuSelectedCharge, slotIndex, sourceElement, targetElement);
+                            } else {
+                                this.swapCharges(this.pauseMenuSelectedCharge, slotIndex);
+                            }
+                        }
+                        // Reset selection
+                        this.pauseChargeSlots[this.pauseMenuSelectedCharge].circle.setScale(0.18);
+                        this.pauseChargeSlots[this.pauseMenuSelectedCharge].circle.setAlpha(1);
+                        this.pauseMenuSelectedCharge = -1;
+                    }
+                }
+            }
+
+            // ESC to cancel selection
+            const escJustPressed = Phaser.Input.Keyboard.JustDown(this.escKey);
+            if (escJustPressed && this.pauseMenuSelectedCharge !== -1) {
+                // Cancel selection
+                this.pauseChargeSlots[this.pauseMenuSelectedCharge].circle.setScale(0.18);
+                this.pauseChargeSlots[this.pauseMenuSelectedCharge].circle.setAlpha(1);
+                this.pauseMenuSelectedCharge = -1;
+            }
+        }
+
         // Get the controller for the player who opened the pause menu
         let controllingGamepad = null;
         if (this.pauseMenuPlayer && this.pauseMenuPlayer <= this.playerCount) {
@@ -19546,79 +23019,100 @@ class GameScene extends Phaser.Scene {
             return;
         }
         // D-pad navigation
+        const totalNavigableSlots = this.MAX_CHARGE_SLOTS + this.MAX_POUCH_SLOTS;
+        const fusionButtonIndex = totalNavigableSlots;
+
         const leftPressed = controllingGamepad.buttons[14] && controllingGamepad.buttons[14].pressed;
         const rightPressed = controllingGamepad.buttons[15] && controllingGamepad.buttons[15].pressed;
         // Check for just pressed (not held)
         if (leftPressed && !this.prevPauseLeftPressed) {
-            if (this.linkMode) {
-                // Navigate between link buttons in link mode
-                this.linkCursorIndex--;
-                if (this.linkCursorIndex < 0) {
-                    this.linkCursorIndex = this.linkButtons.length - 1;
-                }
-            } else {
-                // Normal navigation - navigate through all 12 slots + link buttons
-                this.pauseMenuCursorIndex--;
-                if (this.pauseMenuCursorIndex < 0) {
-                    this.pauseMenuCursorIndex = 12 + this.linkButtons.length - 1; // 12 slots total
-                }
+            // Navigate through all slots + fusion button
+            this.pauseMenuCursorIndex--;
+            if (this.pauseMenuCursorIndex < 0) {
+                this.pauseMenuCursorIndex = fusionButtonIndex; // wrap to fusion button
             }
             this.updatePauseMenuCursor();
         }
         if (rightPressed && !this.prevPauseRightPressed) {
-            if (this.linkMode) {
-                // Navigate between link buttons in link mode
-                this.linkCursorIndex++;
-                if (this.linkCursorIndex >= this.linkButtons.length) {
-                    this.linkCursorIndex = 0;
-                }
-            } else {
-                // Normal navigation - navigate through all 12 slots + link buttons
-                this.pauseMenuCursorIndex++;
-                if (this.pauseMenuCursorIndex >= 12 + this.linkButtons.length) { // 12 slots total
-                    this.pauseMenuCursorIndex = 0;
-                }
+            // Navigate through all slots + fusion button
+            this.pauseMenuCursorIndex++;
+            if (this.pauseMenuCursorIndex > fusionButtonIndex) {
+                this.pauseMenuCursorIndex = 0;
             }
             this.updatePauseMenuCursor();
         }
-        // A button - select/place charge or toggle link
+        // A button - select/place charge or toggle fusion mode
         const aPressed = controllingGamepad.buttons[0] && controllingGamepad.buttons[0].pressed;
         if (aPressed && !this.prevPauseAPressed) {
-            if (this.linkMode) {
-                // Toggle link at current link cursor position
-                if (this.linkCursorIndex < this.linkButtons.length) {
-                    this.toggleLink(this.linkCursorIndex);
-                    this.updatePauseMenuDisplay();
+            // Charge selection/placement
+            if (this.pauseMenuCursorIndex === fusionButtonIndex) {
+                // Toggle fusion mode button
+                this.fusionModeActive = !this.fusionModeActive;
+                if (this.fusionModeActive) {
+                    this.fusionButtonBg.setFillStyle(0x664488);
+                    this.fusionButtonBg.setStrokeStyle(2, 0xaa88ff);
+                    this.fusionButtonText.setText('Fusion Mode (10 essence)');
+                    this.fusionButtonText.setColor('#ffaa00');
+                } else {
+                    this.fusionButtonBg.setFillStyle(0x443355);
+                    this.fusionButtonBg.setStrokeStyle(2, 0x8866aa);
+                    this.fusionButtonText.setText('Swap Mode');
+                    this.fusionButtonText.setColor('#ffffff');
                 }
-            } else {
-                // Normal charge selection/placement
-                if (this.pauseMenuCursorIndex < 12) {
-                    // Charge or pouch slot
-                    const slotIndex = this.pauseMenuCursorIndex;
-                    if (this.pauseMenuSelectedCharge === -1) {
-                        // Pick up charge if there is one
-                        let hasElement = false;
-                        if (slotIndex < 8 && this.chargeSlots && this.chargeSlots[slotIndex]) {
-                            hasElement = true;
-                        } else if (slotIndex >= 8 && slotIndex < 12 && this.elementPouch && this.elementPouch[slotIndex - 8]) {
-                            hasElement = true;
+            } else if (this.pauseMenuCursorIndex < totalNavigableSlots) {
+                // Charge or pouch slot
+                const slotIndex = this.pauseMenuCursorIndex;
+
+                // Get the correct wizard's inventory
+                const targetWizard = (this.pauseMenuPlayer === 2 && this.multiplayerEnabled && this.wizard2) ? this.wizard2 : this.wizard;
+                const targetChargeSlots = targetWizard.chargeSlots || this.chargeSlots;
+                const targetPouch = targetWizard.elementPouch || this.elementPouch;
+
+                if (this.pauseMenuSelectedCharge === -1) {
+                    // Pick up charge if there is one
+                    let hasElement = false;
+                    if (slotIndex < this.MAX_CHARGE_SLOTS && targetChargeSlots && targetChargeSlots[slotIndex]) {
+                        hasElement = true;
+                    } else if (slotIndex >= this.MAX_CHARGE_SLOTS && slotIndex < totalNavigableSlots &&
+                               targetPouch && targetPouch[slotIndex - this.MAX_CHARGE_SLOTS]) {
+                        hasElement = true;
+                    }
+                    if (hasElement) {
+                        this.pauseMenuSelectedCharge = slotIndex;
+                        // Visual feedback
+                        this.pauseChargeSlots[slotIndex].circle.setScale(0.25); // Adjusted for new scale
+                        this.pauseChargeSlots[slotIndex].circle.setAlpha(0.5);
+                    }
+                } else {
+                    // Place charge
+                    if (slotIndex !== this.pauseMenuSelectedCharge) {
+                        // Get source and target elements from correct inventory
+                        let sourceElement = null;
+                        let targetElement = null;
+
+                        if (this.pauseMenuSelectedCharge < this.MAX_CHARGE_SLOTS) {
+                            sourceElement = targetChargeSlots[this.pauseMenuSelectedCharge];
+                        } else {
+                            sourceElement = targetPouch[this.pauseMenuSelectedCharge - this.MAX_CHARGE_SLOTS];
                         }
-                        if (hasElement) {
-                            this.pauseMenuSelectedCharge = slotIndex;
-                            // Visual feedback
-                            this.pauseChargeSlots[slotIndex].circle.setScale(0.25); // Adjusted for new scale
-                            this.pauseChargeSlots[slotIndex].circle.setAlpha(0.5);
+
+                        if (slotIndex < this.MAX_CHARGE_SLOTS) {
+                            targetElement = targetChargeSlots[slotIndex];
+                        } else {
+                            targetElement = targetPouch[slotIndex - this.MAX_CHARGE_SLOTS];
                         }
-                    } else {
-                        // Place charge
-                        if (slotIndex !== this.pauseMenuSelectedCharge) {
+
+                        // Check if we should fuse or swap
+                        if (this.fusionModeActive && sourceElement && targetElement && sourceElement !== targetElement) {
+                            this.attemptFusionInPauseMenu(this.pauseMenuSelectedCharge, slotIndex, sourceElement, targetElement);
+                        } else {
                             this.swapCharges(this.pauseMenuSelectedCharge, slotIndex);
                         }
-                        // Reset selection
-                        this.pauseChargeSlots[this.pauseMenuSelectedCharge].circle.setScale(0.2);
-                        this.pauseChargeSlots[this.pauseMenuSelectedCharge].circle.setAlpha(1);
-                        this.pauseMenuSelectedCharge = -1;
                     }
+                    // Reset selection
+                    this.pauseChargeSlots[this.pauseMenuSelectedCharge].circle.setScale(0.2);
+                    this.pauseChargeSlots[this.pauseMenuSelectedCharge].circle.setAlpha(1);
+                    this.pauseMenuSelectedCharge = -1;
                 }
             }
         }
@@ -19630,13 +23124,13 @@ class GameScene extends Phaser.Scene {
                 this.pauseChargeSlots[this.pauseMenuSelectedCharge].circle.setScale(1);
                 this.pauseChargeSlots[this.pauseMenuSelectedCharge].circle.setAlpha(1);
                 this.pauseMenuSelectedCharge = -1;
-            } else if (this.pauseMenuCursorIndex < 12) {
+            } else if (this.pauseMenuCursorIndex < totalNavigableSlots) {
                 // Check if slot has an element to discard
                 let hasElement = false;
-                if (this.pauseMenuCursorIndex < 8 && this.chargeSlots && this.chargeSlots[this.pauseMenuCursorIndex]) {
+                if (this.pauseMenuCursorIndex < this.MAX_CHARGE_SLOTS && this.chargeSlots && this.chargeSlots[this.pauseMenuCursorIndex]) {
                     hasElement = true;
-                } else if (this.pauseMenuCursorIndex >= 8 && this.pauseMenuCursorIndex < 12 && 
-                           this.elementPouch && this.elementPouch[this.pauseMenuCursorIndex - 8]) {
+                } else if (this.pauseMenuCursorIndex >= this.MAX_CHARGE_SLOTS && this.pauseMenuCursorIndex < totalNavigableSlots &&
+                           this.elementPouch && this.elementPouch[this.pauseMenuCursorIndex - this.MAX_CHARGE_SLOTS]) {
                     hasElement = true;
                 }
                 if (hasElement) {
@@ -19647,13 +23141,13 @@ class GameScene extends Phaser.Scene {
         }
         // X button - discard element
         const xPressed = controllingGamepad.buttons[2] && controllingGamepad.buttons[2].pressed;
-        if (xPressed && !this.prevPauseXPressed && this.pauseMenuCursorIndex < 12) {
+        if (xPressed && !this.prevPauseXPressed && this.pauseMenuCursorIndex < totalNavigableSlots) {
             // Check if slot has an element to discard
             let hasElement = false;
-            if (this.pauseMenuCursorIndex < 8 && this.chargeSlots && this.chargeSlots[this.pauseMenuCursorIndex]) {
+            if (this.pauseMenuCursorIndex < this.MAX_CHARGE_SLOTS && this.chargeSlots && this.chargeSlots[this.pauseMenuCursorIndex]) {
                 hasElement = true;
-            } else if (this.pauseMenuCursorIndex >= 8 && this.pauseMenuCursorIndex < 12 && 
-                       this.elementPouch && this.elementPouch[this.pauseMenuCursorIndex - 8]) {
+            } else if (this.pauseMenuCursorIndex >= this.MAX_CHARGE_SLOTS && this.pauseMenuCursorIndex < totalNavigableSlots &&
+                       this.elementPouch && this.elementPouch[this.pauseMenuCursorIndex - this.MAX_CHARGE_SLOTS]) {
                 hasElement = true;
             }
             if (hasElement) {
@@ -19661,26 +23155,12 @@ class GameScene extends Phaser.Scene {
                 this.showDiscardConfirmation(this.pauseMenuCursorIndex);
             }
         }
-        // Y button - toggle link mode
-        const yPressed = controllingGamepad.buttons[3] && controllingGamepad.buttons[3].pressed;
-        if (yPressed && !this.prevPauseYPressed) {
-            this.linkMode = !this.linkMode;
-            if (this.linkMode) {
-                // Entering link mode - set cursor to first available link
-                this.linkCursorIndex = 0;
-                // Entering link mode
-            } else {
-                // Exiting link mode
-            }
-            this.updatePauseMenuCursor();
-        }
         // Store previous states
         this.prevPauseLeftPressed = leftPressed;
         this.prevPauseRightPressed = rightPressed;
         this.prevPauseAPressed = aPressed;
         this.prevPauseBPressed = bPressed;
         this.prevPauseXPressed = xPressed;
-        this.prevPauseYPressed = yPressed;
     }
     // DUPLICATE FUNCTION REMOVED - Using the one at line 10695 instead
     toggleSpellbook() {
@@ -19844,7 +23324,7 @@ class GameScene extends Phaser.Scene {
                             duration: 300,
                             onComplete: () => {
                                 if (enemy && enemy.body) enemy.body.enable = false;
-                                if (enemy && enemy.active) enemy.destroy();
+                                if (enemy && enemy.active) this.safeDestroyEnemy(enemy);
                             }
                         });
                     }
@@ -19857,7 +23337,7 @@ class GameScene extends Phaser.Scene {
                         duration: 200,
                         onComplete: () => {
                             if (enemy && enemy.body) enemy.body.enable = false;
-                            if (enemy && enemy.active) enemy.destroy();
+                            if (enemy && enemy.active) this.safeDestroyEnemy(enemy);
                         }
                     });
                 }
@@ -20003,7 +23483,7 @@ class GameScene extends Phaser.Scene {
                 // Force cleanup if still somehow active
                 console.warn(`Force destroying stuck enemy: ${enemy.enemyType}`);
                 if (enemy.body) enemy.body.enable = false;
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
             }
         });
     }
@@ -20025,6 +23505,24 @@ class GameScene extends Phaser.Scene {
             this.enemiesKilled++;
             // Clean up any active effects
             this.cleanupEnemyEffects(enemy);
+
+            // Drop fusion catalyst if enemy had high health (20+ HP)
+            // Further reduced: 19% → 10%
+            if (enemy.maxHealth && enemy.maxHealth >= 20 && !enemy.isBoss) {
+                if (Math.random() < 0.10) {
+                    this.dropCatalyst(enemyX, enemyY);
+                    console.log('💎 High-health enemy dropped catalyst (10% chance)');
+                }
+            }
+
+            // Further reduced: 25% → 12% catalyst from elite enemies (30+ HP)
+            if (enemy.maxHealth && enemy.maxHealth >= 30 && !enemy.isBoss) {
+                if (Math.random() < 0.12) {
+                    this.dropCatalyst(enemyX, enemyY);
+                    console.log('💎 ELITE ENEMY: Catalyst drop (12% chance)');
+                }
+            }
+
             // Handle boss death specially
             if (enemy.isBoss) {
                 this.handleBossDeath(enemy);
@@ -20032,10 +23530,8 @@ class GameScene extends Phaser.Scene {
             }
         } catch (error) {
             console.error('Error in killEnemy:', error);
-            // Try to recover by destroying the enemy sprite
-            if (enemy && enemy.destroy) {
-                enemy.destroy();
-            }
+            // Try to recover by safely destroying the enemy sprite
+            this.safeDestroyEnemy(enemy);
             return;
         }
         // Handle imp revival mechanic
@@ -20100,12 +23596,13 @@ class GameScene extends Phaser.Scene {
             // Store death position and element type for orb drop
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
             const elementType = enemy.elementDrop;
 
             // Wait for death animation to complete
             enemy.once('animationcomplete', () => {
-                // Drop element orb
-                this.dropElementOrb(deathX, deathY, elementType);
+                // Elements are now obtained through level ups, not enemy drops
+                // this.dropElementOrb(deathX, deathY, elementType);
 
                 // Small XP drop
                 this.dropJewel(deathX, deathY, 3, 0.075);
@@ -20114,7 +23611,7 @@ class GameScene extends Phaser.Scene {
                 if (enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
             });
 
             return; // Don't continue with normal death
@@ -20128,9 +23625,10 @@ class GameScene extends Phaser.Scene {
             enemy.setVelocity(0, 0); // Stop movement
             // Store generation for splitting
             const generation = enemy.generation || 0;
-            // Store position for use in callback
+            // Store position and health for use in callback
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
             // Wait for animation to complete
             enemy.once('animationcomplete', () => {
                 // Only split if not already too small (max 2 splits)
@@ -20154,28 +23652,8 @@ class GameScene extends Phaser.Scene {
                         onComplete: () => splitEffect.destroy()
                     });
                 } else {
-                    // Final generation drops loot - XP scales with wave
-                    const baseXP = 2;
-                    const waveBonus = Math.floor(this.currentWave / 2); // +1 XP every 2 waves
-                    const xpValue = baseXP + waveBonus;
-                    this.dropJewel(deathX, deathY, xpValue, 0.075);
-                    // Drop essence coins (30% chance)
-                    if (Math.random() < 0.3) {
-                        const coinValue = 1 + Math.floor(this.currentWave / 5); // +1 essence every 5 waves
-                        this.dropCoin(deathX + 15, deathY, coinValue, 1.5);
-                    }
-                    // Item drop chances - now as standalone items
-                    const dropRoll = Math.random();
-                    if (dropRoll < 0.0125) {
-                        // 1.25% chance to drop muffin
-                        this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
-                    } else if (dropRoll < 0.0175) {
-                        // 0.5% chance to drop shield
-                        this.dropStandaloneItem(deathX, deathY + 20, 'butterflyjar');
-                    } else if (dropRoll < 0.0225) {
-                        // 0.5% chance to drop flamethrower
-                        this.dropStandaloneItem(deathX, deathY + 20, 'flamethrower');
-                    }
+                    // Final generation drops loot
+                    this.dropSimpleLoot(deathX, deathY, enemyMaxHealth, 'slime');
                 }
                 // Track enemy kills (enemiesKilled is now a number, not an object)
                 // this.enemiesKilled[enemy.enemyType]++; // This was causing the error
@@ -20183,7 +23661,7 @@ class GameScene extends Phaser.Scene {
                 if (enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
             });
         } else if (enemy.isElite) {
             // Elite enemy death - drops reward chest
@@ -20195,6 +23673,8 @@ class GameScene extends Phaser.Scene {
             // Store position for use in callback
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
+            const enemyType = enemy.enemyType;
             this.tweens.add({
                 targets: enemy,
                 alpha: 0,
@@ -20216,14 +23696,16 @@ class GameScene extends Phaser.Scene {
                         const offsetY = (Math.random() - 0.5) * 30;
                         this.dropCoin(deathX + offsetX, deathY + offsetY, eliteCoinValue, 1.8);
                     }
-                    // Elite enemies always drop a reward chest
-                    this.dropRewardChest(deathX, deathY);
+                    // Elite enemies drop reward chest (except golems - they spawn too frequently)
+                    if (enemyType !== 'golem') {
+                        this.dropRewardChest(deathX, deathY);
+                    }
                     this.enemiesKilled++; // Just increment the total count
                     // Ensure physics body is disabled before destroy
                 if (enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
                 }
             });
         } else if (enemy.enemyType === 'cacodemon') {
@@ -20272,6 +23754,7 @@ class GameScene extends Phaser.Scene {
             // Store position for drops
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
 
             // Stop any current animations
             if (enemy.anims && enemy.anims.isPlaying) {
@@ -20312,7 +23795,7 @@ class GameScene extends Phaser.Scene {
                     enemy.body.enable = false;
                 }
                 if (enemy && enemy.active) {
-                    enemy.destroy();
+                    this.safeDestroyEnemy(enemy);
                 }
             };
 
@@ -20329,7 +23812,7 @@ class GameScene extends Phaser.Scene {
                     completeDeathSequence();
                 } else if (enemy && enemy.active) {
                     if (enemy.body) enemy.body.enable = false;
-                    enemy.destroy();
+                    this.safeDestroyEnemy(enemy);
                 }
             });
         } else if (enemy.enemyType === 'golem') {
@@ -20347,6 +23830,7 @@ class GameScene extends Phaser.Scene {
             // Store position for use in callback
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
             // Wait for animation to complete
             enemy.once('animationcomplete', () => {
                 if (!enemy || !enemy.active) return; // Safety check
@@ -20368,34 +23852,15 @@ class GameScene extends Phaser.Scene {
                         this.dropCoin(deathX + offsetX, deathY + offsetY, coinValue, 2.0);
                     }
                 } else {
-                    // Regular golem drops valuable gems - XP scales with wave
-                    const baseXP = 4;
-                    const waveBonus = Math.floor(this.currentWave / 2); // +1 XP every 2 waves
-                    const xpValue = baseXP + waveBonus;
-                    this.dropJewel(deathX, deathY, xpValue, 0.09);
-                    this.dropJewel(deathX + 20, deathY, xpValue, 0.09);
-                    // Elements no longer drop from enemies
-                    // const element = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
-                    // this.dropItemChest(deathX, deathY + 20, 'element', { element: element });
-                    // Item drop chances - higher for golems, now as standalone items
-                    const dropRoll = Math.random();
-                    if (dropRoll < 0.075) {
-                        // 7.5% chance to drop muffin
-                        this.dropStandaloneItem(deathX, deathY - 20, 'muffin');
-                    } else if (dropRoll < 0.085) {
-                        // 1% chance to drop shield
-                        this.dropStandaloneItem(deathX, deathY - 20, 'butterflyjar');
-                    } else if (dropRoll < 0.095) {
-                        // 1% chance to drop flamethrower
-                        this.dropStandaloneItem(deathX, deathY - 20, 'flamethrower');
-                    }
+                    // Regular golem drops loot
+                    this.dropSimpleLoot(deathX, deathY, enemyMaxHealth, 'golem');
                 }
                 this.enemiesKilled++; // Just increment the total count
                 // Ensure physics body is disabled before destroy
                 if (enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
             });
         } else if (enemy.enemyType === 'brainmole') {
             // Brain mole has custom death animation
@@ -20404,21 +23869,14 @@ class GameScene extends Phaser.Scene {
             // Store position for drops
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
             // Play death animation
             enemy.play('brainmole-dying');
             enemy.once('animationcomplete', () => {
                 if (!enemy || !enemy.active) return;
-                // Drop jewel - XP scales with wave
-                const baseXP = 3;
-                const waveBonus = Math.floor(this.currentWave / 2);
-                const xpValue = baseXP + waveBonus;
-                this.dropJewel(deathX, deathY, xpValue, 0.1);
-                // Item drop chances
-                const dropRoll = Math.random();
-                if (dropRoll < 0.02) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
-                }
-                enemy.destroy();
+                // Drop loot
+                this.dropSimpleLoot(deathX, deathY, enemyMaxHealth, 'brainmole');
+                this.safeDestroyEnemy(enemy);
             });
         } else if (enemy.enemyType === 'intellectdevourer') {
             // Intellect devourer has custom death animation
@@ -20427,23 +23885,14 @@ class GameScene extends Phaser.Scene {
             // Store position for drops
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
             // Play death animation
             enemy.play('intellectdevourer-dying');
             enemy.once('animationcomplete', () => {
                 if (!enemy || !enemy.active) return;
-                // Drop jewel - XP scales with wave (higher value for dangerous enemy)
-                const baseXP = 5;
-                const waveBonus = Math.floor(this.currentWave / 2);
-                const xpValue = baseXP + waveBonus;
-                this.dropJewel(deathX, deathY, xpValue, 0.15);
-                // Higher item drop chance for intellect devourer
-                const dropRoll = Math.random();
-                if (dropRoll < 0.03) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
-                } else if (dropRoll < 0.05) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'chicken');
-                }
-                enemy.destroy();
+                // Drop loot
+                this.dropSimpleLoot(deathX, deathY, enemyMaxHealth, 'intellectdevourer');
+                this.safeDestroyEnemy(enemy);
             });
         } else if (enemy.enemyType === 'giantfly') {
             // Giant fly has custom death animation
@@ -20452,24 +23901,17 @@ class GameScene extends Phaser.Scene {
             // Store position for drops
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
             // Play death animation
             enemy.play('giantfly-dying');
             enemy.once('animationcomplete', () => {
                 if (!enemy || !enemy.active) return;
-                // Drop jewel - XP scales with wave
-                const baseXP = 2;
-                const waveBonus = Math.floor(this.currentWave / 2);
-                const xpValue = baseXP + waveBonus;
-                this.dropJewel(deathX, deathY, xpValue, 0.075);
-                // Item drop chances
-                const dropRoll = Math.random();
-                if (dropRoll < 0.015) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
-                }
+                // Drop loot
+                this.dropSimpleLoot(deathX, deathY, enemyMaxHealth, 'giantfly');
                 if (enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
             });
         } else if (enemy.enemyType === 'squirrel') {
             // Squirrel has custom death animation
@@ -20478,24 +23920,17 @@ class GameScene extends Phaser.Scene {
             // Store position for drops
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
             // Play death animation
             enemy.play('squirrel-dying');
             enemy.once('animationcomplete', () => {
                 if (!enemy || !enemy.active) return;
-                // Drop jewel - XP scales with wave
-                const baseXP = 2;
-                const waveBonus = Math.floor(this.currentWave / 2);
-                const xpValue = baseXP + waveBonus;
-                this.dropJewel(deathX, deathY, xpValue, 0.075);
-                // Item drop chances
-                const dropRoll = Math.random();
-                if (dropRoll < 0.015) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
-                }
+                // Drop loot
+                this.dropSimpleLoot(deathX, deathY, enemyMaxHealth, 'squirrel');
                 if (enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
             });
         } else if (enemy.enemyType === 'redpanda') {
             // Redpanda has custom death animation
@@ -20504,24 +23939,17 @@ class GameScene extends Phaser.Scene {
             // Store position for drops
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
             // Play death animation
             enemy.play('redpanda-dying');
             enemy.once('animationcomplete', () => {
                 if (!enemy || !enemy.active) return;
-                // Drop jewel - XP scales with wave
-                const baseXP = 3;
-                const waveBonus = Math.floor(this.currentWave / 2);
-                const xpValue = baseXP + waveBonus;
-                this.dropJewel(deathX, deathY, xpValue, 0.075);
-                // Item drop chances
-                const dropRoll = Math.random();
-                if (dropRoll < 0.02) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
-                }
+                // Drop loot
+                this.dropSimpleLoot(deathX, deathY, enemyMaxHealth, 'redpanda');
                 if (enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
             });
         } else if (enemy.enemyType === 'cobra') {
             // Cobra has custom death animation
@@ -20530,26 +23958,17 @@ class GameScene extends Phaser.Scene {
             // Store position for drops
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
             // Play death animation
             enemy.play('cobra-dying');
             enemy.once('animationcomplete', () => {
                 if (!enemy || !enemy.active) return;
-                // Drop jewel
-                const baseXP = 3;
-                const waveBonus = Math.floor(this.currentWave / 2);
-                const xpValue = baseXP + waveBonus;
-                this.dropJewel(deathX, deathY, xpValue, 0.075);
-                // Higher chance for poison element drop
-                const dropRoll = Math.random();
-                if (dropRoll < 0.15) {
-                    this.dropElementOrb(deathX, deathY, 'poison');
-                } else if (dropRoll < 0.02) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
-                }
+                // Drop loot
+                this.dropSimpleLoot(deathX, deathY, enemyMaxHealth, 'cobra');
                 if (enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
             });
         } else if (enemy.enemyType === 'cactuse') {
             // Cactuse has custom death animation
@@ -20558,24 +23977,17 @@ class GameScene extends Phaser.Scene {
             // Store position for drops
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
             // Play death animation
             enemy.play('cactuse-dying');
             enemy.once('animationcomplete', () => {
                 if (!enemy || !enemy.active) return;
-                // Drop jewel
-                const baseXP = 4;
-                const waveBonus = Math.floor(this.currentWave / 2);
-                const xpValue = baseXP + waveBonus;
-                this.dropJewel(deathX, deathY, xpValue, 0.075);
-                // Cactuse doesn't drop element orbs, only small chance for muffin
-                const dropRoll = Math.random();
-                if (dropRoll < 0.02) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
-                }
+                // Drop loot
+                this.dropSimpleLoot(deathX, deathY, enemyMaxHealth, 'cactuse');
                 if (enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
             });
         } else if (enemy.enemyType === 'armadillo') {
             // Armadillo has custom death animation
@@ -20587,26 +23999,17 @@ class GameScene extends Phaser.Scene {
             // Store position for drops
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
             // Play death animation
             enemy.play('armadillo-dying');
             enemy.once('animationcomplete', () => {
                 if (!enemy || !enemy.active) return;
-                // Drop jewel - more XP for tougher enemy
-                const baseXP = 5;
-                const waveBonus = Math.floor(this.currentWave / 2);
-                const xpValue = baseXP + waveBonus;
-                this.dropJewel(deathX, deathY, xpValue, 0.1);
-                // Higher item drop chance
-                const dropRoll = Math.random();
-                if (dropRoll < 0.03) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'butterflyjar'); // Shield drop
-                } else if (dropRoll < 0.05) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
-                }
+                // Drop loot
+                this.dropSimpleLoot(deathX, deathY, enemyMaxHealth, 'armadillo');
                 if (enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
             });
         } else if (enemy.enemyType === 'snowy') {
             // Snowy has custom death animation
@@ -20615,24 +24018,17 @@ class GameScene extends Phaser.Scene {
             // Store position for drops
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
             // Play death animation
             enemy.play('snowy-dying');
             enemy.once('animationcomplete', () => {
                 if (!enemy || !enemy.active) return;
-                // Drop jewel - XP scales with wave
-                const baseXP = 3;
-                const waveBonus = Math.floor(this.currentWave / 2);
-                const xpValue = baseXP + waveBonus;
-                this.dropJewel(deathX, deathY, xpValue, 0.1);
-                // Item drop chances
-                const dropRoll = Math.random();
-                if (dropRoll < 0.02) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
-                }
+                // Drop loot
+                this.dropSimpleLoot(deathX, deathY, enemyMaxHealth, 'snowy');
                 if (enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
             });
         } else if (enemy.enemyType === 'elkman') {
             // Elkman has custom death animation
@@ -20641,26 +24037,17 @@ class GameScene extends Phaser.Scene {
             // Store position for drops
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
             // Play death animation
             enemy.play('elkman-dying');
             enemy.once('animationcomplete', () => {
                 if (!enemy || !enemy.active) return;
-                // Drop jewel - Higher XP for warrior enemy
-                const baseXP = 4;
-                const waveBonus = Math.floor(this.currentWave / 2);
-                const xpValue = baseXP + waveBonus;
-                this.dropJewel(deathX, deathY, xpValue, 0.1);
-                // Better item drop chances
-                const dropRoll = Math.random();
-                if (dropRoll < 0.025) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'butterflyjar');
-                } else if (dropRoll < 0.04) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
-                }
+                // Drop loot
+                this.dropSimpleLoot(deathX, deathY, enemyMaxHealth, 'elkman');
                 if (enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
             });
         } else if (enemy.enemyType === 'frost-golem') {
             // Frost golem has custom death animation
@@ -20669,28 +24056,17 @@ class GameScene extends Phaser.Scene {
             // Store position for drops
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
             // Play death animation
             enemy.play('frost-golem-dying');
             enemy.once('animationcomplete', () => {
                 if (!enemy || !enemy.active) return;
-                // Drop jewel - High XP for tanky enemy
-                const baseXP = 6;
-                const waveBonus = Math.floor(this.currentWave / 2);
-                const xpValue = baseXP + waveBonus;
-                this.dropJewel(deathX, deathY, xpValue, 0.1);
-                // Good item drop chances for elite enemy
-                const dropRoll = Math.random();
-                if (dropRoll < 0.03) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'butterflyjar');
-                } else if (dropRoll < 0.05) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'flamethrower');
-                } else if (dropRoll < 0.07) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
-                }
+                // Drop loot
+                this.dropSimpleLoot(deathX, deathY, enemyMaxHealth, 'frost-golem');
                 if (enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
             });
         } else if (enemy.enemyType === 'spiked-slime') {
             // Spiked slime has custom death animation
@@ -20699,24 +24075,17 @@ class GameScene extends Phaser.Scene {
             // Store position for drops
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
             // Play death animation
             enemy.play('spiked-slime-dying');
             enemy.once('animationcomplete', () => {
                 if (!enemy || !enemy.active) return;
-                // Drop jewel - Medium XP for fast enemy
-                const baseXP = 3;
-                const waveBonus = Math.floor(this.currentWave / 2);
-                const xpValue = baseXP + waveBonus;
-                this.dropJewel(deathX, deathY, xpValue, 0.1);
-                // Item drop chances
-                const dropRoll = Math.random();
-                if (dropRoll < 0.02) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
-                }
+                // Drop loot
+                this.dropSimpleLoot(deathX, deathY, enemyMaxHealth, 'spiked-slime');
                 if (enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
             });
         } else if (enemy.enemyType === 'northerner') {
             // Northerner has custom death animation
@@ -20725,26 +24094,17 @@ class GameScene extends Phaser.Scene {
             // Store position for drops
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
             // Play death animation
             enemy.play('northerner-dying');
             enemy.once('animationcomplete', () => {
                 if (!enemy || !enemy.active) return;
-                // Drop jewel - Good XP for warrior enemy
-                const baseXP = 4;
-                const waveBonus = Math.floor(this.currentWave / 2);
-                const xpValue = baseXP + waveBonus;
-                this.dropJewel(deathX, deathY, xpValue, 0.1);
-                // Item drop chances
-                const dropRoll = Math.random();
-                if (dropRoll < 0.025) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'butterflyjar');
-                } else if (dropRoll < 0.04) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
-                }
+                // Drop loot
+                this.dropSimpleLoot(deathX, deathY, enemyMaxHealth, 'northerner');
                 if (enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
             });
         } else if (enemy.enemyType === 'jellyfish') {
             // Jellyfish has custom death animation
@@ -20753,24 +24113,17 @@ class GameScene extends Phaser.Scene {
             // Store position for drops
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
             // Play death animation
             enemy.play('jellyfish-dying');
             enemy.once('animationcomplete', () => {
                 if (!enemy || !enemy.active) return;
-                // Drop jewel - Low XP for basic enemy
-                const baseXP = 2;
-                const waveBonus = Math.floor(this.currentWave / 2);
-                const xpValue = baseXP + waveBonus;
-                this.dropJewel(deathX, deathY, xpValue, 0.1);
-                // Basic item drop chances
-                const dropRoll = Math.random();
-                if (dropRoll < 0.015) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
-                }
+                // Drop loot
+                this.dropSimpleLoot(deathX, deathY, enemyMaxHealth, 'jellyfish');
                 if (enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
             });
         } else if (enemy.enemyType === 'crabby') {
             // Crabby has custom death animation
@@ -20779,24 +24132,17 @@ class GameScene extends Phaser.Scene {
             // Store position for drops
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
             // Play death animation
             enemy.play('crabby-dying');
             enemy.once('animationcomplete', () => {
                 if (!enemy || !enemy.active) return;
-                // Drop jewel - Medium XP for fast enemy
-                const baseXP = 3;
-                const waveBonus = Math.floor(this.currentWave / 2);
-                const xpValue = baseXP + waveBonus;
-                this.dropJewel(deathX, deathY, xpValue, 0.1);
-                // Item drop chances
-                const dropRoll = Math.random();
-                if (dropRoll < 0.02) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
-                }
+                // Drop loot
+                this.dropSimpleLoot(deathX, deathY, enemyMaxHealth, 'crabby');
                 if (enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
             });
         } else if (enemy.enemyType === 'shark') {
             // Shark has custom death animation
@@ -20805,26 +24151,17 @@ class GameScene extends Phaser.Scene {
             // Store position for drops
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
             // Play death animation
             enemy.play('shark-dying');
             enemy.once('animationcomplete', () => {
                 if (!enemy || !enemy.active) return;
-                // Drop jewel - High XP for apex predator
-                const baseXP = 5;
-                const waveBonus = Math.floor(this.currentWave / 2);
-                const xpValue = baseXP + waveBonus;
-                this.dropJewel(deathX, deathY, xpValue, 0.1);
-                // Good item drop chances for predator
-                const dropRoll = Math.random();
-                if (dropRoll < 0.03) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'butterflyjar');
-                } else if (dropRoll < 0.05) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
-                }
+                // Drop loot
+                this.dropSimpleLoot(deathX, deathY, enemyMaxHealth, 'shark');
                 if (enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
             });
         } else if (enemy.enemyType === 'squid') {
             // Squid has custom death animation
@@ -20833,26 +24170,17 @@ class GameScene extends Phaser.Scene {
             // Store position for drops
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
             // Play death animation
             enemy.play('squid-dying');
             enemy.once('animationcomplete', () => {
                 if (!enemy || !enemy.active) return;
-                // Drop jewel - Good XP for smart enemy
-                const baseXP = 4;
-                const waveBonus = Math.floor(this.currentWave / 2);
-                const xpValue = baseXP + waveBonus;
-                this.dropJewel(deathX, deathY, xpValue, 0.1);
-                // Item drop chances
-                const dropRoll = Math.random();
-                if (dropRoll < 0.025) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'butterflyjar');
-                } else if (dropRoll < 0.04) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
-                }
+                // Drop loot
+                this.dropSimpleLoot(deathX, deathY, enemyMaxHealth, 'squid');
                 if (enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
             });
         } else if (enemy.enemyType === 'crablore') {
             // Crablore has custom death animation
@@ -20861,75 +24189,1225 @@ class GameScene extends Phaser.Scene {
             // Store position for drops
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 10;
             // Play death animation
             enemy.play('crablore-dying');
             enemy.once('animationcomplete', () => {
                 if (!enemy || !enemy.active) return;
-                // Drop jewel - High XP for elite enemy
-                const baseXP = 6;
-                const waveBonus = Math.floor(this.currentWave / 2);
-                const xpValue = baseXP + waveBonus;
-                this.dropJewel(deathX, deathY, xpValue, 0.1);
-                // Excellent item drop chances for elite
-                const dropRoll = Math.random();
-                if (dropRoll < 0.035) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'butterflyjar');
-                } else if (dropRoll < 0.055) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'flamethrower');
-                } else if (dropRoll < 0.075) {
-                    this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
-                }
+                // Drop loot
+                this.dropSimpleLoot(deathX, deathY, enemyMaxHealth, 'crablore');
                 if (enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
             });
         } else {
-            // Original tree enemy death animation - spin and fade
+            // Generic enemy death animation - spin and fade
             // Immediately disable physics body to prevent collision errors
             if (enemy.body) {
                 enemy.body.enable = false;
             }
-            // Store position for use in callback
+            // Store position and enemy type for dice roll
             const deathX = enemyX;
             const deathY = enemyY;
+            const enemyTypeForLoot = enemy.enemyType || 'generic';
+            const enemyMaxHealth = enemy.maxHealth || 10;
+
+            // LOOT SYSTEM REDESIGN: Simple XP drop instead of dice rolls
+            // Drop XP jewels immediately on death
+            this.dropSimpleLoot(deathX, deathY, enemyMaxHealth, enemyTypeForLoot);
+
             this.tweens.add({
                 targets: enemy,
                 angle: 360,
                 alpha: 0,
                 duration: 300,
-                onStart: () => {
-                    },
                 onComplete: () => {
-                    // Drop jewel - XP scales with wave
-                    const baseXP = 2;
-                    const waveBonus = Math.floor(this.currentWave / 2); // +1 XP every 2 waves
-                    const xpValue = baseXP + waveBonus;
-                    this.dropJewel(deathX, deathY, xpValue, 0.075);
-                    // Item drop chances - now as standalone items
-                    const dropRoll = Math.random();
-                    if (dropRoll < 0.0125) {
-                        // 1.25% chance to drop muffin
-                        this.dropStandaloneItem(deathX, deathY + 20, 'muffin');
-                    } else if (dropRoll < 0.0175) {
-                        // 0.5% chance to drop shield
-                        this.dropStandaloneItem(deathX, deathY + 20, 'butterflyjar');
-                    } else if (dropRoll < 0.0225) {
-                        // 0.5% chance to drop flamethrower
-                        this.dropStandaloneItem(deathX, deathY + 20, 'flamethrower');
-                    }
-                    // Trees no longer drop elements
-                    // Track enemy kills (enemiesKilled is now a number, not an object)
-                    // this.enemiesKilled[enemy.enemyType]++; // This was causing the error
                     // Ensure physics body is disabled before destroy
-                if (enemy.body) {
-                    enemy.body.enable = false;
-                }
-                enemy.destroy();
+                    if (enemy.body) {
+                        enemy.body.enable = false;
+                    }
+                    this.safeDestroyEnemy(enemy);
                 }
             });
         }
     }
+
+    /**
+     * LOOT SYSTEM REDESIGN: Simple loot drop without dice rolls
+     * Drops XP jewels and coins based on enemy health
+     */
+    dropSimpleLoot(x, y, enemyMaxHealth, enemyType) {
+        // Calculate base XP
+        const baseXP = this.getEnemyBaseXP(enemyType);
+        const waveBonus = Math.floor(this.currentWave / 2);
+        let xpValue = baseXP + waveBonus;
+
+        // Scale XP drops based on enemy health (stronger enemies = more XP)
+        const healthMultiplier = Math.max(1, Math.floor(enemyMaxHealth / 15));
+        xpValue = Math.floor(xpValue * healthMultiplier * 1.25); // +25% XP boost
+
+        // Calculate jewel count based on XP value
+        const jewelCount = Math.min(8, Math.max(1, Math.floor(xpValue / 15)));
+        const xpPerJewel = Math.floor(xpValue / jewelCount);
+
+        // Drop jewels in a burst pattern
+        for (let i = 0; i < jewelCount; i++) {
+            const angle = (Math.PI * 2 * i) / jewelCount;
+            const distance = 20 + Math.random() * 30;
+            const jewelX = x + Math.cos(angle) * distance;
+            const jewelY = y + Math.sin(angle) * distance;
+
+            // Drop jewel with slight delay for visual effect
+            this.time.delayedCall(i * 30, () => {
+                this.dropJewel(jewelX, jewelY, xpPerJewel, 0.1);
+            });
+        }
+
+        // Drop coins based on wave (1-5 coins)
+        const coinCount = Math.min(5, 1 + Math.floor(this.currentWave / 3));
+        const coinValue = 2 + Math.floor(this.currentWave / 2);
+
+        for (let i = 0; i < coinCount; i++) {
+            const angle = Math.PI / 4 + (Math.PI * 2 * i) / coinCount; // Offset from jewels
+            const distance = 30 + Math.random() * 20;
+            const coinX = x + Math.cos(angle) * distance;
+            const coinY = y + Math.sin(angle) * distance;
+
+            this.time.delayedCall(i * 40 + 100, () => {
+                this.dropCoin(coinX, coinY, coinValue, 1.5);
+            });
+        }
+
+        // Show XP gain text
+        this.showFloatingText(x, y - 40, `+${xpValue} XP`, '#00ff00', 18);
+
+        // Play pop sound effect
+        this.sound.play('pop', { volume: 0.3 });
+
+        // 1% chance to drop health muffin
+        if (Math.random() < 0.01) {
+            this.time.delayedCall(150, () => {
+                this.dropStandaloneItem(x, y + 20, 'muffin');
+            });
+        }
+    }
+
+    /**
+     * DEPRECATED: Old dice roll system - kept for reference
+     * Calculate how many dice an enemy should roll based on their max health
+     */
+    calculateDiceCount(enemyMaxHealth) {
+        if (!enemyMaxHealth || enemyMaxHealth <= 0) return 1;
+
+        // Scale: 1 die per 20 health, minimum 1, maximum 6
+        const diceCount = Math.min(6, Math.max(1, Math.floor(enemyMaxHealth / 20)));
+        return diceCount;
+    }
+
+    /**
+     * Spawn multiple dice for an enemy based on their health
+     * Dice are spread horizontally and work with Farkle combo system
+     */
+    createMultipleDiceRolls(x, y, enemyMaxHealth, enemyType, deathX, deathY) {
+        const diceCount = this.calculateDiceCount(enemyMaxHealth);
+
+        // Spread dice horizontally
+        const spacing = 50;
+        const startX = x - ((diceCount - 1) * spacing) / 2;
+
+        for (let i = 0; i < diceCount; i++) {
+            const diceX = startX + (i * spacing);
+            const diceY = y + Phaser.Math.Between(-10, 10); // Slight vertical variance
+
+            this.createDiceRoll(diceX, diceY, (roll, comboResult, consecutiveSixes) => {
+                // Only the first dice drops loot to avoid multiple drops
+                if (i === 0) {
+                    this.getLootFromDiceRoll(roll, comboResult, enemyType, deathX, deathY, consecutiveSixes);
+                }
+            });
+        }
+    }
+
+    /**
+     * Visual dice roll system for enemy loot drops
+     * Creates an animated 6-sided dice that rolls using sprite sheets
+     * @param {number} consecutiveSixes - Number of consecutive 6s rolled so far (for cascading)
+     */
+    createDiceRoll(x, y, callback, consecutiveSixes = 0) {
+        // Create dice sprite with scale (reduced by 50%)
+        const diceScale = 1.25;
+        const dice = this.add.sprite(x, y, 'dice-roll', 0);
+        dice.setScale(diceScale);
+        dice.setDepth(1000);
+
+        // Initialize active dice tracking if it doesn't exist
+        if (!this.activeDice) {
+            this.activeDice = [];
+        }
+
+        // Store dice info for Farkle detection
+        const diceData = {
+            sprite: dice,
+            x: x,
+            y: y,
+            finalRoll: null,
+            resolved: false,
+            consecutiveSixes: consecutiveSixes // Track cascade chain
+        };
+        this.activeDice.push(diceData);
+
+        // Roll the dice with animation
+        let rollCount = 0;
+        const maxRolls = 8;
+        const rollInterval = 120;
+
+        // Bounce animation
+        this.tweens.add({
+            targets: dice,
+            y: y - 35,
+            duration: rollInterval * maxRolls / 2,
+            ease: 'Sine.easeInOut',
+            yoyo: true
+        });
+
+        // Spin and cycle through roll frames
+        const rollTimer = this.time.addEvent({
+            delay: rollInterval,
+            callback: () => {
+                rollCount++;
+
+                // Cycle through roll animation frames (0-5)
+                const randomFrame = Phaser.Math.Between(0, 5);
+                dice.setFrame(randomFrame);
+
+                // Pulse effect
+                this.tweens.add({
+                    targets: dice,
+                    scale: { from: diceScale * 1.15, to: diceScale },
+                    duration: rollInterval * 0.7,
+                    ease: 'Back.easeOut'
+                });
+
+                if (rollCount >= maxRolls) {
+                    rollTimer.destroy();
+
+                    // Final roll result (1-6)
+                    const finalRoll = Phaser.Math.Between(1, 6);
+                    diceData.finalRoll = finalRoll;
+
+                    // Set to static face sprite (dice-faces spritesheet)
+                    dice.setTexture('dice-faces', finalRoll - 1);
+
+                    // Flash effect on final number
+                    this.tweens.add({
+                        targets: dice,
+                        alpha: { from: 1, to: 0.7 },
+                        duration: 150,
+                        repeat: 3,
+                        yoyo: true
+                    });
+
+                    // Check if we rolled a 6 - if so, cascade into another roll!
+                    if (finalRoll === 6) {
+                        const newConsecutiveSixes = consecutiveSixes + 1;
+
+                        // Show cascade indicator
+                        this.showFloatingText(x, y - 50, `${newConsecutiveSixes}x SIX!`, '#ffd700', 20);
+
+                        // Wait briefly, then spawn another dice to the right
+                        this.time.delayedCall(800, () => {
+                            // Fade out this dice
+                            this.tweens.add({
+                                targets: dice,
+                                alpha: 0,
+                                scale: diceScale * 0.5,
+                                duration: 300,
+                                onComplete: () => {
+                                    dice.destroy();
+                                    const index = this.activeDice.indexOf(diceData);
+                                    if (index > -1) {
+                                        this.activeDice.splice(index, 1);
+                                    }
+                                }
+                            });
+
+                            // Spawn new dice offset to the right
+                            const offsetX = x + (newConsecutiveSixes * 40);
+                            this.createDiceRoll(offsetX, y, callback, newConsecutiveSixes);
+                        });
+                    } else {
+                        // Not a 6 - cascade ends, resolve loot
+                        this.time.delayedCall(1000, () => {
+                            // Mark as resolved
+                            diceData.resolved = true;
+
+                            // Check if all nearby dice have finished rolling
+                            const nearbyDice = this.activeDice.filter(d => {
+                                if (!d.resolved || d === diceData) return false;
+                                const dist = Phaser.Math.Distance.Between(x, y, d.x, d.y);
+                                return dist < 150; // Within 150 pixels
+                            });
+
+                            // Add self to nearby dice for combo detection
+                            const allDice = [...nearbyDice, diceData];
+
+                            // Check for Farkle combinations
+                            const comboResult = this.checkFarkleCombo(allDice.map(d => d.finalRoll));
+
+                            // Fade out dice
+                            this.tweens.add({
+                                targets: dice,
+                                alpha: 0,
+                                scale: diceScale * 0.5,
+                                duration: 400,
+                                onComplete: () => {
+                                    dice.destroy();
+                                    // Remove from active dice
+                                    const index = this.activeDice.indexOf(diceData);
+                                    if (index > -1) {
+                                        this.activeDice.splice(index, 1);
+                                    }
+                                    // Pass both the final roll AND the consecutive sixes count
+                                    if (callback) callback(finalRoll, comboResult, consecutiveSixes);
+                                }
+                            });
+                        });
+                    }
+                }
+            },
+            loop: true
+        });
+    }
+
+    /**
+     * Check for Farkle dice combinations (Yahtzee-style scoring)
+     * Returns multiplier based on dice patterns
+     */
+    checkFarkleCombo(rolls) {
+        if (!rolls || rolls.length < 2) {
+            return { multiplier: 1, combo: null };
+        }
+
+        // Count occurrences of each number
+        const counts = [0, 0, 0, 0, 0, 0, 0]; // Index 0 unused, 1-6 for dice values
+        rolls.forEach(roll => {
+            if (roll >= 1 && roll <= 6) {
+                counts[roll]++;
+            }
+        });
+
+        // Check for combinations (best to worst)
+
+        // Six of a kind (extremely rare with small groups)
+        if (counts.some(c => c >= 6)) {
+            return { multiplier: 10, combo: 'Six of a Kind!' };
+        }
+
+        // Five of a kind
+        if (counts.some(c => c >= 5)) {
+            return { multiplier: 7, combo: 'Five of a Kind!' };
+        }
+
+        // Four of a kind
+        if (counts.some(c => c >= 4)) {
+            return { multiplier: 5, combo: 'Four of a Kind!' };
+        }
+
+        // Straight (1,2,3,4,5,6)
+        if (counts.slice(1).every(c => c >= 1)) {
+            return { multiplier: 6, combo: 'Straight!' };
+        }
+
+        // Three pairs
+        const pairs = counts.slice(1).filter(c => c >= 2).length;
+        if (pairs >= 3) {
+            return { multiplier: 4, combo: 'Three Pairs!' };
+        }
+
+        // Two triplets
+        const triplets = counts.slice(1).filter(c => c >= 3).length;
+        if (triplets >= 2) {
+            return { multiplier: 5, combo: 'Two Triplets!' };
+        }
+
+        // Three of a kind
+        if (counts.some(c => c === 3)) {
+            return { multiplier: 3, combo: 'Three of a Kind!' };
+        }
+
+        // Two pairs
+        if (pairs >= 2) {
+            return { multiplier: 2, combo: 'Two Pairs!' };
+        }
+
+        // One pair
+        if (pairs === 1) {
+            return { multiplier: 1.5, combo: 'Pair!' };
+        }
+
+        return { multiplier: 1, combo: null };
+    }
+
+    /**
+     * Loot table based on dice roll (d6 system) with Farkle combo multipliers
+     * Higher rolls and combos = better loot
+     * @param {number} consecutiveSixes - Number of consecutive 6s rolled before final roll
+     */
+    getLootFromDiceRoll(roll, comboResult, enemyType, x, y, consecutiveSixes = 0) {
+        // Base rewards
+        const baseXP = this.getEnemyBaseXP(enemyType);
+        const waveBonus = Math.floor(this.currentWave / 2);
+        let xpValue = baseXP + waveBonus;
+
+        // Apply combo multiplier
+        const multiplier = comboResult.multiplier || 1;
+        xpValue = Math.floor(xpValue * multiplier);
+
+        // Check how many element orbs player currently has (catch-up mechanic)
+        let playerOrbCount = 0;
+        if (this.chargeSlots) {
+            for (let i = 0; i < this.chargeSlots.length; i++) {
+                const element = this.chargeSlots[i];
+                // Count non-null, non-catalyst elements
+                if (element && element !== 'catalyst' && element !== null) {
+                    playerOrbCount++;
+                }
+            }
+        }
+        // Boost drop chance if player has 0-1 orbs
+        const needsHelp = playerOrbCount <= 1;
+
+        // Show combo text if present
+        if (comboResult.combo) {
+            this.showFloatingText(x, y - 70, comboResult.combo, '#ff00ff', 20);
+            // Show multiplier
+            this.showFloatingText(x, y - 90, `x${multiplier} MULTIPLIER!`, '#ffff00', 18);
+        }
+
+        // Handle consecutive 6s cascade rewards
+        if (consecutiveSixes >= 3) {
+            // 3+ consecutive sixes = CATALYST ORB!
+            this.showFloatingText(x, y - 50, 'TRIPLE SIX!!!', '#ff00ff', 26);
+            this.showFloatingText(x, y - 75, 'CATALYST ORB!', '#ffaa00', 24);
+            this.dropJewel(x, y, xpValue * 2.5, 0.15);
+            this.dropCoin(x + 20, y, 8 + Math.floor(this.currentWave / 2), 2.5);
+
+            // Drop catalyst orb - these are rare fusion catalysts
+            this.dropCatalyst(x, y + 20);
+
+        } else if (consecutiveSixes === 2) {
+            // 2 consecutive sixes = ELEMENT ORB!
+            this.showFloatingText(x, y - 50, 'DOUBLE SIX!!', '#ffd700', 24);
+            this.showFloatingText(x, y - 75, 'ELEMENT ORB!', '#00ff00', 22);
+            this.dropJewel(x, y, xpValue * 2.0, 0.13);
+            this.dropCoin(x + 20, y, 6 + Math.floor(this.currentWave / 3), 2.2);
+
+            // Elements now obtained through level ups only
+            // const primaryElements = ['fire', 'water', 'lightning', 'earth', 'arcane'];
+            // const randomElement = primaryElements[Math.floor(Math.random() * primaryElements.length)];
+            // this.dropElementOrb(x, y + 20, randomElement);
+
+        } else if (roll === 5) {
+            // Very good roll
+            this.showFloatingText(x, y - 50, 'Great!', '#00ff00', 18);
+            this.dropJewel(x, y, xpValue * 1.25, 0.1);
+            this.dropCoin(x + 15, y, 3 + Math.floor(this.currentWave / 3), 1.7);
+
+            // Small chance to drop mind orb (keep - expands active slots)
+            if (Math.random() < 0.05) {
+                this.dropElementOrb(x, y + 20, 'mind');
+            } else if (multiplier >= 4) {
+                // Elements now from level ups only
+                // this.dropElementOrb(x, y + 20, this.getRandomElement());
+                // Further reduced: 8% → 4%
+                if (Math.random() < 0.04) {
+                    this.dropCatalyst(x + 20, y + 20);
+                    console.log('💎 High multiplier catalyst drop (4% chance)');
+                }
+            } else if (needsHelp && Math.random() < 0.6) {
+                // Elements now from level ups only
+                // this.dropElementOrb(x, y + 20, this.getRandomElement());
+            } else if (Math.random() < 0.15) {
+                this.dropStandaloneItem(x, y + 20, 'muffin');
+            } else if (Math.random() < 0.02) {
+                // Further reduced: 4% → 2%
+                this.dropCatalyst(x, y + 20);
+                console.log('💎 Roll 5 catalyst drop (2% chance)');
+            }
+        } else if (roll === 4) {
+            // Good roll
+            this.showFloatingText(x, y - 50, 'Good!', '#00ffff', 16);
+            this.dropJewel(x, y, xpValue, 0.09);
+            this.dropCoin(x + 15, y, 2 + Math.floor(this.currentWave / 4), 1.5);
+
+            if (needsHelp && Math.random() < 0.4) {
+                // Elements now from level ups only
+                // this.dropElementOrb(x, y + 20, this.getRandomElement());
+            } else if (multiplier >= 3 && Math.random() < 0.2) {
+                this.dropStandaloneItem(x, y + 20, 'muffin');
+            }
+        } else if (roll === 3) {
+            // Average roll
+            this.dropJewel(x, y, xpValue, 0.08);
+            if (needsHelp && Math.random() < 0.25) {
+                // Elements now from level ups only
+                // this.dropElementOrb(x, y + 20, this.getRandomElement());
+            } else if (Math.random() < 0.5 || multiplier >= 2) {
+                this.dropCoin(x + 15, y, 1 + Math.floor(this.currentWave / 5), 1.3);
+            }
+        } else if (roll === 2) {
+            // Below average
+            this.showFloatingText(x, y - 50, 'Low...', '#888888', 14);
+            this.dropJewel(x, y, Math.max(1, Math.floor(xpValue * 0.8)), 0.07);
+
+            if (needsHelp && Math.random() < 0.15) {
+                // Elements now from level ups only
+                // this.dropElementOrb(x, y + 20, this.getRandomElement());
+            } else if (multiplier >= 2) {
+                // Combo saves bad roll
+                this.dropCoin(x + 15, y, 1, 1.2);
+            }
+        } else {
+            // Worst roll (1)
+            this.showFloatingText(x, y - 50, 'Snake Eyes!', '#ff4444', 16);
+
+            if (needsHelp && Math.random() < 0.1) {
+                // Elements now from level ups only
+                // this.dropElementOrb(x, y + 20, this.getRandomElement());
+            } else if (multiplier >= 3) {
+                // Good combo saves worst roll
+                this.dropJewel(x, y, xpValue, 0.06);
+                this.dropCoin(x + 15, y, 1, 1.2);
+            } else if (multiplier >= 2) {
+                // Decent combo gives minimal loot
+                this.dropJewel(x, y, Math.max(1, Math.floor(xpValue * 0.5)), 0.05);
+            } else {
+                // Really bad luck - very minimal loot
+                this.dropJewel(x, y, 1, 0.05);
+            }
+        }
+
+        // Bonus loot for epic combos regardless of individual roll
+        if (multiplier >= 7) {
+            // Five/Six of a kind bonus
+            this.showFloatingText(x, y - 110, 'LEGENDARY COMBO!', '#ff00ff', 24);
+            this.dropRewardChest(x + 30, y + 20);
+            this.dropCoin(x - 30, y, 10 + Math.floor(this.currentWave / 2), 2.5);
+
+            // 15% chance to drop mind orb on legendary combo
+            if (Math.random() < 0.15) {
+                this.dropElementOrb(x, y - 20, 'mind');
+            }
+        } else if (multiplier >= 5) {
+            // Four of a kind / Two triplets bonus
+            this.showFloatingText(x, y - 110, 'EPIC COMBO!', '#ffd700', 22);
+            this.dropCoin(x + 25, y, 7 + Math.floor(this.currentWave / 3), 2.2);
+
+            // 10% chance to drop mind orb on epic combo (keep - expands active slots)
+            if (Math.random() < 0.1) {
+                this.dropElementOrb(x - 25, y + 20, 'mind');
+            }
+            // Elements now from level ups only
+            // else {
+            //     const epicOrbChance = needsHelp ? 0.8 : 0.6;
+            //     if (Math.random() < epicOrbChance) {
+            //         this.dropElementOrb(x - 25, y + 20, this.getRandomElement());
+            //     }
+            // }
+        } else if (multiplier >= 3) {
+            // Three of a kind / Three pairs bonus
+            this.showFloatingText(x, y - 110, 'RARE COMBO!', '#00ff00', 20);
+            this.dropCoin(x + 20, y, 4 + Math.floor(this.currentWave / 4), 1.9);
+
+            // Elements now from level ups only
+            // if (needsHelp && Math.random() < 0.5) {
+            //     this.dropElementOrb(x - 20, y + 20, this.getRandomElement());
+            // }
+        }
+    }
+
+    /**
+     * Get base XP value for enemy type
+     */
+    getEnemyBaseXP(enemyType) {
+        const xpTable = {
+            'slime': 2,
+            'tree': 2,
+            'bat': 2,
+            'mushroom': 2,
+            'giantfly': 2,
+            'squirrel': 2,
+            'redpanda': 3,
+            'brainmole': 3,
+            'snowy': 3,
+            'golem': 4,
+            'elkman': 4,
+            'intellectdevourer': 5,
+            'cacodemon': 5,
+            'frost-golem': 6,
+            'spiked-slime': 3
+        };
+        return xpTable[enemyType] || 2;
+    }
+
+    /**
+     * Get a random element for drops
+     */
+    getRandomElement() {
+        const elements = ['fire', 'water', 'earth', 'air', 'ice', 'lightning', 'arcane', 'holy', 'nature', 'poison'];
+        return elements[Math.floor(Math.random() * elements.length)];
+    }
+
+    /**
+     * Show floating combat text
+     */
+    showFloatingText(x, y, text, color, size) {
+        const floatText = this.add.text(x, y, text, {
+            fontSize: `${size}px`,
+            fontFamily: 'Arial',
+            color: color,
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+        floatText.setOrigin(0.5, 0.5);
+        floatText.setDepth(999);
+
+        this.tweens.add({
+            targets: floatText,
+            y: y - 60,
+            alpha: { from: 1, to: 0 },
+            duration: 1500,
+            ease: 'Cubic.easeOut',
+            onComplete: () => floatText.destroy()
+        });
+    }
+
+    /**
+     * Passive upgrade database with definitions
+     */
+    getPassiveUpgradeDefinitions() {
+        return {
+            revive: {
+                name: 'Phoenix Heart',
+                description: 'Revive once with 25% health on death',
+                icon: '🔥',
+                category: 'defensive',
+                effect: (stacks) => stacks === 1 ? `Active (${stacks} revive available)` : `Active (${stacks} revives available)`
+            },
+            spellArea: {
+                name: 'Magnitude',
+                description: 'Increase projectile size by 10%',
+                icon: '🔵',
+                category: 'offensive',
+                effect: (stacks) => `+${stacks * 10}% spell area`
+            },
+            moveSpeed: {
+                name: 'Swift Stride',
+                description: 'Increase movement speed by 25%',
+                icon: '👟',
+                category: 'utility',
+                effect: (stacks) => `+${stacks * 25}% speed`
+            },
+            maxHealth: {
+                name: 'Vitality Surge',
+                description: 'Increase maximum HP by 50%',
+                icon: '❤️',
+                category: 'defensive',
+                effect: (stacks) => `+${stacks * 50}% max HP`
+            },
+            damage: {
+                name: 'Power Amplification',
+                description: 'Increase spell damage by 20%',
+                icon: '⚔️',
+                category: 'offensive',
+                effect: (stacks) => `+${stacks * 20}% damage`
+            },
+            slotIncrease: {
+                name: 'Extra Slot',
+                description: 'Add 1 active charge slot to radial menu',
+                icon: '➕',
+                category: 'special',
+                effect: (stacks) => `+${stacks} active slot${stacks > 1 ? 's' : ''}`
+            },
+            passiveSlotIncrease: {
+                name: 'Passive Expansion',
+                description: 'Add 1 passive slot for chess pieces/modifiers',
+                icon: '🎴',
+                category: 'special',
+                effect: (stacks) => `+${stacks} passive slot${stacks > 1 ? 's' : ''}`
+            },
+            element: {
+                name: 'Element Gift',
+                description: 'Choose a new primary element',
+                icon: '✨',
+                category: 'special',
+                effect: () => 'Select from 3 random elements'
+            }
+        };
+    }
+
+    /**
+     * Show passive upgrade selection UI (3 random choices)
+     */
+    showPassiveUpgradeSelection() {
+        // Pause game
+        this.pauseGame('upgrade-selection');
+
+        // Always include "element" as one option, get 2 random others
+        const upgradeOptions = ['element'];
+        const otherUpgrades = this.getRandomUpgrades(2, ['element']); // Get 2 random non-element upgrades
+        upgradeOptions.push(...otherUpgrades);
+
+        const definitions = this.getPassiveUpgradeDefinitions();
+
+        // Initialize selection state
+        this.upgradeSelectionIndex = 1; // Start with middle card selected
+        this.upgradeSelectionActive = true;
+
+        // Create dark overlay
+        const overlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.8);
+        overlay.setDepth(2000);
+        overlay.setScrollFactor(0);
+
+        // Title
+        const title = this.add.text(400, 150, 'LEVEL UP - CHOOSE UPGRADE', {
+            fontSize: '32px',
+            fontFamily: 'Arial',
+            color: '#ffd700',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        title.setOrigin(0.5);
+        title.setDepth(2001);
+        title.setScrollFactor(0);
+
+        // Create upgrade cards
+        const cardWidth = 200;
+        const cardHeight = 280;
+        const cardSpacing = 220;
+        const startX = 400 - cardSpacing;
+
+        const upgradeCards = [];
+        this.upgradeCardData = []; // Store card data for keyboard/controller selection
+
+        upgradeOptions.forEach((upgradeKey, index) => {
+            const def = definitions[upgradeKey];
+            if (!def) return;
+
+            const cardX = startX + index * cardSpacing;
+            const cardY = 320;
+
+            // Card background
+            const card = this.add.rectangle(cardX, cardY, cardWidth, cardHeight, 0x2a2a44);
+            card.setDepth(2001);
+            card.setScrollFactor(0);
+            card.setStrokeStyle(3, 0x888888);
+            card.setInteractive({ useHandCursor: true });
+
+            // Icon
+            const icon = this.add.text(cardX, cardY - 80, def.icon, {
+                fontSize: '48px'
+            });
+            icon.setOrigin(0.5);
+            icon.setDepth(2002);
+            icon.setScrollFactor(0);
+
+            // Name
+            const name = this.add.text(cardX, cardY - 30, def.name, {
+                fontSize: '20px',
+                fontFamily: 'Arial',
+                color: '#ffffff',
+                fontStyle: 'bold'
+            });
+            name.setOrigin(0.5);
+            name.setDepth(2002);
+            name.setScrollFactor(0);
+
+            // Description
+            const desc = this.add.text(cardX, cardY + 10, def.description, {
+                fontSize: '14px',
+                fontFamily: 'Arial',
+                color: '#cccccc',
+                wordWrap: { width: cardWidth - 20 },
+                align: 'center'
+            });
+            desc.setOrigin(0.5);
+            desc.setDepth(2002);
+            desc.setScrollFactor(0);
+
+            // Current stacks
+            const currentStacks = this.passiveUpgrades[upgradeKey] || 0;
+            const stackText = this.add.text(cardX, cardY + 60, def.effect(currentStacks + 1), {
+                fontSize: '16px',
+                fontFamily: 'Arial',
+                color: '#00ff00',
+                fontStyle: 'bold'
+            });
+            stackText.setOrigin(0.5);
+            stackText.setDepth(2002);
+            stackText.setScrollFactor(0);
+
+            // Hover effect
+            card.on('pointerover', () => {
+                this.upgradeSelectionIndex = index;
+                this.updateUpgradeSelection();
+            });
+
+            card.on('pointerout', () => {
+                // Keep selection visible
+            });
+
+            // Click handler
+            card.on('pointerdown', () => {
+                this.selectUpgrade(upgradeKey, upgradeCards, overlay, title);
+            });
+
+            // Store elements for cleanup
+            upgradeCards.push([card, icon, name, desc, stackText]);
+
+            // Store card data for keyboard/controller selection
+            this.upgradeCardData.push({
+                card: card,
+                upgradeKey: upgradeKey,
+                index: index
+            });
+        });
+
+        // Function to update visual selection
+        this.updateUpgradeSelection = () => {
+            upgradeCards.forEach((elements, i) => {
+                const [card] = elements;
+                if (i === this.upgradeSelectionIndex) {
+                    card.setStrokeStyle(4, 0xffd700);
+                    card.setFillStyle(0x3a3a54);
+                } else {
+                    card.setStrokeStyle(3, 0x888888);
+                    card.setFillStyle(0x2a2a44);
+                }
+            });
+        };
+
+        // Store references for keyboard/controller selection
+        this.storedUpgradeCards = upgradeCards;
+        this.storedOverlay = overlay;
+        this.storedTitle = title;
+
+        // Function to select an upgrade
+        this.selectUpgrade = (upgradeKey, cards, overlayObj, titleObj) => {
+            if (!this.upgradeSelectionActive) return;
+
+            this.upgradeSelectionActive = false;
+
+            // Special handling for element selection
+            if (upgradeKey === 'element') {
+                // Clean up existing UI
+                cards.forEach(elements => {
+                    elements.forEach(el => el.destroy());
+                });
+                titleObj.destroy();
+                // Keep overlay for element selection screen
+
+                // Show element selection screen
+                this.showElementSelectionScreen(overlayObj);
+                return;
+            }
+
+            // Apply upgrade
+            this.applyPassiveUpgrade(upgradeKey);
+
+            // Clean up UI
+            cards.forEach(elements => {
+                elements.forEach(el => el.destroy());
+            });
+            overlayObj.destroy();
+            titleObj.destroy();
+
+            // Clear references
+            this.upgradeCardData = null;
+            this.updateUpgradeSelection = null;
+            this.selectUpgrade = null;
+            this.storedUpgradeCards = null;
+            this.storedOverlay = null;
+            this.storedTitle = null;
+
+            // Resume game
+            this.resumeGame('upgrade-selection');
+        };
+
+        // Set initial selection highlight
+        this.updateUpgradeSelection();
+    }
+
+    /**
+     * Get random upgrades (weighted to avoid too many repeats)
+     * @param {number} count - Number of upgrades to select
+     * @param {string[]} exclude - Upgrade keys to exclude from selection
+     */
+    getRandomUpgrades(count, exclude = []) {
+        const definitions = this.getPassiveUpgradeDefinitions();
+        const allUpgrades = Object.keys(definitions).filter(key => !exclude.includes(key));
+        const selected = [];
+
+        // Create weighted list (recent picks have lower weight)
+        const weights = allUpgrades.map(key => {
+            const timesOffered = this.upgradeHistory.filter(h => h === key).length;
+            return Math.max(1, 10 - timesOffered * 2); // Reduce weight for repeated picks
+        });
+
+        for (let i = 0; i < count; i++) {
+            // Weighted random selection
+            const totalWeight = weights.reduce((a, b) => a + b, 0);
+            let random = Math.random() * totalWeight;
+            let selectedIndex = 0;
+
+            for (let j = 0; j < weights.length; j++) {
+                random -= weights[j];
+                if (random <= 0) {
+                    selectedIndex = j;
+                    break;
+                }
+            }
+
+            const selectedKey = allUpgrades[selectedIndex];
+            selected.push(selectedKey);
+
+            // Remove from pool to avoid duplicates in this selection
+            allUpgrades.splice(selectedIndex, 1);
+            weights.splice(selectedIndex, 1);
+        }
+
+        // Track history
+        selected.forEach(key => this.upgradeHistory.push(key));
+
+        // Keep history manageable
+        if (this.upgradeHistory.length > 30) {
+            this.upgradeHistory = this.upgradeHistory.slice(-20);
+        }
+
+        return selected;
+    }
+
+    /**
+     * Show element selection screen (3 random elements to choose from)
+     */
+    showElementSelectionScreen(overlay) {
+        // PROGRESSION IMPROVEMENT: 40% chance to offer equipped element duplicates
+        const primaryElements = ['fire', 'water', 'earth', 'air', 'lightning', 'arcane'];
+        const elementChoices = [];
+
+        // Get currently equipped elements (not at max tier)
+        const equippedElements = [];
+        if (this.wizard && this.wizard.chargeSlots) {
+            this.wizard.chargeSlots.forEach((slot, index) => {
+                if (slot && slot.element) {
+                    const tier = this.getElementTier(slot.element, index);
+                    if (tier < 5) { // Don't offer if already max tier
+                        equippedElements.push(slot.element);
+                    }
+                }
+            });
+        }
+
+        // Generate 3 element choices
+        for (let i = 0; i < 3; i++) {
+            // 40% chance to offer duplicate if player has equipped elements
+            if (equippedElements.length > 0 && Math.random() < 0.40) {
+                const duplicate = equippedElements[Math.floor(Math.random() * equippedElements.length)];
+                elementChoices.push(duplicate);
+                console.log('🔄 DUPLICATE SYSTEM: Offering', duplicate, 'for tier-up');
+            } else {
+                // Otherwise offer random primary element
+                const shuffled = [...primaryElements].sort(() => Math.random() - 0.5);
+                let chosen = shuffled[0];
+                // Avoid exact duplicates in the 3 choices
+                for (let j = 0; j < shuffled.length; j++) {
+                    if (!elementChoices.includes(shuffled[j])) {
+                        chosen = shuffled[j];
+                        break;
+                    }
+                }
+                elementChoices.push(chosen);
+            }
+        }
+
+        // Create title
+        const title = this.add.text(400, 150, 'CHOOSE ELEMENT', {
+            fontSize: '32px',
+            fontFamily: 'Arial',
+            color: '#ffd700',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        title.setOrigin(0.5);
+        title.setDepth(2001);
+        title.setScrollFactor(0);
+
+        // Create element cards
+        const cardWidth = 200;
+        const cardHeight = 280;
+        const cardSpacing = 220;
+        const startX = 400 - cardSpacing;
+
+        const elementCards = [];
+        let selectedElementIndex = 1; // Start with middle card
+
+        elementChoices.forEach((element, index) => {
+            const config = this.elementConfig[element];
+            if (!config) return;
+
+            const cardX = startX + index * cardSpacing;
+            const cardY = 320;
+
+            // Card background
+            const card = this.add.rectangle(cardX, cardY, cardWidth, cardHeight, 0x2a2a44);
+            card.setDepth(2001);
+            card.setScrollFactor(0);
+            card.setStrokeStyle(3, 0x888888);
+            card.setInteractive({ useHandCursor: true });
+
+            // Element sprite
+            const sprite = this.add.sprite(cardX, cardY - 40, config.sheet, config.frame);
+            sprite.setScale(0.4);
+            sprite.setDepth(2002);
+            sprite.setScrollFactor(0);
+
+            // Element name
+            const name = this.add.text(cardX, cardY + 40, config.name.toUpperCase(), {
+                fontSize: '20px',
+                fontFamily: 'Arial',
+                color: '#ffffff',
+                fontStyle: 'bold'
+            });
+            name.setOrigin(0.5);
+            name.setDepth(2002);
+            name.setScrollFactor(0);
+
+            // Element symbol
+            const symbol = this.add.text(cardX, cardY - 100, config.symbol, {
+                fontSize: '48px'
+            });
+            symbol.setOrigin(0.5);
+            symbol.setDepth(2002);
+            symbol.setScrollFactor(0);
+
+            // Hover effect
+            card.on('pointerover', () => {
+                selectedElementIndex = index;
+                updateElementSelection();
+            });
+
+            // Click handler
+            card.on('pointerdown', () => {
+                selectElement(element, overlay, title, elementCards);
+            });
+
+            elementCards.push({ card, sprite, name, symbol, element });
+        });
+
+        // Function to update visual selection
+        const updateElementSelection = () => {
+            elementCards.forEach((cardData, i) => {
+                if (i === selectedElementIndex) {
+                    cardData.card.setStrokeStyle(4, 0xffd700);
+                    cardData.card.setFillStyle(0x3a3a54);
+                } else {
+                    cardData.card.setStrokeStyle(3, 0x888888);
+                    cardData.card.setFillStyle(0x2a2a44);
+                }
+            });
+        };
+
+        // Function to select element
+        const selectElement = (element, overlayObj, titleObj, cards) => {
+            console.log('Element selected:', element);
+
+            // Add element to radial menu using existing method
+            if (this.radialChargeMenu) {
+                this.radialChargeMenu.addElement(element);
+            }
+
+            // Visual feedback
+            const feedbackText = this.add.text(400, 500, `${this.elementConfig[element].name.toUpperCase()} OBTAINED!`, {
+                fontSize: '24px',
+                fontFamily: 'Arial',
+                color: '#00ff00',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 4
+            });
+            feedbackText.setOrigin(0.5);
+            feedbackText.setDepth(2003);
+            feedbackText.setScrollFactor(0);
+
+            // Cleanup after delay
+            this.time.delayedCall(1000, () => {
+                // Clean up UI
+                cards.forEach(cardData => {
+                    cardData.card.destroy();
+                    cardData.sprite.destroy();
+                    cardData.name.destroy();
+                    cardData.symbol.destroy();
+                });
+                overlayObj.destroy();
+                titleObj.destroy();
+                feedbackText.destroy();
+
+                // Resume game
+                this.resumeGame('upgrade-selection');
+            });
+        };
+
+        // Set initial selection highlight
+        updateElementSelection();
+    }
+
+    /**
+     * Apply passive upgrade effect
+     */
+    applyPassiveUpgrade(upgradeKey) {
+        this.passiveUpgrades[upgradeKey]++;
+
+        const definitions = this.getPassiveUpgradeDefinitions();
+        const def = definitions[upgradeKey];
+
+        // Show upgrade notification
+        const notif = this.add.text(400, 250, `${def.icon} ${def.name} ${def.effect(this.passiveUpgrades[upgradeKey])}`, {
+            fontSize: '24px',
+            fontFamily: 'Arial',
+            color: '#00ff00',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        notif.setOrigin(0.5);
+        notif.setDepth(2000);
+        notif.setScrollFactor(0);
+
+        this.tweens.add({
+            targets: notif,
+            y: 200,
+            alpha: 0,
+            duration: 2000,
+            onComplete: () => notif.destroy()
+        });
+
+        // Apply immediate effects
+        switch (upgradeKey) {
+            case 'revive':
+                // Revives are tracked and consumed on death
+                break;
+
+            case 'spellArea':
+                // Spell area is applied to projectile scale when created
+                break;
+
+            case 'moveSpeed':
+                // Speed is applied in update loop via multiplier
+                break;
+
+            case 'maxHealth':
+                // Increase max HP by 50% of current max
+                const healthIncrease = Math.floor(this.maxHealth * 0.5);
+                this.maxHealth += healthIncrease;
+                this.playerHealth += healthIncrease; // Also heal by that amount
+                this.updateHealthBar();
+                break;
+
+            case 'damage':
+                // Damage is applied as multiplier when dealing damage
+                break;
+
+            case 'slotIncrease':
+                // Add 1 charge slot to wizard's charge slots array
+                if (!this.wizard.chargeSlots) {
+                    this.wizard.chargeSlots = [];
+                }
+                this.wizard.chargeSlots.push(null);
+
+                // Also add to scene's chargeSlots if it exists
+                if (this.chargeSlots && this.chargeSlots === this.wizard.chargeSlots) {
+                    // They're the same array, already updated
+                } else if (this.chargeSlots) {
+                    this.chargeSlots.push(null);
+                }
+
+                // Update radial menu UI
+                if (this.radialChargeMenu && this.radialChargeMenu.refresh) {
+                    this.radialChargeMenu.refresh();
+                }
+
+                // Show feedback
+                const newSlotCount = this.wizard.chargeSlots.length;
+                const slotNotif = this.add.text(400, 200, `+1 Charge Slot! (${newSlotCount} total)`, {
+                    fontSize: '20px',
+                    fontFamily: 'Arial',
+                    color: '#00ffff',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 3
+                });
+                slotNotif.setOrigin(0.5);
+                slotNotif.setDepth(2001);
+                slotNotif.setScrollFactor(0);
+
+                this.tweens.add({
+                    targets: slotNotif,
+                    y: 150,
+                    alpha: 0,
+                    duration: 2000,
+                    onComplete: () => slotNotif.destroy()
+                });
+                break;
+
+            case 'passiveSlotIncrease':
+                // Add 1 passive slot to wizard's charge slots array
+                // Passive slots come after active slots, so just push to end
+                if (!this.wizard.chargeSlots) {
+                    this.wizard.chargeSlots = [];
+                }
+                this.wizard.chargeSlots.push(null);
+
+                // Also add to scene's chargeSlots if it exists
+                if (this.chargeSlots && this.chargeSlots === this.wizard.chargeSlots) {
+                    // They're the same array, already updated
+                } else if (this.chargeSlots) {
+                    this.chargeSlots.push(null);
+                }
+
+                // Update radial menu UI to show new passive slot in outer ring
+                if (this.radialChargeMenu && this.radialChargeMenu.refresh) {
+                    this.radialChargeMenu.refresh();
+                }
+
+                // Show feedback
+                const socketCount = this.radialChargeMenu ? this.radialChargeMenu.getSocketCount() : { passive: 0 };
+                const passiveSlotNotif = this.add.text(400, 200, `+1 Passive Slot! (${socketCount.passive} total)`, {
+                    fontSize: '20px',
+                    fontFamily: 'Arial',
+                    color: '#C0C0C0',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 3
+                });
+                passiveSlotNotif.setOrigin(0.5);
+                passiveSlotNotif.setDepth(2001);
+                passiveSlotNotif.setScrollFactor(0);
+
+                this.tweens.add({
+                    targets: passiveSlotNotif,
+                    y: 150,
+                    alpha: 0,
+                    duration: 2000,
+                    onComplete: () => passiveSlotNotif.destroy()
+                });
+                break;
+        }
+    }
+
     createOrbitingOrbs() {
         if (!this.textures.exists('water-orb')) {
             const graphics = this.add.graphics();
@@ -21001,22 +25479,56 @@ class GameScene extends Phaser.Scene {
         this.fireBasicProjectileForWizard(this.wizard);
     }
     fireBasicProjectileForWizard(wizard) {
-        if (!this.textures.exists('basic-proj')) {
+        const characterType = wizard.characterType || 'wizard';
+
+        // BLIP: Melee swipe attack
+        if (characterType === 'blip') {
+            this.fireBlipSwipeForWizard(wizard);
+            return;
+        }
+
+        // ORB: Orbiting projectiles
+        if (characterType === 'orb') {
+            this.fireOrbOrbitingForWizard(wizard);
+            return;
+        }
+
+        // WIZARD and GRIM: Standard directional projectiles
+        // Create purple projectile texture for character-specific attacks
+        if (!this.textures.exists('char-basic-proj')) {
             const graphics = this.add.graphics();
-            graphics.fillStyle(0xcccccc, 1);
-            graphics.fillCircle(4, 4, 4);
-            graphics.generateTexture('basic-proj', 8, 8);
+            graphics.fillStyle(0xff00ff, 1); // Purple for character attacks
+            graphics.fillCircle(5, 5, 5);
+            graphics.generateTexture('char-basic-proj', 10, 10);
             graphics.destroy();
         }
-        const projectile = this.physics.add.sprite(wizard.x, wizard.y, 'basic-proj');
+
+        // Calculate damage with potency bonus (reduced by 50%)
+        const baseDamage = 2.5;
+        const potencyBonus = 1 + ((this.passiveUpgrades?.basicPotency || 0) * 0.2);
+        const finalDamage = baseDamage * potencyBonus;
+
+        const projectile = this.physics.add.sprite(wizard.x, wizard.y, 'char-basic-proj');
         projectile.element = 'basic';
-        projectile.damage = 1; // Increased from 0.5 to 1 for better balance
+        projectile.damage = finalDamage;
         projectile.body.setCollideWorldBounds(false);
         projectile.setDepth(5);
-        projectile.firedByPlayer = wizard.playerNumber; // Track which player fired it
+        projectile.firedByPlayer = wizard.playerNumber;
+
+        // Character-specific properties
+        if (characterType === 'wizard') {
+            projectile.penetrating = true; // Penetrates enemies
+        } else if (characterType === 'grim') {
+            projectile.isDoT = true;
+            projectile.dotDuration = 3000; // 3 seconds
+            projectile.dotTickRate = 500; // Tick every 0.5 seconds
+        }
+
         this.projectiles.add(projectile);
+
+        // Set velocity based on direction
         const speed = 350;
-        const diagonalSpeed = speed / Math.sqrt(2); // Normalize diagonal speed
+        const diagonalSpeed = speed / Math.sqrt(2);
         const directions = {
             up: { x: 0, y: -speed },
             down: { x: 0, y: speed },
@@ -21037,6 +25549,129 @@ class GameScene extends Phaser.Scene {
             projectile.setVelocity(dir.x, dir.y);
         }
     }
+
+    fireBlipSwipeForWizard(wizard) {
+        // Calculate damage with potency (reduced by 50%)
+        const baseDamage = 4;
+        const potencyBonus = 1 + ((this.passiveUpgrades?.basicPotency || 0) * 0.2);
+        const swipeDamage = baseDamage * potencyBonus * this.getDamageMultiplier();
+
+        // Range scales with potency
+        const baseRange = 60;
+        const swipeRange = baseRange * potencyBonus;
+        const swipeAngle = Math.PI / 3; // 60 degree cone
+
+        // Get direction angle from last movement
+        const directionAngles = {
+            'right': 0,
+            'up-right': -Math.PI / 4,
+            'up': -Math.PI / 2,
+            'up-left': -3 * Math.PI / 4,
+            'left': Math.PI,
+            'down-left': 3 * Math.PI / 4,
+            'down': Math.PI / 2,
+            'down-right': Math.PI / 4
+        };
+        const baseAngle = directionAngles[wizard.lastDirection] || 0;
+
+        // Create visual arc effect
+        const swipe = this.add.arc(
+            wizard.x,
+            wizard.y,
+            swipeRange,
+            Phaser.Math.RadToDeg(baseAngle - swipeAngle / 2),
+            Phaser.Math.RadToDeg(baseAngle + swipeAngle / 2),
+            false,
+            0xffaa00,
+            0.6
+        );
+        swipe.setDepth(wizard.depth - 1);
+
+        // Fade out and destroy
+        this.tweens.add({
+            targets: swipe,
+            alpha: 0,
+            duration: 200,
+            onComplete: () => swipe.destroy()
+        });
+
+        // Damage enemies in cone
+        this.enemies.children.entries.forEach(enemy => {
+            if (!enemy.active || enemy.isDying) return;
+
+            const distance = Phaser.Math.Distance.Between(wizard.x, wizard.y, enemy.x, enemy.y);
+
+            // Early distance check before expensive angle calculations
+            if (distance > swipeRange) return;
+
+            const angleToEnemy = Phaser.Math.Angle.Between(wizard.x, wizard.y, enemy.x, enemy.y);
+            let angleDiff = Math.abs(angleToEnemy - baseAngle);
+
+            // Normalize angle difference to 0-PI range
+            if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
+
+            if (angleDiff <= swipeAngle / 2) {
+                // Apply damage
+                enemy.health -= swipeDamage;
+                this.showDamageNumber(enemy.x, enemy.y - 30, Math.round(swipeDamage), '#ffaa00');
+
+                // Lightweight visual feedback - just tint the enemy
+                enemy.setTint(0xffaa00);
+                this.time.delayedCall(100, () => {
+                    if (enemy.active) enemy.clearTint();
+                });
+
+                // Check if enemy died
+                if (enemy.health <= 0) {
+                    if (enemy.body) enemy.body.enable = false;
+                    this.killEnemy(enemy);
+                }
+            }
+        });
+    }
+
+    fireOrbOrbitingForWizard(wizard) {
+        // Create purple projectile texture
+        if (!this.textures.exists('orb-basic-proj')) {
+            const graphics = this.add.graphics();
+            graphics.fillStyle(0xff00ff, 1);
+            graphics.fillCircle(6, 6, 6);
+            graphics.generateTexture('orb-basic-proj', 12, 12);
+            graphics.destroy();
+        }
+
+        // Calculate damage with potency (reduced by 50%)
+        const baseDamage = 2.5;
+        const potencyBonus = 1 + ((this.passiveUpgrades?.basicPotency || 0) * 0.2);
+        const finalDamage = baseDamage * potencyBonus;
+
+        const orbitRadius = 60;
+        const orbitSpeed = 2 * potencyBonus; // Faster orbit with potency
+
+        const projectile = this.physics.add.sprite(
+            wizard.x + orbitRadius,
+            wizard.y,
+            'orb-basic-proj'
+        );
+        projectile.element = 'basic';
+        projectile.damage = finalDamage;
+        projectile.body.setCollideWorldBounds(false);
+        projectile.setDepth(5);
+        projectile.firedByPlayer = wizard.playerNumber;
+
+        // Orbiting properties
+        projectile.isOrbiting = true;
+        projectile.orbitRadius = orbitRadius;
+        projectile.orbitAngle = 0;
+        projectile.orbitSpeed = orbitSpeed;
+        projectile.orbitCenter = { x: wizard.x, y: wizard.y };
+        projectile.orbitWizard = wizard; // Reference to the wizard to orbit around
+        projectile.lifetime = 0;
+        projectile.maxLifetime = 8000; // 8 seconds
+
+        this.projectiles.add(projectile);
+    }
+
     fireIndividualChargeForWizard(wizard, chargeIndex, element) {
         // Store current wizard context
         const originalWizard = this.wizard;
@@ -21177,11 +25812,22 @@ class GameScene extends Phaser.Scene {
         // Create P2 charge indicators if they don't exist
         if (!this.wizard2.chargeIndicators) {
             this.wizard2.chargeIndicators = [];
-            // Create 8 charge indicators for P2 (mirroring P1's system)
-            for (let i = 0; i < 8; i++) {
-                // Calculate position - 4 slots per row, positioned on right side
-                const row = Math.floor(i / 4);
-                const col = i % 4;
+            // Create charge indicators for P2 (mirroring P1's system)
+            for (let i = 0; i < this.MAX_CHARGE_SLOTS; i++) {
+                // Calculate position based on slot type
+                const slotType = this.getSlotType(i);
+                let row, col;
+
+                if (slotType === 'active') {
+                    // Active slots in row 0
+                    row = 0;
+                    col = i;
+                } else {
+                    // Passive slots in row 1
+                    row = 1;
+                    col = i - this.MAX_ACTIVE_SLOTS;
+                }
+
                 const xPos = 600 + (col * 38); // Right side of screen
                 const yPos = 50 + (row * 38);
                 // Background slot using socket sprite
@@ -21339,8 +25985,9 @@ class GameScene extends Phaser.Scene {
             const bat = this.physics.add.sprite(spawnX, spawnY, 'bat-fly', 0);
             // Apply scale from config (bat scale will be used)
             this.applySavedScale(bat, 'bat');
-            bat.health = 2; // Increased by 50%
-            bat.maxHealth = bat.health;
+            const baseHealth = 2; // Increased by 50%
+
+            this.scaleEnemyHealth(bat, baseHealth);
             bat.enemyType = 'bat';
             // Play animation with safety check
             try {
@@ -21352,7 +25999,7 @@ class GameScene extends Phaser.Scene {
                 }
             bat.body.setSize(60, 40);
             bat.body.setOffset(45, 55);
-            bat.moveSpeed = 180; // Summoned bats are very fast
+            this.setEnemySpeed(bat, 180); // Summoned bats are very fast
             bat.isFlying = true;
             bat.isSummoned = true; // Mark as summoned
             // Add spawn effect for each minion
@@ -21381,80 +26028,6 @@ class GameScene extends Phaser.Scene {
             }
         }
         return false;
-    }
-    fireProjectile() {
-        // Simple fallback for legacy charge system - fires a basic projectile
-        // This is only called if no specific spell combo matches
-        if (!this.charges || this.charges.length === 0) return;
-        // Just fire the first element in charges as a basic projectile
-        const element = this.charges[0];
-        const colors = { fire: 0xff4444, lightning: 0xffff44, water: 0x4444ff, earth: 0x44ff44 };
-        // Check if the first passive slot (slot 4) has rook (modifies first active slot)
-        const hasRookModifier = this.chargeSlots && this.chargeSlots[4] === 'rook';
-        if (hasRookModifier) {
-            // Fire projectiles in 4 cardinal directions (like a rook moves in chess)
-            const speed = 400 * this.speedMultiplier;
-            const rookDirections = [
-                { x: 0, y: -speed },    // Up
-                { x: speed, y: 0 },     // Right
-                { x: 0, y: speed },     // Down
-                { x: -speed, y: 0 }     // Left
-            ];
-            // Create texture if needed
-            const projectileSize = 8;
-            const textureKey = element + '-simple-proj';
-            if (!this.textures.exists(textureKey)) {
-                const graphics = this.add.graphics();
-                graphics.fillStyle(colors[element] || 0xffffff, 1);
-                graphics.fillCircle(projectileSize, projectileSize, projectileSize);
-                graphics.generateTexture(textureKey, projectileSize * 2, projectileSize * 2);
-                graphics.destroy();
-            }
-            // Create 4 projectiles
-            rookDirections.forEach(dir => {
-                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, textureKey);
-                projectile.element = element;
-                projectile.damage = 1;
-                projectile.body.setCollideWorldBounds(false);
-                projectile.setDepth(5);
-                projectile.setVelocity(dir.x, dir.y);
-                this.projectiles.add(projectile);
-            });
-            // Removed unnecessary rook animation
-        } else {
-            // Normal single projectile firing
-            // Create a simple projectile
-            const projectileSize = 8;
-            const textureKey = element + '-simple-proj';
-            if (!this.textures.exists(textureKey)) {
-                const graphics = this.add.graphics();
-                graphics.fillStyle(colors[element] || 0xffffff, 1);
-                graphics.fillCircle(projectileSize, projectileSize, projectileSize);
-                graphics.generateTexture(textureKey, projectileSize * 2, projectileSize * 2);
-                graphics.destroy();
-            }
-            const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, textureKey);
-            projectile.element = element;
-            projectile.damage = 1;
-            projectile.body.setCollideWorldBounds(false);
-            projectile.setDepth(5);
-            this.projectiles.add(projectile);
-            // Simple directional firing
-            const speed = 400 * this.speedMultiplier;
-            const diagonalSpeed = speed / Math.sqrt(2);
-            const directions = {
-                up: { x: 0, y: -speed },
-                down: { x: 0, y: speed },
-                left: { x: -speed, y: 0 },
-                right: { x: speed, y: 0 },
-                'up-left': { x: -diagonalSpeed, y: -diagonalSpeed },
-                'up-right': { x: diagonalSpeed, y: -diagonalSpeed },
-                'down-left': { x: -diagonalSpeed, y: diagonalSpeed },
-                'down-right': { x: diagonalSpeed, y: diagonalSpeed }
-            };
-            const dir = directions[this.wizard.lastDirection || 'down'];
-            projectile.setVelocity(dir.x, dir.y);
-        }
     }
     projectileHitObstacle(projectile, obstacle) {
         // Destroy projectile when it hits an obstacle
@@ -22046,15 +26619,239 @@ class GameScene extends Phaser.Scene {
         });
         return shadow;
     }
+    /**
+     * Calculate health multiplier based on current wave
+     * Scales enemy health to increase challenge as game progresses (Vampire Survivors style)
+     */
+    getWaveHealthMultiplier() {
+        if (!this.currentWave) return 1.0;
+
+        // Strong scaling: +40% health per wave for challenging late game
+        // Wave 1: 1.0x, Wave 2: 1.4x, Wave 3: 1.96x, Wave 4: 2.74x, Wave 5: 3.84x, etc.
+        const multiplier = Math.pow(1.40, this.currentWave - 1);
+
+        // High cap for extended sessions - enemies stay challenging
+        return Math.min(20.0, multiplier);
+    }
+
+    /**
+     * Apply wave-based health scaling to an enemy
+     */
+    scaleEnemyHealth(enemy, baseHealth) {
+        const multiplier = this.getWaveHealthMultiplier();
+        const scaledHealth = Math.ceil(baseHealth * multiplier);
+        enemy.health = scaledHealth;
+        enemy.maxHealth = scaledHealth;
+        return scaledHealth;
+    }
+
+    /**
+     * Global enemy speed reduction multiplier
+     * Reduced from 0.7 to 0.9 to match Vampire Survivors aggressive enemy feel
+     */
+    getEnemySpeedMultiplier() {
+        // 0.9 = 10% speed reduction (was 30%)
+        return 0.9;
+    }
+
+    /**
+     * Wave-based speed scaling (Vampire Survivors style)
+     * Enemies get faster as waves progress
+     */
+    getWaveSpeedMultiplier() {
+        if (!this.currentWave) return 1.0;
+        // +5% speed per wave, capped at 1.5x (50% faster)
+        return Math.min(1.5, 1 + (this.currentWave * 0.05));
+    }
+
+    /**
+     * Apply speed reduction to an enemy with wave scaling
+     */
+    setEnemySpeed(enemy, baseSpeed) {
+        const globalMultiplier = this.getEnemySpeedMultiplier();
+        const waveMultiplier = this.getWaveSpeedMultiplier();
+        // Apply global 20% speed reduction to all enemies
+        enemy.moveSpeed = Math.round(baseSpeed * 0.8 * globalMultiplier * waveMultiplier);
+        return enemy.moveSpeed;
+    }
+
+    /**
+     * PASSIVE UPGRADE MULTIPLIERS
+     * These methods apply the passive upgrade effects to gameplay
+     */
+
+    /**
+     * Get spell area multiplier from passiveUpgrades.spellArea
+     * Each stack increases projectile size by 10%
+     */
+    getSpellAreaMultiplier() {
+        return 1 + (this.passiveUpgrades.spellArea * 0.1);
+    }
+
+    /**
+     * Get move speed multiplier from passiveUpgrades.moveSpeed
+     * Each stack increases movement speed by 25%
+     */
+    getMoveSpeedMultiplier() {
+        return 1 + (this.passiveUpgrades.moveSpeed * 0.25);
+    }
+
+    /**
+     * Get damage multiplier from passiveUpgrades.damage
+     * Each stack increases damage by 20%
+     */
+    getDamageMultiplier() {
+        return 1 + (this.passiveUpgrades.damage * 0.2);
+    }
+
+    /**
+     * Centralized player death check with revive support
+     * Call this whenever player health reaches 0
+     */
+    checkPlayerDeath() {
+        if (this.playerHealth > 0) return; // Not dead yet
+
+        // Check for revive upgrade - mark that we will revive but let death animation play first
+        console.log('DEATH CHECK: revive count =', this.passiveUpgrades.revive, 'hasUsedRevive =', this.hasUsedRevive);
+        const willRevive = this.passiveUpgrades.revive > 0 && !this.hasUsedRevive;
+        console.log('DEATH CHECK: willRevive =', willRevive);
+
+        if (willRevive) {
+            // Consume the revive immediately so it can't be used twice
+            this.hasUsedRevive = true;
+            this.passiveUpgrades.revive--;
+            console.log('REVIVE: Consumed revive. Remaining:', this.passiveUpgrades.revive);
+        }
+
+        // In multiplayer, only end game if both players are dead
+        if (this.multiplayerEnabled && this.wizard2 && this.playerHealthP2 > 0 && !willRevive) {
+            // P1 died but P2 is still alive - handle P1 death without ending game
+            this.handlePlayer1Death();
+            return;
+        }
+
+        // Play death animation (whether reviving or not)
+        if (!willRevive && this.bgMusic) {
+            this.bgMusic.stop();
+        }
+
+        const deathAnim = this.getCharacterDeathAnimation(this.wizard);
+        if (this.anims.exists(deathAnim)) {
+            this.wizard.play(deathAnim);
+        }
+        this.wizard.setVelocity(0, 0);
+
+        // Wait for death animation to complete
+        this.wizard.once('animationcomplete', () => {
+            if (willRevive) {
+                // PHOENIX REVIVE!
+                this.playerHealth = Math.floor(this.maxHealth * 0.25);
+
+                // Show health bars again
+                if (this.wizardHealthBar) {
+                    this.wizardHealthBar.setVisible(true);
+                }
+                if (this.wizardHealthBarBg) {
+                    this.wizardHealthBarBg.setVisible(true);
+                }
+
+                this.updateHealthBar();
+
+                // Revive visual effect
+                const reviveText = this.add.text(this.wizard.x, this.wizard.y - 50, '🔥 PHOENIX REVIVE! 🔥', {
+                    fontSize: '32px',
+                    fontFamily: 'Arial',
+                    color: '#ff6600',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 6
+                });
+                reviveText.setOrigin(0.5);
+                reviveText.setDepth(2001);
+                reviveText.setScrollFactor(0);
+
+                this.tweens.add({
+                    targets: reviveText,
+                    y: reviveText.y - 30,
+                    scale: { from: 1, to: 1.5 },
+                    alpha: 0,
+                    duration: 2000,
+                    onComplete: () => reviveText.destroy()
+                });
+
+                // Flash effect
+                this.wizard.setTint(0xff6600);
+                this.time.delayedCall(200, () => {
+                    if (this.wizard && this.wizard.active) {
+                        this.wizard.clearTint();
+                    }
+                });
+
+                // Return to idle animation
+                const idleAnim = this.getCharacterIdleAnimation(this.wizard);
+                if (this.anims.exists(idleAnim)) {
+                    this.wizard.play(idleAnim);
+                }
+
+                // Grant 2 seconds of invulnerability with blinking
+                this.invulnerable = true;
+                const blinkInterval = this.time.addEvent({
+                    delay: 100,
+                    repeat: 19,
+                    callback: () => {
+                        if (this.wizard && this.wizard.active) {
+                            this.wizard.alpha = this.wizard.alpha === 1 ? 0.5 : 1;
+                        }
+                    }
+                });
+
+                this.time.delayedCall(2000, () => {
+                    this.invulnerable = false;
+                    if (this.wizard && this.wizard.active) {
+                        this.wizard.alpha = 1;
+                    }
+                    blinkInterval.remove();
+                    // Reset the hasUsedRevive flag so player can use another revive if they have one
+                    this.hasUsedRevive = false;
+                });
+            } else {
+                // Actually dead - go to game over
+                console.error('WIZARD DEATH: Killing all tweens!');
+                this.time.removeAllEvents();
+                this.tweens.killAll();
+
+                if (this.bgMusic) {
+                    this.bgMusic.stop();
+                    this.bgMusic = null;
+                }
+                if (this.bossMusic) {
+                    this.bossMusic.stop();
+                    this.bossMusic = null;
+                }
+                this.sound.stopAll();
+
+                this.scene.start('GameOverScene', {
+                    survivalTime: this.survivalTime,
+                    enemiesKilled: this.enemiesKilled,
+                    itemsCollected: this.itemsCollected,
+                    level: this.playerLevel,
+                    elementsDiscovered: this.elementsDiscovered,
+                    damageDealt: this.damageDealt,
+                    won: false
+                });
+            }
+        });
+    }
+
     createEnemy(enemyType, x, y) {
         if (enemyType === 'tree') {
             const enemy = this.physics.add.sprite(x, y, 'enemy-walk', 0);
             enemy.enemyType = 'tree';
             // Apply saved scale (always returns true now)
             this.applySavedScale(enemy, 'tree');
-            enemy.health = 5; // Reduced by 50% from 9
-            enemy.maxHealth = enemy.health;
-            enemy.moveSpeed = 40; // Reduced by 20% from 50
+            const baseHealth = 5; // Reduced by 50% from 9
+            this.scaleEnemyHealth(enemy, baseHealth);
+            this.setEnemySpeed(enemy, 40); // Reduced by 20% from 50
             enemy.damage = 15; // Base enemy damage
             enemy.damage = 1; // Default damage
             enemy.play('enemy-walking');
@@ -22067,12 +26864,13 @@ class GameScene extends Phaser.Scene {
             bat.enemyType = 'bat';
             // Apply saved scale (always returns true now)
             this.applySavedScale(bat, 'bat');
-            bat.health = 2; // Increased by 50%
-            bat.maxHealth = bat.health;
+            const baseHealth = 2; // Increased by 50%
+
+            this.scaleEnemyHealth(bat, baseHealth);
             // Apply hitbox from config or use defaults
             // Apply hitbox from config
             this.applyHitboxConfig(bat, 'bat');
-            bat.moveSpeed = 74; // Reduced by 20% from 92
+            this.setEnemySpeed(bat, 74); // Reduced by 20% from 92
             bat.isFlying = true;
             this.addEnemyToGroup(bat);
             bat.play('bat-flying');
@@ -22084,10 +26882,11 @@ class GameScene extends Phaser.Scene {
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
                 hitboxConfig.applyFlip(mushroom, 'mushroom');
             }
-            mushroom.health = 5; // Increased by 50%
-            mushroom.maxHealth = mushroom.health;
+            const baseHealth = 5; // Increased by 50%
+
+            this.scaleEnemyHealth(mushroom, baseHealth);
             mushroom.enemyType = 'mushroom';
-            mushroom.moveSpeed = 47; // Reduced by 20% from 59
+            this.setEnemySpeed(mushroom, 47); // Reduced by 20% from 59
             // Apply hitbox from config or use defaults
             // Apply hitbox from config
             this.applyHitboxConfig(mushroom, 'mushroom');
@@ -22102,10 +26901,11 @@ class GameScene extends Phaser.Scene {
             const giantfly = this.physics.add.sprite(x, y, 'giantfly-walk', 0);
             // Apply scale from config
             this.applySavedScale(giantfly, 'giantfly');
-            giantfly.health = 4; // Low-medium health, flies are fragile
-            giantfly.maxHealth = giantfly.health;
+            const baseHealth = 4; // Low-medium health, flies are fragile
+
+            this.scaleEnemyHealth(giantfly, baseHealth);
             giantfly.enemyType = 'giantfly';
-            giantfly.moveSpeed = 56; // Reduced by 20% from 70
+            this.setEnemySpeed(giantfly, 56); // Reduced by 20% from 70
             giantfly.damage = 15; // Medium damage
             giantfly.isFlying = true; // Flies can go over obstacles
             // Play animation if it exists
@@ -22132,10 +26932,12 @@ class GameScene extends Phaser.Scene {
                 hitboxConfig.applyFlip(bumblebee, 'bumblebee');
             }
 
-            bumblebee.health = 3; // Low health, flying insects are fragile
-            bumblebee.maxHealth = bumblebee.health;
+            const baseHealth = 3; // Low health, flying insects are fragile
+
+
+            this.scaleEnemyHealth(bumblebee, baseHealth);
             bumblebee.enemyType = 'bumblebee';
-            bumblebee.moveSpeed = 60; // Fast and agile
+            this.setEnemySpeed(bumblebee, 60); // Fast and agile
             bumblebee.damage = 12; // Low damage
             bumblebee.isFlying = true; // Can fly over obstacles
 
@@ -22156,10 +26958,11 @@ class GameScene extends Phaser.Scene {
             const squirrel = this.physics.add.sprite(x, y, 'squirrel-walk', 0);
             // Apply scale from config
             this.applySavedScale(squirrel, 'squirrel');
-            squirrel.health = 5; // Medium health
-            squirrel.maxHealth = squirrel.health;
+            const baseHealth = 5; // Medium health
+
+            this.scaleEnemyHealth(squirrel, baseHealth);
             squirrel.enemyType = 'squirrel';
-            squirrel.moveSpeed = 52; // Reduced by 20% from 65
+            this.setEnemySpeed(squirrel, 52); // Reduced by 20% from 65
             squirrel.damage = 12; // Lower damage but quick
             // Play animation if it exists
             if (this.anims.exists('squirrel-walking')) {
@@ -22179,10 +26982,11 @@ class GameScene extends Phaser.Scene {
             const redpanda = this.physics.add.sprite(x, y, 'redpanda-walk', 0);
             // Apply scale from config
             this.applySavedScale(redpanda, 'redpanda');
-            redpanda.health = 7; // Medium-high health
-            redpanda.maxHealth = redpanda.health;
+            const baseHealth = 7; // Medium-high health
+
+            this.scaleEnemyHealth(redpanda, baseHealth);
             redpanda.enemyType = 'redpanda';
-            redpanda.moveSpeed = 40; // Reduced by 20% from 50
+            this.setEnemySpeed(redpanda, 40); // Reduced by 20% from 50
             redpanda.damage = 18; // Higher damage
             // Play animation if it exists
             if (this.anims.exists('redpanda-walking')) {
@@ -22197,10 +27001,11 @@ class GameScene extends Phaser.Scene {
             const fireworm = this.physics.add.sprite(x, y, 'fireworm-walk', 0);
             // Apply scale from config
             this.applySavedScale(fireworm, 'fireworm');
-            fireworm.health = 3; // Increased by 50%
-            fireworm.maxHealth = fireworm.health;
+            const baseHealth = 3; // Increased by 50%
+
+            this.scaleEnemyHealth(fireworm, baseHealth);
             fireworm.enemyType = 'fireworm';
-            fireworm.moveSpeed = 61; // Reduced by 20% from 76
+            this.setEnemySpeed(fireworm, 61); // Reduced by 20% from 76
             // Apply hitbox from config or use defaults
             // Apply hitbox from config
             this.applyHitboxConfig(fireworm, 'fireworm');
@@ -22211,10 +27016,11 @@ class GameScene extends Phaser.Scene {
             const summoner = this.physics.add.sprite(x, y, 'summoner-walk', 0);
             // Apply scale from config
             this.applySavedScale(summoner, 'summoner');
-            summoner.health = 12; // Increased by 50%
-            summoner.maxHealth = summoner.health;
+            const baseHealth = 12; // Increased by 50%
+
+            this.scaleEnemyHealth(summoner, baseHealth);
             summoner.enemyType = 'summoner';
-            summoner.moveSpeed = 20; // Reduced by 20% from 25
+            this.setEnemySpeed(summoner, 20); // Reduced by 20% from 25
             summoner.play('summoner-walking');
             // Apply hitbox from config or use defaults
             // Apply hitbox from config
@@ -22233,10 +27039,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 soul.setScale(isGrave ? 1.0 : 0.8); // Fallback: Larger in grave stage
             }
-            soul.health = 6; // Increased by 50%
-            soul.maxHealth = soul.health;
+            const baseHealth = 6; // Increased by 50%
+
+            this.scaleEnemyHealth(soul, baseHealth);
             soul.enemyType = 'soul';
-            soul.moveSpeed = 40; // Reduced by 20% from 50
+            this.setEnemySpeed(soul, 40); // Reduced by 20% from 50
             soul.play(isGrave ? 'soul-moving-grave' : 'soul-moving');
             // Apply hitbox from config or use defaults
             // Apply hitbox from config
@@ -22259,10 +27066,11 @@ class GameScene extends Phaser.Scene {
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
                 hitboxConfig.applyFlip(bloboid, 'bloboid');
             }
-            bloboid.health = 8; // Increased by 50%
-            bloboid.maxHealth = bloboid.health;
+            const baseHealth = 8; // Increased by 50%
+
+            this.scaleEnemyHealth(bloboid, baseHealth);
             bloboid.enemyType = 'bloboid';
-            bloboid.moveSpeed = 34; // Reduced by 20% from 42
+            this.setEnemySpeed(bloboid, 34); // Reduced by 20% from 42
             bloboid.play('bloboid-walking');
             // Apply hitbox from config or use defaults
             // Apply hitbox from config
@@ -22273,10 +27081,11 @@ class GameScene extends Phaser.Scene {
             const slime = this.physics.add.sprite(x, y, 'slime-idle', 0);
             // Apply scale from config
             this.applySavedScale(slime, 'slime');
-            slime.health = 4; // Increased by 50%
-            slime.maxHealth = slime.health;
+            const baseHealth = 4; // Increased by 50%
+
+            this.scaleEnemyHealth(slime, baseHealth);
             slime.enemyType = 'slime';
-            slime.moveSpeed = 30; // Reduced by 20% from 38
+            this.setEnemySpeed(slime, 30); // Reduced by 20% from 38
             slime.play('slime-idle');
             // Apply hitbox from config or use defaults
             // Apply hitbox from config
@@ -22288,10 +27097,11 @@ class GameScene extends Phaser.Scene {
             // Apply scale from config
             this.applySavedScale(slime, 'fireslime');
             slime.setTint(0xff4444); // Red tint for fire slime
-            slime.health = 5; // Slightly more health than regular slime
-            slime.maxHealth = slime.health;
+            const baseHealth = 5; // Slightly more health than regular slime
+
+            this.scaleEnemyHealth(slime, baseHealth);
             slime.enemyType = 'fireslime';
-            slime.moveSpeed = 30; // Reduced by 20% from 38
+            this.setEnemySpeed(slime, 30); // Reduced by 20% from 38
             slime.play('slime-idle');
             // Apply hitbox from config or use defaults
             // Apply hitbox from config
@@ -22306,10 +27116,11 @@ class GameScene extends Phaser.Scene {
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
                 hitboxConfig.applyFlip(bombslime, 'bombslime');
             }
-            bombslime.health = 25;
-            bombslime.maxHealth = bombslime.health;
+            const baseHealth = 25;
+
+            this.scaleEnemyHealth(bombslime, baseHealth);
             bombslime.enemyType = 'bombslime';
-            bombslime.moveSpeed = 40;
+            this.setEnemySpeed(bombslime, 40);
             bombslime.keepDistance = 150; // Keep distance from player
             bombslime.elementDrop = 'blast';
             bombslime.isElementalSlime = true;
@@ -22323,10 +27134,11 @@ class GameScene extends Phaser.Scene {
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
                 hitboxConfig.applyFlip(arcaneslime, 'arcaneslime');
             }
-            arcaneslime.health = 25;
-            arcaneslime.maxHealth = arcaneslime.health;
+            const baseHealth = 25;
+
+            this.scaleEnemyHealth(arcaneslime, baseHealth);
             arcaneslime.enemyType = 'arcaneslime';
-            arcaneslime.moveSpeed = 40;
+            this.setEnemySpeed(arcaneslime, 40);
             arcaneslime.keepDistance = 150;
             arcaneslime.elementDrop = 'arcane';
             arcaneslime.isElementalSlime = true;
@@ -22340,10 +27152,11 @@ class GameScene extends Phaser.Scene {
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
                 hitboxConfig.applyFlip(waterslime, 'waterslime');
             }
-            waterslime.health = 25;
-            waterslime.maxHealth = waterslime.health;
+            const baseHealth = 25;
+
+            this.scaleEnemyHealth(waterslime, baseHealth);
             waterslime.enemyType = 'waterslime';
-            waterslime.moveSpeed = 40;
+            this.setEnemySpeed(waterslime, 40);
             waterslime.keepDistance = 150;
             waterslime.elementDrop = 'water';
             waterslime.isElementalSlime = true;
@@ -22357,10 +27170,11 @@ class GameScene extends Phaser.Scene {
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
                 hitboxConfig.applyFlip(lightningslime, 'lightningslime');
             }
-            lightningslime.health = 25;
-            lightningslime.maxHealth = lightningslime.health;
+            const baseHealth = 25;
+
+            this.scaleEnemyHealth(lightningslime, baseHealth);
             lightningslime.enemyType = 'lightningslime';
-            lightningslime.moveSpeed = 40;
+            this.setEnemySpeed(lightningslime, 40);
             lightningslime.keepDistance = 150;
             lightningslime.elementDrop = 'lightning';
             lightningslime.isElementalSlime = true;
@@ -22374,10 +27188,11 @@ class GameScene extends Phaser.Scene {
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
                 hitboxConfig.applyFlip(earthslime, 'earthslime');
             }
-            earthslime.health = 25;
-            earthslime.maxHealth = earthslime.health;
+            const baseHealth = 25;
+
+            this.scaleEnemyHealth(earthslime, baseHealth);
             earthslime.enemyType = 'earthslime';
-            earthslime.moveSpeed = 40;
+            this.setEnemySpeed(earthslime, 40);
             earthslime.keepDistance = 150;
             earthslime.elementDrop = 'earth';
             earthslime.isElementalSlime = true;
@@ -22390,11 +27205,12 @@ class GameScene extends Phaser.Scene {
             const golem = this.physics.add.sprite(x, y, `golem-${golemColor}-walk`, 0);
             // Apply scale from config
             this.applySavedScale(golem, 'golem');
-            golem.health = 15; // Increased by 50%
-            golem.maxHealth = golem.health;
+            const baseHealth = 15; // Increased by 50%
+
+            this.scaleEnemyHealth(golem, baseHealth);
             golem.enemyType = 'golem';
             golem.golemColor = golemColor;
-            golem.moveSpeed = 27; // Reduced by 20% from 34
+            this.setEnemySpeed(golem, 27); // Reduced by 20% from 34
             golem.play(`golem-${golemColor}-walk`);
             // Apply hitbox from config or use defaults
             // Apply hitbox from config
@@ -22406,11 +27222,12 @@ class GameScene extends Phaser.Scene {
             const golem = this.physics.add.sprite(x, y, 'golem-orange-walk', 0);
             // Apply scale from config
             this.applySavedScale(golem, 'golem-blue');
-            golem.health = 18; // More health than regular golem
-            golem.maxHealth = golem.health;
+            const baseHealth = 18; // More health than regular golem
+
+            this.scaleEnemyHealth(golem, baseHealth);
             golem.enemyType = 'golem';
             golem.golemColor = 'orange';
-            golem.moveSpeed = 27; // Reduced by 20% from 34
+            this.setEnemySpeed(golem, 27); // Reduced by 20% from 34
             golem.play('golem-orange-walk');
             // Apply hitbox from config or use defaults
             // Apply hitbox from config
@@ -22425,10 +27242,11 @@ class GameScene extends Phaser.Scene {
             const imp = this.physics.add.sprite(x, y, 'club-imp-walk-1');
             // Apply saved scale
             this.applySavedScale(imp, 'clubimp');
-            imp.health = 5;
-            imp.maxHealth = imp.health;
+            const baseHealth = 5;
+
+            this.scaleEnemyHealth(imp, baseHealth);
             imp.enemyType = 'clubimp';
-            imp.moveSpeed = 52; // Reduced by 20% from 65
+            this.setEnemySpeed(imp, 52); // Reduced by 20% from 65
             imp.damage = 20;
             imp.hasRevived = false;
             imp.isReviving = false;
@@ -22443,10 +27261,11 @@ class GameScene extends Phaser.Scene {
             const imp = this.physics.add.sprite(x, y, 'axe-imp-walk-1');
             // Apply saved scale
             this.applySavedScale(imp, 'axeimp');
-            imp.health = 4;
-            imp.maxHealth = imp.health;
+            const baseHealth = 4;
+
+            this.scaleEnemyHealth(imp, baseHealth);
             imp.enemyType = 'axeimp';
-            imp.moveSpeed = 60; // Reduced by 20% from 75
+            this.setEnemySpeed(imp, 60); // Reduced by 20% from 75
             imp.damage = 25;
             imp.hasRevived = false;
             imp.isReviving = false;
@@ -22460,10 +27279,11 @@ class GameScene extends Phaser.Scene {
             const kobold = this.physics.add.sprite(x, y, 'kobold-walk', 0);
             // Apply scale from config
             this.applySavedScale(kobold, 'kobold');
-            kobold.health = 6;
-            kobold.maxHealth = kobold.health;
+            const baseHealth = 6;
+
+            this.scaleEnemyHealth(kobold, baseHealth);
             kobold.enemyType = 'kobold';
-            kobold.moveSpeed = 48; // Reduced by 20% from 60
+            this.setEnemySpeed(kobold, 48); // Reduced by 20% from 60
             kobold.damage = 15;
             kobold.play('kobold-walk');
             // Apply hitbox from config or use defaults
@@ -22475,10 +27295,11 @@ class GameScene extends Phaser.Scene {
             const darkbat = this.physics.add.sprite(x, y, 'dark-bat-fly', 0);
             // Apply scale from config
             this.applySavedScale(darkbat, 'darkbat');
-            darkbat.health = 3;
-            darkbat.maxHealth = darkbat.health;
+            const baseHealth = 3;
+
+            this.scaleEnemyHealth(darkbat, baseHealth);
             darkbat.enemyType = 'darkbat';
-            darkbat.moveSpeed = 80; // Reduced by 20% from 100
+            this.setEnemySpeed(darkbat, 80); // Reduced by 20% from 100
             darkbat.damage = 12;
             darkbat.play('dark-bat-fly');
             // Apply hitbox from config or use defaults
@@ -22492,10 +27313,11 @@ class GameScene extends Phaser.Scene {
             const brainmole = this.physics.add.sprite(x, y, 'brainmole-walk', 0);
             // Apply scale from config
             this.applySavedScale(brainmole, 'brainmole');
-            brainmole.health = 5; // Medium health
-            brainmole.maxHealth = brainmole.health;
+            const baseHealth = 5; // Medium health
+
+            this.scaleEnemyHealth(brainmole, baseHealth);
             brainmole.enemyType = 'brainmole';
-            brainmole.moveSpeed = 36; // Reduced by 20% from 45
+            this.setEnemySpeed(brainmole, 36); // Reduced by 20% from 45
             brainmole.damage = 20; // High damage for psychic attacks
             brainmole.play('brainmole-walking');
             // Apply hitbox from config or use defaults
@@ -22507,10 +27329,11 @@ class GameScene extends Phaser.Scene {
             const devourer = this.physics.add.sprite(x, y, 'intellectdevourer-walk', 0);
             // Apply scale from config
             this.applySavedScale(devourer, 'intellectdevourer');
-            devourer.health = 8; // High health for a brain creature
-            devourer.maxHealth = devourer.health;
+            const baseHealth = 8; // High health for a brain creature
+
+            this.scaleEnemyHealth(devourer, baseHealth);
             devourer.enemyType = 'intellectdevourer';
-            devourer.moveSpeed = 44; // Reduced by 20% from 55
+            this.setEnemySpeed(devourer, 44); // Reduced by 20% from 55
             devourer.damage = 25; // Very high damage - dangerous enemy
             devourer.play('intellectdevourer-walking');
             // Apply hitbox from config or use defaults
@@ -22523,10 +27346,11 @@ class GameScene extends Phaser.Scene {
             const wraith = this.physics.add.sprite(x, y, 'wraith-walk', 0);
             // Apply scale from config
             this.applySavedScale(wraith, 'wraith');
-            wraith.health = 10; // High health for undead creature
-            wraith.maxHealth = wraith.health;
+            const baseHealth = 10; // High health for undead creature
+
+            this.scaleEnemyHealth(wraith, baseHealth);
             wraith.enemyType = 'wraith';
-            wraith.moveSpeed = 32; // Reduced by 20% from 40
+            this.setEnemySpeed(wraith, 32); // Reduced by 20% from 40
             wraith.damage = 30; // High damage
             wraith.play('wraith-walking');
             // Apply hitbox from config or use defaults
@@ -22547,10 +27371,11 @@ class GameScene extends Phaser.Scene {
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
                 hitboxConfig.applyFlip(demon, 'flyingdemon');
             }
-            demon.health = 8;
-            demon.maxHealth = demon.health;
+            const baseHealth = 8;
+
+            this.scaleEnemyHealth(demon, baseHealth);
             demon.enemyType = 'flyingdemon';
-            demon.moveSpeed = 56; // Reduced by 20% from 70
+            this.setEnemySpeed(demon, 56); // Reduced by 20% from 70
             demon.damage = 20;
             demon.play('flying-demon-fly');
             // Apply hitbox from config or use defaults
@@ -22566,10 +27391,11 @@ class GameScene extends Phaser.Scene {
             const skeleton = this.physics.add.sprite(x, y, 'skeleton-yellow-walk', 0);
             // Apply scale from config
             this.applySavedScale(skeleton, 'yellowskeleton');
-            skeleton.health = 4;
-            skeleton.maxHealth = skeleton.health;
+            const baseHealth = 4;
+
+            this.scaleEnemyHealth(skeleton, baseHealth);
             skeleton.enemyType = 'yellowskeleton';
-            skeleton.moveSpeed = 36; // Reduced by 20% from 45
+            this.setEnemySpeed(skeleton, 36); // Reduced by 20% from 45
             skeleton.damage = 15;
             skeleton.play('skeleton-yellow-walking');
             // Apply hitbox from config or use defaults
@@ -22584,10 +27410,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 seeker.setScale(0.8); // Fallback scale
             }
-            seeker.health = 6;
-            seeker.maxHealth = seeker.health;
+            const baseHealth = 6;
+
+            this.scaleEnemyHealth(seeker, baseHealth);
             seeker.enemyType = 'skeletonseeker';
-            seeker.moveSpeed = 0; // Starts stationary
+            this.setEnemySpeed(seeker, 0); // Starts stationary
             seeker.normalSpeed = 52; // Reduced by 20% from 65
             seeker.damage = 20;
             seeker.isSpawning = true;
@@ -22607,10 +27434,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 knight.setScale(0.4); // Fallback scale
             }
-            knight.health = 8;
-            knight.maxHealth = knight.health;
+            const baseHealth = 8;
+
+            this.scaleEnemyHealth(knight, baseHealth);
             knight.enemyType = 'castle-knight';
-            knight.moveSpeed = 36; // Reduced by 20% from 45
+            this.setEnemySpeed(knight, 36); // Reduced by 20% from 45
             knight.damage = 25;
             // Create run animation if not exists
             if (!this.anims.exists('castle-knight-run')) {
@@ -22633,10 +27461,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 rogue.setScale(2.0); // Fallback scale
             }
-            rogue.health = 5;
-            rogue.maxHealth = rogue.health;
+            const baseHealth = 5;
+
+            this.scaleEnemyHealth(rogue, baseHealth);
             rogue.enemyType = 'castle-rogue';
-            rogue.moveSpeed = 56; // Reduced by 20% from 70
+            this.setEnemySpeed(rogue, 56); // Reduced by 20% from 70
             rogue.damage = 18;
             // Create run animation if not exists
             if (!this.anims.exists('castle-rogue-run')) {
@@ -22659,10 +27488,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 bladekeeper.setScale(0.35); // Fallback scale
             }
-            bladekeeper.health = 12;
-            bladekeeper.maxHealth = bladekeeper.health;
+            const baseHealth = 12;
+
+            this.scaleEnemyHealth(bladekeeper, baseHealth);
             bladekeeper.enemyType = 'castle-bladekeeper';
-            bladekeeper.moveSpeed = 28; // Reduced by 20% from 35
+            this.setEnemySpeed(bladekeeper, 28); // Reduced by 20% from 35
             bladekeeper.damage = 35;
             // Create run animation from individual frames if not exists
             if (!this.anims.exists('castle-bladekeeper-run')) {
@@ -22689,10 +27519,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 soldier.setScale(0.5); // Fallback scale
             }
-            soldier.health = 10;
-            soldier.maxHealth = soldier.health;
+            const baseHealth = 10;
+
+            this.scaleEnemyHealth(soldier, baseHealth);
             soldier.enemyType = 'castle-soldier';
-            soldier.moveSpeed = 32; // Reduced by 20% from 40
+            this.setEnemySpeed(soldier, 32); // Reduced by 20% from 40
             soldier.damage = 30;
             // Create walk animation if not exists
             if (!this.anims.exists('castle-soldier-walk')) {
@@ -22715,10 +27546,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 squire.setScale(0.45); // Fallback scale
             }
-            squire.health = 4;
-            squire.maxHealth = squire.health;
+            const baseHealth = 4;
+
+            this.scaleEnemyHealth(squire, baseHealth);
             squire.enemyType = 'castle-squire';
-            squire.moveSpeed = 44; // Reduced by 20% from 55
+            this.setEnemySpeed(squire, 44); // Reduced by 20% from 55
             squire.damage = 15;
             // Create run animation if not exists
             if (!this.anims.exists('castle-squire-run')) {
@@ -22738,10 +27570,11 @@ class GameScene extends Phaser.Scene {
             const cobra = this.physics.add.sprite(x, y, 'cobra-walk', 0);
             // Apply scale from config
             this.applySavedScale(cobra, 'cobra');
-            cobra.health = 6; // Medium health
-            cobra.maxHealth = cobra.health;
+            const baseHealth = 6; // Medium health
+
+            this.scaleEnemyHealth(cobra, baseHealth);
             cobra.enemyType = 'cobra';
-            cobra.moveSpeed = 48; // Reduced by 20% from 60
+            this.setEnemySpeed(cobra, 48); // Reduced by 20% from 60
             cobra.damage = 20; // High damage - venomous bite
             cobra.play('cobra-walking');
             // Apply hitbox
@@ -22760,10 +27593,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 cactuse.setScale(2.0); // Fallback scale
             }
-            cactuse.health = 8; // High health - tough desert plant
-            cactuse.maxHealth = cactuse.health;
+            const baseHealth = 8; // High health - tough desert plant
+
+            this.scaleEnemyHealth(cactuse, baseHealth);
             cactuse.enemyType = 'cactuse';
-            cactuse.moveSpeed = 28; // Reduced by 20% from 35
+            this.setEnemySpeed(cactuse, 28); // Reduced by 20% from 35
             cactuse.damage = 15; // Medium damage
             cactuse.play('cactuse-walking');
             // Apply hitbox
@@ -22780,10 +27614,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 armadillo.setScale(2.0); // Fallback scale
             }
-            armadillo.health = 10; // High health - armored
-            armadillo.maxHealth = armadillo.health;
+            const baseHealth = 10; // High health - armored
+
+            this.scaleEnemyHealth(armadillo, baseHealth);
             armadillo.enemyType = 'armadillo';
-            armadillo.moveSpeed = 36; // Reduced by 20% from 45
+            this.setEnemySpeed(armadillo, 36); // Reduced by 20% from 45
             armadillo.damage = 18; // Medium-high damage
             armadillo.play('armadillo-walking');
             // Apply hitbox
@@ -22804,10 +27639,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 swampmerchant.setScale(1.5); // Fallback scale
             }
-            swampmerchant.health = 12; // High health - mysterious merchant
-            swampmerchant.maxHealth = swampmerchant.health;
+            const baseHealth = 12; // High health - mysterious merchant
+
+            this.scaleEnemyHealth(swampmerchant, baseHealth);
             swampmerchant.enemyType = 'swampmerchant';
-            swampmerchant.moveSpeed = 30; // Slow, mysterious movement
+            this.setEnemySpeed(swampmerchant, 30); // Slow, mysterious movement
             swampmerchant.damage = 20; // High damage
             
             // Create and play animation if it doesn't exist
@@ -22832,10 +27668,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 torchboy.setScale(1.2); // Fallback scale
             }
-            torchboy.health = 8; // Medium health
-            torchboy.maxHealth = torchboy.health;
+            const baseHealth = 8; // Medium health
+
+            this.scaleEnemyHealth(torchboy, baseHealth);
             torchboy.enemyType = 'torchboy';
-            torchboy.moveSpeed = 50; // Medium-fast movement
+            this.setEnemySpeed(torchboy, 50); // Medium-fast movement
             torchboy.damage = 15; // Medium damage
             
             // Create and play animation if it doesn't exist (vertical sprite sheet)
@@ -22863,10 +27700,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 mudguard.setScale(1.8); // Fallback scale
             }
-            mudguard.health = 15; // High health - tough guard
-            mudguard.maxHealth = mudguard.health;
+            const baseHealth = 15; // High health - tough guard
+
+            this.scaleEnemyHealth(mudguard, baseHealth);
             mudguard.enemyType = 'mudguard';
-            mudguard.moveSpeed = 35; // Slow but steady
+            this.setEnemySpeed(mudguard, 35); // Slow but steady
             mudguard.damage = 18; // High damage
             
             // Create and play animation if it doesn't exist (vertical sprite sheet)
@@ -22904,10 +27742,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 eyewalker.setScale(2.2); // Fallback scale
             }
-            eyewalker.health = 80; // Very high health for elite
-            eyewalker.maxHealth = eyewalker.health;
+            const baseHealth = 80; // Very high health for elite
+
+            this.scaleEnemyHealth(eyewalker, baseHealth);
             eyewalker.enemyType = 'eyewalker';
-            eyewalker.moveSpeed = 25; // Slow but menacing
+            this.setEnemySpeed(eyewalker, 25); // Slow but menacing
             eyewalker.damage = 25; // High damage
             eyewalker.phase = 'initial'; // Track current phase
             eyewalker.hasSpawnedAllies = false;
@@ -22978,10 +27817,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 eyegoompa.setScale(1.5); // Fallback scale
             }
-                            eyegoompa.health = 8; // Low health minion
-                            eyegoompa.maxHealth = eyegoompa.health;
+                            const baseHealth = 8; // Low health minion
+
+                            this.scaleEnemyHealth(eyegoompa, baseHealth);
                             eyegoompa.enemyType = 'eyegoompa';
-                            eyegoompa.moveSpeed = 60; // Fast minion
+                            this.setEnemySpeed(eyegoompa, 60); // Fast minion
                             eyegoompa.damage = 10;
                             
                             // Create animation (all 18 frames from 9x2 sheet)
@@ -23033,10 +27873,11 @@ class GameScene extends Phaser.Scene {
             // Eyewalker's spawn minion
             const eyegoompa = this.physics.add.sprite(x, y, 'eyegoompa-walk', 0);
             eyegoompa.setScale(1.5);
-            eyegoompa.health = 8; // Low health minion
-            eyegoompa.maxHealth = eyegoompa.health;
+            const baseHealth = 8; // Low health minion
+
+            this.scaleEnemyHealth(eyegoompa, baseHealth);
             eyegoompa.enemyType = 'eyegoompa';
-            eyegoompa.moveSpeed = 60; // Fast minion
+            this.setEnemySpeed(eyegoompa, 60); // Fast minion
             eyegoompa.damage = 10;
             
             // Create animation (all 18 frames from 9x2 sheet)
@@ -23062,10 +27903,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 snowy.setScale(1.5); // Fallback scale
             }
-            snowy.health = 6; // Medium health
-            snowy.maxHealth = snowy.health;
+            const baseHealth = 6; // Medium health
+
+            this.scaleEnemyHealth(snowy, baseHealth);
             snowy.enemyType = 'snowy';
-            snowy.moveSpeed = 45; // Medium speed
+            this.setEnemySpeed(snowy, 45); // Medium speed
             snowy.damage = 12; // Medium damage
             
             // Create walk animation if it doesn't exist
@@ -23099,10 +27941,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 elkman.setScale(1.6); // Fallback scale
             }
-            elkman.health = 8; // Higher health
-            elkman.maxHealth = elkman.health;
+            const baseHealth = 8; // Higher health
+
+            this.scaleEnemyHealth(elkman, baseHealth);
             elkman.enemyType = 'elkman';
-            elkman.moveSpeed = 40; // Medium-slow speed for heavy warrior
+            this.setEnemySpeed(elkman, 40); // Medium-slow speed for heavy warrior
             elkman.damage = 18; // Higher damage
             
             // Create walk animation if it doesn't exist
@@ -23136,10 +27979,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 frostGolem.setScale(1.8); // Fallback scale
             }
-            frostGolem.health = 12; // High health
-            frostGolem.maxHealth = frostGolem.health;
+            const baseHealth = 12; // High health
+
+            this.scaleEnemyHealth(frostGolem, baseHealth);
             frostGolem.enemyType = 'frost-golem';
-            frostGolem.moveSpeed = 30; // Slow but powerful
+            this.setEnemySpeed(frostGolem, 30); // Slow but powerful
             frostGolem.damage = 22; // High damage
             
             // Create walk animation if it doesn't exist
@@ -23177,10 +28021,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 spikedSlime.setScale(1.4); // Fallback scale
             }
-            spikedSlime.health = 5; // Medium-low health
-            spikedSlime.maxHealth = spikedSlime.health;
+            const baseHealth = 5; // Medium-low health
+
+            this.scaleEnemyHealth(spikedSlime, baseHealth);
             spikedSlime.enemyType = 'spiked-slime';
-            spikedSlime.moveSpeed = 50; // Fast but fragile
+            this.setEnemySpeed(spikedSlime, 50); // Fast but fragile
             spikedSlime.damage = 15; // Medium damage
             
             // Create walk animation if it doesn't exist
@@ -23217,10 +28062,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 northerner.setScale(1.5); // Fallback scale
             }
-            northerner.health = 7; // Medium health
-            northerner.maxHealth = northerner.health;
+            const baseHealth = 7; // Medium health
+
+            this.scaleEnemyHealth(northerner, baseHealth);
             northerner.enemyType = 'northerner';
-            northerner.moveSpeed = 42; // Medium speed
+            this.setEnemySpeed(northerner, 42); // Medium speed
             northerner.damage = 16; // Medium-high damage
             
             // Create walk animation if it doesn't exist
@@ -23255,10 +28101,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 jellyfish.setScale(1.8); // Fallback scale
             }
-            jellyfish.health = 4; // Low health, floating creature
-            jellyfish.maxHealth = jellyfish.health;
+            const baseHealth = 4; // Low health, floating creature
+
+            this.scaleEnemyHealth(jellyfish, baseHealth);
             jellyfish.enemyType = 'jellyfish';
-            jellyfish.moveSpeed = 35; // Slow, graceful movement
+            this.setEnemySpeed(jellyfish, 35); // Slow, graceful movement
             jellyfish.damage = 10; // Low damage but can poison
             jellyfish.isFlying = true; // Can move over obstacles
             
@@ -23298,10 +28145,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 crabby.setScale(1.5); // Fallback scale
             }
-            crabby.health = 6; // Medium health
-            crabby.maxHealth = crabby.health;
+            const baseHealth = 6; // Medium health
+
+            this.scaleEnemyHealth(crabby, baseHealth);
             crabby.enemyType = 'crabby';
-            crabby.moveSpeed = 50; // Fast scuttling movement
+            this.setEnemySpeed(crabby, 50); // Fast scuttling movement
             crabby.damage = 14; // Medium damage
             
             // Create walk animation if it doesn't exist
@@ -23335,10 +28183,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 shark.setScale(1.2); // Fallback scale
             }
-            shark.health = 10; // High health for apex predator
-            shark.maxHealth = shark.health;
+            const baseHealth = 10; // High health for apex predator
+
+            this.scaleEnemyHealth(shark, baseHealth);
             shark.enemyType = 'shark';
-            shark.moveSpeed = 65; // Fast swimming speed
+            this.setEnemySpeed(shark, 65); // Fast swimming speed
             shark.damage = 20; // High damage
             
             // Create walk animation if it doesn't exist
@@ -23375,10 +28224,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 squid.setScale(1.4); // Fallback scale
             }
-            squid.health = 8; // Good health
-            squid.maxHealth = squid.health;
+            const baseHealth = 8; // Good health
+
+            this.scaleEnemyHealth(squid, baseHealth);
             squid.enemyType = 'squid';
-            squid.moveSpeed = 45; // Medium speed with tentacle propulsion
+            this.setEnemySpeed(squid, 45); // Medium speed with tentacle propulsion
             squid.damage = 16; // Medium-high damage
             
             // Create walk animation if it doesn't exist
@@ -23416,10 +28266,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 crablore.setScale(1.6); // Fallback scale
             }
-            crablore.health = 12; // High health for elite
-            crablore.maxHealth = crablore.health;
+            const baseHealth = 12; // High health for elite
+
+            this.scaleEnemyHealth(crablore, baseHealth);
             crablore.enemyType = 'crablore';
-            crablore.moveSpeed = 35; // Slower but powerful
+            this.setEnemySpeed(crablore, 35); // Slower but powerful
             crablore.damage = 22; // High damage
             
             // Create walk animation if it doesn't exist
@@ -23511,7 +28362,7 @@ class GameScene extends Phaser.Scene {
         cacodemon.health = Math.floor((30 + (this.playerLevel * 5)) * 2);
         cacodemon.maxHealth = cacodemon.health;
         cacodemon.enemyType = 'cacodemon';
-        cacodemon.moveSpeed = 40;
+        this.setEnemySpeed(cacodemon, 40);
         cacodemon.damage = 20 + Math.floor(this.playerLevel * 2); // Base 20 damage + 2 per player level
         cacodemon.chargeDamage = 35 + Math.floor(this.playerLevel * 3); // Higher damage when charging
         cacodemon.isCacodemon = true; // Mark as special enemy that drops chest
@@ -23841,7 +28692,8 @@ class GameScene extends Phaser.Scene {
                         if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
                         if (angleDiff < Math.PI / 4) { // 45 degree cone
                             // Apply damage
-                            enemy.health -= 2;
+                            const flameDamage = 2 * this.getDamageMultiplier();
+                            enemy.health -= flameDamage;
                             // Apply burn effect
                             if (!enemy.burning) {
                                 enemy.burning = true;
@@ -23853,8 +28705,9 @@ class GameScene extends Phaser.Scene {
                                         delay: 500,
                                         callback: () => {
                                             if (enemy.active && enemy.burning) {
-                                                enemy.health -= 1;
-                                                this.showDamageNumber(enemy.x, enemy.y - 20, '1', '#ff6600');
+                                                const burnDamage = 1 * this.getDamageMultiplier();
+                                                enemy.health -= burnDamage;
+                                                this.showDamageNumber(enemy.x, enemy.y - 20, Math.round(burnDamage), '#ff6600');
                                                 if (enemy.health <= 0) {
                                                     this.killEnemy(enemy);
                                                 }
@@ -23915,8 +28768,7 @@ class GameScene extends Phaser.Scene {
         if (!wizard || !expansion || expansion.isDestroying || !expansion.active) {
             return;
         }
-        // Mark as being processed immediately
-        expansion.isDestroying = true;
+        // Mark as being collected (don't set isDestroying - let safeDestroyCollectible do it)
         expansion.active = false;
         // Check if player already has 8 charge slots
         if (this.maxCharges >= 8) {
@@ -23941,11 +28793,11 @@ class GameScene extends Phaser.Scene {
             this.collectJewel(wizard, { xpValue: 0, destroy: () => {} });
         } else {
             // Increase max charges
-            this.maxCharges = Math.min(this.maxCharges + 1, 8); // Cap at 8
+            this.maxCharges = Math.min(this.maxCharges + 1, this.MAX_ACTIVE_SLOTS); // Cap at MAX_ACTIVE_SLOTS
             this.updateChargeUI();
-            // Add a random element orb as bonus
-            const randomElement = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
-            this.dropElementOrb(wizard.x, wizard.y - 50, randomElement);
+            // Elements now from level ups only
+            // const randomElement = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
+            // this.dropElementOrb(wizard.x, wizard.y - 50, randomElement);
             // Visual feedback
             const expansionText = this.add.text(wizard.x, wizard.y - 30, 'CHARGE SLOT +1', {
                 fontSize: '24px',
@@ -23981,7 +28833,7 @@ class GameScene extends Phaser.Scene {
         slime.health = Math.floor((3 * Math.pow(difficultyMultiplier, 2)) / Math.pow(2, generation));
         slime.maxHealth = slime.health;
         slime.enemyType = 'slime';
-        slime.moveSpeed = 48 + (generation * 12); // Split slimes are faster but 20% slower base
+        slime.moveSpeed = (48 + (generation * 12)) * this.getEnemySpeedMultiplier(); // Split slimes are faster but with speed reduction
         slime.generation = generation;
         slime.play('slime-idle');
         // Smaller hitbox for split slimes
@@ -24135,68 +28987,12 @@ class GameScene extends Phaser.Scene {
                     onComplete: () => teleportText.destroy()
                 });
             }
-            this.playerHealth -= projectile.damage || 10;
-            this.updateHealthBar();
-            this.updateWizardHealthBar();
-            // Flash red when hit
-            this.wizard.setTint(0xff0000);
-            this.time.delayedCall(100, () => {
-                if (this.wizard && this.wizard.active) {
-                    this.wizard.clearTint();
-                }
-            });
-            // Brief invulnerability
-            this.invulnerable = true;
-            this.time.delayedCall(500, () => {
-                this.invulnerable = false;
-            });
+            // Use damagePlayer to ensure damage cap is applied
+            this.damagePlayer(projectile.damage || 10, projectile);
             // Destroy projectile after handling hit
             this.safeDestroyProjectile(projectile);
-            if (this.playerHealth <= 0) {
-                // In multiplayer, only end game if both players are dead
-                if (this.multiplayerEnabled && this.wizard2 && this.playerHealthP2 > 0) {
-                    // P1 died but P2 is still alive - handle P1 death without ending game
-                    this.handlePlayer1Death();
-                } else {
-                    // Single player or both players dead - end game
-                    // Stop background music
-                    if (this.bgMusic) {
-                        this.bgMusic.stop();
-                    }
-                    // Play death animation
-                    const deathAnim = this.getCharacterDeathAnimation(this.wizard);
-                    if (this.anims.exists(deathAnim)) {
-                        this.wizard.play(deathAnim);
-                    }
-                    this.wizard.setVelocity(0, 0); // Stop movement
-                    // Wait for death animation to complete
-                    this.wizard.once('animationcomplete', () => {
-                        // Clear any pending timers before changing scene
-                        console.error('WIZARD DEATH: Killing all tweens!');
-                        this.time.removeAllEvents();
-                        this.tweens.killAll();
-                        // Stop all audio before transitioning to prevent null reference errors
-                        if (this.bgMusic) {
-                            this.bgMusic.stop();
-                            this.bgMusic = null;
-                        }
-                        if (this.bossMusic) {
-                            this.bossMusic.stop();
-                            this.bossMusic = null;
-                        }
-                        this.sound.stopAll();
-                        this.scene.start('GameOverScene', {
-                            survivalTime: this.survivalTime,
-                            enemiesKilled: this.enemiesKilled,
-                            itemsCollected: this.itemsCollected,
-                            level: this.playerLevel,
-                            elementsDiscovered: this.elementsDiscovered,
-                            damageDealt: this.damageDealt,
-                            won: false
-                        });
-                    });
-                }
-            }
+            // Check for death and handle revives
+            this.checkPlayerDeath();
         });
     }
     applyPlayerBurn(damage, duration) {
@@ -24226,39 +29022,8 @@ class GameScene extends Phaser.Scene {
                         this.wizard.clearTint();
                         burnTimer.destroy();
                     }
-                    // Check for death
-                    if (this.playerHealth <= 0) {
-                        // In multiplayer, only end game if both players are dead
-                        if (this.multiplayerEnabled && this.wizard2 && this.playerHealthP2 > 0) {
-                            // P1 died but P2 is still alive - handle P1 death without ending game
-                            this.handlePlayer1Death();
-                        } else {
-                            // Single player or both players dead - end game
-                            // Stop background music
-                            if (this.bgMusic) {
-                                this.bgMusic.stop();
-                            }
-                            const deathAnim = this.getCharacterDeathAnimation(this.wizard);
-                            if (this.anims.exists(deathAnim)) {
-                                this.wizard.play(deathAnim);
-                            }
-                            this.wizard.setVelocity(0, 0);
-                            this.wizard.once('animationcomplete', () => {
-                                console.error('WIZARD DEATH FROM SPAWN ENEMY: Killing all tweens!');
-                                this.time.removeAllEvents();
-                                this.tweens.killAll();
-                                this.scene.start('GameOverScene', {
-                                    survivalTime: this.survivalTime,
-                                    enemiesKilled: this.enemiesKilled,
-                                    itemsCollected: this.itemsCollected,
-                                    level: this.playerLevel,
-                                    elementsDiscovered: this.elementsDiscovered,
-                                    damageDealt: this.damageDealt,
-                                    won: false
-                                });
-                            });
-                        }
-                    }
+                    // Check for death and handle revives
+                    this.checkPlayerDeath();
                 }
             },
             loop: true
@@ -24294,103 +29059,159 @@ class GameScene extends Phaser.Scene {
                 projectile.updateEvent.remove();
                 projectile.updateEvent = null;
             }
-            // Remove from physics groups BEFORE disabling body
-            if (this.projectiles && this.projectiles.contains(projectile)) {
-                this.projectiles.remove(projectile);
-            }
-            if (this.enemyProjectiles && this.enemyProjectiles.contains(projectile)) {
-                this.enemyProjectiles.remove(projectile);
-            }
-            // Use Phaser's disableBody method when available
+            // Use Phaser's disableBody method - this is the SAFEST way
+            // It removes the body from physics world AND prevents collision detection
             if (projectile.disableBody) {
-                // This is the recommended Phaser way - disables physics and hides sprite
-                projectile.disableBody(true, true); // Disable and hide immediately
-            } else if (projectile.body) {
-                // Fallback for non-arcade sprites
-                projectile.active = false;
-                projectile.visible = false;
-                if (projectile.body.enable) {
-                    projectile.body.enable = false;
-                }
-            }
-            // Destroy after next frame to ensure all physics processing is complete
-            this.time.delayedCall(16, () => {
                 try {
-                    if (projectile && projectile.destroy && !projectile._destroyed) {
-                        projectile.destroy();
-                    }
+                    projectile.disableBody(true, true); // Disable physics and hide
                 } catch (e) {
-                    // Ignore destruction errors
+                    // Fallback to manual disable
+                    if (projectile.body) {
+                        projectile.body.enable = false;
+                    }
+                    projectile.visible = false;
                 }
-            });
+            } else if (projectile.body) {
+                projectile.body.enable = false;
+                projectile.visible = false;
+            }
+            projectile.active = false;
+
+            // Add to deferred destruction queue - will be destroyed AFTER physics step
+            if (!this.destroyQueue.projectiles.includes(projectile)) {
+                this.destroyQueue.projectiles.push(projectile);
+            }
         } catch (e) {
             }
     }
+    /**
+     * Process the deferred destruction queue - called AFTER physics update completes
+     * This ensures we never destroy objects while Phaser is iterating through collision groups
+     */
+    processDestroyQueue() {
+        if (!this.destroyQueue) return;
+
+        // Process enemies - called AFTER physics step completes
+        while (this.destroyQueue.enemies.length > 0) {
+            const enemy = this.destroyQueue.enemies.shift();
+            if (enemy && enemy.scene && !enemy.isActuallyDestroyed) {
+                try {
+                    enemy.isActuallyDestroyed = true;
+                    // Just call destroy() - Phaser automatically handles group removal
+                    // DO NOT manually call .remove() on groups
+                    if (enemy.destroy) {
+                        enemy.destroy();
+                    }
+                } catch (e) {
+                    console.warn('Error destroying enemy:', e);
+                }
+            }
+        }
+
+        // Process projectiles
+        while (this.destroyQueue.projectiles.length > 0) {
+            const projectile = this.destroyQueue.projectiles.shift();
+            if (projectile && projectile.scene && !projectile.isActuallyDestroyed) {
+                try {
+                    projectile.isActuallyDestroyed = true;
+                    // Just call destroy() - Phaser automatically handles group removal
+                    if (projectile.destroy) {
+                        projectile.destroy();
+                    }
+                } catch (e) {
+                    console.warn('Error destroying projectile:', e);
+                }
+            }
+        }
+
+        // Process other objects (collectibles, etc.)
+        while (this.destroyQueue.other.length > 0) {
+            const obj = this.destroyQueue.other.shift();
+            if (obj && !obj.isActuallyDestroyed) {
+                try {
+                    obj.isActuallyDestroyed = true;
+                    // Just call destroy() - Phaser automatically handles group removal
+                    if (obj.destroy) {
+                        obj.destroy();
+                    }
+                } catch (e) {
+                    console.warn('Error destroying object:', e);
+                }
+            }
+        }
+    }
+
     safeDestroyEnemy(enemy) {
         if (!enemy || enemy.isDestroying) return;
-        // Mark as destroying to prevent double processing
+
+        // Mark as destroying immediately to prevent double-queuing
         enemy.isDestroying = true;
         enemy.isDying = true;
-        // Use Phaser's disableBody method when available
+
+        // Use Phaser's disableBody method - this is the SAFEST way
+        // It removes the body from physics world AND prevents collision detection
         if (enemy.disableBody) {
-            // This is the recommended Phaser way - disables physics and hides sprite
-            enemy.disableBody(true, false); // Disable but don't hide yet
+            try {
+                enemy.disableBody(true, false); // Disable physics, keep visible for now
+            } catch (e) {
+                // Fallback to manual disable
+                if (enemy.body) {
+                    enemy.body.enable = false;
+                }
+            }
         } else if (enemy.body) {
-            // Fallback for non-arcade sprites
-            enemy.active = false;
             enemy.body.enable = false;
         }
-        // Remove from physics group
-        if (this.enemies && this.enemies.contains(enemy)) {
-            this.enemies.remove(enemy);
-        }
-        // Clean up any active timers or effects
+        enemy.active = false;
+
+        // Clean up effects immediately
         this.cleanupEnemyEffects(enemy);
-        // Destroy after a tiny delay to ensure physics update completes
-        this.time.delayedCall(0, () => {
-            if (enemy && enemy.destroy) {
-                enemy.destroy();
-            }
-        });
+
+        // Add to deferred destruction queue - will be destroyed AFTER physics step
+        if (!this.destroyQueue.enemies.includes(enemy)) {
+            this.destroyQueue.enemies.push(enemy);
+        }
     }
     safeDestroyCollectible(collectible) {
         if (!collectible || collectible.isDestroying) return;
+
         // Mark as destroying to prevent double processing
         collectible.isDestroying = true;
+        collectible.active = false;
+
+        // CRITICAL: Kill any tweens on this object to prevent crashes
+        this.tweens.killTweensOf(collectible);
+
         // Stop any movement immediately
         if (collectible.body) {
             collectible.body.setVelocity(0, 0);
             collectible.body.setAcceleration(0, 0);
         }
+
         // Use Phaser's disableBody method when available
         if (collectible.disableBody) {
-            // This is the recommended Phaser way - disables physics and hides sprite
-            collectible.disableBody(true, true); // Disable and hide immediately for collectibles
+            try {
+                // Disable physics but keep visible for now - destroy() will handle hiding
+                collectible.disableBody(true, false);
+            } catch (e) {
+                // Fallback if disableBody fails
+                if (collectible.body) {
+                    collectible.body.enable = false;
+                }
+            }
         } else if (collectible.body) {
             // Fallback for non-arcade sprites
-            collectible.active = false;
-            collectible.visible = false;
             collectible.body.enable = false;
         }
-        // Remove from appropriate physics group BEFORE destroying
-        if (this.jewels && this.jewels.contains(collectible)) {
-            this.jewels.remove(collectible);
+
+        // Explicitly hide the sprite immediately
+        collectible.visible = false;
+
+        // Add to deferred destruction queue - don't manually remove from groups or destroy here
+        // Let processDestroyQueue handle it at the end of the update loop
+        if (!this.destroyQueue.other.includes(collectible)) {
+            this.destroyQueue.other.push(collectible);
         }
-        if (this.muffins && this.muffins.contains(collectible)) {
-            this.muffins.remove(collectible);
-        }
-        if (this.elementOrbs && this.elementOrbs.contains(collectible)) {
-            this.elementOrbs.remove(collectible);
-        }
-        if (this.chargeExpansions && this.chargeExpansions.contains(collectible)) {
-            this.chargeExpansions.remove(collectible);
-        }
-        // Destroy with a minimal delay to ensure physics cleanup
-        this.time.delayedCall(10, () => {
-            if (collectible && collectible.destroy) {
-                collectible.destroy();
-            }
-        });
     }
     updateObelisks(playerX, playerY) {
         const chunkX = Math.floor(playerX / this.chunkSize);
@@ -24869,8 +29690,8 @@ class GameScene extends Phaser.Scene {
         }
         // Rebuild charges array
         this.charges = [];
-        for (let i = 0; i < 4 && i < this.chargeSlots.length; i++) {
-            if (this.chargeSlots[i] !== null) {
+        for (let i = 0; i < this.MAX_ACTIVE_SLOTS && i < this.chargeSlots.length; i++) {
+            if (this.chargeSlots[i] !== null && this.chargeSlots[i] !== 'catalyst') {
                 this.charges.push(this.chargeSlots[i]);
             }
         }
@@ -25087,8 +29908,8 @@ class GameScene extends Phaser.Scene {
         tower.activated = false;
         tower.hasInteracted = false;
         tower.interactionRadius = 100;
-        // Random passive orb reward
-        const passiveOrbs = ['joker', 'rook', 'bishop', 'queen', 'knight', 'king', 'saturn', 'pawn'];
+        // Random passive orb reward (removed chess modifiers)
+        const passiveOrbs = ['joker'];
         tower.reward = Phaser.Utils.Array.GetRandom(passiveOrbs);
         tower.healthCost = 0.2 + Math.random() * 0.2; // 20-40% of max health
         this.bloodTowers.add(tower);
@@ -25680,9 +30501,11 @@ class GameScene extends Phaser.Scene {
         this.closeBloodTowerMenu();
     }
     grantPassiveOrb(orbType, wizard) {
-        // Find first empty passive slot (4-7)
+        // Find first empty passive slot
         let emptySlot = -1;
-        for (let i = 4; i < 8; i++) {
+        const passiveStart = this.MAX_ACTIVE_SLOTS || 4;
+        const passiveEnd = this.MAX_CHARGE_SLOTS || 8;
+        for (let i = passiveStart; i < passiveEnd; i++) {
             if (!this.chargeSlots[i]) {
                 emptySlot = i;
                 break;
@@ -25805,7 +30628,7 @@ class GameScene extends Phaser.Scene {
         boss.health = 12000; // Very high health
         boss.maxHealth = 12000;
         boss.damage = 50;
-        boss.moveSpeed = 0; // Stationary
+        this.setEnemySpeed(boss, 0); // Stationary
         boss.body.setImmovable(true);
         // Apply hitbox configuration or use defaults
         if (!this.applyHitboxConfig(boss, boss.enemyType)) {
@@ -25960,7 +30783,9 @@ class GameScene extends Phaser.Scene {
         try {
             // Don't create damage numbers if game is paused or ending
             if (this.gamePaused || this.gameEnded) return;
-            const damageText = this.add.text(x, y, damage.toString(), {
+            // Round damage if it's a number
+            const displayDamage = typeof damage === 'number' ? Math.round(damage) : damage;
+            const damageText = this.add.text(x, y, displayDamage.toString(), {
                 fontSize: '24px',
                 color: color,
                 fontStyle: 'bold',
@@ -26102,6 +30927,8 @@ class GameScene extends Phaser.Scene {
             baseDamage = projectile.isExplosive ? 4 : 2;
             damage = baseDamage * (projectile.damage || 1);
         }
+        // Apply passive damage multiplier from upgrades
+        damage *= this.getDamageMultiplier();
         // Debug log for Nekros
         if (enemy.enemyType === 'nekros-boss') {
             // Check for invalid damage values
@@ -26165,7 +30992,7 @@ class GameScene extends Phaser.Scene {
         }
         // Apply water effect - wet status and impact animation
         if (projectile.element === 'water') {
-            // Apply wet status
+            // Apply wet status to primary target
             enemy.wet = true;
             enemy.wetEndTime = this.time.now + 5000; // Wet for 5 seconds
             // Visual wet effect - blue tint
@@ -26185,6 +31012,73 @@ class GameScene extends Phaser.Scene {
                 if (enemy && enemy.active && !enemy.isDying) {
                     enemy.wet = false;
                     enemy.clearTint(); // Remove blue tint
+                }
+            });
+
+            // SPLASH DAMAGE MECHANIC - Damage nearby enemies
+            const splashRadius = 100; // Radius for splash damage
+            const splashDamage = damage * 0.5; // 50% damage to nearby enemies
+
+            this.enemies.children.entries.forEach(nearbyEnemy => {
+                if (nearbyEnemy && nearbyEnemy.active && !nearbyEnemy.isDying &&
+                    nearbyEnemy !== enemy) { // Don't hit the primary target again
+                    const distance = Phaser.Math.Distance.Between(
+                        enemy.x, enemy.y, nearbyEnemy.x, nearbyEnemy.y
+                    );
+
+                    if (distance <= splashRadius) {
+                        // Deal splash damage
+                        nearbyEnemy.health -= splashDamage;
+                        this.showDamageNumber(nearbyEnemy.x, nearbyEnemy.y - 20, Math.floor(splashDamage), '#6699ff');
+                        this.damageDealt += splashDamage;
+
+                        // Apply wet status to splashed enemies
+                        nearbyEnemy.wet = true;
+                        nearbyEnemy.wetEndTime = this.time.now + 3000; // Wet for 3 seconds (shorter than direct hit)
+                        nearbyEnemy.setTint(0x8888ff);
+
+                        // Create splash particle effect
+                        const splashParticle = this.add.sprite(nearbyEnemy.x, nearbyEnemy.y, 'waterball-impact');
+                        splashParticle.setScale(0.8);
+                        splashParticle.setDepth(nearbyEnemy.depth + 1);
+                        splashParticle.setAlpha(0.6);
+                        splashParticle.play('waterball-impact');
+                        splashParticle.on('animationcomplete', () => {
+                            splashParticle.destroy();
+                        });
+
+                        // Remove wet effect after duration
+                        this.time.delayedCall(3000, () => {
+                            if (nearbyEnemy && nearbyEnemy.active && !nearbyEnemy.isDying) {
+                                nearbyEnemy.wet = false;
+                                if (!nearbyEnemy.frozen && !nearbyEnemy.burning && !nearbyEnemy.poisoned && !nearbyEnemy.slowed && !nearbyEnemy.muddy) {
+                                    nearbyEnemy.clearTint();
+                                }
+                            }
+                        });
+
+                        // Check if splashed enemy died
+                        if (nearbyEnemy.health <= 0 && nearbyEnemy.active) {
+                            if (nearbyEnemy.body) {
+                                nearbyEnemy.body.enable = false;
+                            }
+                            this.killEnemy(nearbyEnemy);
+                        }
+                    }
+                }
+            });
+
+            // Create expanding splash wave visual effect
+            const splashWave = this.add.circle(enemy.x, enemy.y, 10, 0x4488ff, 0.4);
+            splashWave.setDepth(enemy.depth);
+            this.tweens.add({
+                targets: splashWave,
+                radius: splashRadius,
+                alpha: 0,
+                duration: 400,
+                ease: 'Quad.easeOut',
+                onComplete: () => {
+                    splashWave.destroy();
                 }
             });
         }
@@ -26459,45 +31353,8 @@ class GameScene extends Phaser.Scene {
                 if (enemy.burnTimer) {
                     enemy.burnTimer.destroy();
                 }
-                // Create burn damage timer that ticks every 0.5 seconds
-                enemy.burnTimer = this.time.addEvent({
-                delay: 500, // Every half second
-                callback: () => {
-                    if (enemy && enemy.active && enemy.burnMagnitude > 0) {
-                        // Deal damage equal to current burn magnitude
-                        const burnDamage = enemy.burnMagnitude;
-                        enemy.health -= burnDamage;
-                        this.showDamageNumber(enemy.x, enemy.y - 20, burnDamage, '#ff6600');
-                        // Reduce magnitude by 1
-                        enemy.burnMagnitude--;
-                        // Check if burn ended
-                        if (enemy.burnMagnitude <= 0) {
-                            enemy.burning = false;
-                            enemy.burnTimer.destroy();
-                            enemy.burnTimer = null;
-                            // Clear tint only if no other effects
-                            if (!enemy.frozen && !enemy.stunned && !enemy.poisoned && !enemy.slowed && !enemy.wet) {
-                                enemy.clearTint();
-                            }
-                        }
-                        // Check if enemy died from burn
-                        if (enemy.health <= 0 && enemy.active) {
-                            // Immediately disable physics body
-                            if (enemy.body) {
-                                enemy.body.enable = false;
-                            }
-                            this.killEnemy(enemy);
-                        }
-                    } else if (enemy && !enemy.active) {
-                        // Clean up timer if enemy is no longer active
-                        if (enemy.burnTimer) {
-                            enemy.burnTimer.destroy();
-                            enemy.burnTimer = null;
-                        }
-                    }
-                },
-                loop: true
-            });
+                // Create spreading burn timer with chain reaction mechanic
+                this.createSpreadingBurnTimer(enemy);
             } // End of else block for normal burn effect
         }
         // Apply knockback for earth projectiles
@@ -26895,13 +31752,108 @@ class GameScene extends Phaser.Scene {
         if (projectile.onHitEnemy && typeof projectile.onHitEnemy === 'function') {
             projectile.onHitEnemy(enemy);
         }
+        // Handle Grim's DoT projectiles
+        if (projectile.isDoT) {
+            if (!enemy.dotEffects) {
+                enemy.dotEffects = [];
+            }
+            // Add DoT effect
+            const dotEffect = {
+                damage: damage / 6, // Total damage spread over 6 ticks
+                ticksRemaining: 6,
+                tickRate: projectile.dotTickRate || 500
+            };
+            enemy.dotEffects.push(dotEffect);
+
+            // Create DoT timer if not exists
+            if (!enemy.dotTimer) {
+                enemy.dotTimer = this.time.addEvent({
+                    delay: 500,
+                    callback: () => {
+                        if (!enemy.active || enemy.isDying) {
+                            if (enemy.dotTimer) {
+                                enemy.dotTimer.destroy();
+                                enemy.dotTimer = null;
+                            }
+                            return;
+                        }
+                        // Process all DoT effects
+                        if (enemy.dotEffects && enemy.dotEffects.length > 0) {
+                            enemy.dotEffects.forEach((dot, index) => {
+                                enemy.health -= dot.damage;
+                                this.showDamageNumber(enemy.x, enemy.y - 30 - (index * 15), Math.round(dot.damage), '#ff00ff');
+                                dot.ticksRemaining--;
+                            });
+                            // Remove expired effects
+                            enemy.dotEffects = enemy.dotEffects.filter(dot => dot.ticksRemaining > 0);
+
+                            // Check if enemy died from DoT
+                            if (enemy.health <= 0) {
+                                if (enemy.body) enemy.body.enable = false;
+                                this.killEnemy(enemy);
+                            }
+
+                            // Clean up timer if no effects remain
+                            if (enemy.dotEffects.length === 0 && enemy.dotTimer) {
+                                enemy.dotTimer.destroy();
+                                enemy.dotTimer = null;
+                            }
+                        }
+                    },
+                    loop: true
+                });
+            }
+        }
+
+        // Handle knight bouncing projectiles
+        if (projectile.bouncesRemaining > 0) {
+            // Find nearest enemy within 150 pixels
+            let nearestEnemy = null;
+            let nearestDistance = 150;
+
+            this.enemies.children.entries.forEach(otherEnemy => {
+                if (otherEnemy === enemy || !otherEnemy.active || otherEnemy.isDying) return;
+                if (projectile.hitEnemies && projectile.hitEnemies.has(otherEnemy)) return;
+
+                const dist = Phaser.Math.Distance.Between(projectile.x, projectile.y, otherEnemy.x, otherEnemy.y);
+                if (dist < nearestDistance) {
+                    nearestDistance = dist;
+                    nearestEnemy = otherEnemy;
+                }
+            });
+
+            if (nearestEnemy) {
+                // Bounce to nearest enemy
+                projectile.bouncesRemaining--;
+                const angle = Phaser.Math.Angle.Between(projectile.x, projectile.y, nearestEnemy.x, nearestEnemy.y);
+                const speed = 400 * this.speedMultiplier;
+                projectile.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+
+                // Visual bounce effect
+                const bounceEffect = this.add.circle(projectile.x, projectile.y, 8, 0xffff00, 0.6);
+                bounceEffect.setDepth(projectile.depth - 1);
+                this.tweens.add({
+                    targets: bounceEffect,
+                    scale: 2,
+                    alpha: 0,
+                    duration: 200,
+                    onComplete: () => bounceEffect.destroy()
+                });
+                return; // Don't destroy, let it bounce
+            } else {
+                // No targets found, destroy
+                this.safeDestroyProjectile(projectile);
+                return;
+            }
+        }
+
         // Handle bouncing projectiles (Storm)
         if (projectile.isBouncing && projectile.bounceToNextEnemy) {
             // Trigger bounce to next enemy
             projectile.bounceToNextEnemy();
         }
-        // Destroy projectile unless it's a piercing type, pass-through type, or bouncing type
-        else if (!projectile.isPiercing && !projectile.passThroughEnemies && !projectile.isBouncing) {
+        // Destroy projectile unless it's a piercing/penetrating/pass-through/bouncing type
+        else if (!projectile.isPiercing && !projectile.passThroughEnemies && !projectile.isBouncing && !projectile.penetrating) {
             // Use safe destroy method to clean up particles and timers
             this.safeDestroyProjectile(projectile);
         }
@@ -27169,6 +32121,35 @@ class GameScene extends Phaser.Scene {
             });
         }
     }
+
+    /**
+     * Enforce item cap by removing oldest items when limit is exceeded
+     * @param {Phaser.Physics.Arcade.Group} group - The group to enforce cap on
+     * @param {number} maxItems - Maximum number of items allowed
+     */
+    enforceItemCap(group, maxItems) {
+        if (!group || !group.children || !group.children.entries) return;
+
+        const items = group.children.entries;
+        const itemCount = items.length;
+
+        // Remove oldest items if we're over the cap
+        if (itemCount >= maxItems) {
+            const numToRemove = itemCount - maxItems + 1; // Remove enough to make room for new item
+
+            for (let i = 0; i < numToRemove && i < items.length; i++) {
+                const oldestItem = items[i];
+                if (oldestItem && oldestItem.active) {
+                    // Stop all tweens on the item
+                    this.tweens.killTweensOf(oldestItem);
+
+                    // Remove and destroy the item
+                    group.remove(oldestItem, true, true);
+                }
+            }
+        }
+    }
+
     dropJewel(x, y, xpValue = 2, scale = 1.0) {
         // Choose gem type based on XP value
         let gemType;
@@ -27195,6 +32176,10 @@ class GameScene extends Phaser.Scene {
         jewel.body.setSize(12, 12); // Collision box for 16x16 sprites
         // Store XP value on the jewel
         jewel.xpValue = xpValue;
+
+        // Enforce item cap before adding new jewel
+        this.enforceItemCap(this.jewels, this.MAX_JEWELS_ON_FLOOR);
+
         this.jewels.add(jewel);
         return jewel;
     }
@@ -27331,6 +32316,10 @@ class GameScene extends Phaser.Scene {
         coin.body.setSize(12, 12); // Collision box for 16x16 sprites
         // Store coin value
         coin.coinValue = value;
+
+        // Enforce item cap before adding new coin (coins share cap with jewels)
+        this.enforceItemCap(this.jewels, this.MAX_JEWELS_ON_FLOOR);
+
         // Add to jewels group for now (can create separate coins group later)
         this.jewels.add(coin);
         return coin;
@@ -27356,6 +32345,10 @@ class GameScene extends Phaser.Scene {
             duration: 3000,
             repeat: -1
         });
+
+        // Enforce item cap before adding new muffin
+        this.enforceItemCap(this.muffins, this.MAX_MUFFINS_ON_FLOOR);
+
         this.muffins.add(muffin);
         return muffin;
     }
@@ -27364,8 +32357,7 @@ class GameScene extends Phaser.Scene {
         if (!wizard || !muffin || muffin.isDestroying || !muffin.active) {
             return;
         }
-        // Mark as being processed immediately
-        muffin.isDestroying = true;
+        // Mark as being collected (don't set isDestroying - let safeDestroyCollectible do it)
         muffin.active = false;
         // Heal 30% of max health
         const healAmount = Math.floor(this.maxHealth * 0.3);
@@ -27396,6 +32388,61 @@ class GameScene extends Phaser.Scene {
         // Use safe destruction
         this.safeDestroyCollectible(muffin);
     }
+
+    /**
+     * Drop an element orb at a specific location (for discarding from radial menu)
+     */
+    dropElementOrb(x, y, element) {
+        if (!element || !this.elementConfig || !this.elementConfig[element]) {
+            console.warn(`Cannot drop orb: invalid element "${element}"`);
+            return null;
+        }
+
+        const config = this.elementConfig[element];
+
+        // Create orb sprite
+        const orb = this.physics.add.sprite(x, y, config.sheet, config.frame);
+        orb.setDepth(25);
+        orb.setScale(0.5); // Match collection orb size
+        orb.element = element;
+        orb.canCollect = true;
+        orb.isDestroying = false;
+
+        // Add slight random velocity for visual effect
+        const randomAngle = Math.random() * Math.PI * 2;
+        const randomSpeed = 50 + Math.random() * 50;
+        orb.body.setVelocity(
+            Math.cos(randomAngle) * randomSpeed,
+            Math.sin(randomAngle) * randomSpeed
+        );
+
+        // Slow down over time
+        orb.body.setDrag(100);
+
+        // Add glow effect
+        const glowColor = config.color || 0xFFFFFF;
+        orb.setTint(glowColor);
+
+        // Floating animation
+        this.tweens.add({
+            targets: orb,
+            y: y - 5,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // Enforce item cap before adding new element orb
+        this.enforceItemCap(this.elementOrbs, this.MAX_ELEMENT_ORBS_ON_FLOOR);
+
+        // Add to element orbs group
+        this.elementOrbs.add(orb);
+
+        console.log(`Dropped ${element} orb at (${Math.round(x)}, ${Math.round(y)})`);
+        return orb;
+    }
+
     collectJewel(wizard, jewel) {
         // Extra safety check
         if (!wizard || !jewel || jewel.isDestroying || !jewel.active) {
@@ -27405,8 +32452,7 @@ class GameScene extends Phaser.Scene {
         if (!jewel.body || !jewel.body.enable) {
             return;
         }
-        // Mark as being processed immediately
-        jewel.isDestroying = true;
+        // DON'T mark isDestroying here - let safeDestroyCollectible do it
         // Check if this is a coin (has coinValue) or a gem (has xpValue)
         if (jewel.coinValue !== undefined) {
             // This is a coin - grant essence
@@ -27471,17 +32517,131 @@ class GameScene extends Phaser.Scene {
         while (this.playerXP >= this.xpToNextLevel) {
             this.playerXP -= this.xpToNextLevel;
             this.playerLevel++;
-            // Progressive scaling - much gentler curve for easier leveling
-            if (this.playerLevel <= 2) {
-                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.05); // 5% increase for levels 0-2 (very easy start)
-            } else if (this.playerLevel <= 5) {
-                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.15); // 15% increase for levels 3-5 (reduced from 100%)
-            } else if (this.playerLevel <= 10) {
-                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.20); // 20% increase for levels 6-10 (reduced from 60%)
+
+            // Level Milestone Rewards
+            if (this.playerLevel === 5) {
+                // Level 5: Free chest reward
+                this.dropChest(wizard.x, wizard.y - 30);
+
+                // Show milestone notification
+                const milestoneText = this.add.text(wizard.x, wizard.y - 90,
+                    'MILESTONE! FREE CHEST!', {
+                    fontSize: '26px',
+                    color: '#ffaa00',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 4
+                });
+                milestoneText.setOrigin(0.5);
+                milestoneText.setDepth(150);
+                this.tweens.add({
+                    targets: milestoneText,
+                    y: wizard.y - 130,
+                    alpha: 0,
+                    duration: 2500,
+                    onComplete: () => milestoneText.destroy()
+                });
+                console.log('🎉 LEVEL 5 MILESTONE: Free chest!');
+            } else if (this.playerLevel === 10) {
+                // Level 10: Free chest reward
+                this.dropChest(wizard.x, wizard.y - 30);
+
+                // Show milestone notification
+                const milestoneText = this.add.text(wizard.x, wizard.y - 90,
+                    'MILESTONE! FREE CHEST!', {
+                    fontSize: '26px',
+                    color: '#ffaa00',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 4
+                });
+                milestoneText.setOrigin(0.5);
+                milestoneText.setDepth(150);
+                this.tweens.add({
+                    targets: milestoneText,
+                    y: wizard.y - 130,
+                    alpha: 0,
+                    duration: 2500,
+                    onComplete: () => milestoneText.destroy()
+                });
+                console.log('🎉 LEVEL 10 MILESTONE: Free chest!');
+            } else if (this.playerLevel === 15) {
+                // Level 15: Drop 3-5 catalysts for fusion/tier-up
+                const catalystCount = 3 + Math.floor(Math.random() * 3); // 3-5 catalysts
+                for (let i = 0; i < catalystCount; i++) {
+                    const angle = (Math.PI * 2 * i) / catalystCount;
+                    const distance = 40;
+                    this.dropCatalyst(
+                        wizard.x + Math.cos(angle) * distance,
+                        wizard.y + Math.sin(angle) * distance
+                    );
+                }
+
+                // Show milestone notification
+                const milestoneText = this.add.text(wizard.x, wizard.y - 90,
+                    `MILESTONE! ${catalystCount} CATALYSTS!`, {
+                    fontSize: '26px',
+                    color: '#ffaa00',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 4
+                });
+                milestoneText.setOrigin(0.5);
+                milestoneText.setDepth(150);
+                this.tweens.add({
+                    targets: milestoneText,
+                    y: wizard.y - 130,
+                    alpha: 0,
+                    duration: 2500,
+                    onComplete: () => milestoneText.destroy()
+                });
+                console.log(`🎉 LEVEL 15 MILESTONE: Dropped ${catalystCount} catalysts!`);
+            } else if (this.playerLevel === 20) {
+                // Level 20: Guaranteed Rare Chess Piece (Joker) + 5 Catalysts
+                this.dropChest(wizard.x, wizard.y - 30);
+
+                // Also drop 5 catalysts
+                for (let i = 0; i < 5; i++) {
+                    const angle = (Math.PI * 2 * i) / 5;
+                    const distance = 50;
+                    this.dropCatalyst(
+                        wizard.x + Math.cos(angle) * distance,
+                        wizard.y + Math.sin(angle) * distance
+                    );
+                }
+
+                // Show milestone notification
+                const milestoneText = this.add.text(wizard.x, wizard.y - 90,
+                    'MILESTONE! CHEST + 5 CATALYSTS!', {
+                    fontSize: '26px',
+                    color: '#ff00ff',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 4
+                });
+                milestoneText.setOrigin(0.5);
+                milestoneText.setDepth(150);
+                this.tweens.add({
+                    targets: milestoneText,
+                    y: wizard.y - 130,
+                    alpha: 0,
+                    duration: 2500,
+                    onComplete: () => milestoneText.destroy()
+                });
+                console.log('🎉 LEVEL 20 MILESTONE: Guaranteed rare chess piece + 5 catalysts!');
+            }
+
+            // Progressive scaling - steeper curve for meaningful progression
+            if (this.playerLevel <= 3) {
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.25); // 25% increase for levels 1-3
+            } else if (this.playerLevel <= 7) {
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.35); // 35% increase for levels 4-7
+            } else if (this.playerLevel <= 12) {
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.45); // 45% increase for levels 8-12
             } else if (this.playerLevel <= 20) {
-                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.25); // 25% increase for levels 11-20 (reduced from 70%)
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.50); // 50% increase for levels 13-20
             } else {
-                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.30); // 30% increase for levels 21+ (reduced from 80%)
+                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.60); // 60% increase for levels 21+
             }
             // Unlock charge slot every 10 levels
             if (this.playerLevel % 10 === 0 && this.maxCharges < 8) {
@@ -27503,29 +32663,9 @@ class GameScene extends Phaser.Scene {
                     onComplete: () => slotText.destroy()
                 });
             }
-            // Show chest reward selection directly on level up
-            // BUT NOT if we're already in a chest selection (e.g., got level up FROM a chest)
+            // Show level up reward selection
             if (!this.chestSelectionActive && !this.chestOpening) {
-                // In multiplayer, BOTH players get level up rewards
-                if (this.multiplayerEnabled) {
-                    // Both players get the reward, but we need to queue them
-                    // First, give to P1 if alive
-                    if (this.wizard && this.playerHealth > 0) {
-                        this.menuControllingPlayer = 1;
-                        this.openChest(this.wizard, null);
-                        // Queue P2's reward to open after P1 finishes
-                        if (this.wizard2 && this.wizard2.health > 0) {
-                            this.pendingP2LevelUpReward = true;
-                            }
-                    } else if (this.wizard2 && this.wizard2.health > 0) {
-                        // If only P2 is alive, give directly to P2
-                        this.menuControllingPlayer = 2;
-                        this.openChest(this.wizard2, null);
-                    }
-                } else {
-                    // Single player - normal level up
-                    this.openChest(wizard, null);
-                }
+                this.openChest(wizard, null);
             }
             // Spawn a cacodemon every 2 levels (2, 4, 6, etc.)
             if (this.playerLevel % 2 === 0) {
@@ -27547,9 +32687,13 @@ class GameScene extends Phaser.Scene {
                 onComplete: () => levelUpText.destroy()
             });
         }
-        // Update UI
-        this.levelText.setText(`Level ${this.playerLevel}`);
-        this.xpText.setText(`XP: ${this.playerXP}/${this.xpToNextLevel}`);
+        // Update UI (optional - old charge UI disabled in favor of radial menu)
+        if (this.levelText) {
+            this.levelText.setText(`Level ${this.playerLevel}`);
+        }
+        if (this.xpText) {
+            this.xpText.setText(`XP: ${this.playerXP}/${this.xpToNextLevel}`);
+        }
         // Visual collection effect using the same sprite as the jewel
         const collectEffect = this.add.sprite(jewel.x, jewel.y, jewel.texture.key);
         collectEffect.setScale(jewel.scaleX, jewel.scaleY);
@@ -27572,20 +32716,6 @@ class GameScene extends Phaser.Scene {
         });
         // Use safe destruction
         this.safeDestroyCollectible(jewel);
-        // Failsafe: ensure jewel is destroyed even if safeDestroyCollectible fails
-        this.time.delayedCall(50, () => {
-            if (jewel && jewel.scene) {
-                // Force remove from physics group
-                if (this.jewels.contains(jewel)) {
-                    this.jewels.remove(jewel);
-                }
-                // Force destroy
-                try {
-                    jewel.destroy();
-                } catch (e) {
-                    }
-            }
-        });
     }
     dropElementOrb(x, y, element) {
         const config = this.elementConfig[element];
@@ -27604,6 +32734,9 @@ class GameScene extends Phaser.Scene {
         orb.setVisible(true); // Explicitly set visible
         orb.setTint(config.color); // Add color tint to make more visible
         orb.active = true; // Ensure orb is active
+        orb.isFusing = false; // Track fusion state
+        orb.fusionCooldown = false; // Allow fusion by default
+        orb.isBeingPulled = false; // Track if being pulled by catalyst
         // Add floating animation
         this.tweens.add({
             targets: orb,
@@ -27636,24 +32769,346 @@ class GameScene extends Phaser.Scene {
                 orb.canCollect = true;
             }
         });
+
+        // Enforce item cap before adding new element orb
+        this.enforceItemCap(this.elementOrbs, this.MAX_ELEMENT_ORBS_ON_FLOOR);
+
         this.elementOrbs.add(orb);
         return orb;
     }
+
+    dropCatalyst(x, y) {
+        // Create collectible catalyst sprite (like a coin/jewel)
+        const catalyst = this.physics.add.sprite(x, y, 'catalyst-orb');
+        catalyst.setDepth(25);
+        catalyst.setScale(0.15);
+        catalyst.setAlpha(1);
+        catalyst.setVisible(true);
+        catalyst.isCatalyst = true;
+
+        // Set up physics
+        if (catalyst.body) {
+            catalyst.body.enable = true;
+            catalyst.body.setCircle(40);
+        }
+
+        // Add floating animation
+        this.tweens.add({
+            targets: catalyst,
+            y: y - 10,
+            duration: 800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // Add pulsing glow effect
+        this.tweens.add({
+            targets: catalyst,
+            scale: { from: 0.15, to: 0.18 },
+            alpha: { from: 1, to: 0.7 },
+            duration: 400,
+            yoyo: true,
+            repeat: -1
+        });
+
+        // Enforce item cap before adding new catalyst
+        this.enforceItemCap(this.fusionCatalysts, this.MAX_CATALYSTS_ON_FLOOR);
+
+        // Add to fusionCatalysts group for collection overlap
+        this.fusionCatalysts.add(catalyst);
+        return catalyst;
+    }
+
+    collectCatalyst(wizard, catalyst) {
+        // Extra safety check
+        if (!wizard || !catalyst || !catalyst.active || !catalyst.isCatalyst || catalyst.isDestroying) {
+            return;
+        }
+
+        // Mark as being collected to prevent double-pickup (don't set isDestroying - let safeDestroyCollectible do it)
+        catalyst.active = false;
+
+        // Disable physics body immediately
+        if (catalyst.disableBody) {
+            try {
+                catalyst.disableBody(true, false);
+            } catch (e) {
+                if (catalyst.body) {
+                    catalyst.body.enable = false;
+                }
+            }
+        } else if (catalyst.body) {
+            catalyst.body.enable = false;
+        }
+
+        // Explicitly hide the sprite immediately
+        catalyst.visible = false;
+
+        // Add to catalyst count (stored in center slot of radial menu)
+        if (!wizard.catalystCount) {
+            wizard.catalystCount = 0;
+        }
+        wizard.catalystCount++;
+
+        // Visual collection effect
+        const flash = this.add.circle(catalyst.x, catalyst.y, 30, 0xffaa00, 0.8);
+        flash.setDepth(26);
+        this.tweens.add({
+            targets: flash,
+            scale: 2,
+            alpha: 0,
+            duration: 300,
+            onComplete: () => flash.destroy()
+        });
+
+        // Show collection text
+        const displayText = `+CATALYST (${wizard.catalystCount})`;
+        const collectionText = this.add.text(catalyst.x, catalyst.y - 40, displayText, {
+            fontSize: '18px',
+            color: '#ffaa00',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        collectionText.setOrigin(0.5);
+        collectionText.setDepth(27);
+        this.tweens.add({
+            targets: collectionText,
+            y: catalyst.y - 70,
+            scale: 1.2,
+            alpha: 0,
+            duration: 1200,
+            onComplete: () => collectionText.destroy()
+        });
+
+        // Track item collection
+        this.itemsCollected++;
+
+        // Kill any tweens on the catalyst
+        this.tweens.killTweensOf(catalyst);
+
+        // Add to deferred destruction queue - don't destroy or remove from group here
+        if (!this.destroyQueue.other.includes(catalyst)) {
+            this.destroyQueue.other.push(catalyst);
+        }
+    }
+
     collectElementOrb(wizard, orb) {
         // Extra safety check
         if (!wizard || !orb || orb.isDestroying || !orb.active) {
             return;
         }
-        // Mark as being processed immediately
-        orb.isDestroying = true;
+        // DON'T set isDestroying here - let safeDestroyCollectible handle it
         orb.active = false;
         // Track items collected
         this.itemsCollected++;
+
+        // Special handling for Mind Orb - expands socket count instead of adding to slots
+        if (orb.element === 'mind') {
+            // Determine which player to expand
+            let radialMenu = null;
+            if (wizard === this.wizard || !wizard.playerNumber || wizard.playerNumber === 1) {
+                radialMenu = this.radialChargeMenu;
+            } else if (wizard.playerNumber === 2 && this.radialChargeMenu2) {
+                radialMenu = this.radialChargeMenu2;
+            } else if (wizard.playerNumber === 3 && this.radialChargeMenu3) {
+                radialMenu = this.radialChargeMenu3;
+            } else if (wizard.playerNumber === 4 && this.radialChargeMenu4) {
+                radialMenu = this.radialChargeMenu4;
+            }
+
+            if (radialMenu) {
+                // Expand socket count (max 12 sockets)
+                const currentCount = radialMenu.getSocketCount();
+                if (currentCount.total < 12) {
+                    // Increase MAX_ACTIVE_SLOTS to ensure the new slot is active, not passive
+                    this.MAX_ACTIVE_SLOTS++;
+                    this.MAX_CHARGE_SLOTS++; // CHARGE_SLOTS = ACTIVE + PASSIVE
+                    this.MAX_TOTAL_SLOTS++; // TOTAL includes pouch
+
+                    // Expand chargeSlots array (this automatically increases socket count)
+                    wizard.chargeSlots.push(null);
+
+                    // If menu is currently open, close and reopen to rebuild with new socket count
+                    if (radialMenu.isOpen) {
+                        radialMenu.close();
+                        // Small delay to ensure clean close, then reopen
+                        this.time.delayedCall(50, () => {
+                            radialMenu.open();
+                        });
+                    }
+                    // If menu is closed, sockets will be created correctly on next open
+
+                    // Visual feedback
+                    const expandText = this.add.text(wizard.x, wizard.y - 50, 'ACTIVE SOCKET EXPANDED!', {
+                        fontSize: '24px',
+                        color: '#b8860b',
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 4
+                    });
+                    expandText.setOrigin(0.5);
+                    expandText.setDepth(2001);
+                    this.tweens.add({
+                        targets: expandText,
+                        y: wizard.y - 100,
+                        scale: { from: 0.8, to: 1.5 },
+                        alpha: { from: 1, to: 0 },
+                        duration: 1500,
+                        onComplete: () => expandText.destroy()
+                    });
+
+                    // Flash effect
+                    const flash = this.add.circle(wizard.x, wizard.y, 50, 0xb8860b, 0.8);
+                    flash.setDepth(26);
+                    this.tweens.add({
+                        targets: flash,
+                        scale: 3,
+                        alpha: 0,
+                        duration: 500,
+                        onComplete: () => flash.destroy()
+                    });
+
+                    const newCount = radialMenu.getSocketCount();
+                    console.log(`🧠 Mind Orb consumed! Active slots: ${newCount.active}, Total: ${newCount.total}`);
+                } else {
+                    // Max sockets reached
+                    const maxText = this.add.text(wizard.x, wizard.y - 50, 'MAX SOCKETS!', {
+                        fontSize: '18px',
+                        color: '#ff8800',
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 3
+                    });
+                    maxText.setOrigin(0.5);
+                    maxText.setDepth(2001);
+                    this.tweens.add({
+                        targets: maxText,
+                        y: wizard.y - 80,
+                        alpha: 0,
+                        duration: 1000,
+                        onComplete: () => maxText.destroy()
+                    });
+                }
+            }
+
+            // Destroy the mind orb
+            this.safeDestroyCollectible(orb);
+            return; // Exit early - don't add to slots
+        }
+
+        // Determine which radial menu to use based on player
+        let radialMenu = null;
+        if (wizard === this.wizard || !wizard.playerNumber || wizard.playerNumber === 1) {
+            radialMenu = this.radialChargeMenu;
+        } else if (wizard.playerNumber === 2 && this.radialChargeMenu2) {
+            radialMenu = this.radialChargeMenu2;
+        } else if (wizard.playerNumber === 3 && this.radialChargeMenu3) {
+            radialMenu = this.radialChargeMenu3;
+        } else if (wizard.playerNumber === 4 && this.radialChargeMenu4) {
+            radialMenu = this.radialChargeMenu4;
+        }
+
+        // If radial menu exists, use its addElement method
+        if (radialMenu) {
+            const wasAdded = radialMenu.addElement(orb.element);
+
+            if (wasAdded) {
+                // Discover the element
+                const wasNewDiscovery = !this.discoveredElements.has(orb.element);
+                this.discoveredElements.add(orb.element);
+
+                // Visual feedback
+                const config = this.elementConfig[orb.element];
+                let displayText = `+${config.name}`;
+
+                // Check if it was a tier upgrade
+                const socketCount = radialMenu.getSocketCount();
+                let isTierUpgrade = false;
+                let tierLevel = 1;
+                for (let i = 0; i < socketCount.total; i++) {
+                    if (wizard.chargeSlots[i] === orb.element) {
+                        const tierKey = `${orb.element}_${i}`;
+                        tierLevel = wizard.elementTiers.get(tierKey) || 1;
+                        if (tierLevel > 1) {
+                            isTierUpgrade = true;
+                            displayText = `${config.name} TIER ${tierLevel}`;
+                            break;
+                        }
+                    }
+                }
+
+                if (!isTierUpgrade && wasNewDiscovery) {
+                    displayText += ' (NEW!)';
+                }
+
+                const elementText = this.add.text(wizard.x, wizard.y - 30, displayText, {
+                    fontSize: '18px',
+                    color: wasNewDiscovery ? '#ffdd44' : `#${config.color.toString(16).padStart(6, '0')}`,
+                    fontStyle: 'bold'
+                });
+                elementText.setOrigin(0.5);
+                this.tweens.add({
+                    targets: elementText,
+                    y: wizard.y - 60,
+                    alpha: 0,
+                    duration: 1000,
+                    onComplete: () => elementText.destroy()
+                });
+
+                // Rebuild charges array from active slots (needed for projectile firing)
+                if (wizard === this.wizard || !wizard.playerNumber || wizard.playerNumber === 1) {
+                    this.charges = [];
+                    for (let i = 0; i < this.MAX_ACTIVE_SLOTS && i < this.chargeSlots.length; i++) {
+                        if (this.chargeSlots[i] !== null && this.chargeSlots[i] !== 'catalyst') {
+                            this.charges.push(this.chargeSlots[i]);
+                        }
+                    }
+                } else if (wizard.charges) {
+                    // For other players, rebuild their charges array
+                    wizard.charges = [];
+                    for (let i = 0; i < this.MAX_ACTIVE_SLOTS && i < wizard.chargeSlots.length; i++) {
+                        if (wizard.chargeSlots[i] !== null && wizard.chargeSlots[i] !== 'catalyst') {
+                            wizard.charges.push(wizard.chargeSlots[i]);
+                        }
+                    }
+                }
+
+                // Update charge groups for projectile firing
+                this.updateChargeGroups();
+
+                // Use safe destruction
+                this.safeDestroyCollectible(orb);
+            } else {
+                // All slots and pouch are full
+                // Reset orb state so it can be collected later
+                orb.isDestroying = false;
+                orb.active = true;
+                // Show feedback
+                const fullText = this.add.text(wizard.x, wizard.y - 30, 'SLOTS FULL!', {
+                    fontSize: '18px',
+                    color: '#ff4444',
+                    fontStyle: 'bold'
+                });
+                fullText.setOrigin(0.5);
+                this.tweens.add({
+                    targets: fullText,
+                    y: wizard.y - 60,
+                    alpha: 0,
+                    duration: 1000,
+                    onComplete: () => fullText.destroy()
+                });
+            }
+            return;
+        }
+
+        // Fallback to old system if radial menu not found (shouldn't happen)
         // Handle multiplayer - P2 uses same charge system as P1
         if (this.multiplayerEnabled && wizard.playerNumber === 2) {
             // Initialize chargeSlots if needed
             if (!wizard.chargeSlots) {
-                wizard.chargeSlots = new Array(8).fill(null);
+                wizard.chargeSlots = new Array(this.MAX_CHARGE_SLOTS).fill(null);
             }
             // Count how many charges P2 has
             let chargeCount = 0;
@@ -27668,7 +33123,8 @@ class GameScene extends Phaser.Scene {
             let slotIndex = -1;
             let isTierUpgrade = false;
             // First check if we already have this element in active slots - if so, upgrade its tier
-            for (let i = 0; i < Math.min(4, wizard.maxCharges); i++) {
+            const maxActiveSlots = this.MAX_ACTIVE_SLOTS || 4;
+            for (let i = 0; i < maxActiveSlots; i++) {
                 if (wizard.chargeSlots[i] === orb.element) {
                     // Found same element - upgrade its tier
                     const tierKey = `${orb.element}_${i}`;
@@ -27683,9 +33139,11 @@ class GameScene extends Phaser.Scene {
                     }
                 }
             }
-            // Check passive slots (4-7) for duplicates
-            if (!placed && wizard.maxCharges > 4) {
-                for (let i = 4; i < Math.min(8, wizard.maxCharges); i++) {
+            // Check passive slots for duplicates
+            if (!placed) {
+                const passiveStart = this.MAX_ACTIVE_SLOTS || 4;
+                const passiveEnd = this.MAX_CHARGE_SLOTS || 8;
+                for (let i = passiveStart; i < passiveEnd; i++) {
                     if (wizard.chargeSlots[i] === orb.element) {
                         // Found same element in passive slot - upgrade its tier
                         const tierKey = `${orb.element}_${i}`;
@@ -27705,8 +33163,8 @@ class GameScene extends Phaser.Scene {
             if (!placed && wizard.elementPouch) {
                 for (let i = 0; i < wizard.elementPouch.length; i++) {
                     if (wizard.elementPouch[i] === orb.element) {
-                        // Found same element in pouch - upgrade tier (store with slot index 8+i)
-                        const tierKey = `${orb.element}_${8 + i}`;
+                        // Found same element in pouch - upgrade tier (store with slot index MAX_CHARGE_SLOTS+i)
+                        const tierKey = `${orb.element}_${this.MAX_CHARGE_SLOTS + i}`;
                         const currentTier = wizard.elementTiers.get(tierKey) || 1;
                         if (currentTier < 5) { // Max tier is 5
                             wizard.elementTiers.set(tierKey, currentTier + 1);
@@ -27719,9 +33177,10 @@ class GameScene extends Phaser.Scene {
                     }
                 }
             }
-            // If not a tier upgrade, check for empty slot
+            // If not a tier upgrade, check for empty slot in active slots
             if (!placed) {
-                for (let i = 0; i < Math.min(4, wizard.maxCharges); i++) {
+                const maxActiveSlots = this.MAX_ACTIVE_SLOTS || 4;
+                for (let i = 0; i < maxActiveSlots; i++) {
                     if (wizard.chargeSlots[i] === null) {
                         wizard.chargeSlots[i] = orb.element;
                         wizard.elementTiers.set(`${orb.element}_${i}`, 1);
@@ -27732,11 +33191,26 @@ class GameScene extends Phaser.Scene {
                     }
                 }
             }
+            // Then check passive slots
+            if (!placed) {
+                const passiveStart = this.MAX_ACTIVE_SLOTS || 4;
+                const passiveEnd = this.MAX_CHARGE_SLOTS || 8;
+                for (let i = passiveStart; i < passiveEnd; i++) {
+                    if (wizard.chargeSlots[i] === null) {
+                        wizard.chargeSlots[i] = orb.element;
+                        wizard.elementTiers.set(`${orb.element}_${i}`, 1);
+                        slotType = 'passive';
+                        slotIndex = i;
+                        placed = true;
+                        break;
+                    }
+                }
+            }
             // If placed, rebuild P2's charges array
             if (placed) {
                 wizard.charges = [];
-                for (let i = 0; i < 4 && i < wizard.chargeSlots.length; i++) {
-                    if (wizard.chargeSlots[i] !== null) {
+                for (let i = 0; i < this.MAX_ACTIVE_SLOTS && i < wizard.chargeSlots.length; i++) {
+                    if (wizard.chargeSlots[i] !== null && wizard.chargeSlots[i] !== 'catalyst') {
                         wizard.charges.push(wizard.chargeSlots[i]);
                     }
                 }
@@ -27770,11 +33244,11 @@ class GameScene extends Phaser.Scene {
         }
         // Initialize chargeSlots if needed
         if (!this.chargeSlots) {
-            this.chargeSlots = new Array(8).fill(null);
+            this.chargeSlots = new Array(this.MAX_CHARGE_SLOTS).fill(null);
         }
         // Count how many charges we have
         let chargeCount = 0;
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < this.MAX_CHARGE_SLOTS; i++) {
             if (this.chargeSlots[i] !== null) {
                 chargeCount++;
             }
@@ -27787,7 +33261,8 @@ class GameScene extends Phaser.Scene {
         let isFusion = false;
         let fusionResult = null;
         // First check if we already have this element in active slots - if so, upgrade its tier
-        for (let i = 0; i < Math.min(4, this.maxCharges); i++) {
+        const maxActiveSlots = this.MAX_ACTIVE_SLOTS || 4;
+        for (let i = 0; i < maxActiveSlots; i++) {
             if (this.chargeSlots[i] === orb.element) {
                 // Found same element - upgrade its tier
                 const tierKey = `${orb.element}_${i}`;
@@ -27802,9 +33277,11 @@ class GameScene extends Phaser.Scene {
                 }
             }
         }
-        // Check passive slots (4-7) for duplicates
-        if (!placed && this.maxCharges > 4) {
-            for (let i = 4; i < Math.min(8, this.maxCharges); i++) {
+        // Check passive slots for duplicates
+        if (!placed) {
+            const passiveStart = this.MAX_ACTIVE_SLOTS || 4;
+            const passiveEnd = this.MAX_CHARGE_SLOTS || 8;
+            for (let i = passiveStart; i < passiveEnd; i++) {
                 if (this.chargeSlots[i] === orb.element) {
                     // Found same element in passive slot - upgrade its tier
                     const tierKey = `${orb.element}_${i}`;
@@ -27824,8 +33301,8 @@ class GameScene extends Phaser.Scene {
         if (!placed && this.elementPouch) {
             for (let i = 0; i < this.elementPouch.length; i++) {
                 if (this.elementPouch[i] === orb.element) {
-                    // Found same element in pouch - upgrade tier (store with slot index 8+i)
-                    const tierKey = `${orb.element}_${8 + i}`;
+                    // Found same element in pouch - upgrade tier (store with slot index MAX_CHARGE_SLOTS+i)
+                    const tierKey = `${orb.element}_${this.MAX_CHARGE_SLOTS + i}`;
                     const currentTier = this.elementTiers.get(tierKey) || 1;
                     if (currentTier < 5) { // Max tier is 5
                         this.elementTiers.set(tierKey, currentTier + 1);
@@ -27838,9 +33315,10 @@ class GameScene extends Phaser.Scene {
                 }
             }
         }
-        // If not a tier upgrade, check for empty slot
+        // If not a tier upgrade, check for empty slot in active slots
         if (!placed) {
-            for (let i = 0; i < Math.min(4, this.maxCharges); i++) {
+            const maxActiveSlots = this.MAX_ACTIVE_SLOTS || 4;
+            for (let i = 0; i < maxActiveSlots; i++) {
                 if (this.chargeSlots[i] === null) {
                     this.chargeSlots[i] = orb.element;
                     this.elementTiers.set(`${orb.element}_${i}`, 1);
@@ -27851,9 +33329,11 @@ class GameScene extends Phaser.Scene {
                 }
             }
         }
-        // Then check passive slots (4-7) if player has them
-        if (!placed && this.maxCharges > 4) {
-            for (let i = 4; i < Math.min(8, this.maxCharges); i++) {
+        // Then check passive slots
+        if (!placed) {
+            const passiveStart = this.MAX_ACTIVE_SLOTS || 4;
+            const passiveEnd = this.MAX_CHARGE_SLOTS || 8;
+            for (let i = passiveStart; i < passiveEnd; i++) {
                 if (this.chargeSlots[i] === null) {
                     this.chargeSlots[i] = orb.element;
                     this.elementTiers.set(`${orb.element}_${i}`, 1);
@@ -27877,11 +33357,11 @@ class GameScene extends Phaser.Scene {
             }
         }
         if (placed) {
-            // Rebuild charges array for active/passive slots
-            if (slotType !== 'pouch') {
+            // Rebuild charges array for active slots
+            if (slotType === 'active') {
                 this.charges = [];
-                for (let i = 0; i < 4 && i < this.chargeSlots.length; i++) {
-                    if (this.chargeSlots[i] !== null) {
+                for (let i = 0; i < this.MAX_ACTIVE_SLOTS && i < this.chargeSlots.length; i++) {
+                    if (this.chargeSlots[i] !== null && this.chargeSlots[i] !== 'catalyst') {
                         this.charges.push(this.chargeSlots[i]);
                     }
                 }
@@ -27925,20 +33405,6 @@ class GameScene extends Phaser.Scene {
             });
             // Use safe destruction
             this.safeDestroyCollectible(orb);
-            // Failsafe: ensure orb is destroyed even if safeDestroyCollectible fails
-            this.time.delayedCall(50, () => {
-                if (orb && orb.scene) {
-                    // Force remove from physics group
-                    if (this.elementOrbs.contains(orb)) {
-                        this.elementOrbs.remove(orb);
-                    }
-                    // Force destroy
-                    try {
-                        orb.destroy();
-                    } catch (e) {
-                        }
-                }
-            });
         } else {
             // All slots are full
             // Reset orb state so it can be collected later
@@ -27978,11 +33444,14 @@ class GameScene extends Phaser.Scene {
         // Check if knight modifier is active for this slot (halves cooldown)
         let finalCooldown = cooldownMs;
         if (chargeIndex !== null) {
-            const hasKnightModifier = this.chargeSlots && this.chargeSlots[4 + chargeIndex] === 'knight';
+            const passiveSlotIndex = (this.MAX_ACTIVE_SLOTS || 4) + chargeIndex;
+            const hasKnightModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'knight';
             // Check for joker with knight
             let hasJoker = false;
             let hasAnyKnight = false;
-            for (let i = 4; i < 8; i++) {
+            const passiveStart = this.MAX_ACTIVE_SLOTS || 4;
+            const passiveEnd = this.MAX_CHARGE_SLOTS || 8;
+            for (let i = passiveStart; i < passiveEnd; i++) {
                 if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
                     hasJoker = true;
                 }
@@ -28337,11 +33806,14 @@ class GameScene extends Phaser.Scene {
     // Helper function to check for King passive and get damage multiplier
     getKingDamageMultiplier(slotIndex) {
         // Check if the passive slot for this active slot has King
-        const hasKingModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'king';
+        const passiveSlotIndex = (this.MAX_ACTIVE_SLOTS || 4) + slotIndex;
+        const hasKingModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'king';
         // Check if any passive slot has joker (which applies King to all slots if King is equipped)
         let hasJoker = false;
         let hasAnyKing = false;
-        for (let i = 4; i < 8; i++) {
+        const passiveStart = this.MAX_ACTIVE_SLOTS || 4;
+        const passiveEnd = this.MAX_CHARGE_SLOTS || 8;
+        for (let i = passiveStart; i < passiveEnd; i++) {
             if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
                 hasJoker = true;
             }
@@ -28360,11 +33832,14 @@ class GameScene extends Phaser.Scene {
     // Helper function to check for Saturn passive
     hasSaturnModifier(slotIndex) {
         // Check if the passive slot for this active slot has Saturn
-        const hasSaturnModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'saturn';
+        const passiveSlotIndex = (this.MAX_ACTIVE_SLOTS || 4) + slotIndex;
+        const hasSaturnModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'saturn';
         // Check if any passive slot has joker (which applies Saturn to all slots if Saturn is equipped)
         let hasJoker = false;
         let hasAnySaturn = false;
-        for (let i = 4; i < 8; i++) {
+        const passiveStart = this.MAX_ACTIVE_SLOTS || 4;
+        const passiveEnd = this.MAX_CHARGE_SLOTS || 8;
+        for (let i = passiveStart; i < passiveEnd; i++) {
             if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
                 hasJoker = true;
             }
@@ -28417,7 +33892,9 @@ class GameScene extends Phaser.Scene {
         let hasAnyKnight = false;
         let hasAnyPawn = false;
         // Check all passive slots for joker and chess pieces
-        for (let i = 4; i < 8; i++) {
+        const passiveStart = this.MAX_ACTIVE_SLOTS || 4;
+        const passiveEnd = this.MAX_CHARGE_SLOTS || 8;
+        for (let i = passiveStart; i < passiveEnd; i++) {
             if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
                 hasJoker = true;
             }
@@ -28551,11 +34028,13 @@ class GameScene extends Phaser.Scene {
             return createProjectiles();
         }
         // Normal chess passive check (without joker)
-        const hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
-        const hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
-        const hasQueenModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'queen';
-        const hasKnightModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'knight';
-        const hasPawnModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'pawn';
+        const passiveSlotIndex = (this.MAX_ACTIVE_SLOTS || 4) + slotIndex;
+        const hasRookModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'rook';
+        const hasBishopModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'bishop';
+        const hasQueenModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'queen';
+        const hasKnightModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'knight';
+        const hasPawnModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'pawn';
+        const hasSpiralModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'spiral';
         // Helper function for the actual cast
         const performCast = () => {
             if (hasQueenModifier) {
@@ -28616,6 +34095,72 @@ class GameScene extends Phaser.Scene {
                     }
                 });
                 return true; // Modifier was handled
+            } else if (hasSpiralModifier) {
+                // Fire 4 projectiles in a spiral pattern
+                const spiralDirections = [
+                    { x: 0, y: -1 },    // Up
+                    { x: 1, y: 0 },     // Right
+                    { x: 0, y: 1 },     // Down
+                    { x: -1, y: 0 }     // Left
+                ];
+                spiralDirections.forEach((dir, index) => {
+                    const projectile = projectileCreator(dir);
+                    if (projectile && projectile.body) {
+                        // Add spiral motion by applying angular velocity
+                        // Store original velocity
+                        const speed = Math.sqrt(projectile.body.velocity.x ** 2 + projectile.body.velocity.y ** 2);
+                        const angleIncrement = 0.05; // Radians per frame
+                        let currentAngle = Math.atan2(dir.y, dir.x);
+
+                        // Create spiral effect using update callback
+                        const spiralUpdate = () => {
+                            if (projectile && projectile.active && projectile.body) {
+                                currentAngle += angleIncrement;
+                                projectile.body.velocity.x = Math.cos(currentAngle) * speed;
+                                projectile.body.velocity.y = Math.sin(currentAngle) * speed;
+                            } else {
+                                // Remove the event listener if projectile is destroyed
+                                this.events.off('update', spiralUpdate);
+                            }
+                        };
+
+                        // Add the spiral motion to the update loop
+                        this.events.on('update', spiralUpdate);
+
+                        // Clean up event listener when projectile is destroyed
+                        projectile.once('destroy', () => {
+                            this.events.off('update', spiralUpdate);
+                        });
+                    }
+
+                    // If pawn is also active, fire a second projectile in same spiral
+                    if (hasPawnModifier) {
+                        this.time.delayedCall(50, () => {
+                            const proj2 = projectileCreator(dir);
+                            if (proj2 && proj2.body) {
+                                const speed = Math.sqrt(proj2.body.velocity.x ** 2 + proj2.body.velocity.y ** 2);
+                                const angleIncrement = 0.05;
+                                let currentAngle = Math.atan2(dir.y, dir.x);
+
+                                const spiralUpdate2 = () => {
+                                    if (proj2 && proj2.active && proj2.body) {
+                                        currentAngle += angleIncrement;
+                                        proj2.body.velocity.x = Math.cos(currentAngle) * speed;
+                                        proj2.body.velocity.y = Math.sin(currentAngle) * speed;
+                                    } else {
+                                        this.events.off('update', spiralUpdate2);
+                                    }
+                                };
+
+                                this.events.on('update', spiralUpdate2);
+                                proj2.once('destroy', () => {
+                                    this.events.off('update', spiralUpdate2);
+                                });
+                            }
+                        });
+                    }
+                });
+                return true; // Modifier was handled
             }
             return false; // No directional modifier
         };
@@ -28650,72 +34195,163 @@ class GameScene extends Phaser.Scene {
         return performCast();
     }
     fireFireProjectile(currentGroup = ['fire'], allCharges = null, slotIndex = 0, elementTier = 1) {
+        // ELEMENT REDESIGN: Fire is now a WHIP (like Vampire Survivors)
         // Get slot buffs
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
         // Apply tier damage scaling
         const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
         // Get King damage multiplier
         const kingMultiplier = this.getKingDamageMultiplier(slotIndex);
-        // Count fire elements for damage calculation
-        const fireCount = allCharges
-            ? allCharges.filter(e => e === 'fire').length
-            : currentGroup.filter(e => e === 'fire').length;
-        // Define the projectile creator function for chess modifiers
-        const createFireProjectile = (direction = null) => {
-            const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'firebolt');
-            projectile.element = 'fire';
-            projectile.damage = (2 + fireCount * 0.5) * slotBuff.damageMultiplier * tierDamageScale * kingMultiplier;
-            projectile.burnMagnitude = 3;
-            projectile.slotIndex = slotIndex;
-            projectile.body.setCollideWorldBounds(false);
-            projectile.setDepth(5);
-            projectile.setScale(1.0 + (fireCount - 1) * 0.2);
-            this.projectiles.add(projectile);
-            if (this.anims.exists('firebolt-travel')) {
-                projectile.play('firebolt-travel');
-            }
-            // Set velocity based on direction or auto-aim
-            const speed = 380 * slotBuff.speedMultiplier * this.speedMultiplier;
-            if (direction) {
-                projectile.body.setVelocity(direction.x * speed, direction.y * speed);
-            } else {
-                // Auto-aim at nearest enemy
-                let nearestEnemy = null;
-                let minDistance = Infinity;
-                this.enemies.children.entries.forEach(enemy => {
-                    if (enemy.active && !enemy.isDying) {
-                        const distance = Phaser.Math.Distance.Between(this.wizard.x, this.wizard.y, enemy.x, enemy.y);
-                        if (distance < minDistance) {
-                            minDistance = distance;
-                            nearestEnemy = enemy;
-                        }
-                    }
-                });
-                if (nearestEnemy && minDistance < 500) {
-                    const angle = Phaser.Math.Angle.Between(this.wizard.x, this.wizard.y, nearestEnemy.x, nearestEnemy.y);
-                    projectile.body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
-                } else {
-                    const directions = {
-                        up: { x: 0, y: -speed },
-                        down: { x: 0, y: speed },
-                        left: { x: -speed, y: 0 },
-                        right: { x: speed, y: 0 }
-                    };
-                    const dir = directions[this.wizard.lastDirection] || directions.down;
-                    projectile.body.setVelocity(dir.x, dir.y);
-                }
-            }
-            return projectile;
+
+        // Tier scaling for Fire whip - increased AOE by 200%
+        const whipLength = 300 + (elementTier * 60); // Tier 1 = 360, Tier 5 = 600
+        const whipArc = (Math.PI / 3) + (elementTier * Math.PI / 18); // Tier 1 = 60°, Tier 5 = 110°
+        const whipCount = elementTier >= 4 ? (elementTier >= 5 ? 3 : 2) : 1; // Tier 4 = 2 whips, Tier 5 = 3 whips
+        const whipDamage = (25 + elementTier * 10) * slotBuff.damageMultiplier * tierDamageScale * kingMultiplier;
+
+        // Get whip direction based on wizard's last direction
+        const directions = {
+            up: -Math.PI / 2,
+            down: Math.PI / 2,
+            left: Math.PI,
+            right: 0,
+            'up-left': -3 * Math.PI / 4,
+            'up-right': -Math.PI / 4,
+            'down-left': 3 * Math.PI / 4,
+            'down-right': Math.PI / 4
         };
-        // Use the chess modifier system (includes knight double-cast)
-        const modifierHandled = this.handleChessModifiers(slotIndex, createFireProjectile);
-        // If chess modifiers handled it, we're done
-        if (modifierHandled) {
-            return;
+        const baseAngle = directions[this.wizard.lastDirection] || 0;
+
+        // Create fire breath animations (1 for Tier 1-3, 2 for Tier 4, 3 for Tier 5)
+        for (let w = 0; w < whipCount; w++) {
+            const whipDirection = w === 0 ? 1 : (w === 1 ? -1 : 1); // First forward, second backward, third forward again
+            const whipBaseAngle = w === 1 ? baseAngle + Math.PI : baseAngle; // Second whip faces opposite
+
+            // Create fire breath sprite
+            const fireBreath = this.add.sprite(this.wizard.x, this.wizard.y, 'firebreath');
+            fireBreath.setOrigin(0, 0.5); // Origin at left center (breath comes from mouth)
+            fireBreath.setRotation(whipBaseAngle);
+            fireBreath.setScale(whipLength / 300); // Scale to match desired length
+            fireBreath.setDepth(4);
+            fireBreath.setAlpha(0.9);
+
+            // Play the fire breath animation
+            if (this.anims.exists('firebreath-cast')) {
+                fireBreath.play('firebreath-cast');
+            }
+
+            // Track for collision detection
+            const whipSegments = [fireBreath];
+
+            // Animate the fire breath swing
+            const swingDuration = 500; // Duration for breath animation (matches 12 frames at 24fps)
+            const startAngle = whipBaseAngle - whipArc / 2;
+            const endAngle = whipBaseAngle + whipArc / 2;
+
+            // Track enemies hit (only hit once per breath)
+            const hitEnemies = new Set();
+
+            // Animate breath sweeping through the arc
+            this.tweens.add({
+                targets: fireBreath,
+                rotation: endAngle,
+                duration: swingDuration,
+                ease: 'Sine.easeInOut',
+                onUpdate: (tween) => {
+                    const progress = tween.progress;
+                    const currentAngle = startAngle + (endAngle - startAngle) * progress;
+
+                    // Update fire breath position to follow wizard
+                    fireBreath.x = this.wizard.x;
+                    fireBreath.y = this.wizard.y;
+
+                    // Check for enemy hits during the swing
+                    if (!this.enemies || !this.enemies.children) return;
+
+                    this.enemies.children.entries.forEach(enemy => {
+                        if (!enemy.active || enemy.isDying || hitEnemies.has(enemy)) return;
+
+                        // Check if enemy is within fire breath cone
+                        const dx = enemy.x - this.wizard.x;
+                        const dy = enemy.y - this.wizard.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        const enemyAngle = Math.atan2(dy, dx);
+
+                        // Normalize angle difference
+                        let angleDiff = enemyAngle - currentAngle;
+                        while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+                        while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+                        // Hit if within range and cone (fire breath is wider than whip)
+                        const breathWidth = 60; // Wider cone for breath
+                        if (dist <= whipLength && dist > 20 && Math.abs(angleDiff) <= (whipArc / 2 + breathWidth / dist)) {
+                            hitEnemies.add(enemy);
+
+                            // Deal damage
+                            enemy.health -= whipDamage;
+                            this.showDamageNumber(enemy.x, enemy.y - 30, whipDamage, '#ff4400');
+
+                            // Apply burning DOT
+                            if (!enemy.isBurning) {
+                                enemy.isBurning = true;
+                                enemy.setTint(0xff4400);
+
+                                const burnTicks = 8; // 0.8 seconds of burning
+                                const burnDamage = whipDamage * 0.15; // 15% of whip damage per tick
+
+                                const burnInterval = this.time.addEvent({
+                                    delay: 100,
+                                    repeat: burnTicks,
+                                    callback: () => {
+                                        if (enemy.active && enemy.health) {
+                                            enemy.health -= burnDamage;
+                                            this.showDamageNumber(enemy.x, enemy.y - 20, burnDamage, '#ff8800');
+
+                                            if (enemy.health <= 0) {
+                                                this.killEnemy(enemy);
+                                            }
+                                        }
+                                    },
+                                    callbackScope: this
+                                });
+
+                                this.time.delayedCall(burnTicks * 100, () => {
+                                    if (enemy.active) {
+                                        enemy.isBurning = false;
+                                        if (!enemy.frozen && !enemy.stunned && !enemy.poisoned && !enemy.slowed) {
+                                            enemy.clearTint();
+                                        }
+                                    }
+                                });
+                            }
+
+                            // Check if enemy died
+                            if (enemy.health <= 0) {
+                                this.killEnemy(enemy);
+                            }
+                        }
+                    });
+                },
+                onComplete: () => {
+                    // Fade out fire breath
+                    this.tweens.add({
+                        targets: fireBreath,
+                        alpha: 0,
+                        duration: 100,
+                        onComplete: () => {
+                            if (fireBreath && fireBreath.active) {
+                                fireBreath.destroy();
+                            }
+                        }
+                    });
+                }
+            });
+
+            // Delay between whips
+            if (w < whipCount - 1) {
+                this.time.delayedCall(100 * w, () => {});
+            }
         }
-        // The chess modifier system above handles all modifiers including knight double-cast
-        // The old duplicate code below is kept for reference but skipped
-        return this.fireFireProjectileNormal(currentGroup, allCharges, slotIndex, elementTier, slotBuff, tierDamageScale, kingMultiplier, fireCount);
     }
     fireFireProjectileNormal(currentGroup, allCharges, slotIndex, elementTier, slotBuff, tierDamageScale, kingMultiplier, fireCount) {
         // Old chess modifier code - now handled by handleChessModifiers
@@ -28726,7 +34362,9 @@ class GameScene extends Phaser.Scene {
         let hasAnyKnight = false;
         let hasAnyPawn = false;
         // Check all passive slots for joker and chess pieces
-        for (let i = 4; i < 8; i++) {
+        const passiveStart = this.MAX_ACTIVE_SLOTS || 4;
+        const passiveEnd = this.MAX_CHARGE_SLOTS || 8;
+        for (let i = passiveStart; i < passiveEnd; i++) {
             if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
                 hasJoker = true;
             }
@@ -28761,8 +34399,9 @@ class GameScene extends Phaser.Scene {
             }
         } else {
             // Normal check for this slot's modifier
-            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
-            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+            const passiveSlotIndex = (this.MAX_ACTIVE_SLOTS || 4) + slotIndex;
+            hasRookModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'rook';
+            hasBishopModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'bishop';
         }
         if (hasRookModifier && hasBishopModifier) {
             // Fire in all 8 directions
@@ -28786,7 +34425,7 @@ class GameScene extends Phaser.Scene {
                 projectile.slotIndex = slotIndex;
                 projectile.body.setCollideWorldBounds(false);
                 projectile.setDepth(5);
-                projectile.setScale((1.0 + (fireCount - 1) * 0.2) * 0.7);
+                projectile.setScale((1.0 + (fireCount - 1) * 0.2) * 0.7 * this.getSpellAreaMultiplier());
                 // Add to projectiles group FIRST
                 this.projectiles.add(projectile);
                 // Play animation
@@ -28833,7 +34472,7 @@ class GameScene extends Phaser.Scene {
                 projectile.slotIndex = slotIndex;
                 projectile.body.setCollideWorldBounds(false);
                 projectile.setDepth(5);
-                projectile.setScale((1.0 + (fireCount - 1) * 0.2) * 0.8); // Slightly smaller for visual clarity
+                projectile.setScale((1.0 + (fireCount - 1) * 0.2) * 0.8 * this.getSpellAreaMultiplier()); // Slightly smaller for visual clarity
                 // Add to projectiles group FIRST before setting velocity
                 this.projectiles.add(projectile);
                 // Try playing animation
@@ -28872,7 +34511,7 @@ class GameScene extends Phaser.Scene {
                 projectile.slotIndex = slotIndex;
                 projectile.body.setCollideWorldBounds(false);
                 projectile.setDepth(5);
-                projectile.setScale((1.0 + (fireCount - 1) * 0.2) * 0.8); // Slightly smaller for visual clarity
+                projectile.setScale((1.0 + (fireCount - 1) * 0.2) * 0.8 * this.getSpellAreaMultiplier()); // Slightly smaller for visual clarity
                 // Add to projectiles group FIRST before setting velocity
                 this.projectiles.add(projectile);
                 // Try playing animation
@@ -28903,7 +34542,7 @@ class GameScene extends Phaser.Scene {
             projectile.slotIndex = slotIndex;
             projectile.body.setCollideWorldBounds(false);
             projectile.setDepth(5);
-            projectile.setScale(1.0 + (fireCount - 1) * 0.2); // Scale with fire count
+            projectile.setScale((1.0 + (fireCount - 1) * 0.2) * this.getSpellAreaMultiplier()); // Scale with fire count
             // Play travel animation
             projectile.play('firebolt-travel');
             // Add to projectiles group
@@ -28957,416 +34596,209 @@ class GameScene extends Phaser.Scene {
         }
     }
     createWaterOrb(elementGroup = ['water'], allCharges = null, slotIndex = 0, elementTier = 1) {
-        // Count total water elements from all charges if provided, otherwise from the group
-        const waterCount = allCharges
-            ? allCharges.filter(e => e === 'water').length
-            : elementGroup.filter(e => e === 'water').length;
+        // ELEMENT REDESIGN: Water now creates expanding wave rings
         // Get slot buffs and apply damage multiplier
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
         // Apply tier damage scaling
         const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
-        // Check if this slot has rook or bishop modifier (passive slot 4+slotIndex corresponds to active slot)
-        const hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
-        const hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
-        if (hasRookModifier) {
-            // Fire 4 projectiles in cardinal directions (rook pattern)
-            const speed = 400 * slotBuff.speedMultiplier * this.speedMultiplier;
-            const rookDirections = [
-                { x: 0, y: -speed },    // Up
-                { x: speed, y: 0 },     // Right
-                { x: 0, y: speed },     // Down
-                { x: -speed, y: 0 }     // Left
-            ];
-            rookDirections.forEach((dir, index) => {
-                const waterProjectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'waterball-projectile');
-                waterProjectile.setScale((0.8 + (waterCount - 1) * 0.3) * 0.8); // Slightly smaller for clarity
-                // Set projectile properties
-                waterProjectile.element = 'water';
-                waterProjectile.damage = (2 + waterCount) * slotBuff.damageMultiplier * tierDamageScale * 0.75;
-                waterProjectile.power = waterCount;
-                waterProjectile.slotIndex = slotIndex;
-                waterProjectile.setDepth(5);
-                waterProjectile.body.setCollideWorldBounds(false);
-                waterProjectile.body.setCircle(20);
-                // Add to projectiles group
-                this.projectiles.add(waterProjectile);
-                // Play animation
-                waterProjectile.play('waterball-startup');
-                waterProjectile.on('animationcomplete-waterball-startup', () => {
-                    if (waterProjectile.active) {
-                        waterProjectile.play('waterball-travel');
-                    }
-                });
-                // Set velocity
-                waterProjectile.body.setVelocity(dir.x, dir.y);
-                waterProjectile.body.enable = true;
-                // Rotate projectile based on direction
-                const angles = [-Math.PI/2, 0, Math.PI/2, Math.PI]; // Up, Right, Down, Left
-                waterProjectile.setRotation(angles[index]);
-                // Cleanup after 2 seconds
-                this.time.delayedCall(2000, () => {
-                    if (waterProjectile.active) {
-                        waterProjectile.destroy();
+
+        // Tier scaling for Water waves - increased damage by 40% from previous
+        const ringCount = 1 + elementTier; // Tier 1 = 2 rings, Tier 5 = 6 rings
+        const slowAmount = 0.4 + (elementTier * 0.1); // Tier 1 = 50%, Tier 5 = 90%
+        const damage = (7 + elementTier * 1.75) * slotBuff.damageMultiplier * tierDamageScale; // +40% damage
+
+        // Create expanding wave rings
+        for (let i = 0; i < ringCount; i++) {
+            // Delay each ring slightly for cascade effect
+            this.time.delayedCall(i * 200, () => {
+                // Create visual ring using graphics
+                const ring = this.add.circle(this.wizard.x, this.wizard.y, 40, 0x4488ff, 0);
+                ring.setStrokeStyle(4, 0x88ccff, 0.7);
+                ring.setDepth(4);
+
+                // Track which enemies this ring has hit (for piercing)
+                const hitEnemies = new Set();
+
+                // Calculate radius based on tier (Tier 1 = 120, Tier 5 = 200)
+                const maxRadius = 120 + (elementTier - 1) * 20; // Tier 1 = 120 (-40% from 200), scales to 200 at Tier 5
+
+                // Expand the ring (40% faster speed)
+                this.tweens.add({
+                    targets: ring,
+                    radius: maxRadius,
+                    alpha: 0, // Fade out as it expands
+                    duration: 714, // 40% faster (was 1000ms)
+                    ease: 'Quad.easeOut',
+                    onUpdate: () => {
+                        // Check collision with enemies as ring expands
+                        if (!this.enemies || !this.enemies.children) return;
+
+                        this.enemies.children.entries.forEach(enemy => {
+                            if (!enemy.active || enemy.isDying) return;
+                            if (hitEnemies.has(enemy)) return; // Already hit by this ring
+
+                            // Check if enemy is within the ring's current radius
+                            const distance = Phaser.Math.Distance.Between(ring.x, ring.y, enemy.x, enemy.y);
+                            const ringRadius = ring.radius;
+
+                            // Hit if enemy is within 20 units of the ring's edge (gives some thickness)
+                            if (Math.abs(distance - ringRadius) < 20) {
+                                hitEnemies.add(enemy);
+
+                                // Deal damage
+                                if (enemy.health) {
+                                    enemy.health -= damage;
+                                    this.showDamageNumber(enemy.x, enemy.y - 30, damage, '#4488ff');
+                                }
+
+                                // Apply slow effect
+                                if (!enemy.waterSlowed) {
+                                    enemy.waterSlowed = true;
+                                    const originalSpeed = enemy.body ? enemy.body.speed : 0;
+
+                                    // Slow enemy
+                                    if (enemy.body) {
+                                        enemy.body.maxSpeed *= (1 - slowAmount);
+                                        const currentVel = enemy.body.velocity;
+                                        enemy.body.setVelocity(currentVel.x * (1 - slowAmount), currentVel.y * (1 - slowAmount));
+                                    }
+
+                                    // Visual slow effect
+                                    enemy.setTint(0x4488ff);
+
+                                    // Remove slow after 1 second
+                                    this.time.delayedCall(1000, () => {
+                                        if (enemy.active) {
+                                            enemy.waterSlowed = false;
+                                            enemy.clearTint();
+                                            if (enemy.body) {
+                                                enemy.body.maxSpeed = originalSpeed;
+                                            }
+                                        }
+                                    });
+                                }
+
+                                // For Tier 5, apply freeze instead of slow
+                                if (elementTier >= 5 && enemy.body) {
+                                    enemy.body.setVelocity(0, 0);
+                                    enemy.isFrozen = true;
+                                    this.time.delayedCall(1000, () => {
+                                        if (enemy.active) {
+                                            enemy.isFrozen = false;
+                                        }
+                                    });
+                                }
+                            }
+                        });
+                    },
+                    onComplete: () => {
+                        ring.destroy();
                     }
                 });
             });
-            return; // Exit early, we've created the rook projectiles
-        } else if (hasBishopModifier) {
-            // Fire 4 projectiles in diagonal directions (bishop pattern)
-            const speed = 400 * slotBuff.speedMultiplier * this.speedMultiplier;
-            const diagonalSpeed = speed / Math.sqrt(2); // Normalize diagonal speed
-            const bishopDirections = [
-                { x: diagonalSpeed, y: -diagonalSpeed },   // Up-Right
-                { x: -diagonalSpeed, y: -diagonalSpeed },  // Up-Left
-                { x: diagonalSpeed, y: diagonalSpeed },    // Down-Right
-                { x: -diagonalSpeed, y: diagonalSpeed }    // Down-Left
-            ];
-            bishopDirections.forEach((dir, index) => {
-                const waterProjectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'waterball-projectile');
-                waterProjectile.setScale((0.8 + (waterCount - 1) * 0.3) * 0.8); // Slightly smaller for clarity
-                // Set projectile properties
-                waterProjectile.element = 'water';
-                waterProjectile.damage = (2 + waterCount) * slotBuff.damageMultiplier * tierDamageScale * 0.75;
-                waterProjectile.power = waterCount;
-                waterProjectile.slotIndex = slotIndex;
-                waterProjectile.setDepth(5);
-                waterProjectile.body.setCollideWorldBounds(false);
-                waterProjectile.body.setCircle(20);
-                // Add to projectiles group
-                this.projectiles.add(waterProjectile);
-                // Play animation
-                waterProjectile.play('waterball-startup');
-                waterProjectile.on('animationcomplete-waterball-startup', () => {
-                    if (waterProjectile.active) {
-                        waterProjectile.play('waterball-travel');
-                    }
-                });
-                // Set velocity
-                waterProjectile.body.setVelocity(dir.x, dir.y);
-                waterProjectile.body.enable = true;
-                // Rotate projectile based on direction
-                const angles = [-Math.PI/4, -3*Math.PI/4, Math.PI/4, 3*Math.PI/4]; // UR, UL, DR, DL
-                waterProjectile.setRotation(angles[index]);
-                // Cleanup after 2 seconds
-                this.time.delayedCall(2000, () => {
-                    if (waterProjectile.active) {
-                        waterProjectile.destroy();
-                    }
-                });
-            });
-            return; // Exit early, we've created the bishop projectiles
         }
-        // Normal single water projectile
-        const waterProjectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'waterball-projectile');
-        waterProjectile.setScale(0.8 + (waterCount - 1) * 0.3); // Scale with water count
-        // Set projectile properties BEFORE animations
-        waterProjectile.element = 'water';
-        waterProjectile.damage = (2 + waterCount) * slotBuff.damageMultiplier * tierDamageScale;
-        waterProjectile.power = waterCount;
-        waterProjectile.slotIndex = slotIndex;
-        waterProjectile.setDepth(5);
-        waterProjectile.body.setCollideWorldBounds(false);
-        waterProjectile.body.setCircle(20);
-        // Add to projectiles group FIRST (like earth projectile does)
-        this.projectiles.add(waterProjectile);
-        // Play startup animation then switch to travel
-        waterProjectile.play('waterball-startup');
-        waterProjectile.on('animationcomplete-waterball-startup', () => {
-            if (waterProjectile.active) {
-                waterProjectile.play('waterball-travel');
-            }
-        });
-        // Set velocity based on wizard direction
-        const baseSpeed = 400;
-        const speed = baseSpeed * slotBuff.speedMultiplier * this.speedMultiplier;
-        const diagonalSpeed = speed / Math.sqrt(2);
-        const directions = {
-            up: { x: 0, y: -speed },
-            down: { x: 0, y: speed },
-            left: { x: -speed, y: 0 },
-            right: { x: speed, y: 0 },
-            'up-left': { x: -diagonalSpeed, y: -diagonalSpeed },
-            'up-right': { x: diagonalSpeed, y: -diagonalSpeed },
-            'down-left': { x: -diagonalSpeed, y: diagonalSpeed },
-            'down-right': { x: diagonalSpeed, y: diagonalSpeed }
-        };
-        const direction = this.wizard.lastDirection || 'down';
-        const dir = directions[direction];
-        if (!dir) {
-            console.error(`Invalid direction for water projectile: ${direction}`);
-            const fallbackDir = directions['down'];
-            waterProjectile.setVelocity(fallbackDir.x, fallbackDir.y);
-        } else {
-            waterProjectile.setVelocity(dir.x, dir.y);
-        }
-        // Rotate projectile to match direction
-        const directionAngles = {
-            'up': -Math.PI / 2,
-            'down': Math.PI / 2,
-            'left': Math.PI,
-            'right': 0,
-            'up-left': -3 * Math.PI / 4,
-            'up-right': -Math.PI / 4,
-            'down-left': 3 * Math.PI / 4,
-            'down-right': Math.PI / 4
-        };
-        const angle = directionAngles[direction] || 0;
-        waterProjectile.setRotation(angle);
-        // Check for Saturn modifier - make projectile orbit instead of fly straight
-        if (this.hasSaturnModifier(slotIndex)) {
-            this.makeProjectileOrbit(waterProjectile, 100, 3); // 100 pixel radius, 3 rad/s speed
-        } else {
-            // Normal projectile - destroy after 2 seconds
-            this.time.delayedCall(2000, () => {
-                if (waterProjectile.active) {
-                    waterProjectile.destroy();
-                }
-            });
-        }
-        }
+
+        console.log(`💧 Water waves! ${ringCount} rings, ${Math.round(slowAmount * 100)}% slow`);
+    }
     fireLightningProjectile(slotIndex = 0, elementTier = 1) {
         // Get slot buffs
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
         // Apply tier damage scaling
         const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
-        // Check for chess piece modifiers in passive slots
-        // First check if any passive slot has joker
-        let hasJoker = false;
-        let hasAnyRook = false;
-        let hasAnyBishop = false;
-        let hasAnyQueen = false;
-        let hasAnyKnight = false;
-        let hasAnyPawn = false;
-        // Check all passive slots for joker and chess pieces
-        for (let i = 4; i < 8; i++) {
-            if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
-                hasJoker = true;
+
+        // Create lightning projectile creator function for chess modifier system
+        const baseSpeed = 400;
+        const speed = baseSpeed * slotBuff.speedMultiplier * this.speedMultiplier;
+        const createLightningProjectile = (direction = null) => {
+            const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'lightning-projectile');
+            projectile.element = 'lightning';
+            projectile.damage = 2 * slotBuff.damageMultiplier * tierDamageScale;
+            projectile.slotIndex = slotIndex;
+            projectile.speed = speed;
+            projectile.body.setCollideWorldBounds(false);
+            projectile.setDepth(5);
+            projectile.setScale(1.0 * this.getSpellAreaMultiplier());
+
+            // Play animation
+            if (this.anims.exists('lightning-travel')) {
+                projectile.play('lightning-travel');
             }
-            if (this.chargeSlots && this.chargeSlots[i] === 'rook') {
-                hasAnyRook = true;
-            }
-            if (this.chargeSlots && this.chargeSlots[i] === 'bishop') {
-                hasAnyBishop = true;
-            }
-            if (this.chargeSlots && this.chargeSlots[i] === 'queen') {
-                hasAnyQueen = true;
-            }
-            if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
-                hasAnyKnight = true;
-            }
-            if (this.chargeSlots && this.chargeSlots[i] === 'pawn') {
-                hasAnyPawn = true;
-            }
-        }
-        // Determine what modifiers to apply
-        let hasRookModifier = false;
-        let hasBishopModifier = false;
-        if (hasJoker && (hasAnyRook || hasAnyBishop || hasAnyQueen || hasAnyKnight)) {
-            // Joker applies all chess modifiers that are equipped
-            // Queen overrides rook and bishop
-            if (hasAnyQueen) {
-                hasRookModifier = true;
-                hasBishopModifier = true;
+
+            // Add to projectiles group
+            this.projectiles.add(projectile);
+
+            if (direction) {
+                // Fixed direction from chess modifier
+                projectile.body.setVelocity(direction.x * speed, direction.y * speed);
+                const angle = Math.atan2(direction.y, direction.x);
+                projectile.setRotation(angle);
             } else {
-                hasRookModifier = hasAnyRook;
-                hasBishopModifier = hasAnyBishop;
-            }
-        } else {
-            // Normal check for this slot's modifier
-            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
-            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
-        }
-        if (hasRookModifier && hasBishopModifier) {
-            // Fire 8 projectiles in all directions
-            const speed = 500 * slotBuff.speedMultiplier * this.speedMultiplier;
-            const diagonalSpeed = speed / Math.sqrt(2);
-            const allDirections = [
-                { x: 0, y: -speed },                      // Up
-                { x: diagonalSpeed, y: -diagonalSpeed },  // Up-Right
-                { x: speed, y: 0 },                       // Right
-                { x: diagonalSpeed, y: diagonalSpeed },   // Down-Right
-                { x: 0, y: speed },                       // Down
-                { x: -diagonalSpeed, y: diagonalSpeed },  // Down-Left
-                { x: -speed, y: 0 },                      // Left
-                { x: -diagonalSpeed, y: -diagonalSpeed }  // Up-Left
-            ];
-            allDirections.forEach((dir, index) => {
-                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'lightning-projectile');
-                projectile.element = 'lightning';
-                projectile.damage = 2 * slotBuff.damageMultiplier * tierDamageScale * 0.5; // Reduced for balance
-                projectile.slotIndex = slotIndex;
-                projectile.body.setCollideWorldBounds(false);
-                projectile.setDepth(5);
-                projectile.setScale(0.9);
-                // Play animation
-                if (this.anims.exists('lightning-travel')) {
-                    projectile.play('lightning-travel');
-                }
-                // Add to projectiles group
-                this.projectiles.add(projectile);
-                // Set velocity
-                projectile.body.setVelocity(dir.x, dir.y);
-                projectile.body.enable = true;
-                // Rotate projectile based on direction
-                const angles = [-Math.PI/2, -Math.PI/4, 0, Math.PI/4, Math.PI/2, 3*Math.PI/4, Math.PI, -3*Math.PI/4];
-                projectile.setRotation(angles[index]);
-                // Cleanup
-                this.time.delayedCall(2000, () => {
-                    if (projectile.active) {
-                        projectile.destroy();
+                // Homing behavior - find closest enemy
+                let closestEnemy = null;
+                let closestDist = Infinity;
+                this.enemies.children.entries.forEach(enemy => {
+                    if (enemy.active && !enemy.isDying) {
+                        const dist = Phaser.Math.Distance.Between(
+                            this.wizard.x, this.wizard.y,
+                            enemy.x, enemy.y
+                        );
+                        if (dist < closestDist) {
+                            closestDist = dist;
+                            closestEnemy = enemy;
+                        }
                     }
                 });
-            });
-            return; // Exit early
-        } else if (hasRookModifier) {
-            // Fire 4 projectiles in cardinal directions (rook pattern)
-            const speed = 500 * slotBuff.speedMultiplier * this.speedMultiplier;
-            const rookDirections = [
-                { x: 0, y: -speed },    // Up
-                { x: speed, y: 0 },     // Right
-                { x: 0, y: speed },     // Down
-                { x: -speed, y: 0 }     // Left
-            ];
-            rookDirections.forEach((dir, index) => {
-                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'lightning-projectile');
-                projectile.element = 'lightning';
-                projectile.damage = 2 * slotBuff.damageMultiplier * tierDamageScale * 0.75;
-                projectile.slotIndex = slotIndex;
-                projectile.body.setCollideWorldBounds(false);
-                projectile.setDepth(5);
-                projectile.setScale(1.0);
-                // Play animation
-                if (this.anims.exists('lightning-travel')) {
-                    projectile.play('lightning-travel');
-                }
-                // Add to projectiles group
-                this.projectiles.add(projectile);
-                // Set velocity
-                projectile.body.setVelocity(dir.x, dir.y);
-                projectile.body.enable = true;
-                // Rotate projectile based on direction
-                const angles = [-Math.PI/2, 0, Math.PI/2, Math.PI]; // Up, Right, Down, Left (matching rookDirections order)
-                projectile.setRotation(angles[index]);
-                // Cleanup
-                this.time.delayedCall(2000, () => {
-                    if (projectile.active) {
-                        projectile.destroy();
-                    }
-                });
-            });
-            return; // Exit early
-        } else if (hasBishopModifier) {
-            // Fire 4 projectiles in diagonal directions (bishop pattern)
-            const speed = 500 * slotBuff.speedMultiplier * this.speedMultiplier;
-            const diagonalSpeed = speed / Math.sqrt(2);
-            const bishopDirections = [
-                { x: diagonalSpeed, y: -diagonalSpeed },   // Up-Right
-                { x: -diagonalSpeed, y: -diagonalSpeed },  // Up-Left
-                { x: diagonalSpeed, y: diagonalSpeed },    // Down-Right
-                { x: -diagonalSpeed, y: diagonalSpeed }    // Down-Left
-            ];
-            bishopDirections.forEach((dir, index) => {
-                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'lightning-projectile');
-                projectile.element = 'lightning';
-                projectile.damage = 2 * slotBuff.damageMultiplier * tierDamageScale * 0.75;
-                projectile.slotIndex = slotIndex;
-                projectile.body.setCollideWorldBounds(false);
-                projectile.setDepth(5);
-                projectile.setScale(1.0);
-                // Play animation
-                if (this.anims.exists('lightning-travel')) {
-                    projectile.play('lightning-travel');
-                }
-                // Add to projectiles group
-                this.projectiles.add(projectile);
-                // Set velocity
-                projectile.body.setVelocity(dir.x, dir.y);
-                projectile.body.enable = true;
-                // Rotate projectile based on direction
-                const angles = [-Math.PI/4, -3*Math.PI/4, Math.PI/4, 3*Math.PI/4]; // UR, UL, DR, DL
-                projectile.setRotation(angles[index]);
-                // Cleanup
-                this.time.delayedCall(2000, () => {
-                    if (projectile.active) {
-                        projectile.destroy();
-                    }
-                });
-            });
-            return; // Exit early
-        }
-        // Fire a homing lightning projectile
-        // Find closest enemy for initial target
-        let closestEnemy = null;
-        let closestDist = Infinity;
-        this.enemies.children.entries.forEach(enemy => {
-            if (enemy.active && !enemy.isDying) {
-                const dist = Phaser.Math.Distance.Between(
-                    this.wizard.x, this.wizard.y,
-                    enemy.x, enemy.y
-                );
-                if (dist < closestDist) {
-                    closestDist = dist;
-                    closestEnemy = enemy;
+
+                // Set up chaining - ELEMENT REDESIGN: Scale with tier (Tier 1=2, Tier 5=6)
+                projectile.bounceCount = 1 + elementTier;
+                projectile.hitEnemies = new Set();
+                projectile.currentTarget = closestEnemy;
+
+                // Set initial velocity toward closest enemy or mouse
+                if (closestEnemy) {
+                    const angle = Phaser.Math.Angle.Between(
+                        this.wizard.x, this.wizard.y,
+                        closestEnemy.x, closestEnemy.y
+                    );
+                    projectile.setVelocity(
+                        Math.cos(angle) * projectile.speed,
+                        Math.sin(angle) * projectile.speed
+                    );
+                    projectile.setRotation(angle);
+                } else {
+                    const pointer = this.input.activePointer;
+                    const angle = Phaser.Math.Angle.Between(
+                        this.wizard.x, this.wizard.y,
+                        pointer.worldX, pointer.worldY
+                    );
+                    projectile.setVelocity(
+                        Math.cos(angle) * projectile.speed,
+                        Math.sin(angle) * projectile.speed
+                    );
+                    projectile.setRotation(angle);
                 }
             }
-        });
-        
-        // Create lightning projectile
-        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'lightning-projectile');
-        projectile.element = 'lightning';
-        projectile.damage = 2 * slotBuff.damageMultiplier * tierDamageScale;
-        projectile.slotIndex = slotIndex;
-        projectile.speed = 400 * slotBuff.speedMultiplier * this.speedMultiplier;
-        projectile.body.setCollideWorldBounds(false);
-        projectile.setDepth(5);
-        projectile.setScale(1.0);
-        
-        // Set up bouncing/chaining
-        projectile.bounceCount = 2; // Will chain to 2 additional enemies
-        projectile.hitEnemies = new Set();
-        projectile.currentTarget = closestEnemy;
-        
-        // Play animation
-        if (this.anims.exists('lightning-travel')) {
-            projectile.play('lightning-travel');
+
+            projectile.body.enable = true;
+
+            // Cleanup
+            this.time.delayedCall(3000, () => {
+                if (projectile.active) {
+                    projectile.destroy();
+                }
+            });
+
+            return projectile;
+        };
+
+        // Use the chess modifier system (includes spiral, rook, bishop, queen, knight, pawn, joker)
+        const modifierHandled = this.handleChessModifiers(slotIndex, createLightningProjectile);
+        if (modifierHandled) {
+            return;
         }
-        
-        // Add to projectiles group
-        this.projectiles.add(projectile);
-        
-        // Set initial velocity toward closest enemy or mouse if no enemy
-        if (closestEnemy) {
-            const angle = Phaser.Math.Angle.Between(
-                this.wizard.x, this.wizard.y,
-                closestEnemy.x, closestEnemy.y
-            );
-            projectile.setVelocity(
-                Math.cos(angle) * projectile.speed,
-                Math.sin(angle) * projectile.speed
-            );
-            projectile.setRotation(angle);
-        } else {
-            // Fire toward mouse if no enemies
-            const pointer = this.input.activePointer;
-            const angle = Phaser.Math.Angle.Between(
-                this.wizard.x, this.wizard.y,
-                pointer.worldX, pointer.worldY
-            );
-            projectile.setVelocity(
-                Math.cos(angle) * projectile.speed,
-                Math.sin(angle) * projectile.speed
-            );
-            projectile.setRotation(angle);
-        }
-        
-        projectile.body.enable = true;
-        
-        // Cleanup after 3 seconds
-        this.time.delayedCall(3000, () => {
-            if (projectile.active) {
-                projectile.destroy();
-            }
-        });
+
+        // Fire a normal homing lightning projectile
+        createLightningProjectile();
     }
     setLightningOrbVelocity(orb, target) {
         // Extra safety checks
@@ -29483,8 +34915,9 @@ class GameScene extends Phaser.Scene {
             }
         } else {
             // Normal check for this slot's modifier
-            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
-            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+            const passiveSlotIndex = (this.MAX_ACTIVE_SLOTS || 4) + slotIndex;
+            hasRookModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'rook';
+            hasBishopModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'bishop';
         }
         // Function to create a single air explosion
         const createAirExplosion = (targetX, targetY, damageMultiplier = 1) => {
@@ -29697,488 +35130,191 @@ class GameScene extends Phaser.Scene {
         });
     }
     fireEarthProjectile(slotIndex = 0, elementTier = 1) {
+        // ELEMENT REDESIGN: Earth now creates orbital rocks that circle the player then launch
         // Get slot buffs and apply them
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
         // Apply tier damage scaling
         const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
-        // Check for chess piece modifiers in passive slots
-        let hasJoker = false;
-        let hasAnyRook = false;
-        let hasAnyBishop = false;
-        let hasAnyQueen = false;
-        let hasAnyKnight = false;
-        let hasAnyPawn = false;
-        // Check all passive slots for joker and chess pieces
-        for (let i = 4; i < 8; i++) {
-            if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
-                hasJoker = true;
+
+        // Tier scaling for Earth orbitals
+        const rockCount = 1 + elementTier; // Tier 1 = 2 rocks, Tier 5 = 6 rocks
+        const orbitRadius = 70 + (elementTier * 10); // Tier 1 = 80, Tier 5 = 120
+        const orbitDuration = 4000 + (elementTier * 1000); // Tier 1 = 5s, Tier 5 = 9s
+        const orbitSpeed = 2 + (elementTier * 0.2); // Faster orbit at higher tiers
+
+        // Damage values
+        const orbitDamage = (15 + elementTier * 3) * slotBuff.damageMultiplier * tierDamageScale;
+        const launchDamage = (40 + elementTier * 10) * slotBuff.damageMultiplier * tierDamageScale;
+
+        // Create orbital rocks
+        for (let i = 0; i < rockCount; i++) {
+            const startAngle = (Math.PI * 2 * i) / rockCount; // Evenly space rocks
+
+            const rock = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'earth-projectile');
+            rock.element = 'earth';
+            rock.damage = orbitDamage;
+            rock.knockbackForce = 800;
+            rock.slotIndex = slotIndex;
+            rock.body.setCollideWorldBounds(false);
+            rock.setDepth(5);
+            rock.setScale(0.8 * this.getSpellAreaMultiplier());
+            rock.body.setCircle(15); // Hitbox for contact damage
+
+            // Play animation
+            rock.play('earth-travel');
+
+            // Add to projectiles group for collision detection
+            this.projectiles.add(rock);
+
+            // Make it orbit using existing system
+            if (!this.orbitalProjectiles) {
+                this.orbitalProjectiles = [];
             }
-            if (this.chargeSlots && this.chargeSlots[i] === 'rook') {
-                hasAnyRook = true;
-            }
-            if (this.chargeSlots && this.chargeSlots[i] === 'bishop') {
-                hasAnyBishop = true;
-            }
-            if (this.chargeSlots && this.chargeSlots[i] === 'queen') {
-                hasAnyQueen = true;
-            }
-            if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
-                hasAnyKnight = true;
-            }
-            if (this.chargeSlots && this.chargeSlots[i] === 'pawn') {
-                hasAnyPawn = true;
-            }
-        }
-        // Determine what modifiers to apply
-        let hasRookModifier = false;
-        let hasBishopModifier = false;
-        if (hasJoker && (hasAnyRook || hasAnyBishop || hasAnyQueen || hasAnyKnight)) {
-            // Joker applies all chess modifiers that are equipped
-            // Queen overrides rook and bishop
-            if (hasAnyQueen) {
-                hasRookModifier = true;
-                hasBishopModifier = true;
-            } else {
-                hasRookModifier = hasAnyRook;
-                hasBishopModifier = hasAnyBishop;
-            }
-        } else {
-            // Normal check for this slot's modifier
-            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
-            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
-        }
-        if (hasRookModifier && hasBishopModifier) {
-            // Fire 8 projectiles in all directions
-            const speed = 300 * slotBuff.speedMultiplier * this.speedMultiplier;
-            const allDirections = [
-                { x: 0, y: -speed },           // Up
-                { x: speed/Math.sqrt(2), y: -speed/Math.sqrt(2) }, // Up-Right
-                { x: speed, y: 0 },            // Right
-                { x: speed/Math.sqrt(2), y: speed/Math.sqrt(2) },  // Down-Right
-                { x: 0, y: speed },            // Down
-                { x: -speed/Math.sqrt(2), y: speed/Math.sqrt(2) }, // Down-Left
-                { x: -speed, y: 0 },           // Left
-                { x: -speed/Math.sqrt(2), y: -speed/Math.sqrt(2) } // Up-Left
-            ];
-            allDirections.forEach((dir, index) => {
-                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'earth-projectile');
-                projectile.element = 'earth';
-                projectile.damage = 3 * slotBuff.damageMultiplier * tierDamageScale * 0.5; // Reduced damage for 8 projectiles
-                projectile.knockbackForce = 1600;
-                projectile.shatterMultiplier = 2.5;
-                projectile.slotIndex = slotIndex;
-                projectile.body.setCollideWorldBounds(false);
-                projectile.setDepth(5);
-                projectile.setScale(1.0);
-                // Play animation
-                projectile.play('earth-travel');
-                // Add to projectiles group
-                this.projectiles.add(projectile);
-                // Set velocity
-                projectile.body.setVelocity(dir.x, dir.y);
-                projectile.body.enable = true;
-                // Rotate projectile based on direction
-                const angles = [
-                    -Math.PI/2,    // Up
-                    -Math.PI/4,    // Up-Right
-                    0,             // Right
-                    Math.PI/4,     // Down-Right
-                    Math.PI/2,     // Down
-                    3*Math.PI/4,   // Down-Left
-                    Math.PI,       // Left
-                    -3*Math.PI/4   // Up-Left
-                ];
-                projectile.setRotation(angles[index]);
-                // Cleanup
-                this.time.delayedCall(3000, () => {
-                    if (projectile.active) {
-                        projectile.destroy();
+
+            const orbitalData = {
+                projectile: rock,
+                angle: startAngle,
+                radius: orbitRadius,
+                speed: orbitSpeed,
+                lifetime: orbitDuration,
+                isEarthRock: true // Mark as earth rock for special behavior
+            };
+            this.orbitalProjectiles.push(orbitalData);
+
+            // Remove linear velocity
+            rock.body.setVelocity(0, 0);
+
+            // After orbit duration, launch toward nearest enemy
+            this.time.delayedCall(orbitDuration, () => {
+                // Remove from orbital list
+                const index = this.orbitalProjectiles.indexOf(orbitalData);
+                if (index > -1) {
+                    this.orbitalProjectiles.splice(index, 1);
+                }
+
+                if (!rock.active) return;
+
+                // Find nearest enemy to launch at
+                let nearestEnemy = null;
+                let minDistance = Infinity;
+                this.enemies.children.entries.forEach(enemy => {
+                    if (enemy.active && !enemy.isDying) {
+                        const distance = Phaser.Math.Distance.Between(rock.x, rock.y, enemy.x, enemy.y);
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            nearestEnemy = enemy;
+                        }
                     }
                 });
+
+                // Launch rock toward enemy
+                if (nearestEnemy) {
+                    const angle = Phaser.Math.Angle.Between(rock.x, rock.y, nearestEnemy.x, nearestEnemy.y);
+                    const launchSpeed = 400;
+                    rock.body.setVelocity(Math.cos(angle) * launchSpeed, Math.sin(angle) * launchSpeed);
+                    rock.setRotation(angle);
+                    rock.damage = launchDamage; // Higher damage on launch
+
+                    console.log(`🪨 Earth rock launching! Damage: ${launchDamage}`);
+
+                    // Destroy after 2 seconds of flight
+                    this.time.delayedCall(2000, () => {
+                        if (rock.active) {
+                            rock.destroy();
+                        }
+                    });
+                } else {
+                    // No enemy found, just destroy
+                    rock.destroy();
+                }
             });
-            return; // Exit early
-        } else if (hasRookModifier) {
-            // Fire 4 projectiles in cardinal directions (rook pattern)
-            const speed = 300 * slotBuff.speedMultiplier * this.speedMultiplier;
-            const rookDirections = [
-                { x: 0, y: -speed },    // Up
-                { x: 0, y: speed },     // Down
-                { x: -speed, y: 0 },    // Left
-                { x: speed, y: 0 }      // Right
-            ];
-            rookDirections.forEach((dir, index) => {
-                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'earth-projectile');
-                projectile.element = 'earth';
-                projectile.damage = 3 * slotBuff.damageMultiplier * tierDamageScale * 0.75;
-                projectile.knockbackForce = 1600;
-                projectile.shatterMultiplier = 2.5;
-                projectile.slotIndex = slotIndex;
-                projectile.body.setCollideWorldBounds(false);
-                projectile.setDepth(5);
-                projectile.setScale(1.0);
-                // Play animation
-                projectile.play('earth-travel');
-                // Add to projectiles group
-                this.projectiles.add(projectile);
-                // Set velocity
-                projectile.body.setVelocity(dir.x, dir.y);
-                projectile.body.enable = true;
-                // Rotate projectile based on direction
-                const angles = [-Math.PI/2, Math.PI/2, Math.PI, 0]; // Up, Down, Left, Right
-                projectile.setRotation(angles[index]);
-                // Cleanup
-                this.time.delayedCall(3000, () => {
-                    if (projectile.active) {
-                        projectile.destroy();
-                    }
-                });
-            });
-            return; // Exit early
-        } else if (hasBishopModifier) {
-            // Fire 4 projectiles in diagonal directions (bishop pattern)
-            const speed = 300 * slotBuff.speedMultiplier * this.speedMultiplier;
-            const diagonalSpeed = speed / Math.sqrt(2);
-            const bishopDirections = [
-                { x: diagonalSpeed, y: -diagonalSpeed },   // Up-Right
-                { x: -diagonalSpeed, y: -diagonalSpeed },  // Up-Left
-                { x: diagonalSpeed, y: diagonalSpeed },    // Down-Right
-                { x: -diagonalSpeed, y: diagonalSpeed }    // Down-Left
-            ];
-            bishopDirections.forEach((dir, index) => {
-                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'earth-projectile');
-                projectile.element = 'earth';
-                projectile.damage = 3 * slotBuff.damageMultiplier * tierDamageScale * 0.75;
-                projectile.knockbackForce = 1600;
-                projectile.shatterMultiplier = 2.5;
-                projectile.slotIndex = slotIndex;
-                projectile.body.setCollideWorldBounds(false);
-                projectile.setDepth(5);
-                projectile.setScale(1.0);
-                // Play animation
-                projectile.play('earth-travel');
-                // Add to projectiles group
-                this.projectiles.add(projectile);
-                // Set velocity
-                projectile.body.setVelocity(dir.x, dir.y);
-                projectile.body.enable = true;
-                // Rotate projectile based on direction
-                const angles = [-Math.PI/4, -3*Math.PI/4, Math.PI/4, 3*Math.PI/4]; // UR, UL, DR, DL
-                projectile.setRotation(angles[index]);
-                // Cleanup
-                this.time.delayedCall(3000, () => {
-                    if (projectile.active) {
-                        projectile.destroy();
-                    }
-                });
-            });
-            return; // Exit early
         }
-        // Normal single earth projectile
-        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'earth-projectile');
-        projectile.element = 'earth';
-        projectile.damage = 3 * slotBuff.damageMultiplier * tierDamageScale;
-        projectile.knockbackForce = 1600; // 2x knockback force
-        projectile.shatterMultiplier = 2.5; // Damage multiplier against frozen enemies
-        projectile.slotIndex = slotIndex;
-        // projectile.isPiercing = true; // Removed - earth should stop on hit like other projectiles
-        projectile.body.setCollideWorldBounds(false);
-        projectile.setDepth(5);
-        projectile.setScale(1.3);
-        // Play travel animation
-        projectile.play('earth-travel');
-        // Add to projectiles group first
-        this.projectiles.add(projectile);
-        // Directional firing with speed buff and global speed multiplier applied
-        const speed = 300 * slotBuff.speedMultiplier * this.speedMultiplier; // Apply speed buff and speed mode
-        const diagonalSpeed = speed / Math.sqrt(2);
-        const directions = {
-            up: { x: 0, y: -speed },
-            down: { x: 0, y: speed },
-            left: { x: -speed, y: 0 },
-            right: { x: speed, y: 0 },
-            'up-left': { x: -diagonalSpeed, y: -diagonalSpeed },
-            'up-right': { x: diagonalSpeed, y: -diagonalSpeed },
-            'down-left': { x: -diagonalSpeed, y: diagonalSpeed },
-            'down-right': { x: diagonalSpeed, y: diagonalSpeed }
-        };
-        const direction = this.wizard.lastDirection || 'down';
-        const dir = directions[direction];
-        if (!dir) {
-            console.error(`Invalid direction: ${direction}`);
-            const fallbackDir = directions['down'];
-            projectile.setVelocity(fallbackDir.x, fallbackDir.y);
-        } else {
-            projectile.setVelocity(dir.x, dir.y);
-        }
-        // Rotate projectile to match direction
-        const directionAngles = {
-            'up': -Math.PI / 2,
-            'down': Math.PI / 2,
-            'left': Math.PI,
-            'right': 0,
-            'up-left': -3 * Math.PI / 4,
-            'up-right': -Math.PI / 4,
-            'down-left': 3 * Math.PI / 4,
-            'down-right': Math.PI / 4
-        };
-        const angle = directionAngles[direction] || 0;
-        projectile.setRotation(angle);
-        // Destroy after 3 seconds
-        this.time.delayedCall(3000, () => {
-            if (projectile.active) {
-                projectile.destroy();
-            }
-        });
     }
     fireIceProjectile(slotIndex = 0, elementTier = 1) {
         // Get slot buffs
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
         // Apply tier damage scaling
         const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
-        // Check for chess piece modifiers in passive slots
-        let hasJoker = false;
-        let hasAnyRook = false;
-        let hasAnyBishop = false;
-        let hasAnyQueen = false;
-        let hasAnyKnight = false;
-        let hasAnyPawn = false;
-        // Check all passive slots for joker and chess pieces
-        for (let i = 4; i < 8; i++) {
-            if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
-                hasJoker = true;
-            }
-            if (this.chargeSlots && this.chargeSlots[i] === 'rook') {
-                hasAnyRook = true;
-            }
-            if (this.chargeSlots && this.chargeSlots[i] === 'bishop') {
-                hasAnyBishop = true;
-            }
-            if (this.chargeSlots && this.chargeSlots[i] === 'queen') {
-                hasAnyQueen = true;
-            }
-            if (this.chargeSlots && this.chargeSlots[i] === 'knight') {
-                hasAnyKnight = true;
-            }
-            if (this.chargeSlots && this.chargeSlots[i] === 'pawn') {
-                hasAnyPawn = true;
-            }
-        }
-        // Determine what modifiers to apply
-        let hasRookModifier = false;
-        let hasBishopModifier = false;
-        if (hasJoker && (hasAnyRook || hasAnyBishop || hasAnyQueen || hasAnyKnight)) {
-            // Joker applies all chess modifiers that are equipped
-            // Queen overrides rook and bishop
-            if (hasAnyQueen) {
-                hasRookModifier = true;
-                hasBishopModifier = true;
+
+        // Create ice projectile creator function for chess modifier system
+        const baseSpeed = 320;
+        const speed = baseSpeed * slotBuff.speedMultiplier * this.speedMultiplier;
+        const createIceProjectile = (direction = null) => {
+            const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'ice-spike-start1');
+            projectile.element = 'ice';
+            projectile.damage = 2.5 * slotBuff.damageMultiplier * tierDamageScale;
+            projectile.freezeDuration = 2000;
+            projectile.slotIndex = slotIndex;
+            projectile.body.setCollideWorldBounds(false);
+            projectile.setDepth(5);
+            projectile.setScale((direction ? 1.0 : 1.2) * this.getSpellAreaMultiplier()); // Smaller when multi-directional
+
+            // Play animation
+            projectile.play('ice-spike-start');
+            projectile.on('animationcomplete-ice-spike-start', () => {
+                if (projectile.active) {
+                    projectile.play('ice-spike-travel');
+                }
+            });
+
+            // Add to projectiles group
+            this.projectiles.add(projectile);
+
+            if (direction) {
+                // Fixed direction from chess modifier
+                projectile.body.setVelocity(direction.x * speed, direction.y * speed);
+                const angle = Math.atan2(direction.y, direction.x);
+                projectile.setRotation(angle);
             } else {
-                hasRookModifier = hasAnyRook;
-                hasBishopModifier = hasAnyBishop;
+                // Use wizard's direction
+                const diagonalSpeed = speed / Math.sqrt(2);
+                const directions = {
+                    up: { x: 0, y: -speed },
+                    down: { x: 0, y: speed },
+                    left: { x: -speed, y: 0 },
+                    right: { x: speed, y: 0 },
+                    'up-left': { x: -diagonalSpeed, y: -diagonalSpeed },
+                    'up-right': { x: diagonalSpeed, y: -diagonalSpeed },
+                    'down-left': { x: -diagonalSpeed, y: diagonalSpeed },
+                    'down-right': { x: diagonalSpeed, y: diagonalSpeed }
+                };
+                const wizardDir = this.wizard.lastDirection || 'down';
+                const dir = directions[wizardDir] || directions['down'];
+                projectile.body.setVelocity(dir.x, dir.y);
+
+                const directionAngles = {
+                    'up': -Math.PI / 2,
+                    'down': Math.PI / 2,
+                    'left': Math.PI,
+                    'right': 0,
+                    'up-left': -3 * Math.PI / 4,
+                    'up-right': -Math.PI / 4,
+                    'down-left': 3 * Math.PI / 4,
+                    'down-right': Math.PI / 4
+                };
+                projectile.setRotation(directionAngles[wizardDir] || 0);
             }
-        } else {
-            // Normal check for this slot's modifier
-            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
-            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+
+            projectile.body.enable = true;
+
+            // Cleanup
+            this.time.delayedCall(2500, () => {
+                if (projectile.active) {
+                    projectile.destroy();
+                }
+            });
+
+            return projectile;
+        };
+
+        // Use the chess modifier system (includes spiral, rook, bishop, queen, knight, pawn, joker)
+        const modifierHandled = this.handleChessModifiers(slotIndex, createIceProjectile);
+        if (modifierHandled) {
+            return;
         }
-        if (hasRookModifier && hasBishopModifier) {
-            // Fire 8 projectiles in all directions
-            const speed = 320 * slotBuff.speedMultiplier * this.speedMultiplier;
-            const diagonalSpeed = speed / Math.sqrt(2);
-            const allDirections = [
-                { x: 0, y: -speed },                        // Up
-                { x: diagonalSpeed, y: -diagonalSpeed },    // Up-Right
-                { x: speed, y: 0 },                         // Right
-                { x: diagonalSpeed, y: diagonalSpeed },     // Down-Right
-                { x: 0, y: speed },                         // Down
-                { x: -diagonalSpeed, y: diagonalSpeed },    // Down-Left
-                { x: -speed, y: 0 },                        // Left
-                { x: -diagonalSpeed, y: -diagonalSpeed }    // Up-Left
-            ];
-            allDirections.forEach((dir, index) => {
-                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'ice-spike-start1');
-                projectile.element = 'ice';
-                projectile.damage = 2.5 * slotBuff.damageMultiplier * tierDamageScale * 0.5; // Reduced for 8 projectiles
-                projectile.freezeDuration = 2000;
-                projectile.slotIndex = slotIndex;
-                projectile.body.setCollideWorldBounds(false);
-                projectile.setDepth(5);
-                projectile.setScale(0.8);
-                // Play animation
-                projectile.play('ice-spike-start');
-                projectile.on('animationcomplete-ice-spike-start', () => {
-                    if (projectile.active) {
-                        projectile.play('ice-spike-travel');
-                    }
-                });
-                // Add to projectiles group
-                this.projectiles.add(projectile);
-                // Set velocity
-                projectile.body.setVelocity(dir.x, dir.y);
-                projectile.body.enable = true;
-                // Rotate projectile
-                const angles = [
-                    -Math.PI/2,    // Up
-                    -Math.PI/4,    // Up-Right
-                    0,             // Right
-                    Math.PI/4,     // Down-Right
-                    Math.PI/2,     // Down
-                    3*Math.PI/4,   // Down-Left
-                    Math.PI,       // Left
-                    -3*Math.PI/4   // Up-Left
-                ];
-                projectile.setRotation(angles[index]);
-                // Cleanup
-                this.time.delayedCall(2500, () => {
-                    if (projectile.active) {
-                        projectile.destroy();
-                    }
-                });
-            });
-            return; // Exit early
-        } else if (hasRookModifier) {
-            // Fire 4 projectiles in cardinal directions (rook pattern)
-            const speed = 320 * slotBuff.speedMultiplier * this.speedMultiplier;
-            const rookDirections = [
-                { x: 0, y: -speed },    // Up
-                { x: 0, y: speed },     // Down
-                { x: -speed, y: 0 },    // Left
-                { x: speed, y: 0 }      // Right
-            ];
-            rookDirections.forEach((dir, index) => {
-                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'ice-spike-start1');
-                projectile.element = 'ice';
-                projectile.damage = 2.5 * slotBuff.damageMultiplier * tierDamageScale * 0.75;
-                projectile.freezeDuration = 2000;
-                projectile.slotIndex = slotIndex;
-                projectile.body.setCollideWorldBounds(false);
-                projectile.setDepth(5);
-                projectile.setScale(1.0);
-                // Play animation
-                projectile.play('ice-spike-start');
-                projectile.on('animationcomplete-ice-spike-start', () => {
-                    if (projectile.active) {
-                        projectile.play('ice-spike-travel');
-                    }
-                });
-                // Add to projectiles group
-                this.projectiles.add(projectile);
-                // Set velocity
-                projectile.body.setVelocity(dir.x, dir.y);
-                projectile.body.enable = true;
-                // Rotate projectile based on direction
-                const angles = [-Math.PI/2, Math.PI/2, Math.PI, 0]; // Up, Down, Left, Right
-                projectile.setRotation(angles[index]);
-                // Cleanup
-                this.time.delayedCall(2500, () => {
-                    if (projectile.active) {
-                        projectile.destroy();
-                    }
-                });
-            });
-            return; // Exit early
-        } else if (hasBishopModifier) {
-            // Fire 4 projectiles in diagonal directions (bishop pattern)
-            const speed = 320 * slotBuff.speedMultiplier * this.speedMultiplier;
-            const diagonalSpeed = speed / Math.sqrt(2);
-            const bishopDirections = [
-                { x: diagonalSpeed, y: -diagonalSpeed },   // Up-Right
-                { x: -diagonalSpeed, y: -diagonalSpeed },  // Up-Left
-                { x: diagonalSpeed, y: diagonalSpeed },    // Down-Right
-                { x: -diagonalSpeed, y: diagonalSpeed }    // Down-Left
-            ];
-            bishopDirections.forEach((dir, index) => {
-                const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'ice-spike-start1');
-                projectile.element = 'ice';
-                projectile.damage = 2.5 * slotBuff.damageMultiplier * tierDamageScale * 0.75;
-                projectile.freezeDuration = 2000;
-                projectile.slotIndex = slotIndex;
-                projectile.body.setCollideWorldBounds(false);
-                projectile.setDepth(5);
-                projectile.setScale(1.0);
-                // Play animation
-                projectile.play('ice-spike-start');
-                projectile.on('animationcomplete-ice-spike-start', () => {
-                    if (projectile.active) {
-                        projectile.play('ice-spike-travel');
-                    }
-                });
-                // Add to projectiles group
-                this.projectiles.add(projectile);
-                // Set velocity
-                projectile.body.setVelocity(dir.x, dir.y);
-                projectile.body.enable = true;
-                // Rotate projectile based on direction
-                const angles = [-Math.PI/4, -3*Math.PI/4, Math.PI/4, 3*Math.PI/4]; // UR, UL, DR, DL
-                projectile.setRotation(angles[index]);
-                // Cleanup
-                this.time.delayedCall(2500, () => {
-                    if (projectile.active) {
-                        projectile.destroy();
-                    }
-                });
-            });
-            return; // Exit early
-        }
+
         // Normal single ice projectile
-        const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'ice-spike-start1');
-        projectile.element = 'ice';
-        projectile.damage = 2.5 * slotBuff.damageMultiplier * tierDamageScale;
-        projectile.freezeDuration = 2000; // 2 seconds freeze
-        projectile.slotIndex = slotIndex;
-        projectile.body.setCollideWorldBounds(false);
-        projectile.setDepth(5);
-        projectile.setScale(1.2);
-        // Play start animation then switch to travel
-        projectile.play('ice-spike-start');
-        projectile.on('animationcomplete-ice-spike-start', () => {
-            if (projectile.active) {
-                projectile.play('ice-spike-travel');
-            }
-        });
-        // Add to projectiles group
-        this.projectiles.add(projectile);
-        // Directional firing
-        const speed = 320 * slotBuff.speedMultiplier * this.speedMultiplier;
-        const diagonalSpeed = speed / Math.sqrt(2);
-        const directions = {
-            up: { x: 0, y: -speed },
-            down: { x: 0, y: speed },
-            left: { x: -speed, y: 0 },
-            right: { x: speed, y: 0 },
-            'up-left': { x: -diagonalSpeed, y: -diagonalSpeed },
-            'up-right': { x: diagonalSpeed, y: -diagonalSpeed },
-            'down-left': { x: -diagonalSpeed, y: diagonalSpeed },
-            'down-right': { x: diagonalSpeed, y: diagonalSpeed }
-        };
-        const direction = this.wizard.lastDirection || 'down';
-        const dir = directions[direction];
-        if (!dir) {
-            console.error(`Invalid direction: ${direction}`);
-            const fallbackDir = directions['down'];
-            projectile.setVelocity(fallbackDir.x, fallbackDir.y);
-        } else {
-            projectile.setVelocity(dir.x, dir.y);
-        }
-        // Rotate projectile to match direction
-        const directionAngles = {
-            'up': -Math.PI / 2,
-            'down': Math.PI / 2,
-            'left': Math.PI,
-            'right': 0,
-            'up-left': -3 * Math.PI / 4,
-            'up-right': -Math.PI / 4,
-            'down-left': 3 * Math.PI / 4,
-            'down-right': Math.PI / 4
-        };
-        const angle = directionAngles[direction] || 0;
-        projectile.setRotation(angle);
-        // Destroy after 2.5 seconds
-        this.time.delayedCall(2500, () => {
-            if (projectile.active) {
-                projectile.destroy();
-            }
-        });
+        createIceProjectile();
     }
     createPoisonMines(slotIndex = 0, elementTier = 1) {
         // Create a group to track active poison fields if not exists
@@ -30202,7 +35338,9 @@ class GameScene extends Phaser.Scene {
         let hasAnyKnight = false;
         let hasAnyPawn = false;
         // Check all passive slots for joker and chess pieces
-        for (let i = 4; i < 8; i++) {
+        const passiveStart = this.MAX_ACTIVE_SLOTS || 4;
+        const passiveEnd = this.MAX_CHARGE_SLOTS || 8;
+        for (let i = passiveStart; i < passiveEnd; i++) {
             if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
                 hasJoker = true;
             }
@@ -30236,8 +35374,9 @@ class GameScene extends Phaser.Scene {
             }
         } else {
             // Normal check for this slot's modifier
-            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
-            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+            const passiveSlotIndex = (this.MAX_ACTIVE_SLOTS || 4) + slotIndex;
+            hasRookModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'rook';
+            hasBishopModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'bishop';
         }
         // Calculate position behind wizard based on last movement direction
         const direction = this.wizard.lastDirection || 'down';
@@ -30392,7 +35531,7 @@ class GameScene extends Phaser.Scene {
                     });
                 }
             }
-        });
+        }, this.validateCollision);
             // Auto-animate and destroy field after 10 seconds if untouched
             this.time.delayedCall(10000, () => {
                 if (field.active && !field.hasTriggered) {
@@ -31194,7 +36333,9 @@ class GameScene extends Phaser.Scene {
         let hasAnyKnight = false;
         let hasAnyPawn = false;
         // Check all passive slots for joker and chess pieces
-        for (let i = 4; i < 8; i++) {
+        const passiveStart = this.MAX_ACTIVE_SLOTS || 4;
+        const passiveEnd = this.MAX_CHARGE_SLOTS || 8;
+        for (let i = passiveStart; i < passiveEnd; i++) {
             if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
                 hasJoker = true;
             }
@@ -31229,8 +36370,9 @@ class GameScene extends Phaser.Scene {
             }
         } else {
             // Normal check for this slot's modifier
-            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
-            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+            const passiveSlotIndex = (this.MAX_ACTIVE_SLOTS || 4) + slotIndex;
+            hasRookModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'rook';
+            hasBishopModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'bishop';
         }
         if (hasRookModifier && hasBishopModifier) {
             // Fire 8 boomerangs in all directions
@@ -31308,7 +36450,7 @@ class GameScene extends Phaser.Scene {
         projectile.damage = 3 * damageScale;
         projectile.slotIndex = slotIndex;
         projectile.setDepth(5);
-        projectile.setScale(1.5); // Double the size from 0.75
+        projectile.setScale(1.5 * this.getSpellAreaMultiplier()); // Double the size from 0.75
         // Boomerang properties
         projectile.isBoomerang = true;
         projectile.passThroughEnemies = true;
@@ -31387,30 +36529,53 @@ class GameScene extends Phaser.Scene {
         this.projectiles.add(projectile);
     }
     createDustCloud() {
-        // Dust element - blinds enemies
-        const cloud = this.add.circle(this.wizard.x, this.wizard.y, 80, 0xcc9966, 0.4);
+        // Dust element - makes player unhittable (invulnerable)
+        const cloud = this.add.circle(this.wizard.x, this.wizard.y, 60, 0xcc9966, 0.5);
         cloud.setDepth(4);
+
+        // Visual effect - dust swirls around player
         this.tweens.add({
             targets: cloud,
-            scale: { from: 0.5, to: 2 },
-            alpha: { from: 0.6, to: 0 },
-            duration: 2000,
+            scale: { from: 0.3, to: 1.5 },
+            alpha: { from: 0.7, to: 0 },
+            duration: 1500,
             onComplete: () => cloud.destroy()
         });
-        // Blind enemies in area
-        this.enemies.children.entries.forEach(enemy => {
-            const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.wizard.x, this.wizard.y);
-            if (distance < 120) {
-                enemy.blinded = true;
-                enemy.setAlpha(0.5);
-                enemy.setVelocity(0, 0);
-                // Remove blind after 2 seconds
-                this.time.delayedCall(2000, () => {
-                    if (enemy.active) {
-                        enemy.blinded = false;
-                        enemy.setAlpha(1);
-                    }
-                });
+
+        // Make player invulnerable
+        this.wizard.invulnerable = true;
+        this.wizard.setAlpha(0.6);
+        this.wizard.setTint(0xcc9966); // Dust color tint
+
+        // Create dust particle effect around player
+        const dustParticles = [];
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const particle = this.add.circle(
+                this.wizard.x + Math.cos(angle) * 30,
+                this.wizard.y + Math.sin(angle) * 30,
+                4, 0xcc9966, 0.8
+            );
+            particle.setDepth(5);
+            dustParticles.push(particle);
+
+            // Orbit around player
+            this.tweens.add({
+                targets: particle,
+                x: this.wizard.x + Math.cos(angle + Math.PI) * 30,
+                y: this.wizard.y + Math.sin(angle + Math.PI) * 30,
+                alpha: 0,
+                duration: 1500,
+                onComplete: () => particle.destroy()
+            });
+        }
+
+        // Remove invulnerability after 1.5 seconds
+        this.time.delayedCall(1500, () => {
+            if (this.wizard && this.wizard.active) {
+                this.wizard.invulnerable = false;
+                this.wizard.setAlpha(1);
+                this.wizard.clearTint();
             }
         });
     }
@@ -31891,9 +37056,10 @@ class GameScene extends Phaser.Scene {
                 hasBishopModifier = hasAnyBishop;
             }
         } else {
-            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
-            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
-            const hasQueenModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'queen';
+            const passiveSlotIndex = (this.MAX_ACTIVE_SLOTS || 4) + slotIndex;
+            hasRookModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'rook';
+            hasBishopModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'bishop';
+            const hasQueenModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'queen';
             if (hasQueenModifier) {
                 hasRookModifier = true;
                 hasBishopModifier = true;
@@ -31948,7 +37114,7 @@ class GameScene extends Phaser.Scene {
                         this.killEnemy(enemy);
                     }
                 }
-            });
+            }, this.validateCollision);
             // Destroy after animation completes
             mudSplash.once('animationcomplete-mud-splash-anim', () => {
                 mudCollider.destroy();
@@ -31996,23 +37162,24 @@ class GameScene extends Phaser.Scene {
                 ];
                 positions.forEach(pos => createMudSplash(pos.x, pos.y, 0.75));
             } else {
-                // Single splash opposite of player facing
-                const direction = this.wizard.lastDirection || 'down';
-                const directionAngles = {
-                    'up': -Math.PI / 2,
-                    'down': Math.PI / 2,
-                    'left': Math.PI,
-                    'right': 0,
-                    'up-left': -3 * Math.PI / 4,
-                    'up-right': -Math.PI / 4,
-                    'down-left': 3 * Math.PI / 4,
-                    'down-right': Math.PI / 4
-                };
-                // Reverse the angle to spawn opposite of player facing
-                const angle = directionAngles[direction] !== undefined ? directionAngles[direction] + Math.PI : Math.PI / 2 + Math.PI;
-                const splashX = this.wizard.x + Math.cos(angle) * distance;
-                const splashY = this.wizard.y + Math.sin(angle) * distance;
-                createMudSplash(splashX, splashY, 1);
+                // Multiple random bursts around the player
+                const burstCount = 4; // Create 4 mud bursts
+                const minDistance = 80; // Minimum distance from player
+                const maxDistance = 180; // Maximum distance from player
+
+                for (let i = 0; i < burstCount; i++) {
+                    // Random angle (full 360 degrees)
+                    const angle = Math.random() * Math.PI * 2;
+                    // Random distance between min and max
+                    const dist = minDistance + Math.random() * (maxDistance - minDistance);
+                    // Calculate position
+                    const splashX = this.wizard.x + Math.cos(angle) * dist;
+                    const splashY = this.wizard.y + Math.sin(angle) * dist;
+                    // Create burst with slight delay for staggered effect
+                    this.time.delayedCall(i * 100, () => {
+                        createMudSplash(splashX, splashY, 0.8);
+                    });
+                }
             }
         });
     }
@@ -32059,6 +37226,108 @@ class GameScene extends Phaser.Scene {
                 // Clear tint if not affected by other status
                 if (!enemy.frozen && !enemy.burning && !enemy.muddy) {
                     enemy.clearTint();
+                }
+            }
+        });
+    }
+    createSpreadingBurnTimer(enemy) {
+        if (!enemy || !enemy.active) return;
+
+        // Create burn timer with spreading chain reaction mechanic
+        enemy.burnTimer = this.time.addEvent({
+            delay: 500, // Every half second
+            loop: true,
+            callback: () => {
+                if (enemy && enemy.active && enemy.burnMagnitude > 0) {
+                    // Deal burn damage
+                    const burnDamage = enemy.burnMagnitude;
+                    enemy.health -= burnDamage;
+                    this.showDamageNumber(enemy.x, enemy.y - 20, burnDamage, '#ff6600');
+
+                    // SPREADING FIRE CHAIN REACTION
+                    const spreadRadius = 80; // Range to spread fire
+                    const spreadChance = 0.6; // 60% chance to spread per tick
+
+                    if (Math.random() < spreadChance) {
+                        this.enemies.children.entries.forEach(nearbyEnemy => {
+                            if (nearbyEnemy && nearbyEnemy.active && !nearbyEnemy.isDying &&
+                                nearbyEnemy !== enemy && !nearbyEnemy.burning) {
+                                const distance = Phaser.Math.Distance.Between(
+                                    enemy.x, enemy.y, nearbyEnemy.x, nearbyEnemy.y
+                                );
+
+                                if (distance <= spreadRadius) {
+                                    // Spread fire with reduced intensity (70% of source)
+                                    const spreadMagnitude = Math.max(2, Math.floor(enemy.burnMagnitude * 0.7));
+
+                                    if (!nearbyEnemy.burnMagnitude) {
+                                        nearbyEnemy.burnMagnitude = 0;
+                                    }
+                                    nearbyEnemy.burnMagnitude += spreadMagnitude;
+                                    nearbyEnemy.burning = true;
+                                    nearbyEnemy.setTint(0xff0000);
+
+                                    // Show ignition feedback
+                                    this.showDamageNumber(nearbyEnemy.x, nearbyEnemy.y - 30, 'IGNITED!', '#ff4400');
+
+                                    // Visual fire spread effect
+                                    const spreadEffect = this.add.sprite(
+                                        (enemy.x + nearbyEnemy.x) / 2,
+                                        (enemy.y + nearbyEnemy.y) / 2,
+                                        'firebolt'
+                                    );
+                                    spreadEffect.setScale(0.8);
+                                    spreadEffect.setDepth(10);
+                                    spreadEffect.play('firebolt-travel');
+                                    spreadEffect.setAlpha(0.6);
+
+                                    this.tweens.add({
+                                        targets: spreadEffect,
+                                        x: nearbyEnemy.x,
+                                        y: nearbyEnemy.y,
+                                        scale: 0.5,
+                                        duration: 200,
+                                        onComplete: () => {
+                                            spreadEffect.destroy();
+                                        }
+                                    });
+
+                                    // Recursively create spreading burn timer for newly ignited enemy
+                                    if (!nearbyEnemy.burnTimer) {
+                                        this.createSpreadingBurnTimer(nearbyEnemy);
+                                    }
+                                }
+                            }
+                        });
+                    }
+
+                    // Reduce burn magnitude
+                    enemy.burnMagnitude--;
+
+                    // Check if burn ended
+                    if (enemy.burnMagnitude <= 0) {
+                        enemy.burning = false;
+                        enemy.burnTimer.destroy();
+                        enemy.burnTimer = null;
+                        // Clear tint if no other effects
+                        if (!enemy.frozen && !enemy.stunned && !enemy.poisoned && !enemy.slowed && !enemy.wet) {
+                            enemy.clearTint();
+                        }
+                    }
+
+                    // Check if enemy died from burn
+                    if (enemy.health <= 0 && enemy.active) {
+                        if (enemy.body) {
+                            enemy.body.enable = false;
+                        }
+                        this.killEnemy(enemy);
+                    }
+                } else if (enemy && !enemy.active) {
+                    // Clean up timer if enemy is no longer active
+                    if (enemy.burnTimer) {
+                        enemy.burnTimer.destroy();
+                        enemy.burnTimer = null;
+                    }
                 }
             }
         });
@@ -32527,8 +37796,9 @@ class GameScene extends Phaser.Scene {
                 hasBishopModifier = true;
             }
         } else {
-            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
-            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+            const passiveSlotIndex = (this.MAX_ACTIVE_SLOTS || 4) + slotIndex;
+            hasRookModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'rook';
+            hasBishopModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'bishop';
         }
         // Get slot buffs
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
@@ -33062,7 +38332,7 @@ class GameScene extends Phaser.Scene {
                     this.killEnemy(enemy);
                 }
             }
-        });
+        }, this.validateCollision);
         // After 3 seconds, play end animation and destroy
         this.time.delayedCall(3000, () => {
             vortex.isActive = false;
@@ -33204,7 +38474,7 @@ class GameScene extends Phaser.Scene {
                     this.killEnemy(enemy);
                 }
             }
-        });
+        }, this.validateCollision);
         // After 4 seconds, play end animation and destroy (increased duration for elongated pattern)
         this.time.delayedCall(4000, () => {
             tornado.isActive = false;
@@ -33222,110 +38492,110 @@ class GameScene extends Phaser.Scene {
     createSandSpell(elementTier = 1) {
         // Apply tier damage scaling only
         const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
-        // Create multiple sand storms at random positions around the wizard (like ice spell)
-        const sandCount = 5; // Fixed number of sand storms
-        const radius = 150; // Fixed radius
-        for (let i = 0; i < sandCount; i++) {
-            // Random angle and distance
-            const angle = Math.random() * Math.PI * 2;
-            const distance = 50 + Math.random() * (radius - 50);
-            // Calculate position
-            const x = this.wizard.x + Math.cos(angle) * distance;
-            const y = this.wizard.y + Math.sin(angle) * distance;
-            // Create sand storm sprite using air spell animation
-            const sandStorm = this.physics.add.sprite(x, y, 'air-spell-7');
-            sandStorm.element = 'sand';
-            sandStorm.setScale(1.8); // Fixed scale
-            sandStorm.setDepth(20);
-            sandStorm.setAlpha(0.6);
-            sandStorm.setTint(0xf4a460); // Yellow/sand tint
-            // Play air animation if it exists, set to loop
-            if (this.anims.exists('air-spell-anim')) {
-                sandStorm.play('air-spell-anim');
-                // Make the animation loop for the full duration
-                sandStorm.anims.setRepeat(-1); // Loop indefinitely
-            }
-            // Make it static (doesn't move)
-            sandStorm.body.setVelocity(0, 0);
-            sandStorm.body.setImmovable(true);
-            sandStorm.body.setSize(80, 80); // Fixed collision area
-            // Track enemies that have been damaged by this sand storm
-            sandStorm.damagedEnemies = new Set();
-            sandStorm.isActive = true;
-            // Calculate duration and damage interval
-            // Air spell animation duration is roughly 1 second, we want 3x = 3 seconds
-            const totalDuration = 3000; // 3 seconds
-            const tickCount = 12; // 12 damage ticks
-            const tickInterval = totalDuration / tickCount; // 250ms per tick
-            // Apply continuous damage and slow while enemies are in the area
-            const damageInterval = this.time.addEvent({
-                delay: tickInterval, // Damage every 250ms (12 times over 3 seconds)
-                callback: () => {
-                    if (!sandStorm.isActive || !sandStorm.active) {
-                        damageInterval.destroy();
-                        return;
-                    }
-                    this.enemies.children.entries.forEach(enemy => {
-                        if (!enemy.active || enemy.isDying) return;
-                        const dist = Phaser.Math.Distance.Between(
-                            enemy.x, enemy.y,
-                            sandStorm.x, sandStorm.y
-                        );
-                        if (dist < 60) { // Fixed effect radius
-                            // Apply damage scaled by tier
-                            const damage = 0.25 * tierDamageScale;
-                            enemy.health -= damage;
-                            // Show damage number
-                            this.showDamageNumber(enemy.x, enemy.y - 20, damage);
-                            // Apply slow effect
-                            if (!enemy.sandSlowed) {
-                                enemy.sandSlowed = true;
-                                enemy.originalSpeed = enemy.moveSpeed || 40;
-                                enemy.moveSpeed = enemy.originalSpeed * 0.5; // 50% slow
-                                enemy.setTint(0xf4a460); // Sandy tint
-                            }
-                            // Track that this enemy is being affected
-                            sandStorm.damagedEnemies.add(enemy);
-                            // Check if enemy died
-                            if (enemy.health <= 0) {
-                                this.killEnemy(enemy);
-                            }
-                        } else if (sandStorm.damagedEnemies.has(enemy) && enemy.sandSlowed) {
-                            // Enemy left the area, remove slow
-                            enemy.sandSlowed = false;
-                            enemy.moveSpeed = enemy.originalSpeed;
-                            if (!enemy.frozen && !enemy.stunned && !enemy.poisoned && !enemy.slowed && !enemy.burning && !enemy.wet) {
-                                enemy.clearTint();
-                            }
-                            sandStorm.damagedEnemies.delete(enemy);
+
+        // Create ONE large sand storm centered on wizard
+        const effectRadius = 120 + (elementTier * 30); // 150-270 radius based on tier
+        const x = this.wizard.x;
+        const y = this.wizard.y;
+
+        // Create sand storm sprite using air spell animation
+        const sandStorm = this.physics.add.sprite(x, y, 'air-spell-7');
+        sandStorm.element = 'sand';
+        sandStorm.setScale(3.5 + elementTier * 0.5); // Large scale: 4.0-6.0 based on tier
+        sandStorm.setDepth(20);
+        sandStorm.setAlpha(0.5);
+        sandStorm.setTint(0xf4a460); // Yellow/sand tint
+
+        // Play air animation if it exists, set to loop
+        if (this.anims.exists('air-spell-anim')) {
+            sandStorm.play('air-spell-anim');
+            sandStorm.anims.setRepeat(-1); // Loop indefinitely
+        }
+
+        // Make it static (doesn't move)
+        sandStorm.body.setVelocity(0, 0);
+        sandStorm.body.setImmovable(true);
+        sandStorm.body.setSize(effectRadius * 2, effectRadius * 2);
+
+        // Track enemies that have been damaged by this sand storm
+        sandStorm.damagedEnemies = new Set();
+        sandStorm.isActive = true;
+
+        // Calculate duration and damage interval
+        const totalDuration = 4000; // 4 seconds
+        const tickCount = 16; // 16 damage ticks
+        const tickInterval = totalDuration / tickCount; // 250ms per tick
+
+        // Damage per tick: scales with tier (8-24 damage per tick, 128-384 total over duration)
+        const baseDamagePerTick = 8 + (elementTier * 4);
+
+        // Apply continuous damage and slow while enemies are in the area
+        const damageInterval = this.time.addEvent({
+            delay: tickInterval,
+            callback: () => {
+                if (!sandStorm.isActive || !sandStorm.active) {
+                    damageInterval.destroy();
+                    return;
+                }
+                this.enemies.children.entries.forEach(enemy => {
+                    if (!enemy.active || enemy.isDying) return;
+                    const dist = Phaser.Math.Distance.Between(
+                        enemy.x, enemy.y,
+                        sandStorm.x, sandStorm.y
+                    );
+                    if (dist < effectRadius) {
+                        // Apply damage scaled by tier
+                        const damage = baseDamagePerTick * tierDamageScale;
+                        enemy.health -= damage;
+                        // Show damage number
+                        this.showDamageNumber(enemy.x, enemy.y - 20, damage);
+                        // Apply slow effect
+                        if (!enemy.sandSlowed) {
+                            enemy.sandSlowed = true;
+                            enemy.originalSpeed = enemy.moveSpeed || 40;
+                            enemy.moveSpeed = enemy.originalSpeed * 0.4; // 60% slow
+                            enemy.setTint(0xf4a460); // Sandy tint
                         }
-                    });
-                },
-                loop: true
-            });
-            // Destroy after the total duration (3 seconds)
-            this.time.delayedCall(totalDuration, () => {
-                sandStorm.isActive = false;
-                damageInterval.destroy();
-                // Clean up any lingering slow effects
-                sandStorm.damagedEnemies.forEach(enemy => {
-                    if (enemy.active && enemy.sandSlowed) {
+                        // Track that this enemy is being affected
+                        sandStorm.damagedEnemies.add(enemy);
+                        // Check if enemy died
+                        if (enemy.health <= 0) {
+                            this.killEnemy(enemy);
+                        }
+                    } else if (sandStorm.damagedEnemies.has(enemy) && enemy.sandSlowed) {
+                        // Enemy left the area, remove slow
                         enemy.sandSlowed = false;
                         enemy.moveSpeed = enemy.originalSpeed;
                         if (!enemy.frozen && !enemy.stunned && !enemy.poisoned && !enemy.slowed && !enemy.burning && !enemy.wet) {
                             enemy.clearTint();
                         }
+                        sandStorm.damagedEnemies.delete(enemy);
                     }
                 });
-                // Stop animation and destroy
-                if (sandStorm.anims) {
-                    sandStorm.anims.stop();
+            },
+            loop: true
+        });
+
+        // Destroy after the total duration
+        this.time.delayedCall(totalDuration, () => {
+            sandStorm.isActive = false;
+            damageInterval.destroy();
+            // Clean up any lingering slow effects
+            sandStorm.damagedEnemies.forEach(enemy => {
+                if (enemy.active && enemy.sandSlowed) {
+                    enemy.sandSlowed = false;
+                    enemy.moveSpeed = enemy.originalSpeed;
+                    if (!enemy.frozen && !enemy.stunned && !enemy.poisoned && !enemy.slowed && !enemy.burning && !enemy.wet) {
+                        enemy.clearTint();
+                    }
                 }
-                sandStorm.destroy();
             });
-            // Delay between spawning each sand storm
-            this.time.delayedCall(i * 100, () => {});
-        }
+            // Stop animation and destroy
+            if (sandStorm.anims) {
+                sandStorm.anims.stop();
+            }
+            sandStorm.destroy();
+        });
     }
     createCrystalSpell(elementTier = 1) {
         // Apply tier damage scaling
@@ -33434,7 +38704,9 @@ class GameScene extends Phaser.Scene {
             projectile.destroy();
         };
         // Add SPECIFIC collision detection for this crystal (will run before global handler)
-        this.physics.add.overlap(crystal, this.enemies, crystalCollisionHandler);
+        this.physics.add.overlap(crystal, this.enemies, crystalCollisionHandler, (crys, enemy) => {
+            return this.validateCollision(crys, enemy);
+        });
         // Destroy after 2 seconds if no hit, but create splits first
         this.time.delayedCall(2000, () => {
             if (crystal.active && !crystal.hasHit) {
@@ -33583,27 +38855,32 @@ class GameScene extends Phaser.Scene {
                         enemy.x, enemy.y,
                         gravity.x, gravity.y
                     );
-                    // Pull enemies towards center with stronger force
+                    // Pull enemies towards center with spinning vacuum effect
                     if (dist < pullRadius) {
                         const angle = Phaser.Math.Angle.Between(
                             enemy.x, enemy.y,
                             gravity.x, gravity.y
                         );
-                        // Pull force that increases as enemies get closer (reduced by 50%)
+                        // Pull force that increases as enemies get closer
                         const pullStrength = 1 - (dist / pullRadius); // 0 to 1 based on distance
-                        const pullForce = 50 + (pullStrength * 200); // 50-250 force (reduced by 50%)
-                        // Apply pull force directly to position for guaranteed pull
-                        const pullX = Math.cos(angle) * pullForce * 0.016; // Frame time adjustment
-                        const pullY = Math.sin(angle) * pullForce * 0.016;
-                        // Move enemy towards gravity center
-                        enemy.x += pullX;
-                        enemy.y += pullY;
-                        // Also set velocity for physics interactions (using reduced pull force)
+                        const pullForce = 50 + (pullStrength * 200); // 50-250 force
+
+                        // Add spinning/tangential force (perpendicular to pull direction)
+                        // This creates the vacuum spiral effect
+                        const spinAngle = angle + Math.PI / 2; // 90 degrees perpendicular
+                        const spinForce = 80 + (pullStrength * 120); // Spin faster as they get closer
+
+                        // Combine pull and spin forces
+                        const totalX = Math.cos(angle) * pullForce + Math.cos(spinAngle) * spinForce;
+                        const totalY = Math.sin(angle) * pullForce + Math.sin(spinAngle) * spinForce;
+
+                        // Apply force directly to position for guaranteed effect
+                        enemy.x += totalX * 0.016; // Frame time adjustment
+                        enemy.y += totalY * 0.016;
+
+                        // Also set velocity for physics interactions
                         if (enemy.body) {
-                            enemy.setVelocity(
-                                Math.cos(angle) * pullForce,
-                                Math.sin(angle) * pullForce
-                            );
+                            enemy.setVelocity(totalX, totalY);
                         }
                     }
                     // Damage enemies in center (only once)
@@ -34246,8 +39523,9 @@ class GameScene extends Phaser.Scene {
                 hasBishopModifier = true;
             }
         } else {
-            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
-            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+            const passiveSlotIndex = (this.MAX_ACTIVE_SLOTS || 4) + slotIndex;
+            hasRookModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'rook';
+            hasBishopModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'bishop';
         }
         // Function to create a single blast explosion
         const createBlastExplosion = (targetX, targetY, damageMultiplier = 1) => {
@@ -35951,8 +41229,9 @@ class GameScene extends Phaser.Scene {
         let hasKing = false;
         let hasJoker = false;
         // Check the passive slot for this element
-        if (this.chargeSlots && this.chargeSlots[4 + slotIndex]) {
-            const chessPiece = this.chargeSlots[4 + slotIndex];
+        const passiveSlotIndex = (this.MAX_ACTIVE_SLOTS || 4) + slotIndex;
+        if (this.chargeSlots && this.chargeSlots[passiveSlotIndex]) {
+            const chessPiece = this.chargeSlots[passiveSlotIndex];
             if (chessPiece === 'rook') hasRook = true;
             else if (chessPiece === 'bishop') hasBishop = true;
             else if (chessPiece === 'queen') hasQueen = true;
@@ -35961,8 +41240,10 @@ class GameScene extends Phaser.Scene {
         }
         // Apply Joker logic (copies other chess pieces)
         if (hasJoker) {
-            for (let i = 4; i < 8; i++) {
-                if (this.chargeSlots && this.chargeSlots[i] && i !== 4 + slotIndex) {
+            const passiveStart = this.MAX_ACTIVE_SLOTS || 4;
+            const passiveEnd = this.MAX_CHARGE_SLOTS || 8;
+            for (let i = passiveStart; i < passiveEnd; i++) {
+                if (this.chargeSlots && this.chargeSlots[i] && i !== passiveSlotIndex) {
                     const piece = this.chargeSlots[i];
                     if (piece === 'rook') hasRook = true;
                     else if (piece === 'bishop') hasBishop = true;
@@ -36525,7 +41806,9 @@ class GameScene extends Phaser.Scene {
             }
         };
         // Add collision detection
-        this.physics.add.overlap(chaosProjectile, this.enemies, collisionHandler);
+        this.physics.add.overlap(chaosProjectile, this.enemies, collisionHandler, (proj, enemy) => {
+            return this.validateCollision(proj, enemy);
+        });
         // Debug: Check position after a short delay
         this.time.delayedCall(100, () => {
             if (chaosProjectile.active) {
@@ -36574,7 +41857,9 @@ class GameScene extends Phaser.Scene {
                 proj.destroy();
             }
         };
-        this.physics.add.overlap(miniChaos, targetEnemy, miniCollision);
+        this.physics.add.overlap(miniChaos, targetEnemy, miniCollision, (proj, enemy) => {
+            return this.validateCollision(proj, enemy);
+        });
         // Destroy after 1 second
         this.time.delayedCall(1000, () => {
             if (miniChaos.active) {
@@ -36760,7 +42045,9 @@ class GameScene extends Phaser.Scene {
         let hasAnyKnight = false;
         let hasAnyPawn = false;
         // Check all passive slots for joker and chess pieces
-        for (let i = 4; i < 8; i++) {
+        const passiveStart = this.MAX_ACTIVE_SLOTS || 4;
+        const passiveEnd = this.MAX_CHARGE_SLOTS || 8;
+        for (let i = passiveStart; i < passiveEnd; i++) {
             if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
                 hasJoker = true;
             }
@@ -36795,8 +42082,9 @@ class GameScene extends Phaser.Scene {
             }
         } else {
             // Normal check for this slot's modifier
-            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
-            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+            const passiveSlotIndex = (this.MAX_ACTIVE_SLOTS || 4) + slotIndex;
+            hasRookModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'rook';
+            hasBishopModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'bishop';
         }
         // Get player's facing direction
         const direction = this.wizard.lastDirection || 'down';
@@ -37293,7 +42581,9 @@ class GameScene extends Phaser.Scene {
         let hasAnyKnight = false;
         let hasAnyPawn = false;
         // Check all passive slots for joker and chess pieces
-        for (let i = 4; i < 8; i++) {
+        const passiveStart = this.MAX_ACTIVE_SLOTS || 4;
+        const passiveEnd = this.MAX_CHARGE_SLOTS || 8;
+        for (let i = passiveStart; i < passiveEnd; i++) {
             if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
                 hasJoker = true;
             }
@@ -37328,8 +42618,9 @@ class GameScene extends Phaser.Scene {
             }
         } else {
             // Normal check for this slot's modifier
-            hasRookModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'rook';
-            hasBishopModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'bishop';
+            const passiveSlotIndex = (this.MAX_ACTIVE_SLOTS || 4) + slotIndex;
+            hasRookModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'rook';
+            hasBishopModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'bishop';
         }
         const projectileSpeed = 400 * slotBuff.speedMultiplier * this.speedMultiplier;
         const damage = 15 * slotBuff.damageMultiplier * tierDamageScale;
@@ -37571,11 +42862,14 @@ class GameScene extends Phaser.Scene {
             }
         });
         // Handle chess modifiers - strike multiple enemies
-        const hasQueenModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'queen';
-        const hasPawnModifier = this.chargeSlots && this.chargeSlots[4 + slotIndex] === 'pawn';
+        const passiveSlotIndex = (this.MAX_ACTIVE_SLOTS || 4) + slotIndex;
+        const hasQueenModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'queen';
+        const hasPawnModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'pawn';
         // Check for joker
         let hasJoker = false;
-        for (let i = 4; i < 8; i++) {
+        const passiveStart = this.MAX_ACTIVE_SLOTS || 4;
+        const passiveEnd = this.MAX_CHARGE_SLOTS || 8;
+        for (let i = passiveStart; i < passiveEnd; i++) {
             if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
                 hasJoker = true;
                 break;
@@ -38267,9 +43561,15 @@ class GameScene extends Phaser.Scene {
         // Make it impassable by setting up collision
         crystal.body.setSize(60, 60); // Fixed collision area
         // Add collision with wizard and enemies
-        this.physics.add.collider(this.wizard, crystal);
-        this.physics.add.collider(this.enemies, crystal);
-        this.physics.add.collider(this.projectiles, crystal);
+        this.physics.add.collider(this.wizard, crystal, null, (wizard, crys) => {
+            return this.validateCollision(wizard, crys);
+        });
+        this.physics.add.collider(this.enemies, crystal, null, (enemy, crys) => {
+            return this.validateCollision(enemy, crys);
+        });
+        this.physics.add.collider(this.projectiles, crystal, null, (proj, crys) => {
+            return this.validateCollision(proj, crys);
+        });
         // Sparkle effect
         this.tweens.add({
             targets: crystal,
@@ -38412,21 +43712,13 @@ class GameScene extends Phaser.Scene {
         chest.isCacodemonChest = true; // Mark as special chest
         // Play idle animation
         chest.play('chest-idle-anim');
-        // Determine chest contents
-        const roll = Math.random();
-        if (roll < 0.7) {
-            // 70% chance for random element
-            const elements = ['fire', 'water', 'lightning', 'earth', 'air', 'ice', 'arcane', 
-                             'poison', 'lava', 'steam', 'mud', 'dust', 'storm', 'blast', 
-                             'volcano', 'crystal', 'sand', 'wave', 'meteor', 'gravity'];
-            chest.itemType = 'element';
-            chest.itemData = { element: elements[Math.floor(Math.random() * elements.length)] };
-        } else {
-            // 30% chance for chess piece
-            const chessPieces = ['pawn', 'knight', 'bishop', 'rook', 'queen', 'king', 'joker'];
-            chest.itemType = 'element'; // Chess pieces use element system
-            chest.itemData = { element: chessPieces[Math.floor(Math.random() * chessPieces.length)] };
-        }
+        // Determine chest contents - always a random element (no chess pieces)
+        const elements = ['fire', 'water', 'lightning', 'earth', 'air', 'ice', 'arcane',
+                         'poison', 'lava', 'steam', 'mud', 'dust', 'storm', 'blast',
+                         'volcano', 'crystal', 'sand', 'wave', 'meteor', 'gravity'];
+
+        chest.itemType = 'element';
+        chest.itemData = { element: elements[Math.floor(Math.random() * elements.length)] };
         // Add bounce effect
         this.tweens.add({
             targets: chest,
@@ -38449,11 +43741,15 @@ class GameScene extends Phaser.Scene {
         // Setup collision with player
         this.physics.add.overlap(this.wizard, chest, (player, chest) => {
             this.openCacodemonChest(player, chest, glow);
-        }, null, this);
+        }, (player, chest) => {
+            return this.validateCollision(player, chest);
+        }, this);
         if (this.wizard2) {
             this.physics.add.overlap(this.wizard2, chest, (player, chest) => {
                 this.openCacodemonChest(player, chest, glow);
-            }, null, this);
+            }, (player, chest) => {
+                return this.validateCollision(player, chest);
+            }, this);
         }
     }
     openCacodemonChest(wizard, chest, glow) {
@@ -38623,12 +43919,18 @@ class GameScene extends Phaser.Scene {
             yoyo: true,
             repeat: -1
         });
+
+        // Enforce item cap before adding new standalone item
+        this.enforceItemCap(this.standaloneItems, this.MAX_STANDALONE_ITEMS_ON_FLOOR);
+
         // Add to standalone items group for collision detection
         this.standaloneItems.add(item);
     }
     collectStandaloneItem(wizard, item) {
-        if (!item || item.isCollecting) return;
+        if (!item || item.isCollecting || item.isDestroying) return;
         item.isCollecting = true;
+        // DON'T set isDestroying here - the tween onComplete will add to destroy queue
+        item.active = false;
         // Determine if this is P2 collecting the item
         const isP2 = wizard === this.wizard2;
         // Apply the item effect
@@ -38673,6 +43975,20 @@ class GameScene extends Phaser.Scene {
                 this.activateFlamethrower(wizard);
                 break;
         }
+
+        // Disable physics body immediately
+        if (item.disableBody) {
+            try {
+                item.disableBody(true, false);
+            } catch (e) {
+                if (item.body) {
+                    item.body.enable = false;
+                }
+            }
+        } else if (item.body) {
+            item.body.enable = false;
+        }
+
         // Animate collection
         this.tweens.add({
             targets: item,
@@ -38680,7 +43996,10 @@ class GameScene extends Phaser.Scene {
             alpha: 0,
             duration: 200,
             onComplete: () => {
-                item.destroy();
+                // Don't destroy directly - add to deferred queue
+                if (!this.destroyQueue.other.includes(item)) {
+                    this.destroyQueue.other.push(item);
+                }
             }
         });
     }
@@ -38689,56 +44008,49 @@ class GameScene extends Phaser.Scene {
         if (chest.sparkles) {
             chest.sparkles.destroy();
         }
-        // Determine which player opened the chest
-        const isP2 = wizard === this.wizard2;
-        const targetWizard = isP2 ? this.wizard2 : this.wizard;
-        const targetChargeSlots = isP2 && targetWizard.chargeSlots ? targetWizard.chargeSlots : this.chargeSlots;
-        const targetCharges = isP2 && targetWizard.charges ? targetWizard.charges : this.charges;
-        const targetPouch = isP2 && targetWizard.elementPouch ? targetWizard.elementPouch : this.elementPouch;
-        // Count total elements across all slots (active, passive, and pouch)
-        let totalElements = 0;
-        // Count elements in charge slots (active + passive)
-        if (targetChargeSlots && Array.isArray(targetChargeSlots)) {
-            for (let i = 0; i < 8; i++) {
-                const slot = targetChargeSlots[i];
-                if (slot && slot !== 'none' && slot !== null) {
-                    totalElements++;
-                }
-            }
-        } else if (targetCharges && Array.isArray(targetCharges)) {
-            // Fallback to charges array if chargeSlots not initialized
-            totalElements += targetCharges.length;
+
+        // Visual chest opening feedback
+        const chestOpenText = this.add.text(chest.x, chest.y - 50, 'ELITE REWARD!', {
+            fontSize: '24px',
+            color: '#ffdd00',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        chestOpenText.setOrigin(0.5);
+        chestOpenText.setDepth(150);
+        this.tweens.add({
+            targets: chestOpenText,
+            y: chest.y - 100,
+            alpha: 0,
+            duration: 1500,
+            onComplete: () => chestOpenText.destroy()
+        });
+
+        // Destroy chest with particle effect
+        const burstCount = 20;
+        for (let i = 0; i < burstCount; i++) {
+            const angle = (Math.PI * 2 / burstCount) * i;
+            const particle = this.add.circle(chest.x, chest.y, 4, 0xffd700);
+            particle.setDepth(100);
+            this.tweens.add({
+                targets: particle,
+                x: chest.x + Math.cos(angle) * 80,
+                y: chest.y + Math.sin(angle) * 80,
+                scale: { from: 1, to: 0 },
+                alpha: { from: 1, to: 0 },
+                duration: 600,
+                ease: 'Power2',
+                onComplete: () => particle.destroy()
+            });
         }
-        // Count elements in pouch
-        if (targetPouch && Array.isArray(targetPouch)) {
-            for (let i = 0; i < 4; i++) {
-                if (targetPouch[i] && targetPouch[i] !== 'none' && targetPouch[i] !== null) {
-                    totalElements++;
-                }
-            }
-        }
-        // Build rewards array based on what player can use
-        const rewards = [
-            { type: 'levelup', icon: '⬆️', name: 'LEVEL UP', color: 0x44ff44 }
-        ];
-        // Only offer element_upgrade if player has at least 1 element
-        if (totalElements > 0) {
-            rewards.push({ type: 'element_upgrade', icon: '⚡', name: 'ELEMENT UPGRADE', color: 0x4444ff });
-        }
-        // Only offer fusion if player has at least 2 elements
-        if (totalElements >= 2) {
-            rewards.push({ type: 'fusion', icon: '🔮', name: 'FUSION ELEMENT', color: 0xff44ff });
-        }
-        // If no elements, add an element selection reward instead
-        if (totalElements === 0) {
-            rewards.push({ type: 'element', icon: '✨', name: 'PRIMARY ELEMENT', color: 0x4444ff });
-        }
-        // Always give level up reward (no random selection)
-        const finalReward = { type: 'levelup', icon: '⬆️', name: 'LEVEL UP', color: 0x44ff44 };
-        // Immediately apply the reward without showing UI
-        this.handleSlotMachineReward(finalReward, chest, targetWizard);
+
         // Destroy chest
         chest.destroy();
+
+        // Show new passive upgrade selection UI
+        this.chestOpening = false;
+        this.showPassiveUpgradeSelection();
     }
     handleSlotMachineReward(reward, chest, wizard = null) {
         // Don't pause physics again - it's already paused from chest opening
@@ -39465,8 +44777,8 @@ class GameScene extends Phaser.Scene {
             }
             // Rebuild charges array
             this.charges = [];
-            for (let i = 0; i < 4 && i < this.chargeSlots.length; i++) {
-                if (this.chargeSlots[i] !== null) {
+            for (let i = 0; i < this.MAX_ACTIVE_SLOTS && i < this.chargeSlots.length; i++) {
+                if (this.chargeSlots[i] !== null && this.chargeSlots[i] !== 'catalyst') {
                     this.charges.push(this.chargeSlots[i]);
                 }
             }
@@ -39995,25 +45307,16 @@ class GameScene extends Phaser.Scene {
         if (this.multiplayerEnabled && !this.menuControllingPlayer) {
             this.menuControllingPlayer = wizard.playerNumber;
         }
-        // Handle level-up rewards (when chest is null)
-        if (!chest) {
-            // Show reward selection UI directly for level-ups
-            this.pauseGame('chest');
-            // Pause boss AI timer if it exists
-            if (this.bossAITimer) {
-                this.bossAITimer.paused = true;
-            }
-            this.showChestRewards(null, wizard);
-            return;
-        }
-        // For actual chests, directly level up the player instead of showing rewards
-        // Mark chest as opened
-        chest.opened = true;
-        // Stop the chest's floating animations
-        this.tweens.killTweensOf(chest);
-        // Play opening animation
-        chest.play('chest-open-anim');
-        chest.on('animationcomplete', () => {
+        // For actual chests, play opening animation first
+        // For level-ups (when chest is null), skip to showChestRewards below
+        if (chest) {
+            // Mark chest as opened
+            chest.opened = true;
+            // Stop the chest's floating animations
+            this.tweens.killTweensOf(chest);
+            // Play opening animation
+            chest.play('chest-open-anim');
+            chest.on('animationcomplete', () => {
             // Check if this is an item chest with a specific item
             if (chest.itemType) {
                 this.openItemChest(wizard, chest);
@@ -40107,9 +45410,14 @@ class GameScene extends Phaser.Scene {
             // Heal wizard to full health
             this.health = this.maxHealth;
             this.updateHealthBar();
-            // Show reward selection UI - pass wizard parameter to track which player
-            this.showChestRewards(null, wizard);
+            // Show level up rewards
+            this.chestOpening = false;
+            this.showChestRewards(chest, wizard);
         });
+        } else {
+            // Level up without chest - go straight to showChestRewards
+            this.showChestRewards(null, wizard);
+        }
     }
     showChestRewards(chest, levelingWizard = null) {
         // Initialize arrays if they don't exist
@@ -40117,11 +45425,11 @@ class GameScene extends Phaser.Scene {
             this.charges = [];
         }
         if (!this.chargeSlots) {
-            this.chargeSlots = new Array(8).fill(null);
+            this.chargeSlots = new Array(this.MAX_CHARGE_SLOTS).fill(null);
         }
         if (!this.elementPouch) {
             // Don't load pouch from localStorage - start fresh each game
-            this.elementPouch = [null, null, null, null];
+            this.elementPouch = new Array(this.MAX_POUCH_SLOTS).fill(null);
         }
         // Trigger level up reward event if this is from a level up (chest is null)
         if (!chest) {
@@ -40199,82 +45507,46 @@ class GameScene extends Phaser.Scene {
                 };
             });
         } else {
-            // Normal level up rewards
-            // Determine which player is leveling up
-            const isP2 = levelingWizard === this.wizard2;
-            const targetWizard = isP2 ? this.wizard2 : this.wizard;
-            // In multiplayer, P1 uses the main game properties, P2 uses wizard2 properties
-            const targetChargeSlots = isP2 ? (targetWizard.chargeSlots || this.chargeSlots) : this.chargeSlots;
-            const targetCharges = isP2 ? (targetWizard.charges || this.charges) : this.charges;
-            const targetPouch = isP2 ? (targetWizard.elementPouch || this.elementPouch) : this.elementPouch;
-            // Count total elements across all slots (active, passive, and pouch)
-            let totalElements = 0;
-            // Count elements in charge slots (active + passive)
-            if (targetChargeSlots && Array.isArray(targetChargeSlots)) {
-                for (let i = 0; i < 8; i++) {
-                    if (targetChargeSlots[i] && targetChargeSlots[i] !== 'none' && targetChargeSlots[i] !== null) totalElements++;
+            // Normal level up rewards with rotating first option
+            const definitions = this.getPassiveUpgradeDefinitions();
+
+            // Pool of passive upgrades for first slot (exclude element since it's already in slot 2)
+            // Removed passiveSlotIncrease since all slots are now active
+            const passiveOptions = ['revive', 'spellArea', 'moveSpeed', 'maxHealth', 'damage', 'slotIncrease'];
+
+            // Randomly select one passive for first slot
+            const randomPassive = passiveOptions[Math.floor(Math.random() * passiveOptions.length)];
+            const passiveDef = definitions[randomPassive];
+
+            rewardTypes = [
+                {
+                    type: 'passive',
+                    passiveKey: randomPassive,
+                    title: passiveDef.name.toUpperCase(),
+                    icon: passiveDef.icon,
+                    iconImage: 'meditate-icon',
+                    description: passiveDef.description,
+                    color: passiveDef.category === 'offensive' ? 0xff4444 :
+                           passiveDef.category === 'defensive' ? 0x44ff44 :
+                           passiveDef.category === 'utility' ? 0x4444ff : 0xffaa44
+                },
+                {
+                    type: 'element',
+                    title: 'PRIMARY ELEMENT',
+                    icon: '⚡',
+                    iconImage: 'element-select-icon',
+                    description: 'Choose from 3 primary elements',
+                    color: 0x4488ff
+                },
+                {
+                    type: 'fusion',
+                    title: 'FUSION RITUAL',
+                    icon: '🔮',
+                    iconImage: 'fusion-icon',
+                    description: 'Combine 2 elements into a new one',
+                    color: 0xff44ff
                 }
-            } else if (targetCharges && Array.isArray(targetCharges)) {
-                // Fallback to charges array if chargeSlots not initialized
-                totalElements += targetCharges.length;
-            }
-            // Count elements in pouch
-            if (targetPouch && Array.isArray(targetPouch)) {
-                for (let i = 0; i < 4; i++) {
-                    if (targetPouch[i] && targetPouch[i] !== 'none' && targetPouch[i] !== null) totalElements++;
-                }
-            }
-            // Check if player has any elements for fusion (need at least 2)
-            const hasEnoughElementsForFusion = totalElements >= 2;
-            // If player has 2+ elements, offer fusion. Otherwise, no third option (just fortitude and element)
-            if (hasEnoughElementsForFusion) {
-                rewardTypes = [
-                    {
-                        type: 'fortitude',
-                        title: 'FORTITUDE',
-                        icon: '💗',
-                        iconImage: 'meditate-icon',
-                        description: 'Heal to full and +20% max HP',
-                        color: 0x44ff44
-                    },
-                    {
-                        type: 'element',
-                        title: 'PRIMARY ELEMENT',
-                        icon: '✨',
-                        iconImage: 'element-select-icon',
-                        description: 'Choose a new primary element',
-                        color: 0x4488ff
-                    },
-                    {
-                        type: 'fusion',
-                        title: 'FUSION RITUAL',
-                        icon: '🔮',
-                        iconImage: 'fusion-icon',
-                        description: 'Combine 2 elements into a new one',
-                        color: 0xff44ff
-                    }
-                ];
-            } else {
-                // Only offer fortitude and primary element when player has 1 or less elements
-                rewardTypes = [
-                    {
-                        type: 'fortitude',
-                        title: 'FORTITUDE',
-                        icon: '💗',
-                        iconImage: 'meditate-icon',
-                        description: 'Heal to full and +20% max HP',
-                        color: 0x44ff44
-                    },
-                    {
-                        type: 'element',
-                        title: 'PRIMARY ELEMENT',
-                        icon: '✨',
-                        iconImage: 'element-select-icon',
-                        description: 'Choose a new primary element',
-                        color: 0x4488ff
-                    }
-                ];
-            }
+            ];
         }
         for (let i = 0; i < rewardTypes.length; i++) {
             const xPos = 400 - ((rewardTypes.length - 1) * 110) + (i * 220); // Center the buttons
@@ -40320,13 +45592,13 @@ class GameScene extends Phaser.Scene {
             });
             description.setOrigin(0.5);
             button.add([bg, iconElement, name, description]);
-            buttons.push({ container: button, type: reward.type, bg: bg, element: reward.element });
+            buttons.push({ container: button, type: reward.type, bg: bg, element: reward.element, passiveKey: reward.passiveKey });
             bg.on('pointerdown', () => {
                 if (this.initialElementSelection && reward.element) {
                     // For initial element selection, directly select the element
                     this.selectChestElement(reward.element, null, null, null, null, buttons);
                 } else {
-                    this.selectChestReward(reward.type, chest);
+                    this.selectChestReward(reward.type, chest, reward.passiveKey);
                 }
             });
             bg.on('pointerover', () => {
@@ -40400,7 +45672,7 @@ class GameScene extends Phaser.Scene {
             }
         });
     }
-    selectChestReward(rewardType, chest) {
+    selectChestReward(rewardType, chest, passiveKey = null) {
         // Store UI elements before clearing for element selection
         let chestUIBackup = null;
         if (rewardType === 'element' && this.chestUI) {
@@ -40430,7 +45702,15 @@ class GameScene extends Phaser.Scene {
         if (!this.gamePaused) {
             this.pauseGame('chest');
         }
-        if (rewardType === 'fortitude') {
+        if (rewardType === 'passive') {
+            // Apply the passive upgrade
+            if (passiveKey) {
+                this.applyPassiveUpgrade(passiveKey);
+            }
+            // Close the chest UI and resume game
+            this.closeChestUI();
+            if (chest) chest.destroy();
+        } else if (rewardType === 'fortitude') {
             this.showFortitudeReward();
             if (chest) chest.destroy();
         } else if (rewardType === 'meditate') {
@@ -40490,6 +45770,15 @@ class GameScene extends Phaser.Scene {
             if (chest) chest.destroy();
         } else if (rewardType === 'fusion') {
             this.showFusionReward();
+            if (chest) chest.destroy();
+        } else if (rewardType === 'upgrade') {
+            this.showUpgradeReward();
+            if (chest) chest.destroy();
+        } else if (rewardType === 'harness') {
+            this.showHarnessReward();
+            if (chest) chest.destroy();
+        } else if (rewardType === 'annihilate') {
+            this.showAnnihilateReward();
             if (chest) chest.destroy();
         }
     }
@@ -41080,6 +46369,10 @@ class GameScene extends Phaser.Scene {
             const element = targetChargeSlots[i];
             if (!element || element === 'none') continue; // Skip empty slots
             const config = this.elementConfig[element];
+            if (!config) {
+                console.warn(`Missing config for element: ${element}`);
+                continue;
+            }
             const xPos = 200 + (buttonIndex % 4) * 100;
             const yPos = 220 + Math.floor(buttonIndex / 4) * 100;
             const container = this.add.container(xPos, yPos);
@@ -41148,6 +46441,10 @@ class GameScene extends Phaser.Scene {
             const element = targetElementPouch[i];
             if (!element || element === 'none') continue; // Skip empty pouch slots
             const config = this.elementConfig[element];
+            if (!config) {
+                console.warn(`Missing config for element: ${element}`);
+                continue;
+            }
             const xPos = 200 + (buttonIndex % 4) * 100;
             const yPos = 220 + Math.floor(buttonIndex / 4) * 100;
             const container = this.add.container(xPos, yPos);
@@ -41243,6 +46540,421 @@ class GameScene extends Phaser.Scene {
         this.fusionButton.on('pointerout', () => {
             this.fusionButton.setScale(1);
         });
+    }
+    showUpgradeReward() {
+        // Determine which player is getting the reward
+        const isP2 = this.multiplayerEnabled && this.menuControllingPlayer === 2;
+        const targetWizard = isP2 ? this.wizard2 : this.wizard;
+        const targetChargeSlots = isP2 ? (targetWizard.chargeSlots || this.chargeSlots) : this.chargeSlots;
+        const targetPouch = isP2 ? (targetWizard.elementPouch || this.elementPouch) : this.elementPouch;
+        const targetTiers = isP2 ? (targetWizard.elementTiers || this.elementTiers) : this.elementTiers;
+
+        // Create UI for selecting element to upgrade
+        const upgradeBg = this.add.rectangle(400, 300, 700, 450, 0x000000, 0.9);
+        upgradeBg.setScrollFactor(0);
+        upgradeBg.setDepth(920);
+
+        const title = this.add.text(400, 100, 'UPGRADE ELEMENT', {
+            fontSize: '32px',
+            color: '#ffaa44',
+            fontStyle: 'bold'
+        });
+        title.setOrigin(0.5);
+        title.setScrollFactor(0);
+        title.setDepth(921);
+
+        const instruction = this.add.text(400, 140, 'Select an element to increase its tier', {
+            fontSize: '16px',
+            color: '#ffffff'
+        });
+        instruction.setOrigin(0.5);
+        instruction.setScrollFactor(0);
+        instruction.setDepth(921);
+
+        const controlHint = this.add.text(400, 480, 'Use ← → or D-pad to navigate • Press SPACE or A to select', {
+            fontSize: '14px',
+            color: '#aaaaaa'
+        });
+        controlHint.setOrigin(0.5);
+        controlHint.setScrollFactor(0);
+        controlHint.setDepth(921);
+
+        // Show all upgradeable elements
+        const elementButtons = [];
+        let buttonIndex = 0;
+
+        // Check charge slots
+        for (let i = 0; i < 8; i++) {
+            const element = targetChargeSlots[i];
+            if (!element || element === 'none') continue;
+            const tierKey = `${element}_${i}`;
+            const tier = targetTiers.get(tierKey) || 1;
+            if (tier >= 5) continue; // Skip max tier elements
+
+            const config = this.elementConfig[element];
+            if (!config) {
+                console.warn(`Missing config for element: ${element}`);
+                continue;
+            }
+            const xPos = 200 + (buttonIndex % 4) * 100;
+            const yPos = 220 + Math.floor(buttonIndex / 4) * 100;
+            const container = this.add.container(xPos, yPos);
+            container.setScrollFactor(0);
+            container.setDepth(922);
+
+            const bg = this.add.circle(0, 0, 40, 0x333333);
+            if (buttonIndex === 0) bg.setStrokeStyle(2, 0xffff00);
+            bg.setInteractive();
+
+            const sprite = this.add.sprite(0, 0, config.sheet, config.frame);
+            sprite.setScale(0.2);
+
+            const tierText = this.add.text(0, 50, `Tier ${tier}→${tier + 1}`, {
+                fontSize: '12px',
+                color: '#ffaa44'
+            });
+            tierText.setOrigin(0.5);
+
+            container.add([bg, sprite, tierText]);
+            elementButtons.push({ container, element, bg, slotIndex: i, tier });
+
+            // Mouse hover support
+            bg.on('pointerover', () => {
+                const btnIndex = elementButtons.findIndex(b => b.bg === bg);
+                if (btnIndex >= 0) {
+                    this.upgradeUI.cursorIndex = btnIndex;
+                    elementButtons.forEach((btn, i) => {
+                        btn.bg.setStrokeStyle(i === btnIndex ? 3 : 0, 0xffff00);
+                    });
+                }
+            });
+
+            // Mouse click support
+            bg.on('pointerdown', () => {
+                const btnIndex = elementButtons.findIndex(b => b.bg === bg);
+                if (btnIndex >= 0) {
+                    this.performUpgrade(elementButtons[btnIndex]);
+                }
+            });
+
+            buttonIndex++;
+        }
+
+        // Check pouch
+        if (targetPouch) {
+            for (let i = 0; i < targetPouch.length; i++) {
+                const element = targetPouch[i];
+                if (!element || element === 'none') continue;
+                const tierKey = `${element}_${this.MAX_CHARGE_SLOTS + i}`;
+                const tier = targetTiers.get(tierKey) || 1;
+                if (tier >= 5) continue;
+
+                const config = this.elementConfig[element];
+                if (!config) {
+                    console.warn(`Missing config for element: ${element}`);
+                    continue;
+                }
+                const xPos = 200 + (buttonIndex % 4) * 100;
+                const yPos = 220 + Math.floor(buttonIndex / 4) * 100;
+                const container = this.add.container(xPos, yPos);
+                container.setScrollFactor(0);
+                container.setDepth(922);
+
+                const bg = this.add.circle(0, 0, 40, 0x333333);
+                if (buttonIndex === 0) bg.setStrokeStyle(2, 0xffff00);
+                bg.setInteractive();
+
+                const sprite = this.add.sprite(0, 0, config.sheet, config.frame);
+                sprite.setScale(0.2);
+
+                const tierText = this.add.text(0, 50, `Tier ${tier}→${tier + 1}`, {
+                    fontSize: '12px',
+                    color: '#ffaa44'
+                });
+                tierText.setOrigin(0.5);
+
+                container.add([bg, sprite, tierText]);
+                elementButtons.push({ container, element, bg, slotIndex: 8 + i, tier });
+
+                // Mouse hover support
+                bg.on('pointerover', () => {
+                    const btnIndex = elementButtons.findIndex(b => b.bg === bg);
+                    if (btnIndex >= 0) {
+                        this.upgradeUI.cursorIndex = btnIndex;
+                        elementButtons.forEach((btn, i) => {
+                            btn.bg.setStrokeStyle(i === btnIndex ? 3 : 0, 0xffff00);
+                        });
+                    }
+                });
+
+                // Mouse click support
+                bg.on('pointerdown', () => {
+                    const btnIndex = elementButtons.findIndex(b => b.bg === bg);
+                    if (btnIndex >= 0) {
+                        this.performUpgrade(elementButtons[btnIndex]);
+                    }
+                });
+
+                buttonIndex++;
+            }
+        }
+
+        // Set up navigation state
+        this.upgradeUI = {
+            bg: upgradeBg,
+            title,
+            instruction,
+            controlHint,
+            buttons: elementButtons,
+            cursorIndex: 0,
+            active: true
+        };
+
+        // Highlight first button
+        if (elementButtons.length > 0) {
+            elementButtons[0].bg.setStrokeStyle(3, 0xffff00);
+        }
+
+        // Store previous input states to prevent instant selection
+        this.prevUpgradeConfirm = true;
+    }
+    handleUpgradeController() {
+        if (!this.upgradeUI || !this.upgradeUI.active || !this.upgradeUI.buttons) {
+            return;
+        }
+
+        const buttons = this.upgradeUI.buttons;
+        if (buttons.length === 0) return;
+
+        // Get input states
+        let leftPressed = false;
+        let rightPressed = false;
+        let confirmPressed = false;
+
+        // Keyboard
+        if (this.cursors.left.isDown) leftPressed = true;
+        if (this.cursors.right.isDown) rightPressed = true;
+        if (this.spaceKey && this.spaceKey.isDown) confirmPressed = true;
+        if (this.enterKey && this.enterKey.isDown) confirmPressed = true;
+
+        // Gamepad
+        if (this.gamepad) {
+            if (this.gamepad.left || this.gamepad.leftStick.x < -0.5) leftPressed = true;
+            if (this.gamepad.right || this.gamepad.leftStick.x > 0.5) rightPressed = true;
+            if (this.gamepad.A) confirmPressed = true;
+        }
+
+        // Handle navigation
+        const prevLeft = this.prevUpgradeLeft || false;
+        const prevRight = this.prevUpgradeRight || false;
+
+        if (leftPressed && !prevLeft) {
+            // Move left
+            this.upgradeUI.cursorIndex = Math.max(0, this.upgradeUI.cursorIndex - 1);
+            // Update highlights
+            buttons.forEach((btn, i) => {
+                btn.bg.setStrokeStyle(i === this.upgradeUI.cursorIndex ? 3 : 0, 0xffff00);
+            });
+        }
+
+        if (rightPressed && !prevRight) {
+            // Move right
+            this.upgradeUI.cursorIndex = Math.min(buttons.length - 1, this.upgradeUI.cursorIndex + 1);
+            // Update highlights
+            buttons.forEach((btn, i) => {
+                btn.bg.setStrokeStyle(i === this.upgradeUI.cursorIndex ? 3 : 0, 0xffff00);
+            });
+        }
+
+        // Handle confirmation
+        const prevConfirm = this.prevUpgradeConfirm || false;
+        if (confirmPressed && !prevConfirm) {
+            // Select current element
+            const selectedButton = buttons[this.upgradeUI.cursorIndex];
+            if (selectedButton) {
+                this.performUpgrade(selectedButton);
+            }
+        }
+
+        // Store states for next frame
+        this.prevUpgradeLeft = leftPressed;
+        this.prevUpgradeRight = rightPressed;
+        this.prevUpgradeConfirm = confirmPressed;
+    }
+    performUpgrade(selectedButton) {
+        const isP2 = this.multiplayerEnabled && this.menuControllingPlayer === 2;
+        const targetWizard = isP2 ? this.wizard2 : this.wizard;
+        const targetTiers = isP2 ? (targetWizard.elementTiers || this.elementTiers) : this.elementTiers;
+
+        const element = selectedButton.element;
+        const slotIndex = selectedButton.slotIndex;
+        const tier = selectedButton.tier;
+        const tierKey = `${element}_${slotIndex}`;
+
+        // Upgrade the tier
+        targetTiers.set(tierKey, tier + 1);
+
+        const config = this.elementConfig[element];
+        const message = this.add.text(400, 300, `${config.name.toUpperCase()} UPGRADED!\nTier ${tier} → ${tier + 1}`, {
+            fontSize: '24px',
+            color: '#ffaa44',
+            fontStyle: 'bold',
+            align: 'center',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        message.setOrigin(0.5);
+        message.setScrollFactor(0);
+        message.setDepth(1000);
+
+        // Cleanup upgrade UI
+        if (this.upgradeUI) {
+            if (this.upgradeUI.bg) this.upgradeUI.bg.destroy();
+            if (this.upgradeUI.title) this.upgradeUI.title.destroy();
+            if (this.upgradeUI.instruction) this.upgradeUI.instruction.destroy();
+            if (this.upgradeUI.controlHint) this.upgradeUI.controlHint.destroy();
+            if (this.upgradeUI.buttons) {
+                this.upgradeUI.buttons.forEach(btn => btn.container.destroy());
+            }
+            this.upgradeUI = null;
+        }
+
+        // Update UI
+        if (isP2) {
+            this.updateP2ChargeUI();
+        } else {
+            this.updateChargeUI();
+            this.updateChargeGroups();
+        }
+
+        // Close after delay
+        if (this.gamePaused || this.time.timeScale === 0) {
+            setTimeout(() => {
+                if (message && message.active) message.destroy();
+                this.closeChestUI();
+            }, 2000);
+        } else {
+            this.time.delayedCall(2000, () => {
+                message.destroy();
+                this.closeChestUI();
+            });
+        }
+    }
+    showHarnessReward() {
+        // List of all passive orb types from chests (removed chess modifiers)
+        const passiveOrbs = [
+            'wizardOrb', 'summonOrb', 'flameOrb', 'healOrb', 'dashOrb'
+        ];
+
+        // Select random passive
+        const randomPassive = passiveOrbs[Math.floor(Math.random() * passiveOrbs.length)];
+
+        // Grant the passive using existing system
+        const isP2 = this.multiplayerEnabled && this.menuControllingPlayer === 2;
+        const targetWizard = isP2 ? this.wizard2 : this.wizard;
+        this.grantPassiveOrb(randomPassive, targetWizard);
+
+        // Show message
+        const passiveNames = {
+            'wizardOrb': 'Wizard Orb',
+            'summonOrb': 'Summon Orb',
+            'saturnOrb': 'Saturn Orb',
+            'knightOrb': 'Knight Orb',
+            'kingOrb': 'King Orb',
+            'rookOrb': 'Rook Orb',
+            'flameOrb': 'Flame Orb',
+            'healOrb': 'Heal Orb',
+            'dashOrb': 'Dash Orb'
+        };
+
+        const playerLabel = isP2 ? 'P2 ' : (this.multiplayerEnabled ? 'P1 ' : '');
+        const message = this.add.text(400, 300, `${playerLabel}HARNESSED!\n${passiveNames[randomPassive]}`, {
+            fontSize: '24px',
+            color: '#aa44ff',
+            fontStyle: 'bold',
+            align: 'center',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        message.setOrigin(0.5);
+        message.setScrollFactor(0);
+        message.setDepth(210);
+
+        // Close after delay
+        if (this.gamePaused || this.time.timeScale === 0) {
+            setTimeout(() => {
+                if (message && message.active) message.destroy();
+                this.closeChestUI();
+            }, 2000);
+        } else {
+            this.time.delayedCall(2000, () => {
+                message.destroy();
+                this.closeChestUI();
+            });
+        }
+    }
+    showAnnihilateReward() {
+        // Destroy all non-elite, non-boss enemies
+        let destroyedCount = 0;
+        this.enemies.children.entries.forEach(enemy => {
+            if (enemy && enemy.active && !enemy.isElite && !enemy.isBoss && !enemy.isDying) {
+                enemy.isDying = true;
+                destroyedCount++;
+
+                // Play death animation if available
+                const deathAnimKey = `${enemy.enemyType}-death`;
+                if (this.anims.exists(deathAnimKey)) {
+                    enemy.play(deathAnimKey);
+                }
+
+                // Destroy after short delay
+                this.time.delayedCall(300, () => {
+                    if (enemy && enemy.active) {
+                        this.safeDestroyEnemy(enemy);
+                    }
+                });
+            }
+        });
+
+        // Show message
+        const message = this.add.text(400, 300, `ANNIHILATE!\n${destroyedCount} enemies destroyed!`, {
+            fontSize: '32px',
+            color: '#ff4444',
+            fontStyle: 'bold',
+            align: 'center',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        message.setOrigin(0.5);
+        message.setScrollFactor(0);
+        message.setDepth(210);
+
+        // Screen shake effect
+        this.cameras.main.shake(500, 0.01);
+
+        // Flash effect
+        const flash = this.add.rectangle(400, 300, 800, 600, 0xff4444, 0.3);
+        flash.setScrollFactor(0);
+        flash.setDepth(200);
+        this.tweens.add({
+            targets: flash,
+            alpha: 0,
+            duration: 500,
+            onComplete: () => flash.destroy()
+        });
+
+        // Close after delay
+        if (this.gamePaused || this.time.timeScale === 0) {
+            setTimeout(() => {
+                if (message && message.active) message.destroy();
+                this.closeChestUI();
+            }, 2000);
+        } else {
+            this.time.delayedCall(2000, () => {
+                message.destroy();
+                this.closeChestUI();
+            });
+        }
     }
     performFusion(selectedElements) {
         // Extract elements and slot indices
@@ -41616,18 +47328,18 @@ class GameScene extends Phaser.Scene {
                     }
                 }
             }
-            // Rebuild charges array from first 4 chargeSlots only
+            // Rebuild charges array from active chargeSlots
             if (fusionWizard === this.wizard) {
                 this.charges = [];
-                for (let i = 0; i < 4 && i < fusionChargeSlots.length; i++) {
-                    if (fusionChargeSlots[i] !== null) {
+                for (let i = 0; i < this.MAX_ACTIVE_SLOTS && i < fusionChargeSlots.length; i++) {
+                    if (fusionChargeSlots[i] !== null && fusionChargeSlots[i] !== 'catalyst') {
                         this.charges.push(fusionChargeSlots[i]);
                     }
                 }
             } else {
                 fusionWizard.charges = [];
-                for (let i = 0; i < 4 && i < fusionChargeSlots.length; i++) {
-                    if (fusionChargeSlots[i] !== null) {
+                for (let i = 0; i < this.MAX_ACTIVE_SLOTS && i < fusionChargeSlots.length; i++) {
+                    if (fusionChargeSlots[i] !== null && fusionChargeSlots[i] !== 'catalyst') {
                         fusionWizard.charges.push(fusionChargeSlots[i]);
                     }
                 }
@@ -41682,7 +47394,7 @@ class GameScene extends Phaser.Scene {
         // Initialize pouch if not exists
         if (!this.elementPouch) {
             // Don't load pouch from localStorage - start fresh each game
-            this.elementPouch = [null, null, null, null];
+            this.elementPouch = new Array(this.MAX_POUCH_SLOTS).fill(null);
             }
         let controlHint = null;
         try {
@@ -41898,7 +47610,7 @@ class GameScene extends Phaser.Scene {
         const sourceSlotIndex = source.slotIndex;
         // Initialize chargeSlots if needed
         if (!this.chargeSlots) {
-            this.chargeSlots = new Array(8).fill(null);
+            this.chargeSlots = new Array(this.MAX_CHARGE_SLOTS).fill(null);
             // Fill from charges array
             this.charges.forEach((charge, i) => {
                 if (i < 8) this.chargeSlots[i] = charge;
@@ -41952,10 +47664,10 @@ class GameScene extends Phaser.Scene {
                 this.elementPouch[sourceSlotIndex] = null;
             }
         }
-        // Rebuild charges array from first 4 chargeSlots
+        // Rebuild charges array from active chargeSlots
         this.charges = [];
-        for (let i = 0; i < 4 && i < this.chargeSlots.length; i++) {
-            if (this.chargeSlots[i] !== null) {
+        for (let i = 0; i < this.MAX_ACTIVE_SLOTS && i < this.chargeSlots.length; i++) {
+            if (this.chargeSlots[i] !== null && this.chargeSlots[i] !== 'catalyst') {
                 this.charges.push(this.chargeSlots[i]);
             }
         }
@@ -42184,18 +47896,18 @@ class GameScene extends Phaser.Scene {
             if (this.selectedChargeToReplace < 8) {
                 // Replace in charge slots
                 chargeSlots[this.selectedChargeToReplace] = element;
-                // Rebuild charges array from first 4 slots
+                // Rebuild charges array from active slots
                 if (targetWizard === this.wizard) {
                     this.charges = [];
-                    for (let i = 0; i < 4 && i < chargeSlots.length; i++) {
-                        if (chargeSlots[i] !== null) {
+                    for (let i = 0; i < this.MAX_ACTIVE_SLOTS && i < chargeSlots.length; i++) {
+                        if (chargeSlots[i] !== null && chargeSlots[i] !== 'catalyst') {
                             this.charges.push(chargeSlots[i]);
                         }
                     }
                 } else {
                     targetWizard.charges = [];
-                    for (let i = 0; i < 4 && i < chargeSlots.length; i++) {
-                        if (chargeSlots[i] !== null) {
+                    for (let i = 0; i < this.MAX_ACTIVE_SLOTS && i < chargeSlots.length; i++) {
+                        if (chargeSlots[i] !== null && chargeSlots[i] !== 'catalyst') {
                             targetWizard.charges.push(chargeSlots[i]);
                         }
                     }
@@ -42279,10 +47991,10 @@ class GameScene extends Phaser.Scene {
             // Initialize arrays if needed (for P1)
             if (targetWizard === this.wizard) {
                 if (!this.chargeSlots) {
-                    this.chargeSlots = new Array(8).fill(null);
+                    this.chargeSlots = new Array(this.MAX_CHARGE_SLOTS).fill(null);
                 }
                 if (!this.elementPouch) {
-                    this.elementPouch = [null, null, null, null];
+                    this.elementPouch = new Array(this.MAX_POUCH_SLOTS).fill(null);
                 }
                 if (!this.charges) {
                     this.charges = [];
@@ -42290,7 +48002,7 @@ class GameScene extends Phaser.Scene {
             } else {
                 // For P2
                 if (!targetWizard.elementPouch) {
-                    targetWizard.elementPouch = [null, null, null, null];
+                    targetWizard.elementPouch = new Array(this.MAX_POUCH_SLOTS).fill(null);
                 }
             }
             // Try to add to chargeSlots first
@@ -42321,17 +48033,17 @@ class GameScene extends Phaser.Scene {
                     }
                 }
             }
-            // Rebuild charges array from first 4 slots
+            // Rebuild charges array from active slots
             if (targetWizard === this.wizard) {
                 this.charges = [];
-                for (let i = 0; i < 4 && i < chargeSlots.length; i++) {
-                    if (chargeSlots[i] !== null) {
+                for (let i = 0; i < this.MAX_ACTIVE_SLOTS && i < chargeSlots.length; i++) {
+                    if (chargeSlots[i] !== null && chargeSlots[i] !== 'catalyst') {
                         this.charges.push(chargeSlots[i]);
                     }
                 }
             } else {
                 targetWizard.charges = [];
-                for (let i = 0; i < 4 && i < chargeSlots.length; i++) {
+                for (let i = 0; i < this.MAX_ACTIVE_SLOTS && i < chargeSlots.length; i++) {
                     if (chargeSlots[i] !== null) {
                         targetWizard.charges.push(chargeSlots[i]);
                     }
@@ -42498,7 +48210,7 @@ class GameScene extends Phaser.Scene {
                         // For initial element selection, directly select the element
                         this.selectChestElement(selectedReward.element, null, this.chestUI.bg, this.chestUI.title, this.chestUI.controlHint, this.chestUI.buttons);
                     } else {
-                        this.selectChestReward(selectedReward.type, this.chestUI.chest);
+                        this.selectChestReward(selectedReward.type, this.chestUI.chest, selectedReward.passiveKey);
                     }
                 } else {
                     }
@@ -42619,8 +48331,8 @@ class GameScene extends Phaser.Scene {
                 }
                 // Rebuild charges array
                 this.charges = [];
-                for (let i = 0; i < 4 && i < this.chargeSlots.length; i++) {
-                    if (this.chargeSlots[i] !== null) {
+                for (let i = 0; i < this.MAX_ACTIVE_SLOTS && i < this.chargeSlots.length; i++) {
+                    if (this.chargeSlots[i] !== null && this.chargeSlots[i] !== 'catalyst') {
                         this.charges.push(this.chargeSlots[i]);
                     }
                 }
@@ -42931,9 +48643,9 @@ class GameScene extends Phaser.Scene {
             if (this.chargeIndicators[index].sprite) {
                 this.chargeIndicators[index].sprite.setScale(0.15);
             }
-        } else if (index >= 8 && this.extraChargeIndicators && this.extraChargeIndicators[index - 8]) {
+        } else if (index >= this.MAX_CHARGE_SLOTS && this.extraChargeIndicators && this.extraChargeIndicators[this.getPouchIndex(index)]) {
             // Reset fill style for rectangles
-            const indicator = this.extraChargeIndicators[index - 8];
+            const indicator = this.extraChargeIndicators[this.getPouchIndex(index)];
             if (indicator.bg.setFillStyle) {
                 indicator.bg.setFillStyle(0x2a4a2a, 0.7);
                 indicator.bg.setStrokeStyle(2, 0x4a6a4a);
@@ -42972,14 +48684,14 @@ class GameScene extends Phaser.Scene {
             });
         }
         // Apply bold yellow highlight to selected slot
-        if (index < 8 && this.chargeIndicators && this.chargeIndicators[index]) {
+        if (index < this.MAX_CHARGE_SLOTS && this.chargeIndicators && this.chargeIndicators[index]) {
             // Use yellow tint and slightly larger scale for highlight
             if (this.chargeIndicators[index].bg.setTint) {
                 this.chargeIndicators[index].bg.setTint(0xffff00);
             }
             this.chargeIndicators[index].bg.setScale(0.13); // Slightly larger
-        } else if (index >= 8 && this.extraChargeIndicators) {
-            const pouchIndex = index - 8;
+        } else if (index >= this.MAX_CHARGE_SLOTS && this.extraChargeIndicators) {
+            const pouchIndex = this.getPouchIndex(index);
             if (pouchIndex < this.extraChargeIndicators.length && this.extraChargeIndicators[pouchIndex]) {
                 // Extra indicators use rectangles, so use fill style for highlight
                 if (this.extraChargeIndicators[pouchIndex].bg.setFillStyle) {
@@ -43200,6 +48912,35 @@ class GameScene extends Phaser.Scene {
         if (this.wizard2.invulnerableUntil && this.time.now < this.wizard2.invulnerableUntil) {
             return; // Still invulnerable from recent damage
         }
+
+        // Damage cap - prevent one-shots (Vampire Survivors style)
+        // Cap damage at 25% of max health per hit to ensure players survive at least 4 hits
+        const maxDamagePercent = 0.25; // 25% of max health
+        const maxDamage = Math.ceil(this.wizard2.maxHealth * maxDamagePercent);
+        if (damage > maxDamage) {
+            damage = maxDamage;
+            // Show damage capped indicator
+            if (this.wizard2) {
+                const cappedText = this.add.text(this.wizard2.x + 30, this.wizard2.y - 40, 'CAPPED!', {
+                    fontSize: '12px',
+                    color: '#ffaa00',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 2
+                });
+                cappedText.setOrigin(0.5);
+                cappedText.setDepth(150);
+                this.tweens.add({
+                    targets: cappedText,
+                    y: cappedText.y - 20,
+                    alpha: 0,
+                    duration: 1000,
+                    ease: 'Power2',
+                    onComplete: () => cappedText.destroy()
+                });
+            }
+        }
+
         // Apply damage
         this.wizard2.health -= damage;
         if (this.wizard2.health < 0) this.wizard2.health = 0;
@@ -43434,6 +49175,35 @@ class GameScene extends Phaser.Scene {
                 });
             }
         }
+
+        // Damage cap - prevent one-shots (Vampire Survivors style)
+        // Cap damage at 25% of max health per hit to ensure players survive at least 4 hits
+        const maxDamagePercent = 0.25; // 25% of max health
+        const maxDamage = Math.ceil(this.maxHealth * maxDamagePercent);
+        if (damage > maxDamage) {
+            damage = maxDamage;
+            // Show damage capped indicator
+            if (this.wizard) {
+                const cappedText = this.add.text(this.wizard.x + 30, this.wizard.y - 40, 'CAPPED!', {
+                    fontSize: '12px',
+                    color: '#ffaa00',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 2
+                });
+                cappedText.setOrigin(0.5);
+                cappedText.setDepth(150);
+                this.tweens.add({
+                    targets: cappedText,
+                    y: cappedText.y - 20,
+                    alpha: 0,
+                    duration: 1000,
+                    ease: 'Power2',
+                    onComplete: () => cappedText.destroy()
+                });
+            }
+        }
+
         this.playerHealth -= damage;
         this.updateHealthBar();
         this.updateWizardHealthBar();
@@ -43468,49 +49238,48 @@ class GameScene extends Phaser.Scene {
         });
         // Show damage number
         this.showDamageNumber(this.wizard.x, this.wizard.y - 30, damage, '#ff0000');
-        // Check for death
-        if (this.playerHealth <= 0) {
-            // In multiplayer, only end game if both players are dead
-            if (this.multiplayerEnabled && this.wizard2 && this.playerHealthP2 > 0) {
-                // P1 died but P2 is still alive - handle P1 death without ending game
-                this.handlePlayer1Death();
-            } else {
-                // Single player or both players dead - end game
-                // Stop background music
-                if (this.bgMusic) {
-                    this.bgMusic.stop();
-                }
-                // Play death animation
-                const deathAnim = this.getCharacterDeathAnimation(this.wizard);
-                if (this.anims.exists(deathAnim)) {
-                    this.wizard.play(deathAnim);
-                }
-                this.wizard.setVelocity(0, 0); // Stop movement
-                // Disable wizard physics to prevent further collisions
-                if (this.wizard.body) {
-                    this.wizard.body.enable = false;
-                }
-                // Wait for death animation to complete
-                this.wizard.once('animationcomplete', () => {
-                    // Clean up all timers and tweens
-                    this.time.removeAllEvents();
-                    this.tweens.killAll();
-                    // Calculate score
-                    const survivalMinutes = Math.floor(this.survivalTime / 60000);
-                    const survivalSeconds = Math.floor((this.survivalTime % 60000) / 1000);
-                    // Transition to game over scene
-                    this.scene.start('GameOverScene', {
-                        survivalTime: this.survivalTime,
-                        enemiesKilled: this.enemiesKilled,
-                        itemsCollected: this.itemsCollected,
-                        level: this.playerLevel,
-                        elementsDiscovered: this.elementsDiscovered,
-                        damageDealt: this.damageDealt,
-                        won: false
-                    });
-                });
-            }
+        // Check for death and handle revives
+        this.checkPlayerDeath();
+    }
+    handleArcadeModeVictory() {
+        // Arcade mode stage completion
+        this.sound.stopAll();
+
+        // Stop background music
+        if (this.bgMusic) {
+            this.bgMusic.stop();
+            this.bgMusic = null;
         }
+
+        // Show victory message
+        const victoryText = this.add.text(400, 250, 'STAGE CLEAR!', {
+            fontSize: '64px',
+            color: '#ffd700',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 8
+        }).setOrigin(0.5).setDepth(10000);
+
+        // Fade to next stage after short delay
+        this.time.delayedCall(2000, () => {
+            this.cameras.main.fadeOut(1000, 0, 0, 0);
+            this.time.delayedCall(1000, () => {
+                // Get next stage
+                const arcadeStages = JSON.parse(localStorage.getItem('arcadeStages') || '["forest"]');
+                let currentIndex = parseInt(localStorage.getItem('currentArcadeStageIndex') || '0');
+
+                // Move to next stage
+                currentIndex = (currentIndex + 1) % arcadeStages.length;
+                localStorage.setItem('currentArcadeStageIndex', currentIndex.toString());
+
+                // Start next stage
+                this.scene.start('GameScene', {
+                    multiplayerEnabled: false,
+                    selectedLand: arcadeStages[currentIndex],
+                    arcadeMode: true
+                });
+            });
+        });
     }
     spawnBoss() {
         // Mark boss as spawned
@@ -43555,7 +49324,7 @@ class GameScene extends Phaser.Scene {
                 if (enemy.body) {
                     enemy.body.enable = false;
                 }
-                enemy.destroy();
+                this.safeDestroyEnemy(enemy);
             }
         });
         // Clear any projectiles
@@ -43585,28 +49354,37 @@ class GameScene extends Phaser.Scene {
         }
         // Play enhanced cutscene with callback to spawn boss
         this.bossCutsceneSystem.playBossCutscene(bossType, () => {
-            // Spawn the boss based on stage
-            if (this.stage === 'cave') {
-                this.createArcherBoss();
-            } else if (this.stage === 'sand') {
-                this.createSandBoss();
-            } else if (this.stage === 'grave') {
-                this.createGraveBoss();
-            } else if (this.stage === 'lava') {
-                this.createDemonSlimeBoss();
-            } else if (this.stage === 'castle') {
-                this.createCastleBoss();
-            } else if (this.stage === 'snow') {
-                this.createFrostGuardianBoss();
-            } else if (this.stage === 'swamp') {
-                this.createAmphibianBoss();
-            } else if (this.stage === 'ocean') {
-                this.createSeaKingsBoss();
+            // For Forest stage, show boss dialogue before spawning
+            if (this.stage === 'forest' && !this.multiplayerEnabled && this.dialogueManager) {
+                this.showForestBossDialogue(() => {
+                    // Spawn boss after dialogue
+                    this.createBoss();
+                    this.physics.resume();
+                });
             } else {
-                this.createBoss(); // Default Obelisk boss
+                // Spawn the boss based on stage
+                if (this.stage === 'cave') {
+                    this.createArcherBoss();
+                } else if (this.stage === 'sand') {
+                    this.createSandBoss();
+                } else if (this.stage === 'grave') {
+                    this.createGraveBoss();
+                } else if (this.stage === 'lava') {
+                    this.createDemonSlimeBoss();
+                } else if (this.stage === 'castle') {
+                    this.createCastleBoss();
+                } else if (this.stage === 'snow') {
+                    this.createFrostGuardianBoss();
+                } else if (this.stage === 'swamp') {
+                    this.createAmphibianBoss();
+                } else if (this.stage === 'ocean') {
+                    this.createSeaKingsBoss();
+                } else {
+                    this.createBoss(); // Default Obelisk boss
+                }
+                // Resume physics (already done by cutscene system but ensure it)
+                this.physics.resume();
             }
-            // Resume physics (already done by cutscene system but ensure it)
-            this.physics.resume();
         });
     }
     createBoss() {
@@ -43659,7 +49437,7 @@ class GameScene extends Phaser.Scene {
         boss.health = Math.floor(baseHealth * healthMultiplier);
         boss.maxHealth = boss.health;
         boss.isBoss = true;
-        boss.moveSpeed = 20; // Reduced by 20% from 25
+        this.setEnemySpeed(boss, 20); // Reduced by 20% from 25
         boss.isObeliskBoss = true; // Mark as obelisk boss for rune interaction
         // Mode switching properties (similar to Nekros)
         boss.currentMode = 'stationary'; // 'stationary' or 'walk'
@@ -43759,7 +49537,7 @@ class GameScene extends Phaser.Scene {
         boss.health = Math.floor(baseHealth * healthMultiplier);
         boss.maxHealth = boss.health;
         boss.isBoss = true;
-        boss.moveSpeed = 28; // Reduced by 20% from 35
+        this.setEnemySpeed(boss, 28); // Reduced by 20% from 35
         boss.isArcherBoss = true; // Mark as archer boss
         // Boss properties
         boss.attackCooldown = 0;
@@ -43888,7 +49666,7 @@ class GameScene extends Phaser.Scene {
         boss.maxHealth = boss.health;
         boss.isBoss = true;
         boss.isEyelor = true;
-        boss.moveSpeed = 56; // Reduced by 20% from 70
+        this.setEnemySpeed(boss, 56); // Reduced by 20% from 70
         // Eyelor specific properties
         boss.projectileSpeed = 200;
         boss.projectileBurstCount = 3;
@@ -44063,35 +49841,10 @@ class GameScene extends Phaser.Scene {
                 beam, this.wizard,
                 () => {
                     if (this.wizard && !this.invulnerable && !this.godMode) {
-                        this.playerHealth -= beam.damage;
-                        this.updateHealthBar();
-                        this.updateWizardHealthBar();
-                        // Flash red when hit
-                        this.wizard.setTint(0xff0000);
-                        this.time.delayedCall(200, () => {
-                            if (this.wizard && this.wizard.active) {
-                                this.wizard.clearTint();
-                            }
-                        });
-                        // Make invulnerable for a short time
-                        this.invulnerable = true;
-                        this.time.delayedCall(1000, () => {
-                            this.invulnerable = false;
-                        });
-                        // Check for game over
-                        if (this.playerHealth <= 0) {
-                            // Trigger game over
-                            if (!this.isGameOver) {
-                                this.isGameOver = true;
-                                this.scene.start('GameOverScene', {
-                                    survivalTime: this.survivalTime,
-                                    enemiesKilled: this.enemiesKilled,
-                                    itemsCollected: this.itemsCollected,
-                                    won: false,
-                                    stage: this.selectedStage || 'desert'
-                                });
-                            }
-                        }
+                        // Use damagePlayer to ensure damage cap is applied
+                        this.damagePlayer(beam.damage);
+                        // Check for death and handle revives
+                        this.checkPlayerDeath();
                     }
                 }
             );
@@ -44232,23 +49985,17 @@ class GameScene extends Phaser.Scene {
                     );
                     if (distance <= this.boss.sandstormRadius) {
                         // Continuous damage (every 500ms)
-                        if (!this.lastSandstormDamage || 
+                        if (!this.lastSandstormDamage ||
                             this.time.now - this.lastSandstormDamage > 500 / this.speedMultiplier) {
                             if (!this.invulnerable && !this.godMode) {
-                                this.playerHealth -= 15;
-                                this.updateHealthBar();
-                                this.updateWizardHealthBar();
+                                // Use damagePlayer to ensure damage cap is applied
+                                this.damagePlayer(15);
                                 // Flash orange when hit by sandstorm
-                                this.wizard.setTint(0xffaa00);
                                 this.time.delayedCall(200, () => {
                                     if (this.wizard && this.wizard.active) {
-                                        this.wizard.clearTint();
+                                        this.wizard.setTint(0xffaa00);
                                     }
                                 });
-                                // Check for game over
-                                if (this.playerHealth <= 0) {
-                                    this.handleGameOver();
-                                }
                             }
                             this.lastSandstormDamage = this.time.now;
                         }
@@ -44451,7 +50198,7 @@ class GameScene extends Phaser.Scene {
         boss.health = Math.floor(baseHealth * healthMultiplier);
         boss.maxHealth = boss.health;
         boss.isBoss = true;
-        boss.moveSpeed = 24; // Reduced by 20% from 30
+        this.setEnemySpeed(boss, 24); // Reduced by 20% from 30
         boss.isNekros = true;
         // Apply hitbox configuration
         this.applyHitboxConfig(boss, boss.enemyType);
@@ -44589,7 +50336,7 @@ class GameScene extends Phaser.Scene {
         boss.maxHealth = boss.health;
         boss.isBoss = true;
         boss.isDemonSlime = true;
-        boss.moveSpeed = 20; // Reduced by 20% from 25
+        this.setEnemySpeed(boss, 20); // Reduced by 20% from 25
         // Boss properties
         boss.attackCooldown = 0;
         boss.cleaveCooldown = 0;
@@ -44699,7 +50446,7 @@ class GameScene extends Phaser.Scene {
         boss.maxHealth = boss.health;
         boss.isBoss = true;
         boss.isFrostGuardian = true;
-        boss.moveSpeed = 80;
+        this.setEnemySpeed(boss, 80);
         boss.attackRange = 200;
         boss.slamDamage = 80;
         boss.slamRadius = 250;
@@ -44971,7 +50718,7 @@ class GameScene extends Phaser.Scene {
         boss.maxHealth = boss.health;
         boss.isBoss = true;
         boss.isAmphibian = true;
-        boss.moveSpeed = 90;
+        this.setEnemySpeed(boss, 90);
         boss.attackRange = 250;
 
         // Amphibian-specific attack properties
@@ -45157,6 +50904,8 @@ class GameScene extends Phaser.Scene {
                         }
                         damageOverlap.destroy();
                         spit.destroy();
+                    }, (s, w) => {
+                        return this.validateCollision(s, w);
                     });
                 });
 
@@ -45453,7 +51202,7 @@ class GameScene extends Phaser.Scene {
             // Individual king properties
             king.health = healthPerKing;
             king.maxHealth = healthPerKing;
-            king.moveSpeed = 100 + (kingNum * 10); // Each king has slightly different speed
+            king.moveSpeed = (100 + (kingNum * 10)) * this.getEnemySpeedMultiplier(); // Each king has slightly different speed
             king.attackRange = 250;
             king.attackDamage = 20 + (kingNum * 5); // Each king does different damage
             king.attackCooldown = 0;
@@ -45640,6 +51389,8 @@ class GameScene extends Phaser.Scene {
                         }
                         damageOverlap.destroy();
                         projectile.destroy();
+                    }, (p, w) => {
+                        return this.validateCollision(p, w);
                     });
                 });
 
@@ -45867,21 +51618,8 @@ class GameScene extends Phaser.Scene {
                 );
                 if (impactDistance < 150) {
                     if (!this.invulnerable && !this.godMode) {
-                        this.playerHealth -= 50;
-                        this.updateHealthBar();
-                        this.updateWizardHealthBar();
-                        // Flash red when hit
-                        this.wizard.setTint(0xff0000);
-                        this.time.delayedCall(200, () => {
-                            if (this.wizard && this.wizard.active) {
-                                this.wizard.clearTint();
-                            }
-                        });
-                        // Make invulnerable for a short time
-                        this.invulnerable = true;
-                        this.time.delayedCall(1000, () => {
-                            this.invulnerable = false;
-                        });
+                        // Use damagePlayer to ensure damage cap is applied
+                        this.damagePlayer(50);
                         // Knockback
                         const knockbackAngle = Phaser.Math.Angle.Between(
                             this.boss.x, this.boss.y, this.wizard.x, this.wizard.y
@@ -45890,20 +51628,8 @@ class GameScene extends Phaser.Scene {
                             Math.cos(knockbackAngle) * 300,
                             Math.sin(knockbackAngle) * 300
                         );
-                        // Check for game over
-                        if (this.playerHealth <= 0) {
-                            // Trigger game over
-                            if (!this.isGameOver) {
-                                this.isGameOver = true;
-                                this.scene.start('GameOverScene', {
-                                    survivalTime: this.survivalTime,
-                                    enemiesKilled: this.enemiesKilled,
-                                    itemsCollected: this.itemsCollected,
-                                    won: false,
-                                    stage: this.selectedStage || 'desert'
-                                });
-                            }
-                        }
+                        // Check for death and handle revives
+                        this.checkPlayerDeath();
                     }
                 }
                 // Resume normal animation
@@ -45973,30 +51699,16 @@ class GameScene extends Phaser.Scene {
                 );
                 if (distance < 50) {
                     if (!this.invulnerable && !this.godMode) {
-                        this.playerHealth -= lavaPool.damage;
-                        this.updateHealthBar();
-                        this.updateWizardHealthBar();
+                        // Use damagePlayer to ensure damage cap is applied
+                        this.damagePlayer(lavaPool.damage);
                         // Flash red/orange when hit by lava
-                        this.wizard.setTint(0xff4400);
                         this.time.delayedCall(200, () => {
                             if (this.wizard && this.wizard.active) {
-                                this.wizard.clearTint();
+                                this.wizard.setTint(0xff4400);
                             }
                         });
-                        // Check for game over
-                        if (this.playerHealth <= 0) {
-                            // Trigger game over
-                            if (!this.isGameOver) {
-                                this.isGameOver = true;
-                                this.scene.start('GameOverScene', {
-                                    survivalTime: this.survivalTime,
-                                    enemiesKilled: this.enemiesKilled,
-                                    itemsCollected: this.itemsCollected,
-                                    won: false,
-                                    stage: this.selectedStage || 'desert'
-                                });
-                            }
-                        }
+                        // Check for death and handle revives
+                        this.checkPlayerDeath();
                     }
                 }
             },
@@ -46752,7 +52464,7 @@ class GameScene extends Phaser.Scene {
             onComplete: () => phaseText.destroy()
         });
         // Increase boss speed
-        this.boss.moveSpeed = 60; // Reduced by 20% from 75
+        this.setEnemySpeed(this.boss, 60); // Reduced by 20% from 75
     }
     bossPhaseThreeTransition() {
         // Visual effect for final phase
@@ -46774,7 +52486,7 @@ class GameScene extends Phaser.Scene {
             onComplete: () => phaseText.destroy()
         });
         // Increase boss speed and add permanent glow
-        this.boss.moveSpeed = 84; // Reduced by 20% from 105
+        this.setEnemySpeed(this.boss, 84); // Reduced by 20% from 105
         this.boss.setTint(0xff6666);
     }
     updateArcherBossAI() {
@@ -46961,7 +52673,7 @@ class GameScene extends Phaser.Scene {
                 this.boss.modeChangeTime = this.boss.flyModeTime; // Set next change time
                 this.boss.bombardmentCount = 0;
                 this.boss.play('nekros-fly');
-                this.boss.moveSpeed = 80; // Reduced by 20% from 100
+                this.setEnemySpeed(this.boss, 80); // Reduced by 20% from 100
                 // Visual effect for mode change - use arcane spell as flash
                 const flash = this.add.sprite(this.boss.x, this.boss.y, 'arcane-spell');
                 flash.setScale(2);
@@ -46984,7 +52696,7 @@ class GameScene extends Phaser.Scene {
                 this.boss.modeChangeTime = this.boss.walkModeTime; // Set next change time
                 this.boss.barrageFiredCount = 0;
                 this.boss.play('nekros-walk');
-                this.boss.moveSpeed = 24; // Reduced by 20% from 30
+                this.setEnemySpeed(this.boss, 24); // Reduced by 20% from 30
                 this.boss.clearTint();
                 // Add "VULNERABLE" text above boss
                 const vulnerableText = this.add.text(this.boss.x, this.boss.y - 100, 'VULNERABLE!', {
@@ -47177,23 +52889,28 @@ class GameScene extends Phaser.Scene {
                             delay: 1000,
                             callback: () => {
                                 if (wizard.active && poisonTicks > 0) {
-                                    // Check if this is P1 or P2 for proper health update
+                                    // Check if this is P1 or P2 for proper damage application
                                     if (wizard === this.wizard) {
-                                        this.playerHealth -= 1;
-                                        this.updateHealthBar();
-                                    } else {
-                                        wizard.health -= 1;
-                                        this.updateWizardHealthBar();
+                                        // Bypass invulnerability for DOT by checking manually
+                                        if (!this.godMode && !this.isPaused && !this.chestSelectionActive) {
+                                            this.damagePlayer(1);
+                                        }
+                                    } else if (wizard === this.wizard2) {
+                                        // P2 poison damage
+                                        if (!this.godMode && !this.isPaused && !this.chestSelectionActive) {
+                                            this.damagePlayer2(1);
+                                        }
                                     }
-                                    this.showDamageNumber(wizard.x, wizard.y - 30, 1, '#00FF00');
                                     poisonTicks--;
                                     if (poisonTicks <= 0) {
                                         wizard.isPoisoned = false;
                                         wizard.clearTint();
                                         poisonTimer.destroy();
                                     }
-                                    if ((wizard === this.wizard && this.playerHealth <= 0) || 
-                                        (wizard !== this.wizard && wizard.health <= 0)) {
+                                    // Check for death and handle revives (only for player 1)
+                                    if (wizard === this.wizard && this.playerHealth <= 0) {
+                                        this.checkPlayerDeath();
+                                    } else if (wizard !== this.wizard && wizard.health <= 0) {
                                         this.gameOver();
                                     }
                                 }
@@ -47203,10 +52920,14 @@ class GameScene extends Phaser.Scene {
                     }
                 };
                 // Add overlap for P1
-                this.physics.add.overlap(this.wizard, cloud, () => applyPoison(this.wizard));
+                this.physics.add.overlap(this.wizard, cloud, () => applyPoison(this.wizard), (wizard, cld) => {
+                    return this.validateCollision(wizard, cld);
+                });
                 // Add overlap for P2 in multiplayer
                 if (this.multiplayerEnabled && this.wizard2) {
-                    this.physics.add.overlap(this.wizard2, cloud, () => applyPoison(this.wizard2));
+                    this.physics.add.overlap(this.wizard2, cloud, () => applyPoison(this.wizard2), (wizard, cld) => {
+                        return this.validateCollision(wizard, cld);
+                    });
                 }
                 // Cloud dissipates after 3 seconds
                 this.tweens.add({
@@ -47396,7 +53117,7 @@ class GameScene extends Phaser.Scene {
                 enemy.health = 3;
                 enemy.maxHealth = 3;
                 enemy.enemyType = 'normal';
-                enemy.moveSpeed = 60;
+                this.setEnemySpeed(enemy, 60);
                 enemy.play('enemy-walk-anim');
                 enemy.body.setSize(30, 40);
                 enemy.body.setOffset(9, 10);
@@ -47785,7 +53506,7 @@ class GameScene extends Phaser.Scene {
             onComplete: () => phaseText.destroy()
         });
         // Increase boss speed
-        this.boss.moveSpeed = 36; // Reduced by 20% from 45
+        this.setEnemySpeed(this.boss, 36); // Reduced by 20% from 45
     }
     archerPhaseThreeTransition() {
         // Visual effect for final phase
@@ -47806,7 +53527,7 @@ class GameScene extends Phaser.Scene {
             onComplete: () => phaseText.destroy()
         });
         // Increase boss speed and add permanent purple glow
-        this.boss.moveSpeed = 44; // Reduced by 20% from 55
+        this.setEnemySpeed(this.boss, 44); // Reduced by 20% from 55
         this.boss.setTint(0xff88ff);
     }
     handleBossDeath(boss) {
@@ -47940,6 +53661,18 @@ class GameScene extends Phaser.Scene {
                 const dropY = boss.y + Math.sin(angle) * distance;
                 this.dropJewel(dropX, dropY, 20, 0.15); // Large jewels
             }
+
+            // PROGRESSION IMPROVEMENT: Drop 3-5 catalysts from boss
+            const catalystCount = 3 + Math.floor(Math.random() * 3); // 3-5 catalysts
+            console.log(`💎 BOSS DEFEATED: Dropping ${catalystCount} catalysts!`);
+            for (let i = 0; i < catalystCount; i++) {
+                const angle = (Math.PI * 2 * i) / catalystCount + Math.PI / 6; // Offset from jewels
+                const distance = 80;
+                const dropX = boss.x + Math.cos(angle) * distance;
+                const dropY = boss.y + Math.sin(angle) * distance;
+                this.dropCatalyst(dropX, dropY);
+            }
+
             // Drop special chest
             this.dropChest(boss.x, boss.y);
             // Destroy boss
@@ -47992,7 +53725,7 @@ class GameScene extends Phaser.Scene {
                         enemy.body.enable = false;
                     }
                     // Destroy the enemy
-                    enemy.destroy();
+                    this.safeDestroyEnemy(enemy);
                 }
             });
             this.enemies.clear(true, true);
@@ -48066,7 +53799,8 @@ class GameScene extends Phaser.Scene {
                         elementsDiscovered: this.elementsDiscovered,
                         damageDealt: this.damageDealt,
                         won: true,
-                        stage: this.stage
+                        stage: this.stage,
+                        arcadeMode: this.arcadeMode
                     });
                 });
             }
@@ -48119,7 +53853,8 @@ class GameScene extends Phaser.Scene {
                 level: this.playerLevel,
                 elementsDiscovered: this.elementsDiscovered,
                 damageDealt: this.damageDealt,
-                won: false
+                won: false,
+                arcadeMode: this.arcadeMode
             });
         });
     }
@@ -48166,7 +53901,7 @@ class GameScene extends Phaser.Scene {
         this.boss.isDying = false;
         this.boss.isInvulnerable = false;
         this.boss.attackCooldown = 0;
-        this.boss.moveSpeed = 40; // Reduced by 20% from 50
+        this.setEnemySpeed(this.boss, 40); // Reduced by 20% from 50
         this.boss.voidZones = [];
         // Apply hitbox configuration or use defaults
         if (!this.applyHitboxConfig(this.boss, this.boss.enemyType)) {
@@ -48224,11 +53959,11 @@ class GameScene extends Phaser.Scene {
         const healthPercent = this.boss.health / this.boss.maxHealth;
         if (this.boss.phase === 1 && healthPercent <= 0.66) {
             this.boss.phase = 2;
-            this.boss.moveSpeed = 60; // Reduced by 20% from 75
+            this.setEnemySpeed(this.boss, 60); // Reduced by 20% from 75
             this.showBossPhaseText('PHASE II - THE VOID AWAKENS');
         } else if (this.boss.phase === 2 && healthPercent <= 0.33) {
             this.boss.phase = 3;
-            this.boss.moveSpeed = 80; // Reduced by 20% from 100
+            this.setEnemySpeed(this.boss, 80); // Reduced by 20% from 100
             this.showBossPhaseText('PHASE III - EMBRACE NOTHINGNESS');
         }
         // Execute attacks based on phase
@@ -48340,6 +54075,8 @@ class GameScene extends Phaser.Scene {
                 if (this.playerHit) {
                     this.playerHit(beam.damage);
                 }
+            }, (b, p) => {
+                return this.validateCollision(b, p);
             });
             // Destroy beam
             this.time.delayedCall(200, () => {
@@ -48545,23 +54282,31 @@ class GameScene extends Phaser.Scene {
         // Set up collision with all players
         this.physics.add.overlap(this.wizard, this.dungeonGate, () => {
             this.enterDungeon();
+        }, (wizard, gate) => {
+            return this.validateCollision(wizard, gate);
         });
-        
+
         if (this.wizard2) {
             this.physics.add.overlap(this.wizard2, this.dungeonGate, () => {
                 this.enterDungeon();
+            }, (wizard, gate) => {
+                return this.validateCollision(wizard, gate);
             });
         }
-        
+
         if (this.wizard3) {
             this.physics.add.overlap(this.wizard3, this.dungeonGate, () => {
                 this.enterDungeon();
+            }, (wizard, gate) => {
+                return this.validateCollision(wizard, gate);
             });
         }
-        
+
         if (this.wizard4) {
             this.physics.add.overlap(this.wizard4, this.dungeonGate, () => {
                 this.enterDungeon();
+            }, (wizard, gate) => {
+                return this.validateCollision(wizard, gate);
             });
         }
         }
@@ -48977,13 +54722,19 @@ class GameScene extends Phaser.Scene {
         // Set camera bounds
         this.cameras.main.setBounds(0, 0, dungeonWidth, dungeonHeight);
         // Add collisions with walls
-        this.physics.add.collider(this.wizard, this.dungeonWalls);
+        this.physics.add.collider(this.wizard, this.dungeonWalls, null, (wizard, wall) => {
+            return this.validateCollision(wizard, wall);
+        });
         if (this.wizard2) {
-            this.physics.add.collider(this.wizard2, this.dungeonWalls);
+            this.physics.add.collider(this.wizard2, this.dungeonWalls, null, (wizard, wall) => {
+                return this.validateCollision(wizard, wall);
+            });
         }
         // Also add collision for regular enemies if they exist
         if (this.enemies) {
-            this.physics.add.collider(this.enemies, this.dungeonWalls);
+            this.physics.add.collider(this.enemies, this.dungeonWalls, null, (enemy, wall) => {
+                return this.validateCollision(enemy, wall);
+            });
         }
         // Initialize dungeon enemies group if not exists
         if (!this.dungeonEnemies) {
@@ -48993,6 +54744,8 @@ class GameScene extends Phaser.Scene {
         if (this.projectiles) {
             this.physics.add.collider(this.projectiles, this.dungeonWalls, (projectile, wall) => {
                 this.projectileHitObstacle(projectile, wall);
+            }, (projectile, wall) => {
+                return this.validateCollision(projectile, wall);
             });
         }
         // Add collision for enemy projectiles too
@@ -49001,6 +54754,8 @@ class GameScene extends Phaser.Scene {
                 if (projectile && projectile.active) {
                     projectile.destroy();
                 }
+            }, (projectile, wall) => {
+                return this.validateCollision(projectile, wall);
             });
         }
         // Create dungeon exit in the last clearing
@@ -49022,23 +54777,31 @@ class GameScene extends Phaser.Scene {
         // Set up exit collision for all players
         this.physics.add.overlap(this.wizard, this.dungeonExit, () => {
             this.exitDungeon();
+        }, (wizard, exit) => {
+            return this.validateCollision(wizard, exit);
         });
-        
+
         if (this.wizard2) {
             this.physics.add.overlap(this.wizard2, this.dungeonExit, () => {
                 this.exitDungeon();
+            }, (wizard, exit) => {
+                return this.validateCollision(wizard, exit);
             });
         }
-        
+
         if (this.wizard3) {
             this.physics.add.overlap(this.wizard3, this.dungeonExit, () => {
                 this.exitDungeon();
+            }, (wizard, exit) => {
+                return this.validateCollision(wizard, exit);
             });
         }
-        
+
         if (this.wizard4) {
             this.physics.add.overlap(this.wizard4, this.dungeonExit, () => {
                 this.exitDungeon();
+            }, (wizard, exit) => {
+                return this.validateCollision(wizard, exit);
             });
         }
         // Start dungeon enemy spawning
@@ -49081,14 +54844,20 @@ class GameScene extends Phaser.Scene {
         // Set up collisions for dungeon enemies
         this.physics.add.collider(this.wizard, this.dungeonEnemies, (wizard, enemy) => {
             this.handleEnemyPlayerCollision(wizard, enemy);
+        }, (wizard, enemy) => {
+            return this.validateCollision(wizard, enemy);
         });
         if (this.wizard2) {
             this.physics.add.collider(this.wizard2, this.dungeonEnemies, (wizard, enemy) => {
                 this.handleEnemyPlayerCollision(wizard, enemy);
+            }, (wizard, enemy) => {
+                return this.validateCollision(wizard, enemy);
             });
         }
         // Add collision between dungeon enemies and walls
-        this.physics.add.collider(this.dungeonEnemies, this.dungeonWalls);
+        this.physics.add.collider(this.dungeonEnemies, this.dungeonWalls, null, (enemy, wall) => {
+            return this.validateCollision(enemy, wall);
+        });
     }
     findValidDungeonSpawnPosition() {
         if (!this.dungeonMazeData) return null;

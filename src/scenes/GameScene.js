@@ -104,37 +104,7 @@ export default class GameScene extends Phaser.Scene {
             // Initialize P2 controller
             this.player2Controller = new PlayerController(this, this.wizard2);
         }
-        // Setup animations if they don't exist (for backwards compatibility)
-        this.createWizardAnimations();
-    }
-    createWizardAnimations() {
-        // Idle animation
-        this.anims.create({
-            key: 'wizard-idle-full',
-            frames: this.anims.generateFrameNumbers('wizard-idle', { start: 0, end: 19 }),
-            frameRate: 10,
-            repeat: 0
-        });
-        this.anims.create({
-            key: 'wizard-idle-loop',
-            frames: this.anims.generateFrameNumbers('wizard-idle', { start: 0, end: 5 }),
-            frameRate: 6,
-            repeat: -1
-        });
-        // Flying animation
-        this.anims.create({
-            key: 'wizard-fly',
-            frames: this.anims.generateFrameNumbers('wizard-fly', { start: 0, end: 1 }),
-            frameRate: 10,
-            repeat: -1
-        });
-        // Death animation
-        this.anims.create({
-            key: 'wizard-death',
-            frames: this.anims.generateFrameNumbers('wizard-death', { start: 0, end: 9 }),
-            frameRate: 10,
-            repeat: 0
-        });
+        // Animations now registered centrally in LoadingScene via AnimationRegistry
     }
     initializeSystems() {
         // Core systems

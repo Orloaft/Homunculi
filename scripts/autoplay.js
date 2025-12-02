@@ -10,8 +10,8 @@ class AutoPlayer {
         this.startTime = Date.now();
         // Configuration
         this.config = {
-            moveInterval: 100, // How often to change movement direction (ms)
-            actionInterval: 500, // How often to perform actions (ms)
+            moveInterval: 800, // How often to change movement direction (ms)
+            actionInterval: 50, // How often to perform actions/update movement (ms)
             chestDecisionDelay: 1000, // Delay before selecting chest rewards
             logActions: true,
             catchErrors: true
@@ -97,8 +97,17 @@ class AutoPlayer {
             clearInterval(this.actionInterval);
             this.actionInterval = null;
         }
-        // Stop all movement
-        this.stopMovement();
+        // Stop wizard movement
+        const game = window.game || window.phaser;
+        if (game && game.scene) {
+            const activeScenes = game.scene.getScenes(true);
+            if (activeScenes.length > 0) {
+                const scene = activeScenes[0];
+                if (scene.wizard && scene.wizard.body) {
+                    scene.wizard.body.setVelocity(0, 0);
+                }
+            }
+        }
         // Hide status
         this.hideStatus();
     }
@@ -191,24 +200,46 @@ class AutoPlayer {
         }, this.config.chestDecisionDelay);
     }
     handleGameplay(scene) {
-        // Random movement
+        // Direct wizard movement
+        if (!scene.wizard || !scene.wizard.body) return;
+
+        const speed = scene.wizard.moveSpeed || 160;
+
+        // Change direction periodically
         if (Date.now() - this.movement.lastChange > this.config.moveInterval) {
             this.movement.direction = Math.floor(Math.random() * 9); // 0-8, where 8 is stop
             this.movement.lastChange = Date.now();
-            this.updateMovement(scene);
         }
-        // Random actions
-        if (Math.random() < 0.1) {
-            // Use random charge slot
+
+        // Apply velocity directly based on direction
+        let vx = 0, vy = 0;
+        const dir = this.movement.direction;
+
+        // 8-directional movement
+        if (dir === 0 || dir === 1 || dir === 2) vy = -speed; // Up
+        if (dir === 6 || dir === 7 || dir === 8) vy = speed;  // Down
+        if (dir === 0 || dir === 3 || dir === 6) vx = -speed; // Left
+        if (dir === 2 || dir === 5 || dir === 8) vx = speed;  // Right
+
+        // Normalize diagonal movement
+        if (vx !== 0 && vy !== 0) {
+            vx *= 0.707;
+            vy *= 0.707;
+        }
+
+        scene.wizard.body.setVelocity(vx, vy);
+
+        // Update facing direction for spells
+        if (vx !== 0 || vy !== 0) {
+            scene.wizard.lastDirection = { x: vx, y: vy };
+        }
+
+        // Random actions - use charge slots occasionally (reduced frequency since update is now 50ms)
+        if (Math.random() < 0.005) {
             const slot = Math.floor(Math.random() * 4);
             const keys = ['Z', 'X', 'C', 'V'];
             this.logAction('Game: Use Charge', { slot });
             this.simulateKey(scene, keys[slot]);
-        }
-        // Occasionally open spellbook
-        if (Math.random() < 0.02) {
-            this.logAction('Game: Toggle Spellbook');
-            this.simulateKey(scene, 'TAB');
         }
     }
     handleTalentTree(scene) {

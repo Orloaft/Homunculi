@@ -9,6 +9,8 @@ class SaveSlotScene extends Phaser.Scene {
         this.saveManager = null;
         this.selectedSlot = null;
         this.slotButtons = [];
+        this.selectedButtonIndex = 0;
+        this.buttonList = []; // Stores all selectable buttons in order
     }
 
     init(data) {
@@ -20,6 +22,12 @@ class SaveSlotScene extends Phaser.Scene {
     }
 
     create() {
+        // Reset state
+        this.buttonList = [];
+        this.selectedButtonIndex = 0;
+        this.modalActive = false;
+        this.modalData = null;
+
         const centerX = this.cameras.main.width / 2;
         const centerY = this.cameras.main.height / 2;
 
@@ -57,8 +65,13 @@ class SaveSlotScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5)
             .setInteractive({ useHandCursor: true })
-            .on('pointerover', () => backButton.setColor('#ffffff'))
-            .on('pointerout', () => backButton.setColor('#cccccc'))
+            .on('pointerover', () => {
+                this.selectedButtonIndex = this.buttonList.findIndex(b => b === backButton);
+                this.updateButtonSelection();
+            })
+            .on('pointerout', () => {
+                // Keep selection visible
+            })
             .on('pointerdown', () => {
                 // Play sound only if it exists in cache
                 if (this.sound.get('menu-click')) {
@@ -67,10 +80,227 @@ class SaveSlotScene extends Phaser.Scene {
                 this.scene.start('TitleScene');
             });
 
+        // Store back button data
+        backButton.buttonData = {
+            type: 'back',
+            action: () => this.scene.start('TitleScene'),
+            defaultColor: '#cccccc',
+            hoverColor: '#ffffff'
+        };
+        this.buttonList.push(backButton);
+
+        // Set initial selection
+        this.updateButtonSelection();
+
         // Keyboard controls
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+        this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+
         this.input.keyboard.on('keydown-ESC', () => {
             this.scene.start('TitleScene');
         });
+    }
+
+    update() {
+        // Handle modal navigation if modal is active
+        if (this.modalActive && this.modalData) {
+            this.handleModalNavigation();
+            return;
+        }
+
+        // Handle keyboard navigation
+        if (Phaser.Input.Keyboard.JustDown(this.cursors.up)) {
+            this.selectedButtonIndex = (this.selectedButtonIndex - 1 + this.buttonList.length) % this.buttonList.length;
+            this.updateButtonSelection();
+        } else if (Phaser.Input.Keyboard.JustDown(this.cursors.down)) {
+            this.selectedButtonIndex = (this.selectedButtonIndex + 1) % this.buttonList.length;
+            this.updateButtonSelection();
+        } else if (Phaser.Input.Keyboard.JustDown(this.enterKey) || Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
+            this.selectCurrentButton();
+        }
+
+        // Handle controller navigation
+        const gamepads = this.input.gamepad ? this.input.gamepad.gamepads : [];
+        for (let i = 0; i < gamepads.length; i++) {
+            const pad = gamepads[i];
+            if (!pad) continue;
+
+            // D-pad up
+            const upPressed = pad.buttons[12] && pad.buttons[12].pressed;
+            if (upPressed && !this.prevUpPressed) {
+                this.selectedButtonIndex = (this.selectedButtonIndex - 1 + this.buttonList.length) % this.buttonList.length;
+                this.updateButtonSelection();
+            }
+            this.prevUpPressed = upPressed;
+
+            // D-pad down
+            const downPressed = pad.buttons[13] && pad.buttons[13].pressed;
+            if (downPressed && !this.prevDownPressed) {
+                this.selectedButtonIndex = (this.selectedButtonIndex + 1) % this.buttonList.length;
+                this.updateButtonSelection();
+            }
+            this.prevDownPressed = downPressed;
+
+            // Left stick vertical
+            if (pad.leftStick.y < -0.5 && !this.upStickPressed) {
+                this.selectedButtonIndex = (this.selectedButtonIndex - 1 + this.buttonList.length) % this.buttonList.length;
+                this.updateButtonSelection();
+                this.upStickPressed = true;
+            } else if (pad.leftStick.y > 0.5 && !this.downStickPressed) {
+                this.selectedButtonIndex = (this.selectedButtonIndex + 1) % this.buttonList.length;
+                this.updateButtonSelection();
+                this.downStickPressed = true;
+            }
+
+            // Reset stick pressed state when stick returns to center
+            if (Math.abs(pad.leftStick.y) < 0.3) {
+                this.upStickPressed = false;
+                this.downStickPressed = false;
+            }
+
+            // A button to select
+            const aPressed = pad.buttons[0] && pad.buttons[0].pressed;
+            if (aPressed && !this.prevAPressed) {
+                this.selectCurrentButton();
+            }
+            this.prevAPressed = aPressed;
+
+            // B button to go back
+            const bPressed = pad.buttons[1] && pad.buttons[1].pressed;
+            if (bPressed && !this.prevBPressed) {
+                this.scene.start('TitleScene');
+            }
+            this.prevBPressed = bPressed;
+
+            // Only process first active gamepad
+            break;
+        }
+    }
+
+    handleModalNavigation() {
+        // Keyboard navigation for modal (left/right)
+        if (Phaser.Input.Keyboard.JustDown(this.cursors.left)) {
+            this.modalSelection = (this.modalSelection - 1 + 2) % 2;
+            this.modalData.updateSelection();
+        } else if (Phaser.Input.Keyboard.JustDown(this.cursors.right)) {
+            this.modalSelection = (this.modalSelection + 1) % 2;
+            this.modalData.updateSelection();
+        } else if (Phaser.Input.Keyboard.JustDown(this.enterKey) || Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
+            this.selectModalButton();
+        } else if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
+            // ESC cancels delete
+            this.modalData.cleanup();
+        }
+
+        // Controller navigation for modal
+        const gamepads = this.input.gamepad ? this.input.gamepad.gamepads : [];
+        for (let i = 0; i < gamepads.length; i++) {
+            const pad = gamepads[i];
+            if (!pad) continue;
+
+            // D-pad left
+            const leftPressed = pad.buttons[14] && pad.buttons[14].pressed;
+            if (leftPressed && !this.prevModalLeftPressed) {
+                this.modalSelection = (this.modalSelection - 1 + 2) % 2;
+                this.modalData.updateSelection();
+            }
+            this.prevModalLeftPressed = leftPressed;
+
+            // D-pad right
+            const rightPressed = pad.buttons[15] && pad.buttons[15].pressed;
+            if (rightPressed && !this.prevModalRightPressed) {
+                this.modalSelection = (this.modalSelection + 1) % 2;
+                this.modalData.updateSelection();
+            }
+            this.prevModalRightPressed = rightPressed;
+
+            // Left stick horizontal
+            if (pad.leftStick.x < -0.5 && !this.modalLeftStickPressed) {
+                this.modalSelection = (this.modalSelection - 1 + 2) % 2;
+                this.modalData.updateSelection();
+                this.modalLeftStickPressed = true;
+            } else if (pad.leftStick.x > 0.5 && !this.modalRightStickPressed) {
+                this.modalSelection = (this.modalSelection + 1) % 2;
+                this.modalData.updateSelection();
+                this.modalRightStickPressed = true;
+            }
+
+            // Reset stick pressed state when stick returns to center
+            if (Math.abs(pad.leftStick.x) < 0.3) {
+                this.modalLeftStickPressed = false;
+                this.modalRightStickPressed = false;
+            }
+
+            // A button to select
+            const aPressed = pad.buttons[0] && pad.buttons[0].pressed;
+            if (aPressed && !this.prevModalAPressed) {
+                this.selectModalButton();
+            }
+            this.prevModalAPressed = aPressed;
+
+            // B button to cancel
+            const bPressed = pad.buttons[1] && pad.buttons[1].pressed;
+            if (bPressed && !this.prevModalBPressed) {
+                this.modalData.cleanup();
+            }
+            this.prevModalBPressed = bPressed;
+
+            // Only process first active gamepad
+            break;
+        }
+    }
+
+    selectModalButton() {
+        if (!this.modalData) return;
+
+        // Play sound only if it exists in cache
+        if (this.sound.get('menu-click')) {
+            this.sound.play('menu-click', { volume: 0.5 });
+        }
+
+        if (this.modalSelection === 0) {
+            // Delete confirmed
+            this.deleteSlot(this.modalData.slotNumber);
+            this.modalData.cleanup();
+            this.scene.restart();
+        } else {
+            // Cancel
+            this.modalData.cleanup();
+        }
+    }
+
+    updateButtonSelection() {
+        // Update visual selection for all buttons
+        if (!this.buttonList || this.buttonList.length === 0) return;
+
+        this.buttonList.forEach((button, index) => {
+            if (!button || !button.active || !button.buttonData) return;
+
+            try {
+                if (index === this.selectedButtonIndex) {
+                    button.setColor(button.buttonData.hoverColor);
+                    button.setScale(1.1);
+                } else {
+                    button.setColor(button.buttonData.defaultColor);
+                    button.setScale(1);
+                }
+            } catch (e) {
+                // Button might be destroyed, skip it
+            }
+        });
+    }
+
+    selectCurrentButton() {
+        const selectedButton = this.buttonList[this.selectedButtonIndex];
+        if (selectedButton && selectedButton.buttonData) {
+            // Play sound only if it exists in cache
+            if (this.sound.get('menu-click')) {
+                this.sound.play('menu-click', { volume: 0.5 });
+            }
+            selectedButton.buttonData.action();
+        }
     }
 
     /**
@@ -114,8 +344,13 @@ class SaveSlotScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5)
             .setInteractive({ useHandCursor: true })
-            .on('pointerover', () => button.setColor('#86efac'))
-            .on('pointerout', () => button.setColor('#4ade80'))
+            .on('pointerover', () => {
+                this.selectedButtonIndex = this.buttonList.findIndex(b => b === button);
+                this.updateButtonSelection();
+            })
+            .on('pointerout', () => {
+                // Keep selection visible
+            })
             .on('pointerdown', () => {
                 // Play sound only if it exists in cache
                 if (this.sound.get('menu-click')) {
@@ -123,6 +358,16 @@ class SaveSlotScene extends Phaser.Scene {
                 }
                 this.startNewGame(slotNumber);
             });
+
+        // Store button data
+        button.buttonData = {
+            type: 'newGame',
+            slotNumber: slotNumber,
+            action: () => this.startNewGame(slotNumber),
+            defaultColor: '#4ade80',
+            hoverColor: '#86efac'
+        };
+        this.buttonList.push(button);
     }
 
     /**
@@ -178,8 +423,13 @@ class SaveSlotScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5)
             .setInteractive({ useHandCursor: true })
-            .on('pointerover', () => button.setColor('#86efac'))
-            .on('pointerout', () => button.setColor('#4ade80'))
+            .on('pointerover', () => {
+                this.selectedButtonIndex = this.buttonList.findIndex(b => b === button);
+                this.updateButtonSelection();
+            })
+            .on('pointerout', () => {
+                // Keep selection visible
+            })
             .on('pointerdown', () => {
                 // Play sound only if it exists in cache
                 if (this.sound.get('menu-click')) {
@@ -187,6 +437,16 @@ class SaveSlotScene extends Phaser.Scene {
                 }
                 this.continueGame(slotNumber);
             });
+
+        // Store button data
+        button.buttonData = {
+            type: 'continue',
+            slotNumber: slotNumber,
+            action: () => this.continueGame(slotNumber),
+            defaultColor: '#4ade80',
+            hoverColor: '#86efac'
+        };
+        this.buttonList.push(button);
     }
 
     /**
@@ -200,8 +460,13 @@ class SaveSlotScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5)
             .setInteractive({ useHandCursor: true })
-            .on('pointerover', () => button.setColor('#f87171'))
-            .on('pointerout', () => button.setColor('#ef4444'))
+            .on('pointerover', () => {
+                this.selectedButtonIndex = this.buttonList.findIndex(b => b === button);
+                this.updateButtonSelection();
+            })
+            .on('pointerout', () => {
+                // Keep selection visible
+            })
             .on('pointerdown', () => {
                 // Play sound only if it exists in cache
                 if (this.sound.get('menu-click')) {
@@ -209,6 +474,16 @@ class SaveSlotScene extends Phaser.Scene {
                 }
                 this.confirmDelete(slotNumber);
             });
+
+        // Store button data
+        button.buttonData = {
+            type: 'delete',
+            slotNumber: slotNumber,
+            action: () => this.confirmDelete(slotNumber),
+            defaultColor: '#ef4444',
+            hoverColor: '#f87171'
+        };
+        this.buttonList.push(button);
     }
 
     /**
@@ -282,6 +557,10 @@ class SaveSlotScene extends Phaser.Scene {
      * Confirm deletion with a modal dialog
      */
     confirmDelete(slotNumber) {
+        // Disable main navigation while modal is open
+        this.modalActive = true;
+        this.modalSelection = 1; // 0 = Delete, 1 = Cancel (default to safer option)
+
         // Create modal overlay
         const overlay = this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.7)
             .setOrigin(0, 0)
@@ -295,14 +574,14 @@ class SaveSlotScene extends Phaser.Scene {
             .setStrokeStyle(3, 0xef4444);
 
         // Warning text
-        this.add.text(centerX, centerY - 60, 'DELETE SAVE FILE?', {
+        const warningTitle = this.add.text(centerX, centerY - 60, 'DELETE SAVE FILE?', {
             fontSize: '32px',
             fontFamily: 'Arial',
             color: '#ef4444',
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        this.add.text(centerX, centerY - 10, 'This action cannot be undone!', {
+        const warningText = this.add.text(centerX, centerY - 10, 'This action cannot be undone!', {
             fontSize: '20px',
             fontFamily: 'Arial',
             color: '#ffffff'
@@ -316,8 +595,13 @@ class SaveSlotScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5)
             .setInteractive({ useHandCursor: true })
-            .on('pointerover', () => confirmButton.setColor('#f87171'))
-            .on('pointerout', () => confirmButton.setColor('#ef4444'))
+            .on('pointerover', () => {
+                this.modalSelection = 0;
+                updateModalSelection();
+            })
+            .on('pointerout', () => {
+                // Keep selection visible
+            })
             .on('pointerdown', () => {
                 // Play sound only if it exists in cache
                 if (this.sound.get('menu-click')) {
@@ -325,10 +609,7 @@ class SaveSlotScene extends Phaser.Scene {
                 }
                 this.deleteSlot(slotNumber);
                 // Close modal and refresh
-                overlay.destroy();
-                modal.destroy();
-                confirmButton.destroy();
-                cancelButton.destroy();
+                cleanup();
                 this.scene.restart();
             });
 
@@ -340,18 +621,55 @@ class SaveSlotScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5)
             .setInteractive({ useHandCursor: true })
-            .on('pointerover', () => cancelButton.setColor('#ffffff'))
-            .on('pointerout', () => cancelButton.setColor('#d1d5db'))
+            .on('pointerover', () => {
+                this.modalSelection = 1;
+                updateModalSelection();
+            })
+            .on('pointerout', () => {
+                // Keep selection visible
+            })
             .on('pointerdown', () => {
                 // Play sound only if it exists in cache
                 if (this.sound.get('menu-click')) {
                     this.sound.play('menu-click', { volume: 0.5 });
                 }
-                overlay.destroy();
-                modal.destroy();
-                confirmButton.destroy();
-                cancelButton.destroy();
+                cleanup();
             });
+
+        const modalButtons = [confirmButton, cancelButton];
+
+        const updateModalSelection = () => {
+            modalButtons.forEach((button, index) => {
+                if (index === this.modalSelection) {
+                    button.setColor(index === 0 ? '#f87171' : '#ffffff');
+                    button.setScale(1.1);
+                } else {
+                    button.setColor(index === 0 ? '#ef4444' : '#d1d5db');
+                    button.setScale(1);
+                }
+            });
+        };
+
+        const cleanup = () => {
+            this.modalActive = false;
+            overlay.destroy();
+            modal.destroy();
+            warningTitle.destroy();
+            warningText.destroy();
+            confirmButton.destroy();
+            cancelButton.destroy();
+        };
+
+        // Store modal state for update loop
+        this.modalData = {
+            slotNumber: slotNumber,
+            buttons: modalButtons,
+            updateSelection: updateModalSelection,
+            cleanup: cleanup
+        };
+
+        // Set initial selection
+        updateModalSelection();
     }
 
     /**

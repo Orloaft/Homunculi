@@ -40,13 +40,14 @@
             flex: 1;
             padding: 20px;
             gap: 20px;
-            max-width: 1600px;
             margin: 0 auto;
             width: 100%;
+            max-width: 100%;
         }
-        
+
         .sidebar {
-            width: 300px;
+            width: 280px;
+            flex-shrink: 0;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 10px;
             padding: 20px;
@@ -75,12 +76,7 @@
         
         .main-content {
             flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        
-        .canvas-container {
+            min-width: 0;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 10px;
             border: 1px solid #333;
@@ -88,8 +84,15 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 600px;
             position: relative;
+        }
+
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
         }
         
         #game-canvas {
@@ -99,10 +102,32 @@
         }
         
         .controls-panel {
+            width: 320px;
+            flex-shrink: 0;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 10px;
             border: 1px solid #333;
             padding: 20px;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+
+        .controls-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .controls-panel::-webkit-scrollbar-track {
+            background: #1a1a1a;
+            border-radius: 4px;
+        }
+
+        .controls-panel::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 4px;
+        }
+
+        .controls-panel::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
         
         .section {
@@ -483,8 +508,9 @@
             <div class="canvas-container">
                 <div id="game-canvas"></div>
             </div>
-            
-            <div class="controls-panel">
+        </div>
+
+        <div class="controls-panel">
                 <div class="section">
                     <h3 class="section-title">Display Options</h3>
                     <div class="checkbox-container">
@@ -681,7 +707,6 @@
                     <button class="btn" onclick="copyToClipboard()">Copy to Clipboard</button>
                     <textarea class="export-textarea" id="export-data" readonly></textarea>
                 </div>
-            </div>
         </div>
     </div>
     
@@ -974,6 +999,18 @@
                     }
                     
                     // Load additional textures for animations
+                    if (config.animations.walk && config.animations.walk.texture) {
+                        assetsToLoad++;
+                        const walkWidth = config.animations.walk.frameWidth || config.frameWidth;
+                        const walkHeight = config.animations.walk.frameHeight || config.frameHeight;
+                        const isVertical = config.animations.walk.verticalSheet || config.verticalSheet;
+                        this.load.spritesheet(config.animations.walk.texture, config.animations.walk.path, {
+                            frameWidth: walkWidth,
+                            frameHeight: walkHeight,
+                            startFrame: 0,
+                            endFrame: isVertical ? (config.animations.walk.end || 7) : undefined
+                        });
+                    }
                     if (config.animations.death && config.animations.death.texture) {
                         assetsToLoad++;
                         const deathWidth = config.animations.death.frameWidth || config.frameWidth;
@@ -1335,7 +1372,7 @@
             
             // Group enemies by category
             const categories = {
-                'Forest': ['mushroom', 'tree', 'giantfly', 'squirrel', 'redpanda'],
+                'Forest': ['mushroom', 'tree', 'giantfly', 'squirrel', 'redpanda', 'bumblebee', 'cacodemon'],
                 'Cave': ['golem', 'slime', 'kobold', 'brainmole', 'intellectdevourer', 'bloboid', 'darkbat'],
                 'Desert': ['cobra', 'cactuse', 'armadillo', 'bat', 'soul', 'fireworm', 'summoner'],
                 'Swamp': ['swampmerchant', 'torchboy', 'mudguard', 'eyewalker', 'eyegoompa'],
@@ -1344,7 +1381,8 @@
                 'Castle': ['castle-knight', 'castle-rogue', 'castle-soldier', 'castle-bladekeeper', 'castle-squire'],
                 'Grave': ['yellowskeleton', 'skeletonseeker', 'clubimp', 'axeimp', 'wraith', 'flyingdemon'],
                 'Lava': ['fireslime', 'orangegolem', 'sorcerer'],
-                'Bosses': ['archerBoss', 'obeliskBoss', 'voidkin', 'kingNothing', 'eyelor', 'nekros', 'demon-slime-boss', 'frost-guardian-boss'],
+                'Element Slimes': ['bombslime', 'arcaneslime', 'waterslime', 'lightningslime', 'earthslime'],
+                'Bosses': ['archer-boss', 'obelisk-boss', 'voidkin', 'king-nothing-boss', 'eyelor-boss', 'nekros-boss', 'demon-slime-boss', 'frost-guardian-boss', 'amphibian-boss'],
                 'Homunculi (Player Characters)': ['wizard', 'orb', 'grim', 'blip'],
                 'Element Symbols': ['element-symbols', 'element-symbols2', 'element-symbols3'],
                 'Spell Projectiles': ['firebolt', 'waterball-projectile', 'lightning-projectile', 'earth-projectile', 'wind-projectile', 'ice-spike', 'ice-spike-loop'],
@@ -1951,7 +1989,8 @@
             currentShadow.fillStyle(0x000000, saved.alpha);
             // Scale shadow size to match sprite scale
             const scale = Math.abs(currentSprite.scaleX);
-            currentShadow.fillEllipse(0, 0, (saved.width * scale) / 2, (saved.height * scale) / 2);
+            // fillEllipse uses width/height (diameter), not radius - same as game's add.ellipse()
+            currentShadow.fillEllipse(0, 0, saved.width * scale, saved.height * scale);
             
             // Position shadow relative to sprite's center with unscaled offsets
             // In the game, shadows are positioned based on sprite position + unscaled offsetX/Y
