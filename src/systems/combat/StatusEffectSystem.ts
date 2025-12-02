@@ -22,7 +22,7 @@ export interface IStatusTarget extends Phaser.GameObjects.GameObject {
 
     // Properties for effects
     moveSpeed?: number;
-    anims?: Phaser.GameObjects.Components.Animation;
+    anims?: Phaser.Animations.AnimationState;
     poisonTimer?: Phaser.Time.TimerEvent;
 
     // Rendering

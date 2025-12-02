@@ -144,9 +144,26 @@
 
     <!-- Save and Achievement Systems -->
     <script src="src/systems/SaveManager.js"></script>
-    <script src="src/systems/AchievementManager.js"></script>
+    <script src="build/systems/AchievementManager.js"></script>
     <script src="src/scenes/SaveSlotScene.js"></script>
     <script src="src/ui/AchievementNotification.js"></script>
+
+    <!-- Verify all classes loaded correctly -->
+    <script>
+        console.log('=== Verifying System Classes ===');
+        console.log('SaveManager:', typeof SaveManager !== 'undefined' ? '✅ Loaded' : '❌ Missing');
+        console.log('AchievementManager:', typeof AchievementManager !== 'undefined' ? '✅ Loaded' : '❌ Missing');
+        console.log('SaveSlotScene:', typeof SaveSlotScene !== 'undefined' ? '✅ Loaded' : '❌ Missing');
+        console.log('AchievementNotification:', typeof AchievementNotification !== 'undefined' ? '✅ Loaded' : '❌ Missing');
+        console.log('================================');
+
+        // If AchievementManager is missing, provide detailed error
+        if (typeof AchievementManager === 'undefined') {
+            console.error('❌ CRITICAL: AchievementManager is not defined!');
+            console.error('This will cause errors when trying to create new games or load saves.');
+            console.error('Check the browser console for loading errors of build/systems/AchievementManager.js');
+        }
+    </script>
 
     <script src="scripts/game.js?v=209"></script>
     <script src="scripts/autoplay.js"></script>

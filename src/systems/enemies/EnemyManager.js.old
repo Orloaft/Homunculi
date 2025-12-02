@@ -1,0 +1,666 @@
+import { ENEMY_TYPES, getEnemyStats } from '../../data/EnemyConfig.ts';
+import { ENEMY_SPAWN_CONFIG } from '../../data/GameConstants.ts';
+
+export class EnemyManager {
+    constructor(scene) {
+        this.scene = scene;
+        this.enemies = scene.physics.add.group();
+        this.enemyProjectiles = scene.physics.add.group();
+        
+        // Track special enemies
+        this.eliteEnemies = new Set();
+        this.summonerCooldowns = new Map();
+        
+        this.setupEventListeners();
+        this.createAnimations();
+    }
+    
+    setupEventListeners() {
+        // Listen for enemy spawn requests
+        this.scene.events.on('spawnEnemy', (data) => {
+            this.spawnEnemy(data.type, data.x, data.y, data.variant);
+        });
+        
+        // Listen for enemy death
+        this.scene.events.on('enemyKilled', (enemy) => {
+            this.handleEnemyDeath(enemy);
+        });
+    }
+    
+    createAnimations() {
+        // Tree enemy
+        if (!this.scene.anims.exists('enemy-walk-anim')) {
+            this.scene.anims.create({
+                key: 'enemy-walk-anim',
+                frames: this.scene.anims.generateFrameNumbers('enemy-walk', { start: 0, end: 2 }),
+                frameRate: 6,
+                repeat: -1
+            });
+        }
+        
+        // Slime animations
+        if (!this.scene.anims.exists('slime-idle')) {
+            this.scene.anims.create({
+                key: 'slime-idle',
+                frames: [
+                    { key: 'slime-idle-0' },
+                    { key: 'slime-idle-1' },
+                    { key: 'slime-idle-2' },
+                    { key: 'slime-idle-3' }
+                ],
+                frameRate: 6,
+                repeat: -1
+            });
+            
+            this.scene.anims.create({
+                key: 'slime-die',
+                frames: [
+                    { key: 'slime-die-0' },
+                    { key: 'slime-die-1' },
+                    { key: 'slime-die-2' },
+                    { key: 'slime-die-3' }
+                ],
+                frameRate: 8,
+                repeat: 0
+            });
+        }
+        
+        // Golem animations
+        this.createGolemAnimations();
+        
+        // Other enemy animations
+        this.createBatAnimations();
+        this.createMushroomAnimations();
+        this.createFirewormAnimations();
+        this.createSummonerAnimations();
+        this.createSoulAnimations();
+        this.createBloboidAnimations();
+        this.createDarkEyeAnimations();
+    }
+    
+    createGolemAnimations() {
+        const colors = ['orange', 'blue'];
+        colors.forEach(color => {
+            if (!this.scene.anims.exists(`golem-${color}-walk`)) {
+                this.scene.anims.create({
+                    key: `golem-${color}-walk`,
+                    frames: this.scene.anims.generateFrameNumbers(`golem-${color}-walk`, { start: 0, end: 17 }),
+                    frameRate: 10,
+                    repeat: -1
+                });
+                
+                this.scene.anims.create({
+                    key: `golem-${color}-hurt`,
+                    frames: this.scene.anims.generateFrameNumbers(`golem-${color}-hurt`, { start: 0, end: 11 }),
+                    frameRate: 10,
+                    repeat: 0
+                });
+                
+                this.scene.anims.create({
+                    key: `golem-${color}-die`,
+                    frames: this.scene.anims.generateFrameNumbers(`golem-${color}-die`, { start: 0, end: 14 }),
+                    frameRate: 10,
+                    repeat: 0
+                });
+            }
+        });
+    }
+    
+    createBatAnimations() {
+        if (!this.scene.anims.exists('bat-flying')) {
+            this.scene.anims.create({
+                key: 'bat-flying',
+                frames: [
+                    { key: 'bat-fly-0' },
+                    { key: 'bat-fly-1' },
+                    { key: 'bat-fly-2' },
+                    { key: 'bat-fly-3' },
+                    { key: 'bat-fly-4' },
+                    { key: 'bat-fly-5' },
+                    { key: 'bat-fly-6' }
+                ],
+                frameRate: 12,
+                repeat: -1
+            });
+        }
+    }
+    
+    createMushroomAnimations() {
+        if (!this.scene.anims.exists('mushroom-walking')) {
+            this.scene.anims.create({
+                key: 'mushroom-walking',
+                frames: [
+                    { key: 'mushroom-walk-0' },
+                    { key: 'mushroom-walk-1' },
+                    { key: 'mushroom-walk-2' },
+                    { key: 'mushroom-walk-3' },
+                    { key: 'mushroom-walk-4' },
+                    { key: 'mushroom-walk-5' },
+                    { key: 'mushroom-walk-6' },
+                    { key: 'mushroom-walk-7' }
+                ],
+                frameRate: 10,
+                repeat: -1
+            });
+        }
+    }
+    
+    createFirewormAnimations() {
+        if (!this.scene.anims.exists('fireworm-walking')) {
+            this.scene.anims.create({
+                key: 'fireworm-walking',
+                frames: [
+                    { key: 'fireworm-walk-0' },
+                    { key: 'fireworm-walk-1' },
+                    { key: 'fireworm-walk-2' },
+                    { key: 'fireworm-walk-3' },
+                    { key: 'fireworm-walk-4' },
+                    { key: 'fireworm-walk-5' },
+                    { key: 'fireworm-walk-6' },
+                    { key: 'fireworm-walk-7' },
+                    { key: 'fireworm-walk-8' }
+                ],
+                frameRate: 12,
+                repeat: -1
+            });
+        }
+    }
+    
+    createSummonerAnimations() {
+        if (!this.scene.anims.exists('summoner-idle-anim')) {
+            this.scene.anims.create({
+                key: 'summoner-idle-anim',
+                frames: this.scene.anims.generateFrameNumbers('summoner-idle', { start: 0, end: 11 }),
+                frameRate: 8,
+                repeat: -1
+            });
+            
+            this.scene.anims.create({
+                key: 'summoner-cast-anim',
+                frames: this.scene.anims.generateFrameNumbers('summoner-cast', { start: 0, end: 14 }),
+                frameRate: 12,
+                repeat: 0
+            });
+        }
+    }
+    
+    createSoulAnimations() {
+        if (!this.scene.anims.exists('soul-idle')) {
+            const frames = [];
+            for (let i = 0; i < 16; i++) {
+                frames.push({ key: `soul-idle-${i}` });
+            }
+            this.scene.anims.create({
+                key: 'soul-idle',
+                frames: frames,
+                frameRate: 10,
+                repeat: -1
+            });
+        }
+    }
+    
+    createBloboidAnimations() {
+        if (!this.scene.anims.exists('bloboid-walking')) {
+            const frames = [];
+            for (let i = 0; i < 8; i++) {
+                frames.push({ key: `bloboid-walk-${i}` });
+            }
+            this.scene.anims.create({
+                key: 'bloboid-walking',
+                frames: frames,
+                frameRate: 8,
+                repeat: -1
+            });
+        }
+    }
+    
+    createDarkEyeAnimations() {
+        if (!this.scene.anims.exists('darkeye-walking')) {
+            const frames = [];
+            for (let i = 1; i <= 8; i++) {
+                frames.push({ key: `darkeye-walk-${i}` });
+            }
+            this.scene.anims.create({
+                key: 'darkeye-walking',
+                frames: frames,
+                frameRate: 8,
+                repeat: -1
+            });
+        }
+    }
+    
+    spawnEnemy(type, x, y, variant = null) {
+        const playerLevel = this.scene.playerStats?.level || 1;
+        const stats = getEnemyStats(type, playerLevel);
+        
+        let enemy;
+        
+        switch (type) {
+            case 'golem':
+                enemy = this.createGolem(x, y, variant || 'orange', stats);
+                break;
+            case 'slime':
+                enemy = this.createSlime(x, y, stats);
+                break;
+            case 'summoner':
+                enemy = this.createSummoner(x, y, stats);
+                break;
+            case 'soul':
+                enemy = this.createSoul(x, y, stats);
+                break;
+            case 'darkeye':
+                enemy = this.createDarkEye(x, y, stats);
+                break;
+            default:
+                enemy = this.createBasicEnemy(x, y, type, stats);
+        }
+        
+        if (enemy) {
+            this.enemies.add(enemy);
+            
+            // Spawn effect
+            this.createSpawnEffect(x, y, type);
+        }
+        
+        return enemy;
+    }
+    
+    createBasicEnemy(x, y, type, stats) {
+        const config = ENEMY_TYPES[type];
+        if (!config) return null;
+        
+        const enemy = this.scene.physics.add.sprite(x, y, config.sprite);
+        
+        // Set properties
+        enemy.enemyType = type;
+        enemy.health = stats.health;
+        enemy.maxHealth = stats.health;
+        enemy.moveSpeed = stats.speed;
+        enemy.damage = stats.damage;
+        enemy.xpValue = stats.xpValue;
+        
+        // Set scale
+        enemy.setScale(stats.scale || config.scale);
+        
+        // Flip if needed
+        if (config.flipX) {
+            enemy.setFlipX(true);
+        }
+        
+        // Play animation
+        if (config.animation) {
+            enemy.play(config.animation);
+        }
+        
+        // Set element if applicable
+        if (config.element) {
+            enemy.element = config.element;
+        }
+        
+        return enemy;
+    }
+    
+    createGolem(x, y, color, stats) {
+        const enemy = this.scene.physics.add.sprite(x, y, `golem-${color}-walk`);
+        
+        enemy.enemyType = 'golem';
+        enemy.golemColor = color;
+        enemy.health = stats.health;
+        enemy.maxHealth = stats.health;
+        enemy.moveSpeed = stats.speed;
+        enemy.damage = stats.damage;
+        enemy.xpValue = stats.xpValue;
+        
+        enemy.setScale(stats.scale || 1.0);
+        enemy.play(`golem-${color}-walk`);
+        
+        return enemy;
+    }
+    
+    createSlime(x, y, stats) {
+        const enemy = this.scene.physics.add.sprite(x, y, 'slime-idle-0');
+        
+        enemy.enemyType = 'slime';
+        enemy.health = stats.health;
+        enemy.maxHealth = stats.health;
+        enemy.moveSpeed = stats.speed;
+        enemy.damage = stats.damage;
+        enemy.xpValue = stats.xpValue;
+        enemy.canSplit = true;
+        
+        enemy.play('slime-idle');
+        
+        return enemy;
+    }
+    
+    createSummoner(x, y, stats) {
+        const enemy = this.scene.physics.add.sprite(x, y, 'summoner-idle');
+        
+        enemy.enemyType = 'summoner';
+        enemy.health = stats.health;
+        enemy.maxHealth = stats.health;
+        enemy.moveSpeed = stats.speed;
+        enemy.damage = stats.damage;
+        enemy.xpValue = stats.xpValue;
+        enemy.lastSummonTime = 0;
+        enemy.summonCooldown = ENEMY_TYPES.summoner.summonCooldown;
+        
+        enemy.play('summoner-idle-anim');
+        
+        return enemy;
+    }
+    
+    createSoul(x, y, stats) {
+        const enemy = this.scene.physics.add.sprite(x, y, 'soul-idle-0');
+        
+        enemy.enemyType = 'soul';
+        enemy.health = stats.health;
+        enemy.maxHealth = stats.health;
+        enemy.moveSpeed = stats.speed;
+        enemy.damage = stats.damage;
+        enemy.xpValue = stats.xpValue;
+        enemy.attackRange = ENEMY_TYPES.soul.attackRange;
+        enemy.attackCooldown = ENEMY_TYPES.soul.attackCooldown;
+        enemy.lastAttackTime = 0;
+        
+        enemy.play('soul-idle');
+        
+        return enemy;
+    }
+    
+    createDarkEye(x, y, stats) {
+        const enemy = this.scene.physics.add.sprite(x, y, 'darkeye-walk-1');
+        
+        enemy.enemyType = 'darkeye';
+        enemy.health = stats.health;
+        enemy.maxHealth = stats.health;
+        enemy.moveSpeed = stats.speed;
+        enemy.damage = stats.damage;
+        enemy.xpValue = stats.xpValue;
+        enemy.element = 'dark';
+        enemy.noStagger = true;
+        enemy.isLevelUpDarkEye = true;
+        
+        enemy.setScale(stats.scale);
+        enemy.setFlipX(true);
+        enemy.play('darkeye-walking');
+        
+        // Mark as elite
+        this.eliteEnemies.add(enemy);
+        
+        return enemy;
+    }
+    
+    createSpawnEffect(x, y, type) {
+        let color = 0xffffff;
+        let scale = 1;
+        
+        if (type === 'darkeye') {
+            color = 0x9933ff;
+            scale = 3;
+        } else if (type === 'summoner') {
+            color = 0xff00ff;
+        } else if (type === 'golem') {
+            color = 0xff8800;
+        }
+        
+        const effect = this.scene.add.circle(x, y, 50, color, 0.8);
+        effect.setDepth(10);
+        
+        this.scene.tweens.add({
+            targets: effect,
+            scale: { from: 0, to: scale },
+            alpha: { from: 1, to: 0 },
+            duration: 500,
+            onComplete: () => effect.destroy()
+        });
+    }
+    
+    update(time, delta) {
+        const wizard = this.scene.wizard;
+        if (!wizard || !wizard.active) return;
+        
+        this.enemies.children.entries.forEach(enemy => {
+            if (!enemy.active) return;
+            
+            // Update enemy AI
+            this.updateEnemyAI(enemy, wizard, time);
+            
+            // Update enemy facing direction
+            this.updateEnemyFacing(enemy, wizard);
+            
+            // Special enemy behaviors
+            this.updateSpecialBehaviors(enemy, time);
+        });
+        
+        // Update enemy projectiles
+        this.updateEnemyProjectiles();
+    }
+    
+    updateEnemyAI(enemy, target, time) {
+        if (enemy.stunned || enemy.isDying) {
+            enemy.setVelocity(0, 0);
+            return;
+        }
+        
+        // Calculate direction to target
+        const dx = target.x - enemy.x;
+        const dy = target.y - enemy.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Special AI for ranged enemies
+        if (enemy.enemyType === 'soul' && distance < enemy.attackRange) {
+            // Stop and attack
+            enemy.setVelocity(0, 0);
+            this.handleSoulAttack(enemy, target, time);
+        } else if (enemy.enemyType === 'summoner' && distance < 300) {
+            // Slow down when close
+            const slowSpeed = enemy.moveSpeed * 0.3;
+            enemy.setVelocity(
+                (dx / distance) * slowSpeed,
+                (dy / distance) * slowSpeed
+            );
+        } else {
+            // Normal movement toward target
+            enemy.setVelocity(
+                (dx / distance) * enemy.moveSpeed,
+                (dy / distance) * enemy.moveSpeed
+            );
+        }
+    }
+    
+    updateEnemyFacing(enemy, target) {
+        // Update sprite facing
+        if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || 
+            enemy.enemyType === 'fireworm' || enemy.enemyType === 'soul' || 
+            enemy.enemyType === 'bloboid') {
+            if (target.x < enemy.x) {
+                enemy.setFlipX(true);
+            } else {
+                enemy.setFlipX(false);
+            }
+        }
+    }
+    
+    updateSpecialBehaviors(enemy, time) {
+        // Summoner behavior
+        if (enemy.enemyType === 'summoner') {
+            if (time - enemy.lastSummonTime > enemy.summonCooldown) {
+                this.handleSummonerCast(enemy);
+                enemy.lastSummonTime = time;
+            }
+        }
+    }
+    
+    handleSoulAttack(soul, target, time) {
+        if (time - soul.lastAttackTime > soul.attackCooldown) {
+            // Create projectile
+            const angle = Math.atan2(target.y - soul.y, target.x - soul.x);
+            const projectile = this.scene.physics.add.sprite(soul.x, soul.y, 'soul-projectile');
+            
+            projectile.setVelocity(
+                Math.cos(angle) * 150,
+                Math.sin(angle) * 150
+            );
+            
+            projectile.damage = soul.damage;
+            projectile.setTint(0x9900ff);
+            
+            this.enemyProjectiles.add(projectile);
+            soul.lastAttackTime = time;
+        }
+    }
+    
+    handleSummonerCast(summoner) {
+        // Play cast animation
+        summoner.play('summoner-cast-anim');
+        
+        summoner.once('animationcomplete', () => {
+            // Spawn minions around summoner
+            for (let i = 0; i < 3; i++) {
+                const angle = (i / 3) * Math.PI * 2;
+                const spawnX = summoner.x + Math.cos(angle) * 100;
+                const spawnY = summoner.y + Math.sin(angle) * 100;
+                
+                this.spawnEnemy('slime', spawnX, spawnY);
+            }
+            
+            // Return to idle
+            summoner.play('summoner-idle-anim');
+        });
+    }
+    
+    updateEnemyProjectiles() {
+        this.enemyProjectiles.children.entries.forEach(projectile => {
+            // Remove if out of bounds
+            if (projectile.x < -50 || projectile.x > this.scene.physics.world.bounds.width + 50 ||
+                projectile.y < -50 || projectile.y > this.scene.physics.world.bounds.height + 50) {
+                projectile.destroy();
+            }
+        });
+    }
+    
+    handleEnemyDeath(enemy) {
+        // Special death behaviors
+        if (enemy.enemyType === 'slime' && enemy.canSplit) {
+            this.handleSlimeSplit(enemy);
+        }
+        
+        // Remove from elite tracking
+        if (this.eliteEnemies.has(enemy)) {
+            this.eliteEnemies.delete(enemy);
+        }
+        
+        // Create death effect
+        this.createDeathEffect(enemy);
+        
+        // Spawn drops
+        this.spawnDrops(enemy);
+    }
+    
+    handleSlimeSplit(slime) {
+        // Spawn 2 smaller slimes
+        for (let i = 0; i < 2; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 30;
+            const miniSlime = this.spawnEnemy('slime', 
+                slime.x + Math.cos(angle) * distance,
+                slime.y + Math.sin(angle) * distance
+            );
+            
+            if (miniSlime) {
+                miniSlime.setScale(0.5);
+                miniSlime.health = 1;
+                miniSlime.maxHealth = 1;
+                miniSlime.canSplit = false;
+                miniSlime.xpValue = 2;
+            }
+        }
+    }
+    
+    createDeathEffect(enemy) {
+        // Create particle effect based on enemy type
+        let particles = 10;
+        let color = 0xff0000;
+        
+        if (enemy.enemyType === 'slime') {
+            color = 0x00ff00;
+        } else if (enemy.enemyType === 'darkeye') {
+            particles = 20;
+            color = 0x9933ff;
+        }
+        
+        // Simple particle burst
+        for (let i = 0; i < particles; i++) {
+            const particle = this.scene.add.circle(enemy.x, enemy.y, 3, color);
+            const angle = (i / particles) * Math.PI * 2;
+            const speed = 100 + Math.random() * 100;
+            
+            this.scene.physics.add.existing(particle);
+            particle.body.setVelocity(
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed
+            );
+            
+            this.scene.tweens.add({
+                targets: particle,
+                alpha: 0,
+                scale: 0,
+                duration: 500,
+                onComplete: () => particle.destroy()
+            });
+        }
+    }
+    
+    spawnDrops(enemy) {
+        // XP jewel drop
+        this.scene.events.emit('spawnDrop', {
+            type: 'xp',
+            x: enemy.x,
+            y: enemy.y,
+            value: enemy.xpValue
+        });
+        
+        // Special drops
+        if (enemy.isLevelUpDarkEye) {
+            this.scene.events.emit('spawnDrop', {
+                type: 'chargeExpansion',
+                x: enemy.x,
+                y: enemy.y
+            });
+        }
+        
+        // Random element orb chance
+        if (Math.random() < 0.1) {
+            this.scene.events.emit('spawnDrop', {
+                type: 'elementOrb',
+                x: enemy.x,
+                y: enemy.y
+            });
+        }
+        
+        // Random health drop
+        if (Math.random() < 0.05) {
+            this.scene.events.emit('spawnDrop', {
+                type: 'health',
+                x: enemy.x,
+                y: enemy.y
+            });
+        }
+    }
+    
+    getAllEnemies() {
+        return this.enemies.children.entries;
+    }
+    
+    getEnemyCount() {
+        return this.enemies.children.entries.filter(e => e.active).length;
+    }
+    
+    clearAllEnemies() {
+        this.enemies.clear(true, true);
+        this.enemyProjectiles.clear(true, true);
+        this.eliteEnemies.clear();
+        this.summonerCooldowns.clear();
+    }
+}

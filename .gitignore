@@ -5,6 +5,20 @@ node_modules/
 dist/
 build/
 
+# TypeScript compiled output directory
+build/
+
+# TypeScript compiled output (source maps and declaration files)
+*.js.map
+*.d.ts
+*.d.ts.map
+
+# Exception: Keep JavaScript source files in src/
+!src/config/GameConfig.js
+!src/systems/SaveManager.js
+!src/scenes/SaveSlotScene.js
+!src/ui/AchievementNotification.js
+
 # Logs
 *.log
 npm-debug.log*

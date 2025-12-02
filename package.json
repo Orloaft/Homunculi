@@ -5,20 +5,26 @@
   "main": "scripts/main.js",
   "scripts": {
     "start": "electron .",
-    "build-win": "electron-builder --win",
-    "build-win-portable": "electron-builder --win portable",
-    "build-portable": "node build-portable.js",
-    "build-mac": "electron-builder --mac",
-    "build-linux": "electron-builder --linux",
-    "dist": "electron-builder",
+    "compile": "tsc || exit 0",
+    "build-win": "npm run compile && electron-builder --win",
+    "build-win-portable": "npm run compile && electron-builder --win portable",
+    "build-portable": "npm run compile && node build-portable.js",
+    "build-mac": "npm run compile && electron-builder --mac",
+    "build-linux": "npm run compile && electron-builder --linux",
+    "dist": "npm run compile && electron-builder",
     "postinstall": "electron-builder install-app-deps"
   },
-  "keywords": ["game", "phaser", "wizard"],
+  "keywords": [
+    "game",
+    "phaser",
+    "wizard"
+  ],
   "author": "Alex",
   "license": "ISC",
   "devDependencies": {
     "electron": "^27.0.0",
-    "electron-builder": "^24.6.4"
+    "electron-builder": "^24.6.4",
+    "phaser": "^3.90.0"
   },
   "build": {
     "appId": "com.alex.wizbiz",
@@ -28,16 +34,21 @@
     },
     "files": [
       "**/*",
+      "build/**/*",
       "!node_modules/**/*",
       "!dist/**/*",
       "!.git/**/*",
-      "!.gitignore"
+      "!.gitignore",
+      "!src/**/*.ts",
+      "!src/**/*.js.old"
     ],
     "win": {
       "target": [
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "sign": null,

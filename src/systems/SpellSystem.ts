@@ -294,7 +294,7 @@ export class SpellSystem {
       position: { ...caster.position },
       direction,
       damage: this.calculateDamage(elementConfig, caster),
-      caster,
+      caster: caster as any, // Type assertion for Entity compatibility
       timestamp: now
     };
     

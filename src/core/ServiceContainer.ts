@@ -9,7 +9,7 @@ type ServiceInstance = any;
 export interface ServiceConfig {
   singleton?: boolean;
   lazy?: boolean;
-  factory?: ServiceFactory<any>;
+  factory?: boolean; // Flag to indicate if service parameter is a factory function
 }
 
 export class ServiceContainer {
