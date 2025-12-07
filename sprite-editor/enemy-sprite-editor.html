@@ -929,11 +929,17 @@
                     if (config.individualFrames) {
                         // Load individual frames for bosses like Eyelor and Nekros
                         const frameCount = config.frameCount || (config.animations.walk ? config.animations.walk.end + 1 : config.animations.idle ? config.animations.idle.end : 1);
-                        for (let i = 1; i <= frameCount; i++) {
+                        // Special case for slime which has 0-indexed frames
+                        const startIndex = (key === 'slime') ? 0 : 1;
+                        const endIndex = (key === 'slime') ? frameCount - 1 : frameCount;
+                        for (let i = startIndex; i <= endIndex; i++) {
                             assetsToLoad++;
                             let framePath;
+                            // Special case for slime which uses 0-indexed frames
+                            if (key === 'slime') {
+                                framePath = `assets/Slime/Individual Sprites/slime-idle-${i}.png`;
                             // Special case for bladekeeper which uses 02_run_X.png pattern
-                            if (key === 'castle-bladekeeper') {
+                            } else if (key === 'castle-bladekeeper') {
                                 framePath = `../assets/enemies/castlelandfoes/bladekeeper/02_run_${i}.png`;
                             } else if (key === 'clubimp') {
                                 framePath = `../assets/enemies/impclub/walk_${i}.png`;
@@ -1179,7 +1185,10 @@
                                 // For sprites with individual frames
                                 const frames = [];
                                 const frameCount = animConfig.end - animConfig.start + 1;
-                                for (let i = animConfig.start; i <= animConfig.end; i++) {
+                                // Slime uses 0-indexed frames, others use 1-indexed
+                                const startIdx = (key === 'slime') ? animConfig.start : animConfig.start + 1;
+                                const endIdx = (key === 'slime') ? animConfig.end : animConfig.end + 1;
+                                for (let i = startIdx; i <= endIdx; i++) {
                                     frames.push({ key: `${config.framePattern}${i}` });
                                 }
                                 this.anims.create({
@@ -1223,7 +1232,9 @@
                             if (config.individualFrames) {
                                 // For bosses with individual frames like Eyelor and Nekros
                                 const frames = [];
-                                for (let i = 1; i <= config.animations.walk.end + 1; i++) {
+                                const startIdx = (key === 'slime') ? 0 : 1;
+                                const endIdx = (key === 'slime') ? config.animations.walk.end : config.animations.walk.end + 1;
+                                for (let i = startIdx; i <= endIdx; i++) {
                                     frames.push({ key: `${config.framePattern}${i}` });
                                 }
                                 this.anims.create({
@@ -1374,12 +1385,12 @@
             const categories = {
                 'Forest': ['mushroom', 'tree', 'giantfly', 'squirrel', 'redpanda', 'bumblebee', 'cacodemon'],
                 'Cave': ['golem', 'slime', 'kobold', 'brainmole', 'intellectdevourer', 'bloboid', 'darkbat'],
-                'Desert': ['cobra', 'cactuse', 'armadillo', 'bat', 'soul', 'fireworm', 'summoner'],
+                'Desert': ['cobra', 'cactuse', 'armadillo', 'caveghoul', 'bat', 'soul', 'fireworm', 'summoner'],
                 'Swamp': ['swampmerchant', 'torchboy', 'mudguard', 'eyewalker', 'eyegoompa'],
                 'Snowland': ['snowy', 'elkman', 'frost-golem', 'spiked-slime', 'northerner'],
                 'Oceanland': ['jellyfish', 'crabby', 'shark', 'squid', 'crablore'],
                 'Castle': ['castle-knight', 'castle-rogue', 'castle-soldier', 'castle-bladekeeper', 'castle-squire'],
-                'Grave': ['yellowskeleton', 'skeletonseeker', 'clubimp', 'axeimp', 'wraith', 'flyingdemon'],
+                'Grave': ['yellowskeleton', 'skeletonseeker', 'clubimp', 'axeimp', 'skullhound', 'flyingdemon'],
                 'Lava': ['fireslime', 'orangegolem', 'sorcerer'],
                 'Element Slimes': ['bombslime', 'arcaneslime', 'waterslime', 'lightningslime', 'earthslime'],
                 'Bosses': ['archer-boss', 'obelisk-boss', 'voidkin', 'king-nothing-boss', 'eyelor-boss', 'nekros-boss', 'demon-slime-boss', 'frost-guardian-boss', 'amphibian-boss'],
@@ -1387,7 +1398,7 @@
                 'Element Symbols': ['element-symbols', 'element-symbols2', 'element-symbols3'],
                 'Spell Projectiles': ['firebolt', 'waterball-projectile', 'lightning-projectile', 'earth-projectile', 'wind-projectile', 'ice-spike', 'ice-spike-loop'],
                 'Spell Impact Effects': ['waterball-impact', 'lightning-impact', 'wind-impact', 'ice-spike-hit', 'holy-impact'],
-                'Spell Effects': ['poison-spell', 'fire-spell', 'water-spell', 'lightning-spell', 'earth-spell', 'arcane-spell', 'rock-spell', 'storm-spell', 'volcano-spell', 'meteor-spell', 'gravity-spell'],
+                'Spell Effects': ['poison-spell', 'flamethrower', 'water-spell', 'lightning-spell', 'earth-spell', 'arcane-spell', 'rock-spell', 'storm-spell', 'volcano-spell', 'meteor-spell', 'gravity-spell'],
                 'Boss Projectiles': ['archer-projectile', 'void-ball', 'void-ball-destroyed']
             };
             
@@ -1440,7 +1451,8 @@
             // Check if texture/frames exist
             if (config.individualFrames) {
                 // For individual frames, check if first frame exists
-                const firstFrameKey = `${config.framePattern}1`;
+                const firstFrameIndex = (enemyType === 'slime') ? 0 : 1;
+                const firstFrameKey = `${config.framePattern}${firstFrameIndex}`;
                 if (!editorScene.textures.exists(firstFrameKey)) {
                     console.error('First frame not found:', firstFrameKey);
                     showStatus('Error: Sprite frames not found for ' + enemyType);
@@ -1451,12 +1463,13 @@
                 showStatus('Error: Sprite file not found for ' + enemyType);
                 return;
             }
-            
+
             try {
                 // Create new sprite based on type
                 if (config.individualFrames) {
                     // For bosses with individual frames, create sprite with first frame
-                    currentSprite = editorScene.physics.add.sprite(400, 300, `${config.framePattern}1`);
+                    const firstFrameIndex = (enemyType === 'slime') ? 0 : 1;
+                    currentSprite = editorScene.physics.add.sprite(400, 300, `${config.framePattern}${firstFrameIndex}`);
                 } else if (config.isStaticImage) {
                     // For static images - use image instead of sprite to avoid frame issues
                     currentSprite = editorScene.physics.add.image(400, 300, config.texture);
@@ -1479,7 +1492,16 @@
                 const flipX = saved.flipX || false;
                 const flipY = saved.flipY || false;
                 const hitbox = saved.hitbox || { width: 30, height: 30, offsetX: 0, offsetY: 0 };
-                const shadow = saved.shadow || { width: 40, height: 12, offsetX: 0, offsetY: 30, alpha: 0.5 };
+
+                // Ensure shadow has all required properties with defaults
+                const savedShadow = saved.shadow || {};
+                const shadow = {
+                    width: savedShadow.width ?? 40,
+                    height: savedShadow.height ?? 12,
+                    offsetX: savedShadow.offsetX ?? 0,
+                    offsetY: savedShadow.offsetY ?? 30,
+                    alpha: savedShadow.alpha ?? 0.5
+                };
                 
                 // Apply scale (always positive) and flip separately
                 // This matches how the game does it - using setFlipX/setFlipY instead of negative scale
@@ -1569,8 +1591,11 @@
                                     const frames = [];
                                     const frameCount = animConfig.frameCount || (animConfig.end - (animConfig.start || 0) + 1);
                                     const framePattern = animConfig.framePattern || config.framePattern;
-                                    
-                                    for (let i = 1; i <= frameCount; i++) {
+
+                                    // Slime uses 0-indexed frames
+                                    const startIdx = (enemyType === 'slime') ? 0 : 1;
+                                    const endIdx = (enemyType === 'slime') ? frameCount - 1 : frameCount;
+                                    for (let i = startIdx; i <= endIdx; i++) {
                                         frames.push({ key: `${framePattern}${i}` });
                                     }
                                     editorScene.anims.create({
@@ -1980,11 +2005,16 @@
         
         function updateShadowDisplay() {
             if (!currentShadow || !currentSprite) return;
-            
-            const saved = savedData[currentEnemy]?.shadow || {
-                width: 40, height: 12, offsetX: 0, offsetY: 30, alpha: 0.5
+
+            const savedShadow = savedData[currentEnemy]?.shadow || {};
+            const saved = {
+                width: savedShadow.width ?? 40,
+                height: savedShadow.height ?? 12,
+                offsetX: savedShadow.offsetX ?? 0,
+                offsetY: savedShadow.offsetY ?? 30,
+                alpha: savedShadow.alpha ?? 0.5
             };
-            
+
             currentShadow.clear();
             currentShadow.fillStyle(0x000000, saved.alpha);
             // Scale shadow size to match sprite scale

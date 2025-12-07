@@ -228,6 +228,18 @@
       "shapeType": "wall",
       "bounce": 0.5,
       "friction": 0.1
+    },
+    {
+      "type": "rect",
+      "x": 90,
+      "y": 280,
+      "width": 50,
+      "height": 50,
+      "rotation": 0,
+      "name": "elitesenabled",
+      "shapeType": "wall",
+      "bounce": 0.5,
+      "friction": 0.1
     }
   ],
   "gridSize": 10

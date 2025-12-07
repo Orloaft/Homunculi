@@ -162,13 +162,18 @@ const server = http.createServer((req, res) => {
         const assetPaths = [
             '/mushroom/', '/tree/', '/forestlandfoes/', '/cavelandfoes/',
             '/Golem_1/', '/kobold/', '/newenemies/', '/bateye/',
-            '/fireworm/', '/scythewraith/', '/homunculicharacters/',
+            '/fireworm/', '/scythewraith/', '/homunculicharacters/', '/homunculiwalkerboss/',
             '/archerboss/', '/skeleton/', '/castlelandfoes/', '/desertlandfoes/',
             '/Obelisk_demo/', '/wizmove/', '/Eyelor/', '/Nekros/',
             '/bladekeeper/', '/flyingdemon/', '/impclub/', '/impaxe/', // Add imp folders
             '/frostguardian/', // Add frost guardian boss assets
             '/snowlandenemies/', // Add snowland enemy assets
             '/oceanlandenemies/', // Add oceanland enemy assets
+            '/swamplandfoes/', // Add swampland enemy assets
+            '/elementslimes/', // Add element slime sprites
+            '/enemies/', // Add enemies folder for skull wolf and other enemies
+            '/Slime/', // Add slime sprites folder
+            '/sprites/', // Add player/character sprites
             'Bat-IdleFly9frames.png', 'obeliskBoss.png', 'voidkin15frames.png',
             'HitboxEditor.js', 'hitbox-config.js',
             // Add tile images for backgrounds

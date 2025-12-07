@@ -1,0 +1,311 @@
+================================================================================
+                    HITBOX CONFIGURATION FLOW DIAGRAM
+================================================================================
+
+SECTION 1: CONFIGURATION PIPELINE
+================================================================================
+
+    SPRITE EDITOR                    GENERATION                    RUNTIME
+    =====================          =====================          =====================
+                                   
+    enemy-sprite-editor.html       updateHitboxConfig-*.js       index.html
+         │                               │                            │
+         │  Configure:                   │  Generate:                 │  Load:
+         ├─ Hitboxes                     │  hitbox-config.json        │  <script>
+         ├─ Scales                       │                            │
+         ├─ Flips                        │  Process:                  ├─ hitbox-config.js
+         └─ Shadows                      └─ Export to .js            │
+                                         └─ Create var hitboxConfig  │
+                                                                      └─> window.hitboxConfig
+
+================================================================================
+SECTION 2: GAME INITIALIZATION FLOW
+================================================================================
+
+    game.create()
+         │
+         ├─ hitboxConfig.load()
+         │   ├─ Validate flips, scales, hitboxes, shadows
+         │   ├─ Check for invalid configs
+         │   └─ Return true/false status
+         │
+         └─ Player Character Setup (P1, P2, P3, P4)
+             │
+             ├─ Create P1 (wizard)
+             │   ├─ physics.add.sprite(x, y, texture)
+             │   ├─ hitboxConfig.getScale(p1Character)
+             │   ├─ wizard.setScale(scale)
+             │   ├─ Set frame(0)
+             │   ├─ hitboxConfig.applyFlip(wizard, p1Character)
+             │   ├─ Apply hitbox config
+             │   └─ [BLIP FORCE-CHECK: redundant]
+             │
+             ├─ Create P2 (wizard2) 
+             │   ├─ physics.add.sprite(x, y, texture)
+             │   ├─ hitboxConfig.getScale(p2Character)
+             │   ├─ wizard2.setScale(scale)
+             │   ├─ Apply P2 hitbox from config ✓ IMPLEMENTED
+             │   ├─ Set frame(0)
+             │   └─ hitboxConfig.applyFlip(wizard2, p2Character) ✓
+             │
+             ├─ Create P3 (wizard3)
+             │   ├─ physics.add.sprite(x, y, texture)
+             │   ├─ hitboxConfig.getScale(p3Character)
+             │   ├─ wizard3.setScale(scale)
+             │   ├─ [MISSING: Apply P3 hitbox] ⚠️ BUG
+             │   ├─ Set frame(0)
+             │   └─ [MISSING: Apply P3 flip]
+             │
+             └─ Create P4 (wizard4)
+                 ├─ physics.add.sprite(x, y, texture)
+                 ├─ hitboxConfig.getScale(p4Character)
+                 ├─ wizard4.setScale(scale)
+                 ├─ [MISSING: Apply P4 hitbox] ⚠️ BUG
+                 ├─ Set frame(0)
+                 └─ [MISSING: Apply P4 flip]
+
+================================================================================
+SECTION 3: REGULAR ENEMY CREATION FLOW (27,620+)
+================================================================================
+
+    createEnemy(type, x, y)
+         │
+         ├─ Create sprite
+         │   └─ const enemy = physics.add.sprite(x, y, texture, 0)
+         │
+         ├─ Set type identifier
+         │   └─ enemy.enemyType = 'typename'
+         │
+         ├─ STEP 1: Apply Scale
+         │   │
+         │   └─ applySavedScale(enemy, 'typename')
+         │       ├─ Check: typeof hitboxConfig !== 'undefined'?
+         │       ├─ YES: scale = hitboxConfig.getScale('typename')
+         │       │       enemy.setScale(scale)
+         │       └─ NO:  enemy.setScale(1.0) [DEFAULT]
+         │
+         ├─ STEP 2: Apply Flip [INCONSISTENT - some types only]
+         │   │
+         │   └─ if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded)
+         │       └─ hitboxConfig.applyFlip(enemy, 'typename')
+         │           ├─ if (config.flipX) sprite.setFlipX(true)
+         │           └─ if (config.flipY) sprite.setFlipY(true)
+         │
+         │   ⚠️ NOTE: Only applied to some enemy types:
+         │       ✓ Applied:    mushroom, bumblebee, bloboid, bombslime, 
+         │                     arcaneslime, waterslime, lightningslime, 
+         │                     earthslime, snowy, elkman, northerner, flyingdemon
+         │       ✗ Missing:    tree, bat, soul, giantfly, slime, golem, fireslime
+         │
+         ├─ STEP 3: Apply Hitbox
+         │   │
+         │   └─ applyHitboxConfig(enemy, 'typename')
+         │       ├─ Check: typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded?
+         │       ├─ YES: Call hitboxConfig.applyHitbox(enemy, 'typename')
+         │       │       │
+         │       │       ├─ Get config = this.hitboxes['typename']
+         │       │       ├─ Validate: width, height, offsetX, offsetY present?
+         │       │       ├─ YES: body.setSize(width, height)
+         │       │       │       body.setOffset(offsetX, offsetY)
+         │       │       │       ⭐ NOTE: NO DIVISION BY SCALE
+         │       │       │       ⭐ Coordinates are UNSCALED
+         │       │       └─ NO:  console.error(), return false
+         │       │
+         │       └─ NO or FAILED: Apply default hitbox
+         │           └─ body.setSize(30, 30)
+         │               body.setOffset(0, 0)
+         │
+         ├─ STEP 4: Create Shadow
+         │   │
+         │   └─ createShadowFor(enemy)
+         │       ├─ Check: sprite.enemyType exists?
+         │       ├─ YES: shadowConfig = hitboxConfig.getShadow(enemyType)
+         │       │       shadowWidth = shadowConfig.width * sprite.scaleX
+         │       │       shadowHeight = shadowConfig.height * sprite.scaleX
+         │       │       ⭐ Shadow SCALES with sprite size
+         │       │
+         │       ├─ NO or missing: Use fallback hardcoded sizes
+         │       │   └─ shadowWidth = shadowSizes[type].width * sprite.scaleX
+         │       │
+         │       └─ Create ellipse shadow at (x + offsetX, y + offsetY)
+         │
+         ├─ STEP 5: Play Animation
+         │   └─ enemy.play('enemy-animation-key')
+         │
+         ├─ STEP 6: Set Speed
+         │   └─ setEnemySpeed(enemy, baseSpeed)
+         │
+         └─ STEP 7: Add to Game
+             └─ addEnemyToGroup(enemy)
+                 ├─ enemies.add(enemy)
+                 ├─ createShadowFor() [called again - different purpose]
+                 └─ [if editor enabled] makeEnemyInteractiveForEditor()
+
+================================================================================
+SECTION 4: BOSS ENEMY CREATION FLOW (Multiple locations)
+================================================================================
+
+    createBoss() / createArcherBoss() / etc.
+         │
+         ├─ Create boss sprite
+         │   └─ const boss = physics.add.sprite(x, y, 'boss-texture', 0)
+         │
+         ├─ Set type identifier
+         │   └─ boss.enemyType = 'obelisk-boss' (or other boss type)
+         │
+         ├─ STEP 1: Apply Scale
+         │   └─ applySavedScale(boss, boss.enemyType)
+         │
+         ├─ STEP 2: Set Boss Properties
+         │   ├─ boss.health = calculated based on density
+         │   ├─ boss.maxHealth = boss.health
+         │   ├─ boss.isBoss = true
+         │   └─ boss-specific properties (phases, modes, etc.)
+         │
+         ├─ STEP 3: Apply Hitbox [SAME AS REGULAR ENEMIES]
+         │   └─ if (!applyHitboxConfig(boss, boss.enemyType))
+         │       └─ [Fallback applied if config missing]
+         │
+         ├─ STEP 4: Configure Physics
+         │   ├─ boss.body.setImmovable(true)  [stage-specific]
+         │   └─ boss.body.moves = false  [stage-specific]
+         │
+         ├─ STEP 5: Create Shadow
+         │   └─ [Called in addEnemyToGroup]
+         │
+         └─ STEP 6: Start AI
+             └─ this.bossAITimer = time.addEvent({})
+
+================================================================================
+SECTION 5: COORDINATE SYSTEM EXPLANATION
+================================================================================
+
+    UNSCALED COORDINATES (What Editor Saves)
+    ┌─────────────────────────────────┐
+    │ Original Sprite: 128x128 pixels │
+    │                                 │
+    │  ┌─────────────────────────┐    │
+    │  │ Hitbox:                 │    │
+    │  │   width: 40 px          │    │
+    │  │   height: 50 px         │    │
+    │  │   offsetX: 20 px        │    │
+    │  │   offsetY: 30 px        │    │
+    │  └─────────────────────────┘    │
+    └─────────────────────────────────┘
+           ⬇️ EXPORTED TO hitbox-config.js
+
+    PHASER APPLICATION (What Game Uses)
+    ┌─────────────────────────────────────────────────────┐
+    │ Scale: 1.6 (for fireslime)                          │
+    │                                                     │
+    │ Display Size: 204.8 x 204.8 (128 * 1.6)            │
+    │                                                     │
+    │ body.setSize(40, 50)     ✓ NO DIVISION BY SCALE    │
+    │ body.setOffset(20, 30)   ✓ NO DIVISION BY SCALE    │
+    │                                                     │
+    │ Physics coordinates are INDEPENDENT of display      │
+    │ scale. Body always uses unscaled coordinates.       │
+    └─────────────────────────────────────────────────────┘
+
+================================================================================
+SECTION 6: CONSISTENCY MATRIX
+================================================================================
+
+Enemy Type          │ Scale │ Flip  │ Hitbox │ Shadow │ Special Notes
+─────────────────────────────────────────────────────────────────────────
+tree                │  ✓    │  ✗    │  ✓    │  ✓    │ No flip applied
+bat                 │  ✓    │  ✗    │  ✓    │  ✓    │ No flip applied
+mushroom            │  ✓    │  ✓    │  ✓    │  ✓    │ Full config
+soul                │  ✓    │  ✗    │  ✓    │  ✓    │ No flip applied
+giantfly            │  ✓    │  ✗    │  ✓    │  ✓    │ No flip applied
+bumblebee           │  ✓    │  ✓    │  ✓    │  ✓    │ Full config
+bloboid             │  ✓    │  ✓    │  ✓    │  ✓    │ Full config
+slime               │  ✓    │  ✗    │  ✓    │  ✓    │ No flip applied
+fireslime           │  ✓    │  ✗    │  ✓    │  ✓    │ No flip applied
+bombslime           │  ✓    │  ✓    │  ✓    │  ✓    │ Full config
+arcaneslime         │  ✓    │  ✓    │  ✓    │  ✓    │ Full config
+waterslime          │  ✓    │  ✓    │  ✓    │  ✓    │ Full config
+lightningslime      │  ✓    │  ✓    │  ✓    │  ✓    │ Full config
+earthslime          │  ✓    │  ✓    │  ✓    │  ✓    │ Full config
+─────────────────────────────────────────────────────────────────────────
+Player 1 (wizard)   │  ✓    │  ✓    │  ✓    │  ✓    │ Full config (with redundant blip check)
+Player 2 (wizard2)  │  ✓    │  ✓    │  ✓    │  ✓    │ Full config
+Player 3 (wizard3)  │  ✓    │  ✗    │  ✗    │  ?    │ ⚠️ MISSING HITBOX & FLIP
+Player 4 (wizard4)  │  ✓    │  ✗    │  ✗    │  ?    │ ⚠️ MISSING HITBOX & FLIP
+─────────────────────────────────────────────────────────────────────────
+Boss (obelisk)      │  ✓    │  ✗    │  ✓    │  ✓    │ Boss-specific setup
+Boss (archer)       │  ✓    │  ✗    │  ✓    │  ✓    │ Boss-specific setup
+Boss (frost-guard)  │  ✓    │  ✗    │  ✓    │  ✓    │ Boss-specific setup
+
+================================================================================
+SECTION 7: BUG LOCATIONS
+================================================================================
+
+BUG #1: P3 & P4 Missing Hitbox Configuration
+    Location:    game.js lines ~12200-12290
+    Severity:    ⚠️ MEDIUM (affects multiplayer)
+    Fix:         Add hitbox application after scale application
+    Impact:      P3 and P4 use default hitbox instead of configured
+
+BUG #2: Inconsistent Flip Application
+    Location:    game.js lines 27620-29000 (enemy creation)
+    Severity:    ⚠️ LOW-MEDIUM (visual only)
+    Fix:         Apply flip to ALL enemies, not just some types
+    Impact:      Some enemies display with wrong orientation
+
+BUG #3: Redundant Blip Scale Check
+    Location:    game.js line 12294-12296
+    Severity:    ℹ️ INFO (code smell)
+    Fix:         Delete redundant force-check
+    Impact:      No actual bug, just unnecessary code
+
+================================================================================
+SECTION 8: CODE CALL COUNTS BY FUNCTION
+================================================================================
+
+hitboxConfig.load()              │ 1 call      │ Game initialization only
+hitboxConfig.getScale()          │ 40+ calls   │ Every enemy creation
+hitboxConfig.applyScale()        │ 40+ calls   │ Via applySavedScale()
+hitboxConfig.applyFlip()         │ 25 calls    │ Selective enemy types ONLY
+hitboxConfig.applyHitbox()       │ 40+ calls   │ Every enemy creation
+hitboxConfig.getShadow()         │ 1 call      │ Shadow creation
+applyHitboxConfig()              │ 40+ calls   │ Wrapper function
+applySavedScale()                │ 40+ calls   │ Every enemy creation
+applyProjectileHitbox()          │ Multiple    │ Projectile creation
+applyEditorData()                │ 0 calls     │ Not actively used
+
+================================================================================
+SECTION 9: DATA FLOW CHAIN
+================================================================================
+
+Sprite Editor (UI)
+    ⬇️
+User Configuration (hitboxes, scales, flips, shadows)
+    ⬇️
+Export Button (triggers updateHitboxConfig-*.js)
+    ⬇️
+Generate hitbox-config.json (intermediate format)
+    ⬇️
+Convert to hitbox-config.js (JavaScript object)
+    ⬇️
+HTML Loads Script Tag (index.html line 137)
+    ⬇️
+window.hitboxConfig = { scales, hitboxes, flips, shadows, ... }
+    ⬇️
+Game Initialization (hitboxConfig.load())
+    ⬇️
+Enemy Creation Loop
+    │
+    ├─ Get scale from hitboxConfig.scales['typename']
+    ├─ Apply scale via sprite.setScale()
+    │
+    ├─ Get flip from hitboxConfig.flips['typename']
+    ├─ Apply flip via sprite.setFlipX/Y()
+    │
+    ├─ Get hitbox from hitboxConfig.hitboxes['typename']
+    ├─ Apply hitbox via body.setSize/setOffset()
+    │
+    └─ Get shadow from hitboxConfig.shadows['typename']
+       Apply shadow dimensions and position
+
+================================================================================

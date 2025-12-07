@@ -120,18 +120,20 @@
     "defaultScale": 1.5
   },
   "slime": {
-    "texture": "bloboid-walk",
-    "path": "../assets/newenemies/blob/blob%20minion%20walk.png",
-    "frameWidth": 80,
-    "frameHeight": 35,
+    "texture": "slime-idle-0",
+    "path": "assets/Slime/Individual Sprites/slime-idle-0.png",
+    "frameWidth": 32,
+    "frameHeight": 25,
     "animations": {
       "walk": {
         "start": 0,
-        "end": 7,
-        "rate": 10
+        "end": 3,
+        "rate": 8
       }
     },
-    "defaultScale": 1.5
+    "defaultScale": 1.5,
+    "individualFrames": true,
+    "framePattern": "slime-idle-"
   },
   "kobold": {
     "texture": "kobold-walk",
@@ -271,6 +273,29 @@
     },
     "defaultScale": 2
   },
+  "caveghoul": {
+    "texture": "caveghoul-walk",
+    "path": "../assets/enemies/caveghoulwalk8frames.png",
+    "frameWidth": 64,
+    "frameHeight": 50,
+    "animations": {
+      "walk": {
+        "start": 0,
+        "end": 7,
+        "rate": 10
+      },
+      "death": {
+        "texture": "caveghoul-death",
+        "path": "../assets/enemies/caveghouldeath6frames.png",
+        "frameWidth": 66.67,
+        "frameHeight": 48,
+        "start": 0,
+        "end": 5,
+        "rate": 8
+      }
+    },
+    "defaultScale": 1.5
+  },
   "swampmerchant": {
     "texture": "swampmerchant-walk",
     "path": "../assets/enemies/forestlandfoes/swampmerchantwalk5frames.png",
@@ -288,7 +313,7 @@
   "torchboy": {
     "texture": "torchboy-walk",
     "path": "../assets/enemies/forestlandfoes/torchboi/runvertical6frames.png",
-    "frameWidth": 82,
+    "frameWidth": 31,
     "frameHeight": 39,
     "animations": {
       "walk": {
@@ -302,7 +327,7 @@
   "mudguard": {
     "texture": "mudguard-walk",
     "path": "../assets/enemies/forestlandfoes/Mud Guard/mudguardrunvertical6frames.png",
-    "frameWidth": 82,
+    "frameWidth": 28,
     "frameHeight": 23,
     "animations": {
       "walk": {
@@ -313,7 +338,7 @@
       "death": {
         "texture": "mudguard-death",
         "path": "../assets/enemies/forestlandfoes/Mud Guard/mudguarddeathvertical8frames.png",
-        "frameWidth": 82,
+        "frameWidth": 28,
         "frameHeight": 23,
         "start": 0,
         "end": 7,
@@ -1557,6 +1582,29 @@
     },
     "defaultScale": 1.5
   },
+  "skullhound": {
+    "texture": "skullhound-walk",
+    "path": "../assets/enemies/skullwoflwalk5frames.png",
+    "frameWidth": 64,
+    "frameHeight": 48,
+    "animations": {
+      "walk": {
+        "start": 0,
+        "end": 4,
+        "rate": 8
+      },
+      "death": {
+        "texture": "skullhound-death",
+        "path": "../assets/enemies/skullwolfdeath7frames.png",
+        "frameWidth": 64,
+        "frameHeight": 49,
+        "start": 0,
+        "end": 6,
+        "rate": 10
+      }
+    },
+    "defaultScale": 1.5
+  },
   "wizard": {
     "texture": "wizard-idle",
     "path": "../assets/sprites/wizmove/newiz/wizard_idle.PNG",
@@ -1847,5 +1895,21 @@
       }
     },
     "defaultScale": 1.8
+  },
+  "flamethrower": {
+    "texture": "flamethrower-0",
+    "path": "../assets/effects/spells/firespell/1_0.png",
+    "frameWidth": 100,
+    "frameHeight": 100,
+    "animations": {
+      "stream": {
+        "start": 0,
+        "end": 119,
+        "rate": 30
+      }
+    },
+    "defaultScale": 1,
+    "individualFrames": true,
+    "framePattern": "flamethrower-"
   }
 }

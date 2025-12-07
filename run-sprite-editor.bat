@@ -8,8 +8,11 @@ for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8081') do (
     taskkill /F /PID %%a 2>nul
 )
 
-REM Start the sprite editor server
-cd sprite-editor
+REM Get the directory where this batch file is located
+set SCRIPT_DIR=%~dp0
+
+REM Start the sprite editor server from the script directory
+cd /d "%SCRIPT_DIR%sprite-editor"
 node run-editor.js
 
 REM If node fails, provide instructions

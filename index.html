@@ -20,13 +20,17 @@
             image-rendering: crisp-edges; /* Standard */
         }
         
-        /* Fix for Chrome flickering */
+        /* Fix for Chrome/WebGL flickering */
         canvas {
             image-rendering: pixelated;
             image-rendering: -moz-crisp-edges;
             image-rendering: crisp-edges;
+            -ms-interpolation-mode: nearest-neighbor;
             transform: translateZ(0); /* Force GPU acceleration */
             backface-visibility: hidden; /* Prevent flickering */
+            will-change: transform; /* Optimize for animations */
+            -webkit-font-smoothing: none;
+            -moz-osx-font-smoothing: grayscale;
         }
         
         /* Pre-loader styles for instant display during Electron startup */
@@ -165,7 +169,7 @@
         }
     </script>
 
-    <script src="scripts/game.js?v=209"></script>
+    <script src="scripts/game.js?v=210"></script>
     <script src="scripts/autoplay.js"></script>
     
     <script>

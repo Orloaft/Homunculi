@@ -53,6 +53,11 @@ class SaveManager {
                 }
             },
 
+            // Character unlocks
+            characters: {
+                unlocked: ['wizard'] // Only wizard (Veiled Custodian/Alchemist) unlocked by default
+            },
+
             // Upgrades and abilities
             upgrades: {
                 healthUpgrades: 0,
@@ -60,6 +65,12 @@ class SaveManager {
                 damageUpgrades: 0,
                 speedUpgrades: 0,
                 abilities: [] // Unlocked special abilities
+            },
+
+            // Talent system
+            talents: {
+                essence: 0, // Talent points for spending in nexus
+                unlockedTalents: [] // Array of unlocked talent node IDs
             },
 
             // Settings (per-save)
