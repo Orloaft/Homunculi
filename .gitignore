@@ -4,6 +4,11 @@ node_modules/
 # Build output
 dist/
 build/
+wizbiz-itch/
+wizbiz-itch-clean/
+wizbiz-itch.zip
+wizbiz-itch.tar.gz
+wizbiz-itch-clean.zip
 
 # TypeScript compiled output directory
 build/

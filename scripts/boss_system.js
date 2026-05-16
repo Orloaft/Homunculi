@@ -13,6 +13,7 @@ class Boss extends Phaser.GameObjects.Sprite {
         this.currentState = null;
         this.states = new Map();
         this.stateTimer = 0;
+        this.stateControlledByBehavior = false; // Flag to prevent state conflicts
         // Behavior system
         this.behaviors = [];
         this.behaviorIndex = 0;
@@ -50,12 +51,13 @@ class Boss extends Phaser.GameObjects.Sprite {
             duration: stateConfig.duration || -1 // -1 = infinite
         });
     }
-    changeState(newState) {
+    changeState(newState, fromBehavior = false) {
         if (this.currentState && this.states.has(this.currentState)) {
             this.states.get(this.currentState).exit.call(this);
         }
         this.currentState = newState;
         this.stateTimer = 0;
+        this.stateControlledByBehavior = fromBehavior;
         if (this.states.has(newState)) {
             this.states.get(newState).enter.call(this);
         }
@@ -71,8 +73,8 @@ class Boss extends Phaser.GameObjects.Sprite {
             const state = this.states.get(this.currentState);
             state.update.call(this, dt);
             this.stateTimer += dt;
-            // Auto-transition if duration is set
-            if (state.duration > 0 && this.stateTimer >= state.duration) {
+            // Auto-transition if duration is set (only if not controlled by behavior)
+            if (state.duration > 0 && this.stateTimer >= state.duration && !this.stateControlledByBehavior) {
                 this.onStateComplete();
             }
         }
@@ -87,7 +89,7 @@ class Boss extends Phaser.GameObjects.Sprite {
         const shouldContinue = currentBehavior.update.call(this, dt);
         // Check if behavior should end
         this.behaviorTimer += dt;
-        if (!shouldContinue || 
+        if (!shouldContinue ||
             (currentBehavior.duration > 0 && this.behaviorTimer >= currentBehavior.duration)) {
             this.nextBehavior();
         }
@@ -99,14 +101,32 @@ class Boss extends Phaser.GameObjects.Sprite {
         if (currentBehavior.exit) {
             currentBehavior.exit.call(this);
         }
-        // Move to next behavior
-        this.behaviorIndex = (this.behaviorIndex + 1) % this.behaviors.length;
-        this.behaviorTimer = 0;
-        // Call enter on new behavior
-        const newBehavior = this.behaviors[this.behaviorIndex];
-        if (newBehavior.enter) {
-            newBehavior.enter.call(this);
+        // Find next valid behavior based on current health
+        const startIndex = this.behaviorIndex;
+        let attempts = 0;
+        const maxAttempts = this.behaviors.length;
+
+        while (attempts < maxAttempts) {
+            // Move to next behavior
+            this.behaviorIndex = (this.behaviorIndex + 1) % this.behaviors.length;
+            attempts++;
+
+            const newBehavior = this.behaviors[this.behaviorIndex];
+
+            // If behavior has no condition or condition is met, use it
+            if (!newBehavior.condition || newBehavior.condition.call(this)) {
+                this.behaviorTimer = 0;
+                // Call enter on new behavior
+                if (newBehavior.enter) {
+                    newBehavior.enter.call(this);
+                }
+                return;
+            }
         }
+
+        // If no valid behavior found, stay on current (fallback)
+        this.behaviorIndex = startIndex;
+        this.behaviorTimer = 0;
     }
     onStateComplete() {
         // Override in child classes or behaviors
@@ -181,14 +201,15 @@ class FireDemon extends Boss {
         this.addBehavior({
             name: 'fireball-barrage',
             duration: 5.0,
+            condition: () => this.getHealthPercentage() > 0.7,
             enter: () => {
-                this.changeState('charging');
+                this.changeState('charging', true);
                 this.fireballCount = 0;
             },
             update: (dt) => {
                 if (this.currentState === 'charging') return true;
                 if (this.currentState !== 'attacking') {
-                    this.changeState('attacking');
+                    this.changeState('attacking', true);
                 }
                 // Fire 3 fireballs with timing
                 if (this.stateTimer > 0.5 && this.fireballCount < 3) {
@@ -197,38 +218,42 @@ class FireDemon extends Boss {
                         this.fireballCount++;
                     }
                 }
-                return this.getHealthPercentage() > 0.7;
+                return true; // Continue until duration ends
             }
         });
         this.addBehavior({
             name: 'chase-player',
             duration: 4.0,
+            condition: () => this.getHealthPercentage() > 0.7,
             enter: () => {
-                this.changeState('moving');
+                this.changeState('moving', true);
             },
             update: (dt) => {
-                return this.getHealthPercentage() > 0.7;
+                return true; // Continue until duration ends
             }
         });
         // Phase 2: 30-70% health
         this.addBehavior({
             name: 'flame-wave',
             duration: 6.0,
+            condition: () => {
+                const hp = this.getHealthPercentage();
+                return hp > 0.3 && hp <= 0.7;
+            },
             enter: () => {
-                this.changeState('charging');
+                this.changeState('charging', true);
             },
             update: (dt) => {
                 if (this.currentState === 'charging') return true;
                 if (this.currentState !== 'attacking') {
-                    this.changeState('attacking');
+                    this.changeState('attacking', true);
                 }
                 // Create circular flame wave
                 if (this.stateTimer > 1.0 && !this.waveCreated) {
                     this.createFlameWave();
                     this.waveCreated = true;
                 }
-                const hp = this.getHealthPercentage();
-                return hp > 0.3 && hp <= 0.7;
+                return true; // Continue until duration ends
             },
             exit: () => {
                 this.waveCreated = false;
@@ -238,14 +263,15 @@ class FireDemon extends Boss {
         this.addBehavior({
             name: 'meteor-rain',
             duration: 8.0,
+            condition: () => this.getHealthPercentage() <= 0.3,
             enter: () => {
-                this.changeState('charging');
+                this.changeState('charging', true);
                 this.meteorTimer = 0;
             },
             update: (dt) => {
                 if (this.currentState === 'charging') return true;
                 if (this.currentState !== 'attacking') {
-                    this.changeState('attacking');
+                    this.changeState('attacking', true);
                 }
                 // Spawn meteors every 0.5 seconds
                 this.meteorTimer += dt;
@@ -253,7 +279,7 @@ class FireDemon extends Boss {
                     this.spawnMeteor();
                     this.meteorTimer = 0;
                 }
-                return this.getHealthPercentage() <= 0.3;
+                return true; // Continue until duration ends
             }
         });
     }

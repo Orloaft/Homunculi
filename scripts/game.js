@@ -276,6 +276,15 @@ class LoadingScene extends Phaser.Scene {
         this.load.audio('pop', 'assets/Pickup_Coin10.wav');
         this.load.audio('levelup', 'sfx/levelupsound.flac');
         this.load.audio('xpjewel', 'sfx/beep.wav');
+        this.load.audio('enemy-death', 'sfx/DSGNMisc_MELEE-Sword Slash_HY_PC-002(enemyhit).wav');
+        this.load.audio('player-hurt', 'sfx/WHSH_MOVEMENT-Simple Whoosh_HY_PC-004(playerhit).wav');
+        this.load.audio('power-up', 'sfx/MAGSpel_CAST-Sharpest Summon_HY_PC-005(powerup).wav');
+        this.load.audio('lightning-impact', 'sfx/SWSH_MOVEMENT-Sparkle Zap_HY_PC-006(lightininghit).wav');
+        this.load.audio('lightning-cast', 'sfx/WHSH_MOVEMENT-Noise Zap_HY_PC-005(lightiningcast).wav');
+        this.load.audio('ice-impact', 'sfx/UIGlitch_USABLE-Glassy Click_HY_PC-006(iceimpact).wav');
+        this.load.audio('ice-cast', 'sfx/SWSH_MOVEMENT-Bubbly Passby_HY_PC-001(icecast).wav');
+        this.load.audio('fire-cast', 'sfx/MAGSpel_CAST-Appear Firewall_HY_PC-006(firecast).wav');
+        this.load.audio('boss-death', 'sfx/MAGSpel_CAST-Underwater_HY_PC-001(bossdeath).wav');
         this.load.audio('stageselect-bgm', 'assets/audio/VGMA%20Challenge%2008(stageselect).ogg');
         this.load.audio('title-bgm', 'assets/audio/Ludum%20Dare%2028%2003(title).ogg');
         this.load.audio('forestland-bgm', 'assets/audio/Sketchbook%202024-08-07(forestland).ogg');
@@ -351,6 +360,7 @@ class LoadingScene extends Phaser.Scene {
         this.load.image('chaos-orb', 'assets/effects/orbs/chaos.png');
         this.load.image('alchemy-orb', 'assets/effects/orbs/alchemy.png');
         this.load.image('magnet-orb', 'assets/effects/orbs/magnet.png');
+        this.load.image('bomb-orb', 'assets/effects/orbs/bomb.png');
         // Load chaos missile frames for all 3 levels
         for (let level = 1; level <= 3; level++) {
             for (let i = 1; i <= 30; i++) {
@@ -647,6 +657,8 @@ class LoadingScene extends Phaser.Scene {
             frameWidth: 16,
             frameHeight: 16
         });
+        // Load level up orb (luck orb)
+        this.load.image('luck-orb', 'assets/effects/orbs/luck.png');
         // Cave obstacle assets
         this.load.image('cave-crystal', 'assets/obstacles/cave/crystal.PNG');
         this.load.image('cave-rock', 'assets/obstacles/cave/rock.PNG');
@@ -774,6 +786,21 @@ class LoadingScene extends Phaser.Scene {
             frameWidth: 100, // 1400 / 14 frames
             frameHeight: 80
         });
+        // Load grim reaper ally sprites (summoned by death spell)
+        this.load.spritesheet('grimreaper-idle', 'assets/bosses/grimreaper/reaperidle4x2dims400x200.png', {
+            frameWidth: 100, // 400 / 4 frames
+            frameHeight: 100 // 200 / 2 rows
+        });
+        this.load.spritesheet('grimreaper-attack', 'assets/bosses/grimreaper/reaperattacking6x3dims600x300.png', {
+            frameWidth: 100, // 600 / 6 frames
+            frameHeight: 100 // 300 / 3 rows (only use first 13 frames)
+        });
+        // Load Blue Witch tutorial guide sprites
+        this.load.spritesheet('bluewitch-idle', 'assets/bluewitch/B_witch_idle6framesdims32x288.png', {
+            frameWidth: 32,
+            frameHeight: 48 // 288 / 6 frames
+        });
+        this.load.image('bluewitch-portrait', 'assets/bluewitch/B_witch.gif');
         // Load lost soul enemy sprites
         this.load.spritesheet('soul-move', 'assets/newenemies/Soul/Soul/move/Soul_move.png', {
             frameWidth: 96,
@@ -1429,6 +1456,10 @@ class LoadingScene extends Phaser.Scene {
                         duration: 500,
                         ease: 'Power2',
                         onComplete: () => {
+                            // DEBUG: Log data being passed to next scene
+                            console.log('🎮 MULTIPLAYER DEBUG - LoadingScene starting:', this.nextScene);
+                            console.log('  sceneData:', this.sceneData);
+
                             // Start the next scene
                             this.scene.start(this.nextScene, this.sceneData);
                         }
@@ -1436,6 +1467,131 @@ class LoadingScene extends Phaser.Scene {
                 }
             });
         });
+    }
+}
+
+// ===== CREDITS SCENE =====
+class CreditsScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'CreditsScene' });
+    }
+
+    create() {
+        // Dark background
+        this.add.rectangle(400, 300, 800, 600, 0x000000, 1);
+
+        // Title
+        const title = this.add.text(400, 50, 'CREDITS', {
+            fontSize: '48px',
+            color: '#8b7355',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 6
+        }).setOrigin(0.5);
+
+        // Credits content
+        const creditsText = [
+            '',
+            'GAME DEVELOPMENT',
+            'Programming & Design',
+            'Alex',
+            '',
+            '',
+            'POWERED BY',
+            'Phaser 3',
+            'Game Framework',
+            '',
+            '',
+            'ASSETS & RESOURCES',
+            'Pixel Art Sprites',
+            'Various Artists via Craftpix & OpenGameArt',
+            '',
+            'Sound Effects',
+            'Generated with AI & Sound Libraries',
+            '',
+            '',
+            'SPECIAL THANKS',
+            'To all playtesters',
+            'and supporters!',
+            '',
+            '',
+            '',
+            'Made with ❤️',
+            '',
+            '',
+            'Press ESC or BACK to return'
+        ];
+
+        // Create scrolling credits
+        let yPos = 150;
+        const textObjects = [];
+        
+        creditsText.forEach((line, index) => {
+            const isSectionHeader = line === 'GAME DEVELOPMENT' || 
+                                   line === 'POWERED BY' || 
+                                   line === 'ASSETS & RESOURCES' || 
+                                   line === 'SPECIAL THANKS';
+            
+            const text = this.add.text(400, yPos, line, {
+                fontSize: isSectionHeader ? '24px' : '18px',
+                color: isSectionHeader ? '#ffd700' : '#ffffff',
+                fontStyle: isSectionHeader ? 'bold' : 'normal',
+                align: 'center'
+            }).setOrigin(0.5);
+            
+            textObjects.push(text);
+            yPos += isSectionHeader ? 35 : 25;
+        });
+
+        // Scroll animation (slow upward scroll)
+        textObjects.forEach((text, index) => {
+            this.tweens.add({
+                targets: text,
+                y: text.y - 300,
+                duration: 30000,
+                ease: 'Linear',
+                delay: 0
+            });
+        });
+
+        // Back button
+        const backButton = this.add.text(50, 550, '< BACK', {
+            fontSize: '24px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            backgroundColor: '#000000',
+            padding: { x: 15, y: 8 }
+        }).setOrigin(0, 1);
+        
+        backButton.setInteractive({ useHandCursor: true });
+        
+        backButton.on('pointerover', () => {
+            backButton.setColor('#ffd700');
+        });
+        
+        backButton.on('pointerout', () => {
+            backButton.setColor('#ffffff');
+        });
+        
+        backButton.on('pointerdown', () => {
+            this.returnToTitle();
+        });
+
+        // Keyboard/gamepad support
+        this.input.keyboard.on('keydown-ESC', () => {
+            this.returnToTitle();
+        });
+
+        // Gamepad support
+        this.input.gamepad.once('down', (pad, button, index) => {
+            if (button.index === 1) { // B button / Circle
+                this.returnToTitle();
+            }
+        });
+    }
+
+    returnToTitle() {
+        this.scene.start('TitleScene');
     }
 }
 class TitleScene extends Phaser.Scene {
@@ -1464,10 +1620,13 @@ class TitleScene extends Phaser.Scene {
         this.input.keyboard.enabled = true;
         // Force resize to ensure proper centering
         this.scale.refresh();
-        // Apply saved volume
+        // Apply saved volume (default to 40% if not set)
         const savedVolume = localStorage.getItem('gameVolume');
         if (savedVolume !== null) {
             this.game.sound.volume = parseFloat(savedVolume);
+        } else {
+            this.game.sound.volume = 0.4; // Default 40% volume
+            localStorage.setItem('gameVolume', '0.4');
         }
         // Set background to black first
         this.cameras.main.setBackgroundColor('#000000');
@@ -1681,13 +1840,11 @@ class TitleScene extends Phaser.Scene {
         // CO-OP Button - center below start text
         const coopButton = this.add.text(400, 470, 'CO-OP (2-4 Players)', {
             fontSize: '24px',
-            color: '#ffffff',
-            backgroundColor: '#003300',
-            padding: { x: 20, y: 10 }
+            color: '#ffffff'
         }).setOrigin(0.5);
         coopButton.setInteractive({ useHandCursor: true });
         coopButton.setAlpha(0); // Start invisible
-        // Fade in co-op button
+        // Fade in coop button
         this.tweens.add({
             targets: coopButton,
             alpha: 1,
@@ -1715,14 +1872,50 @@ class TitleScene extends Phaser.Scene {
             padding: { x: 15, y: 8 }
         }).setOrigin(1, 1);
         optionsButton.setInteractive({ useHandCursor: true });
+        optionsButton.setAlpha(0); // Start invisible
+        // Fade in options button
+        this.tweens.add({
+            targets: optionsButton,
+            alpha: 1,
+            duration: 1000,
+            delay: 3000,
+            ease: 'Power2'
+        });
         optionsButton.on('pointerover', () => {
-            optionsButton.setColor('#ffd700');
+            optionsButton.setColor('#8b7355');
         });
         optionsButton.on('pointerout', () => {
-            optionsButton.setColor('#ffffff');
+            optionsButton.setColor('#d4c4d8');
         });
         optionsButton.on('pointerdown', () => {
             this.showOptionsMenu();
+        });
+
+        // Credits button - bottom left corner
+        const creditsButton = this.add.text(50, 530, 'CREDITS', {
+            fontSize: '20px',
+            color: '#ffffff',
+            backgroundColor: '#000000',
+            padding: { x: 15, y: 8 }
+        }).setOrigin(0, 1);
+        creditsButton.setInteractive({ useHandCursor: true });
+        creditsButton.setAlpha(0); // Start invisible
+        // Fade in credits button
+        this.tweens.add({
+            targets: creditsButton,
+            alpha: 1,
+            duration: 1000,
+            delay: 3000,
+            ease: 'Power2'
+        });
+        creditsButton.on('pointerover', () => {
+            creditsButton.setColor('#8b7355');
+        });
+        creditsButton.on('pointerout', () => {
+            creditsButton.setColor('#ffffff');
+        });
+        creditsButton.on('pointerdown', () => {
+            this.scene.start('CreditsScene');
         });
         // Controller hint text (initially hidden)
         this.controllerHint = this.add.text(750, 530, 'Press SELECT', {
@@ -1797,15 +1990,15 @@ class TitleScene extends Phaser.Scene {
         this.highScoreContainer.setVisible(false);
         this.highScoreContainer.setDepth(100);
 
-        // Background
+        // Background (dark fantasy border)
         const bg = this.add.rectangle(0, 0, 300, 200, 0x000000, 0.8);
-        bg.setStrokeStyle(2, 0xffd700);
+        bg.setStrokeStyle(2, 0x8b7355);
         this.highScoreContainer.add(bg);
 
         // Title
         const title = this.add.text(0, -80, 'HIGH SCORES', {
             fontSize: '24px',
-            color: '#ffd700',
+            color: '#8b7355',
             fontStyle: 'bold'
         }).setOrigin(0.5);
         this.highScoreContainer.add(title);
@@ -2003,322 +2196,73 @@ class TitleScene extends Phaser.Scene {
         }
     }
     showOptionsMenu() {
-        // Create full viewport options menu overlay
+        // Create simplified options menu overlay for itch.io deployment
         const overlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.95);
         overlay.setInteractive(); // Block clicks to elements below
-        const menuTitle = this.add.text(400, 25, 'OPTIONS', {
-            fontSize: '28px',
-            color: '#ffd700',
+        
+        const menuTitle = this.add.text(400, 80, 'OPTIONS', {
+            fontSize: '32px',
+            color: '#8b7355',
             fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 3
+            strokeThickness: 4
         }).setOrigin(0.5);
-        // Debug mode toggle
-        const debugContainer = this.add.container(200, 70);
-        const debugLabel = this.add.text(-180, 0, 'Debug Mode:', {
-            fontSize: '16px',
-            color: '#ffffff'
-        }).setOrigin(0, 0.5);
-        const debugCheckbox = this.add.rectangle(130, 0, 25, 25, 0x444444);
-        debugCheckbox.setStrokeStyle(3, 0xffd700);
-        debugCheckbox.setInteractive({ useHandCursor: true });
-        const debugCheck = this.add.text(130, 0, '✓', {
-            fontSize: '18px',
-            color: '#00ff00',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-        debugCheck.setVisible(this.debugEnabled);
-        debugCheckbox.on('pointerdown', () => {
-            this.debugEnabled = !this.debugEnabled;
-            debugCheck.setVisible(this.debugEnabled);
-            localStorage.setItem('debugMode', this.debugEnabled.toString());
-        });
-        debugContainer.add([debugLabel, debugCheckbox, debugCheck]);
-        // Show all recipes toggle
-        const recipesContainer = this.add.container(200, 100);
-        const recipesLabel = this.add.text(-180, 0, 'Show All Recipes:', {
-            fontSize: '16px',
-            color: '#ffffff'
-        }).setOrigin(0, 0.5);
-        const recipesCheckbox = this.add.rectangle(130, 0, 25, 25, 0x444444);
-        recipesCheckbox.setStrokeStyle(3, 0xffd700);
-        recipesCheckbox.setInteractive({ useHandCursor: true });
-        // Check if show all recipes is enabled
-        const showAllRecipes = localStorage.getItem('showAllRecipes') === 'true';
-        const recipesCheck = this.add.text(130, 0, '✓', {
-            fontSize: '18px',
-            color: '#00ff00',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-        recipesCheck.setVisible(showAllRecipes);
-        recipesCheckbox.on('pointerdown', () => {
-            const currentState = localStorage.getItem('showAllRecipes') === 'true';
-            const newState = !currentState;
-            recipesCheck.setVisible(newState);
-            localStorage.setItem('showAllRecipes', newState.toString());
-        });
-        recipesContainer.add([recipesLabel, recipesCheckbox, recipesCheck]);
-        // Unlock all stages toggle
-        const stagesContainer = this.add.container(200, 130);
-        const stagesLabel = this.add.text(-180, 0, 'Unlock All Stages:', {
-            fontSize: '16px',
-            color: '#ffffff'
-        }).setOrigin(0, 0.5);
-        const stagesCheckbox = this.add.rectangle(130, 0, 25, 25, 0x444444);
-        stagesCheckbox.setStrokeStyle(3, 0xffd700);
-        stagesCheckbox.setInteractive({ useHandCursor: true });
-        // Check if unlock all stages is enabled
-        const unlockAllStages = localStorage.getItem('unlockAllStages') === 'true';
-        const stagesCheck = this.add.text(130, 0, '✓', {
-            fontSize: '18px',
-            color: '#00ff00',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-        stagesCheck.setVisible(unlockAllStages);
-        stagesCheckbox.on('pointerdown', () => {
-            const currentState = localStorage.getItem('unlockAllStages') === 'true';
-            const newState = !currentState;
-            stagesCheck.setVisible(newState);
-            localStorage.setItem('unlockAllStages', newState.toString());
-            // Clear stage unlock flags to force refresh
-            if (newState) {
-                localStorage.setItem('nexusVisited', 'true');
-                localStorage.setItem('forestLandUnlocked', 'true');
-            }
-        });
-        stagesContainer.add([stagesLabel, stagesCheckbox, stagesCheck]);
 
-        // Boss Fights toggle
-        const bossContainer = this.add.container(200, 160);
-        const bossLabel = this.add.text(-180, 0, 'Boss Fights:', {
-            fontSize: '16px',
-            color: '#ffffff'
-        }).setOrigin(0, 0.5);
-        const bossCheckbox = this.add.rectangle(130, 0, 25, 25, 0x444444);
-        bossCheckbox.setStrokeStyle(3, 0xffd700);
-        bossCheckbox.setInteractive({ useHandCursor: true });
-        // Check if boss fights are enabled (default: true)
-        const bossEnabled = localStorage.getItem('bossEnabled') !== 'false';
-        const bossCheck = this.add.text(130, 0, '✓', {
-            fontSize: '18px',
-            color: '#00ff00',
+        // Game Speed Dial (only Frolic and Vibe)
+        const speedContainer = this.add.container(400, 180);
+        const speedLabel = this.add.text(0, -40, 'Game Speed:', {
+            fontSize: '24px',
+            color: '#d4c4d8',
             fontStyle: 'bold'
         }).setOrigin(0.5);
-        bossCheck.setVisible(bossEnabled);
-        bossCheckbox.on('pointerdown', () => {
-            const currentState = localStorage.getItem('bossEnabled') !== 'false';
-            const newState = !currentState;
-            bossCheck.setVisible(newState);
-            localStorage.setItem('bossEnabled', newState.toString());
-        });
-        bossContainer.add([bossLabel, bossCheckbox, bossCheck]);
-
-        // Obelisks toggle (Blood & Regular)
-        const obelisksContainer = this.add.container(200, 190);
-        const obelisksLabel = this.add.text(-180, 0, 'Obelisks:', {
-            fontSize: '16px',
-            color: '#ffffff'
-        }).setOrigin(0, 0.5);
-        const obelisksCheckbox = this.add.rectangle(130, 0, 25, 25, 0x444444);
-        obelisksCheckbox.setStrokeStyle(3, 0xffd700);
-        obelisksCheckbox.setInteractive({ useHandCursor: true });
-        // Check if obelisks are enabled (default: false - disabled)
-        const obelisksEnabled = localStorage.getItem('obelisksEnabled') === 'true';
-        const obelisksCheck = this.add.text(130, 0, '✓', {
-            fontSize: '18px',
-            color: '#00ff00',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-        obelisksCheck.setVisible(obelisksEnabled);
-        obelisksCheckbox.on('pointerdown', () => {
-            const currentState = localStorage.getItem('obelisksEnabled') === 'true';
-            const newState = !currentState;
-            obelisksCheck.setVisible(newState);
-            localStorage.setItem('obelisksEnabled', newState.toString());
-        });
-        obelisksContainer.add([obelisksLabel, obelisksCheckbox, obelisksCheck]);
-
-        // Arcade Mode toggle
-        const arcadeModeContainer = this.add.container(200, 220);
-        const arcadeModeLabel = this.add.text(-180, 0, 'Arcade Mode:', {
-            fontSize: '16px',
-            color: '#ffffff'
-        }).setOrigin(0, 0.5);
-        const arcadeModeCheckbox = this.add.rectangle(130, 0, 25, 25, 0x444444);
-        arcadeModeCheckbox.setStrokeStyle(3, 0xffd700);
-        arcadeModeCheckbox.setInteractive({ useHandCursor: true });
-        // Check if arcade mode is enabled (default: false)
-        const arcadeModeEnabled = localStorage.getItem('arcadeMode') === 'true';
-        const arcadeModeCheck = this.add.text(130, 0, '✓', {
-            fontSize: '18px',
-            color: '#00ff00',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-        arcadeModeCheck.setVisible(arcadeModeEnabled);
-        arcadeModeCheckbox.on('pointerdown', () => {
-            const currentState = localStorage.getItem('arcadeMode') === 'true';
-            const newState = !currentState;
-            arcadeModeCheck.setVisible(newState);
-            localStorage.setItem('arcadeMode', newState.toString());
-        });
-        arcadeModeContainer.add([arcadeModeLabel, arcadeModeCheckbox, arcadeModeCheck]);
-
-        // Fullscreen toggle
-        const fullscreenContainer = this.add.container(200, 250);
-        const fullscreenLabel = this.add.text(-180, 0, 'Fullscreen:', {
-            fontSize: '16px',
-            color: '#ffffff'
-        }).setOrigin(0, 0.5);
-        const fullscreenCheckbox = this.add.rectangle(130, 0, 25, 25, 0x444444);
-        fullscreenCheckbox.setStrokeStyle(3, 0xffd700);
-        fullscreenCheckbox.setInteractive({ useHandCursor: true });
-        const fullscreenCheck = this.add.text(130, 0, '✓', {
-            fontSize: '18px',
-            color: '#00ff00',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-        fullscreenCheck.setVisible(this.scale.isFullscreen);
-        fullscreenCheckbox.on('pointerdown', () => {
-            if (this.scale.isFullscreen) {
-                this.scale.stopFullscreen();
-            } else {
-                this.scale.startFullscreen();
-            }
-            fullscreenCheck.setVisible(this.scale.isFullscreen);
-        });
-        fullscreenContainer.add([fullscreenLabel, fullscreenCheckbox, fullscreenCheck]);
-        // Volume control
-        const volumeContainer = this.add.container(600, 70);
-        const volumeLabel = this.add.text(-180, 0, 'Volume:', {
-            fontSize: '18px',
-            color: '#ffffff'
-        }).setOrigin(0, 0.5);
-        // Volume slider background
-        const sliderBg = this.add.rectangle(40, 0, 150, 8, 0x444444);
-        const currentVolume = this.game.sound.volume;
-        // Volume slider handle
-        const sliderHandle = this.add.circle(40 - 75 + (currentVolume * 150), 0, 12, 0xffd700);
-        sliderHandle.setInteractive({ useHandCursor: true, draggable: true });
-        // Volume percentage text
-        const volumePercent = this.add.text(125, 0, Math.round(currentVolume * 100) + '%', {
-            fontSize: '16px',
-            color: '#ffffff'
-        }).setOrigin(0, 0.5);
-        // Handle dragging
-        sliderHandle.on('drag', (pointer, dragX) => {
-            const clampedX = Phaser.Math.Clamp(dragX, -35, 115);
-            sliderHandle.x = clampedX;
-            const volume = (clampedX + 35) / 150;
-            this.game.sound.volume = volume;
-            volumePercent.setText(Math.round(volume * 100) + '%');
-            localStorage.setItem('gameVolume', volume.toString());
-        });
-        volumeContainer.add([volumeLabel, sliderBg, sliderHandle, volumePercent]);
-        // Starting element selection
-        const elementContainer = this.add.container(600, 110);
-        const elementLabel = this.add.text(-180, 0, 'Start Element:', {
-            fontSize: '18px',
-            color: '#ffffff'
-        }).setOrigin(0, 0.5);
-        // Get all available elements from the game scene (including all chess passive orbs)
-        const allElements = ['none', 'fire', 'water', 'earth', 'rock', 'air', 'lightning', 'holy', 'arcane',
-                            'dust', 'lava', 'steam', 'poison', 'volcano', 'ice', 'meteor', 'mud',
-                            'storm', 'thunder', 'crystal', 'death', 'time', 'sand', 'gravity', 'sun', 'smoke', 'blast',
-                            'wave', 'vortex', 'tornado', 'snowball', 'star', 'zodiac', 'hex', 'venom', 'moon', 'nature', 'life', 'metal',
-                            'chaos', 'laser', 'philosopherstone', 'halo', 'rook', 'bishop', 'knight', 'queen', 'king', 'saturn', 'pawn', 'joker'];
-        const elements = allElements;
-        const savedElement = localStorage.getItem('startElement') || 'none';
-        let currentElementIndex = elements.indexOf(savedElement);
-        const elementText = this.add.text(40, 0, savedElement.toUpperCase(), {
-            fontSize: '16px',
-            color: '#ffd700',
-            backgroundColor: '#000000',
-            padding: { x: 20, y: 5 }
-        }).setOrigin(0.5);
-        // Arrow buttons
-        const leftArrow = this.add.text(-15, 0, '<', {
-            fontSize: '20px',
-            color: '#ffffff'
-        }).setOrigin(0.5);
-        leftArrow.setInteractive({ useHandCursor: true });
-        const rightArrow = this.add.text(105, 0, '>', {
-            fontSize: '20px',
-            color: '#ffffff'
-        }).setOrigin(0.5);
-        rightArrow.setInteractive({ useHandCursor: true });
-        leftArrow.on('pointerdown', () => {
-            currentElementIndex = (currentElementIndex - 1 + elements.length) % elements.length;
-            elementText.setText(elements[currentElementIndex].toUpperCase());
-            localStorage.setItem('startElement', elements[currentElementIndex]);
-        });
-        rightArrow.on('pointerdown', () => {
-            currentElementIndex = (currentElementIndex + 1) % elements.length;
-            elementText.setText(elements[currentElementIndex].toUpperCase());
-            localStorage.setItem('startElement', elements[currentElementIndex]);
-        });
-        elementContainer.add([elementLabel, elementText, leftArrow, rightArrow]);
-        // Hyper mode toggle
-        // Speed Mode Dial
-        const speedContainer = this.add.container(200, 310);
-        const speedLabel = this.add.text(-180, 0, 'Game Speed:', {
-            fontSize: '18px',
-            color: '#ffffff'
-        }).setOrigin(0, 0.5);
-        // Speed mode options
-        const speedModes = ['frolic', 'vibe', 'hyper', 'warp'];
+        
+        const speedModes = ['frolic', 'vibe'];
         const speedDescriptions = {
-            'frolic': 'Original speed (10 min games)',
-            'vibe': '1.5x speed (5 min games)',
-            'hyper': '2.25x speed (3.3 min games)',
-            'warp': '4.5x speed (1.7 min games)'
+            'frolic': 'Original (10 min)',
+            'vibe': 'Fast (5 min)'
         };
         const speedColors = {
-            'frolic': '#00ff00',
-            'vibe': '#ffff00',
-            'hyper': '#ff8800',
-            'warp': '#ff0000'
+            'frolic': '#d4c4d8',
+            'vibe': '#8b7355'
         };
+        
         const currentSpeed = localStorage.getItem('speedMode') || 'frolic';
         let currentSpeedIndex = speedModes.indexOf(currentSpeed);
         if (currentSpeedIndex === -1) currentSpeedIndex = 0;
-        // Create dial display
-        const dialBg = this.add.rectangle(130, 0, 120, 35, 0x444444);
-        dialBg.setStrokeStyle(3, 0xffd700);
-        const speedText = this.add.text(130, 0, speedModes[currentSpeedIndex].toUpperCase(), {
-            fontSize: '16px',
+        
+        const dialBg = this.add.rectangle(0, 10, 200, 50, 0x444444);
+        dialBg.setStrokeStyle(4, 0x8b7355);
+        
+        const speedText = this.add.text(0, 10, speedModes[currentSpeedIndex].toUpperCase(), {
+            fontSize: '20px',
             color: speedColors[speedModes[currentSpeedIndex]],
             fontStyle: 'bold'
         }).setOrigin(0.5);
-        // Left arrow
-        const speedLeftArrow = this.add.text(70, 0, '◄', {
-            fontSize: '20px',
-            color: '#ffffff'
-        }).setOrigin(0.5);
-        speedLeftArrow.setInteractive({ useHandCursor: true });
-        // Right arrow
-        const speedRightArrow = this.add.text(190, 0, '►', {
-            fontSize: '20px',
-            color: '#ffffff'
-        }).setOrigin(0.5);
-        speedRightArrow.setInteractive({ useHandCursor: true });
-        const speedHint = this.add.text(0, 25, speedDescriptions[speedModes[currentSpeedIndex]], {
-            fontSize: '12px',
+        
+        const speedDesc = this.add.text(0, 40, speedDescriptions[speedModes[currentSpeedIndex]], {
+            fontSize: '14px',
             color: '#aaaaaa'
         }).setOrigin(0.5);
-        // Update function
+        
+        const speedLeftArrow = this.add.text(-120, 10, '◄', {
+            fontSize: '32px',
+            color: '#d4c4d8'
+        }).setOrigin(0.5);
+        speedLeftArrow.setInteractive({ useHandCursor: true });
+
+        const speedRightArrow = this.add.text(120, 10, '►', {
+            fontSize: '32px',
+            color: '#d4c4d8'
+        }).setOrigin(0.5);
+        speedRightArrow.setInteractive({ useHandCursor: true });
+        
         const updateSpeedDisplay = () => {
-            const mode = speedModes[currentSpeedIndex];
-            speedText.setText(mode.toUpperCase());
-            speedText.setColor(speedColors[mode]);
-            speedHint.setText(speedDescriptions[mode]);
-            localStorage.setItem('speedMode', mode);
-            // Migrate old hyperMode setting if needed
-            if (mode === 'frolic') {
-                localStorage.setItem('hyperMode', 'false');
-            } else {
-                localStorage.setItem('hyperMode', 'true');
-            }
+            speedText.setText(speedModes[currentSpeedIndex].toUpperCase());
+            speedText.setColor(speedColors[speedModes[currentSpeedIndex]]);
+            speedDesc.setText(speedDescriptions[speedModes[currentSpeedIndex]]);
+            localStorage.setItem('speedMode', speedModes[currentSpeedIndex]);
         };
+        
         speedLeftArrow.on('pointerdown', () => {
             currentSpeedIndex = (currentSpeedIndex - 1 + speedModes.length) % speedModes.length;
             updateSpeedDisplay();
@@ -2327,329 +2271,125 @@ class TitleScene extends Phaser.Scene {
             currentSpeedIndex = (currentSpeedIndex + 1) % speedModes.length;
             updateSpeedDisplay();
         });
-        // Hover effects
-        speedLeftArrow.on('pointerover', () => speedLeftArrow.setScale(1.2));
-        speedLeftArrow.on('pointerout', () => speedLeftArrow.setScale(1));
-        speedRightArrow.on('pointerover', () => speedRightArrow.setScale(1.2));
-        speedRightArrow.on('pointerout', () => speedRightArrow.setScale(1));
-        speedContainer.add([speedLabel, dialBg, speedText, speedLeftArrow, speedRightArrow, speedHint]);
-        // Enemy Density Dial
-        const densityContainer = this.add.container(600, 310);
-        const densityLabel = this.add.text(-180, 0, 'Enemy Density:', {
-            fontSize: '18px',
-            color: '#ffffff'
-        }).setOrigin(0, 0.5);
-        // Density mode options
-        const densityModes = ['beginner', 'sparse', 'normal', 'dense', 'swarm'];
-        const densityDescriptions = {
-            'beginner': '10% enemies (very easy)',
-            'sparse': '25% enemies (easier)',
-            'normal': '50% enemies (standard)',
-            'dense': '75% enemies (harder)',
-            'swarm': '100% enemies (chaos!)'
-        };
-        const densityColors = {
-            'beginner': '#00ffff',
-            'sparse': '#00ff00',
-            'normal': '#ffffff',
-            'dense': '#ff8800',
-            'swarm': '#ff0000'
-        };
-        const densityMultipliers = {
-            'beginner': 0.1,
-            'sparse': 0.25,
-            'normal': 0.5,
-            'dense': 0.75,
-            'swarm': 1.0
-        };
-        const currentDensity = localStorage.getItem('enemyDensity') || 'normal';
-        let currentDensityIndex = densityModes.indexOf(currentDensity);
-        if (currentDensityIndex === -1) currentDensityIndex = 2; // Default to normal (index 2 now)
-        // Create dial display
-        const densityDialBg = this.add.rectangle(130, 0, 120, 35, 0x444444);
-        densityDialBg.setStrokeStyle(3, 0xffd700);
-        const densityText = this.add.text(130, 0, densityModes[currentDensityIndex].toUpperCase(), {
-            fontSize: '16px',
-            color: densityColors[densityModes[currentDensityIndex]],
+        speedLeftArrow.on('pointerover', () => speedLeftArrow.setColor('#8b7355'));
+        speedLeftArrow.on('pointerout', () => speedLeftArrow.setColor('#d4c4d8'));
+        speedRightArrow.on('pointerover', () => speedRightArrow.setColor('#8b7355'));
+        speedRightArrow.on('pointerout', () => speedRightArrow.setColor('#d4c4d8'));
+        
+        speedContainer.add([speedLabel, dialBg, speedText, speedDesc, speedLeftArrow, speedRightArrow]);
+
+        // Volume Control
+        const volumeContainer = this.add.container(400, 300);
+        const volumeLabel = this.add.text(0, -40, 'Volume:', {
+            fontSize: '24px',
+            color: '#d4c4d8',
             fontStyle: 'bold'
         }).setOrigin(0.5);
-        // Left arrow
-        const densityLeftArrow = this.add.text(70, 0, '◄', {
-            fontSize: '20px',
-            color: '#ffffff'
-        }).setOrigin(0.5);
-        densityLeftArrow.setInteractive({ useHandCursor: true });
-        // Right arrow
-        const densityRightArrow = this.add.text(190, 0, '►', {
-            fontSize: '20px',
-            color: '#ffffff'
-        }).setOrigin(0.5);
-        densityRightArrow.setInteractive({ useHandCursor: true });
-        const densityHint = this.add.text(0, 25, densityDescriptions[densityModes[currentDensityIndex]], {
-            fontSize: '12px',
-            color: '#aaaaaa'
-        }).setOrigin(0.5);
-        // Update function
-        const updateDensityDisplay = () => {
-            const mode = densityModes[currentDensityIndex];
-            densityText.setText(mode.toUpperCase());
-            densityText.setColor(densityColors[mode]);
-            densityHint.setText(densityDescriptions[mode]);
-            localStorage.setItem('enemyDensity', mode);
-            localStorage.setItem('enemyDensityMultiplier', densityMultipliers[mode]);
-        };
-        densityLeftArrow.on('pointerdown', () => {
-            currentDensityIndex = (currentDensityIndex - 1 + densityModes.length) % densityModes.length;
-            updateDensityDisplay();
-        });
-        densityRightArrow.on('pointerdown', () => {
-            currentDensityIndex = (currentDensityIndex + 1) % densityModes.length;
-            updateDensityDisplay();
-        });
-        // Hover effects
-        densityLeftArrow.on('pointerover', () => densityLeftArrow.setScale(1.2));
-        densityLeftArrow.on('pointerout', () => densityLeftArrow.setScale(1));
-        densityRightArrow.on('pointerover', () => densityRightArrow.setScale(1.2));
-        densityRightArrow.on('pointerout', () => densityRightArrow.setScale(1));
-        densityContainer.add([densityLabel, densityDialBg, densityText, densityLeftArrow, densityRightArrow, densityHint]);
 
-        // Slot Configuration Dial
-        const slotConfigContainer = this.add.container(400, 350);
-        const slotConfigLabel = this.add.text(-180, 0, 'Slot Configuration:', {
-            fontSize: '18px',
-            color: '#ffffff'
+        const sliderBg = this.add.rectangle(0, 10, 300, 12, 0x444444);
+        sliderBg.setStrokeStyle(3, 0x8b7355);
+        const currentVolume = this.game.sound.volume;
+
+        const sliderHandle = this.add.circle(-150 + (currentVolume * 300), 10, 15, 0x8b7355);
+        sliderHandle.setInteractive({ useHandCursor: true, draggable: true });
+        
+        const volumePercent = this.add.text(0, 45, Math.round(currentVolume * 100) + '%', {
+            fontSize: '20px',
+            color: '#d4c4d8'
+        }).setOrigin(0.5);
+        
+        sliderHandle.on('drag', (pointer, dragX) => {
+            const clampedX = Phaser.Math.Clamp(dragX, -150, 150);
+            sliderHandle.x = clampedX;
+            const volume = (clampedX + 150) / 300;
+            this.game.sound.volume = volume;
+            volumePercent.setText(Math.round(volume * 100) + '%');
+            localStorage.setItem('gameVolume', volume.toString());
+        });
+        
+        volumeContainer.add([volumeLabel, sliderBg, sliderHandle, volumePercent]);
+
+        // Arcade Mode Toggle
+        const arcadeModeContainer = this.add.container(400, 420);
+        const arcadeModeLabel = this.add.text(-100, 0, 'Arcade Mode:', {
+            fontSize: '24px',
+            color: '#d4c4d8',
+            fontStyle: 'bold'
         }).setOrigin(0, 0.5);
-        // Slot config options
-        const slotConfigModes = ['standard', 'extended'];
-        const slotConfigDescriptions = {
-            'standard': '4 Active / 4 Passive / 4 Pouch',
-            'extended': '8 Active / 8 Passive / 8 Pouch'
-        };
-        const slotConfigColors = {
-            'standard': '#00ff00',
-            'extended': '#ff8800'
-        };
-        const currentSlotConfig = localStorage.getItem('slotConfiguration') || 'standard';
-        let currentSlotConfigIndex = slotConfigModes.indexOf(currentSlotConfig);
-        if (currentSlotConfigIndex === -1) currentSlotConfigIndex = 0;
-        // Create dial display
-        const slotConfigDialBg = this.add.rectangle(130, 0, 140, 35, 0x444444);
-        slotConfigDialBg.setStrokeStyle(3, 0xffd700);
-        const slotConfigText = this.add.text(130, 0, slotConfigModes[currentSlotConfigIndex].toUpperCase(), {
-            fontSize: '16px',
-            color: slotConfigColors[slotConfigModes[currentSlotConfigIndex]],
+
+        const arcadeModeCheckbox = this.add.rectangle(180, 0, 40, 40, 0x444444);
+        arcadeModeCheckbox.setStrokeStyle(4, 0x8b7355);
+        arcadeModeCheckbox.setInteractive({ useHandCursor: true });
+        
+        const arcadeModeEnabled = localStorage.getItem('arcadeMode') === 'true';
+        const arcadeModeCheck = this.add.text(180, 0, '✓', {
+            fontSize: '28px',
+            color: '#00ff00',
             fontStyle: 'bold'
         }).setOrigin(0.5);
-        // Left arrow
-        const slotConfigLeftArrow = this.add.text(60, 0, '◄', {
-            fontSize: '20px',
-            color: '#ffffff'
-        }).setOrigin(0.5);
-        slotConfigLeftArrow.setInteractive({ useHandCursor: true });
-        // Right arrow
-        const slotConfigRightArrow = this.add.text(200, 0, '►', {
-            fontSize: '20px',
-            color: '#ffffff'
-        }).setOrigin(0.5);
-        slotConfigRightArrow.setInteractive({ useHandCursor: true });
-        const slotConfigHint = this.add.text(0, 25, slotConfigDescriptions[slotConfigModes[currentSlotConfigIndex]], {
-            fontSize: '12px',
-            color: '#aaaaaa'
-        }).setOrigin(0.5);
-        // Update function
-        const updateSlotConfigDisplay = () => {
-            const mode = slotConfigModes[currentSlotConfigIndex];
-            slotConfigText.setText(mode.toUpperCase());
-            slotConfigText.setColor(slotConfigColors[mode]);
-            slotConfigHint.setText(slotConfigDescriptions[mode]);
-            localStorage.setItem('slotConfiguration', mode);
-        };
-        slotConfigLeftArrow.on('pointerdown', () => {
-            currentSlotConfigIndex = (currentSlotConfigIndex - 1 + slotConfigModes.length) % slotConfigModes.length;
-            updateSlotConfigDisplay();
+        arcadeModeCheck.setVisible(arcadeModeEnabled);
+        
+        arcadeModeCheckbox.on('pointerdown', () => {
+            const currentState = localStorage.getItem('arcadeMode') === 'true';
+            const newState = !currentState;
+            arcadeModeCheck.setVisible(newState);
+            localStorage.setItem('arcadeMode', newState.toString());
         });
-        slotConfigRightArrow.on('pointerdown', () => {
-            currentSlotConfigIndex = (currentSlotConfigIndex + 1) % slotConfigModes.length;
-            updateSlotConfigDisplay();
-        });
-        // Hover effects
-        slotConfigLeftArrow.on('pointerover', () => slotConfigLeftArrow.setScale(1.2));
-        slotConfigLeftArrow.on('pointerout', () => slotConfigLeftArrow.setScale(1));
-        slotConfigRightArrow.on('pointerover', () => slotConfigRightArrow.setScale(1.2));
-        slotConfigRightArrow.on('pointerout', () => slotConfigRightArrow.setScale(1));
-        slotConfigContainer.add([slotConfigLabel, slotConfigDialBg, slotConfigText, slotConfigLeftArrow, slotConfigRightArrow, slotConfigHint]);
+        arcadeModeCheckbox.on('pointerover', () => arcadeModeCheckbox.setFillStyle(0x666666));
+        arcadeModeCheckbox.on('pointerout', () => arcadeModeCheckbox.setFillStyle(0x444444));
+        
+        arcadeModeContainer.add([arcadeModeLabel, arcadeModeCheckbox, arcadeModeCheck]);
 
-        // BGM selector
-        const bgmContainer = this.add.container(400, 410);
-        const bgmLabel = this.add.text(-180, 0, 'Background Music:', {
-            fontSize: '18px',
-            color: '#ffffff'
-        }).setOrigin(0, 0.5);
-        const bgmOptions = ['BGM 1', 'BGM 2'];
-        const savedBGM = localStorage.getItem('selectedBGM') || 'BGM 1';
-        let currentBGMIndex = bgmOptions.indexOf(savedBGM);
-        const bgmText = this.add.text(40, 0, savedBGM, {
-            fontSize: '16px',
-            color: '#ffd700',
-            backgroundColor: '#000000',
-            padding: { x: 15, y: 5 }
-        }).setOrigin(0.5);
-        // BGM Arrow buttons
-        const bgmLeftArrow = this.add.text(-15, 0, '<', {
-            fontSize: '20px',
-            color: '#ffffff'
-        }).setOrigin(0.5);
-        bgmLeftArrow.setInteractive({ useHandCursor: true });
-        const bgmRightArrow = this.add.text(95, 0, '>', {
-            fontSize: '20px',
-            color: '#ffffff'
-        }).setOrigin(0.5);
-        bgmRightArrow.setInteractive({ useHandCursor: true });
-        bgmLeftArrow.on('pointerdown', () => {
-            currentBGMIndex = (currentBGMIndex - 1 + bgmOptions.length) % bgmOptions.length;
-            bgmText.setText(bgmOptions[currentBGMIndex]);
-            localStorage.setItem('selectedBGM', bgmOptions[currentBGMIndex]);
-        });
-        bgmRightArrow.on('pointerdown', () => {
-            currentBGMIndex = (currentBGMIndex + 1) % bgmOptions.length;
-            bgmText.setText(bgmOptions[currentBGMIndex]);
-            localStorage.setItem('selectedBGM', bgmOptions[currentBGMIndex]);
-        });
-        bgmContainer.add([bgmLabel, bgmText, bgmLeftArrow, bgmRightArrow]);
-        // Reset Progress button
-        const resetButton = this.add.text(400, 470, 'RESET PROGRESS', {
-            fontSize: '20px',
-            color: '#ff6666',
-            backgroundColor: '#440000',
-            padding: { x: 25, y: 8 },
-            stroke: '#ff0000',
-            strokeThickness: 2
-        }).setOrigin(0.5);
-        resetButton.setInteractive({ useHandCursor: true });
-        resetButton.on('pointerover', () => {
-            resetButton.setColor('#ff9999');
-            resetButton.setScale(1.05);
-        });
-        resetButton.on('pointerout', () => {
-            resetButton.setColor('#ff6666');
-            resetButton.setScale(1);
-        });
-        resetButton.on('pointerdown', () => {
-            // Show confirmation dialog
-            this.showResetConfirmation();
-        });
         // Close button
         const closeButton = this.add.text(400, 520, 'CLOSE', {
-            fontSize: '24px',
+            fontSize: '28px',
             color: '#ffffff',
             backgroundColor: '#444444',
-            padding: { x: 35, y: 10 },
+            padding: { x: 40, y: 12 },
             stroke: '#ffd700',
-            strokeThickness: 2
+            strokeThickness: 3
         }).setOrigin(0.5);
         closeButton.setInteractive({ useHandCursor: true });
         closeButton.on('pointerover', () => {
             closeButton.setColor('#ffd700');
+            closeButton.setScale(1.05);
         });
         closeButton.on('pointerout', () => {
             closeButton.setColor('#ffffff');
+            closeButton.setScale(1);
         });
         closeButton.on('pointerdown', () => {
             this.closeOptionsMenu();
         });
-        // Define update volume text function
-        const updateVolumeText = () => {
-            volumePercent.setText(Math.round(this.game.sound.volume * 100) + '%');
-        };
-        // Define update element display function
-        const updateElementDisplay = () => {
-            elementText.setText(elements[currentElementIndex].toUpperCase());
-        };
-        // Store references for cleanup and controller navigation
+
+        // Store menu elements for cleanup
         this.optionsMenu = {
-            overlay, menuTitle, debugContainer, recipesContainer, stagesContainer, bossContainer, obelisksContainer, arcadeModeContainer,
-            fullscreenContainer, volumeContainer, elementContainer, speedContainer, densityContainer, slotConfigContainer, bgmContainer, resetButton, closeButton,
-            // Store interactive elements for controller navigation
-            controls: {
-                debugCheckbox,
-                recipesCheckbox,
-                stagesCheckbox,
-                bossCheckbox,
-                obelisksCheckbox,
-                arcadeModeCheckbox,
-                fullscreenCheckbox,
-                sliderHandle,
-                leftArrow,  // element left arrow
-                rightArrow, // element right arrow
-                speedLeftArrow,
-                speedRightArrow,
-                densityLeftArrow,
-                densityRightArrow,
-                slotConfigLeftArrow,
-                slotConfigRightArrow,
-                bgmLeftArrow,
-                bgmRightArrow,
-                closeButton
-            },
-            // Store update functions
-            updateFunctions: {
-                updateVolumeText,
-                updateElementDisplay,
-                updateSpeedDisplay,
-                updateDensityDisplay,
-                updateSlotConfigDisplay
-            },
-            // Current values
-            currentValues: {
-                elementIndex: currentElementIndex,
-                speedIndex: currentSpeedIndex,
-                densityIndex: currentDensityIndex,
-                slotConfigIndex: currentSlotConfigIndex,
-                bgmIndex: currentBGMIndex
-            }
+            overlay: overlay,
+            elements: [menuTitle, speedContainer, volumeContainer, arcadeModeContainer, closeButton],
+            closeButton: closeButton
         };
+        
         // Initialize controller navigation
         this.optionsMenuSelectedIndex = 0;
         this.optionsMenuItems = [
-            { type: 'checkbox', element: debugCheckbox, action: 'toggle' },
-            { type: 'checkbox', element: recipesCheckbox, action: 'toggle' },
-            { type: 'checkbox', element: stagesCheckbox, action: 'toggle' },
-            { type: 'checkbox', element: bossCheckbox, action: 'toggle' },
-            { type: 'checkbox', element: obelisksCheckbox, action: 'toggle' },
-            { type: 'checkbox', element: arcadeModeCheckbox, action: 'toggle' },
-            { type: 'checkbox', element: fullscreenCheckbox, action: 'toggle' },
-            { type: 'slider', element: sliderHandle, action: 'volume' },
-            { type: 'selector', leftArrow: leftArrow, rightArrow: rightArrow, action: 'element' },
             { type: 'selector', leftArrow: speedLeftArrow, rightArrow: speedRightArrow, action: 'speed' },
-            { type: 'selector', leftArrow: densityLeftArrow, rightArrow: densityRightArrow, action: 'density' },
-            { type: 'selector', leftArrow: slotConfigLeftArrow, rightArrow: slotConfigRightArrow, action: 'slotConfig' },
-            { type: 'selector', leftArrow: bgmLeftArrow, rightArrow: bgmRightArrow, action: 'bgm' },
-            { type: 'button', element: resetButton, action: 'reset' },
+            { type: 'slider', element: sliderHandle, action: 'volume' },
+            { type: 'checkbox', element: arcadeModeCheckbox, action: 'toggle' },
             { type: 'button', element: closeButton, action: 'close' }
         ];
         // Highlight first item
         this.highlightOptionsMenuItem(0);
     }
+
     closeOptionsMenu() {
         if (this.optionsMenu) {
-            // Clean up all menu elements
+            // Clean up simplified menu elements
             this.optionsMenu.overlay.destroy();
-            this.optionsMenu.menuTitle.destroy();
-            this.optionsMenu.debugContainer.destroy();
-            this.optionsMenu.recipesContainer.destroy();
-            this.optionsMenu.stagesContainer.destroy();
-            this.optionsMenu.bossContainer.destroy();
-            this.optionsMenu.obelisksContainer.destroy();
-            this.optionsMenu.arcadeModeContainer.destroy();
-            this.optionsMenu.fullscreenContainer.destroy();
-            this.optionsMenu.volumeContainer.destroy();
-            this.optionsMenu.elementContainer.destroy();
-            this.optionsMenu.speedContainer.destroy();
-            this.optionsMenu.densityContainer.destroy();
-            this.optionsMenu.slotConfigContainer.destroy();
-            this.optionsMenu.bgmContainer.destroy();
-            this.optionsMenu.resetButton.destroy();
-            this.optionsMenu.closeButton.destroy();
+            this.optionsMenu.elements.forEach(element => {
+                if (element && element.destroy) {
+                    element.destroy();
+                }
+            });
             this.optionsMenu = null;
             this.optionsMenuItems = null;
             this.optionsMenuSelectedIndex = 0;
@@ -3300,12 +3040,15 @@ class TitleScene extends Phaser.Scene {
     startCoopGame() {
         if (this.detectedPlayers.length < 2) return;
 
+        console.log('🎮 startCoopGame called with', this.detectedPlayers.length, 'players');
+        console.log('🎮 Player controllers:', this.detectedPlayers);
+
         // Clean up detection UI
         this.controllerDetectionActive = false;
-        if (this.gamepadListener) {
+        if (this.gamepadListener && this.input && this.input.gamepad) {
             this.input.gamepad.off('down', this.gamepadListener);
         }
-        if (this.keyboardListener) {
+        if (this.keyboardListener && this.input && this.input.keyboard) {
             this.input.keyboard.off('keydown', this.keyboardListener);
         }
         this.detectionUI.forEach(element => {
@@ -3333,13 +3076,28 @@ class TitleScene extends Phaser.Scene {
                     this.titleMusic = null;
                 }
 
-                // Start stage select with co-op data
-                this.scene.start('StageSelectScene', {
+                const gameData = {
                     fromTitle: true,
                     multiplayerEnabled: true,
                     playerCount: playerCount,
                     playerControllers: this.detectedPlayers
-                });
+                };
+
+                console.log('🎮 TitleScene transitioning to StageSelectScene with data:', gameData);
+
+                // Remove ALL event listeners before transitioning
+                if (this.input) {
+                    if (this.input.keyboard) {
+                        this.input.keyboard.removeAllListeners();
+                    }
+                    if (this.input.gamepad) {
+                        this.input.gamepad.removeAllListeners();
+                    }
+                    this.input.removeAllListeners();
+                }
+
+                // Use start to transition - this will properly shut down TitleScene
+                this.scene.start('StageSelectScene', gameData);
             }
         });
     }
@@ -3368,6 +3126,9 @@ class StageSelectScene extends Phaser.Scene {
         // Always reset detail view state when initializing the scene
         this.detailViewActive = false;
 
+        // Store music reference if coming from TalentTreeScene
+        this.receivedMusic = data?.stageSelectMusic;
+
         // Get SaveManager from data or registry
         this.saveManager = data?.saveManager || this.registry.get('saveManager');
 
@@ -3389,13 +3150,11 @@ class StageSelectScene extends Phaser.Scene {
         // Receive multiplayer state from title screen
         if (data && data.multiplayerEnabled !== undefined) {
             this.multiplayerEnabled = data.multiplayerEnabled;
-            }
-        // Handle multiplayer data from title screen
-        if (data && data.multiplayerMode) {
             this.playerCount = data.playerCount || 2;
             this.playerControllers = data.playerControllers || [];
-            this.multiplayerEnabled = true;
+            console.log(`🎮 Multiplayer enabled: ${this.playerCount} players`, this.playerControllers);
         } else {
+            this.multiplayerEnabled = false;
             this.playerCount = 1;
             this.playerControllers = [];
         }
@@ -3411,6 +3170,13 @@ class StageSelectScene extends Phaser.Scene {
             this.characterSelectionMode = true;
             this.currentPlayer = 'p2';
             this.selectedCard = null;
+
+        // Handle character selection mode from button click
+        if (data && data.characterSelectionMode) {
+            this.characterSelectionMode = true;
+            this.currentPlayer = data.currentPlayer || 'p1';
+            this.selectedCard = null;
+        }
         } else if (data && data.fromCharacterSelect) {
             // Coming from GameOverScene or other scenes after character selection
             // Ensure we're not in character selection mode
@@ -3459,30 +3225,38 @@ class StageSelectScene extends Phaser.Scene {
     create() {
         // Basic pixel-perfect rendering
         this.cameras.main.roundPixels = true;
-        // Stop all sounds including boss music when entering stage select
-        this.sound.stopAll();
+        // Stop all sounds including boss music when entering stage select (except if we received music from TalentTreeScene)
+        if (!this.receivedMusic) {
+            this.sound.stopAll();
+        }
         // Re-enable keyboard input
         this.input.keyboard.enabled = true;
         // Start stage select music only if it's not already playing
-        // Check for existing music in the sound manager first
-        let existingMusic = this.sound.get('stageselect-bgm');
-        if (existingMusic && existingMusic.isPlaying) {
-            // Music is already playing, just reference it
-            this.stageSelectMusic = existingMusic;
-        } else if (!this.isInternalTransition) {
-            // Only start new music if not transitioning internally and no music is playing
-            this.stageSelectMusic = this.sound.add('stageselect-bgm', { 
-                loop: true, 
-                volume: 0 // Start at 0 volume
-            });
-            this.stageSelectMusic.play();
-            // Fade in music
-            this.tweens.add({
-                targets: this.stageSelectMusic,
-                volume: 0.5,
-                duration: 2000,
-                ease: 'Power2'
-            });
+        // Check if music was passed from TalentTreeScene first
+        if (this.receivedMusic && this.receivedMusic.isPlaying) {
+            // Music was passed from TalentTreeScene, keep it playing
+            this.stageSelectMusic = this.receivedMusic;
+        } else {
+            // Check for existing music in the sound manager
+            let existingMusic = this.sound.get('stageselect-bgm');
+            if (existingMusic && existingMusic.isPlaying) {
+                // Music is already playing, just reference it
+                this.stageSelectMusic = existingMusic;
+            } else if (!this.isInternalTransition) {
+                // Only start new music if not transitioning internally and no music is playing
+                this.stageSelectMusic = this.sound.add('stageselect-bgm', {
+                    loop: true,
+                    volume: 0 // Start at 0 volume
+                });
+                this.stageSelectMusic.play();
+                // Fade in music
+                this.tweens.add({
+                    targets: this.stageSelectMusic,
+                    volume: 0.5,
+                    duration: 2000,
+                    ease: 'Power2'
+                });
+            }
         }
         // Create essential UI elements early (needed for both character selection and stage select)
         // These were previously created later but are needed when returning from other scenes
@@ -3540,6 +3314,19 @@ class StageSelectScene extends Phaser.Scene {
         this.time.delayedCall(this.inputCooldown, () => {
             this.inputEnabled = true;
         });
+
+        // Initialize button states to prevent carryover from previous scene
+        this.confirmPressed = false;
+        this.backPressed = false;
+        this.leftPressed = false;
+        this.rightPressed = false;
+        this.upPressed = false;
+        this.downPressed = false;
+        this.dpadLeftPressed = false;
+        this.dpadRightPressed = false;
+        this.dpadUpPressed = false;
+        this.dpadDownPressed = false;
+
         // Initialize multiplayer state (will be overridden by init() if passed from title)
         this.multiplayerEnabled = false;
         this.player2Connected = false;
@@ -3575,6 +3362,13 @@ class StageSelectScene extends Phaser.Scene {
             return false;
         };
 
+        // Check if all main stages are completed (for arcade unlock)
+        const allStagesCompleted = () => {
+            const mainStages = ['forestland', 'caveland', 'desertland', 'swampland', 'snowland',
+                                'oceanland', 'lavaland', 'graveland', 'castleland', 'spireland', 'voidland'];
+            return mainStages.every(worldId => isWorldUnlocked(worldId));
+        };
+
         this.stages = [
             { name: 'Forest Land', unlocked: isWorldUnlocked('forestland'), description: 'A mystical forest filled with danger',
               icon: 'planet-forest', color: 0x44ff44, x: 200, y: 300, worldId: 'forestland' },
@@ -3600,7 +3394,7 @@ class StageSelectScene extends Phaser.Scene {
               icon: 'void', color: 0x4B0082, x: 700, y: 450, worldId: 'voidland' },
             { name: 'Nexus', unlocked: true, description: 'Eternal power awaits within', 
               icon: 'essence', color: 0x9966ff, x: 400, y: 350, isNexus: true },
-            { name: 'Arcade', unlocked: true, description: 'Test your gem matching skills!', 
+            { name: 'Arcade', unlocked: allStagesCompleted(), description: 'The final challenge awaits!',
               icon: 'arcademachine', color: 0x00ff00, x: 750, y: 550, isArcade: true }
         ];
         // Create deep space/abyss background
@@ -3814,6 +3608,28 @@ class StageSelectScene extends Phaser.Scene {
         backButton.on('pointerdown', () => {
             this.transitionToTitle();
         });
+
+        // Change Character button - next to back button
+        const changeCharButton = this.add.text(200, 550, 'CHANGE CHARACTER (C/Y)', {
+            fontSize: '24px',
+            color: '#ffffff'
+        }).setOrigin(0, 0.5);
+        changeCharButton.setInteractive({ useHandCursor: true });
+        changeCharButton.on('pointerover', () => {
+            changeCharButton.setColor('#8b7355');
+        });
+        changeCharButton.on('pointerout', () => {
+            changeCharButton.setColor('#d4c4d8');
+        });
+        changeCharButton.on('pointerdown', () => {
+            // Prevent multiple clicks
+            if (this.changingCharacter) return;
+            this.changingCharacter = true;
+            this.openCharacterSelect();
+        });
+
+        // Store reference for gamepad support
+        this.changeCharButton = changeCharButton;
         // Keyboard/gamepad controls
         this.cursors = this.input.keyboard.createCursorKeys();
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -4064,6 +3880,15 @@ class StageSelectScene extends Phaser.Scene {
             }
         });
     }
+    openCharacterSelect() {
+        // Restart the scene with character selection mode enabled
+        this.scene.restart({
+            characterSelectionMode: true,
+            currentPlayer: 'p1',
+            saveManager: this.saveManager
+        });
+    }
+
     createCharacterSelection() {
         // Clear the screen
         this.children.removeAll();
@@ -4133,9 +3958,13 @@ class StageSelectScene extends Phaser.Scene {
         };
         // Get unlocked characters from save data
         const saveData = window.saveManager ? window.saveManager.getCurrentSave() : null;
-        const unlockedCharacters = saveData && saveData.characters && saveData.characters.unlocked ?
-            saveData.characters.unlocked :
-            ['wizard']; // Default to wizard only if no save data
+
+        // In multiplayer mode, unlock all characters so all players can choose
+        const unlockedCharacters = this.multiplayerEnabled ?
+            ['wizard', 'orb', 'grim', 'blip'] :
+            (saveData && saveData.characters && saveData.characters.unlocked ?
+                saveData.characters.unlocked :
+                ['wizard']); // Default to wizard only if no save data in single player
 
         // Get available characters (unlocked only)
         const availableChars = this.currentPlayer === 'p1' ?
@@ -4619,11 +4448,27 @@ class StageSelectScene extends Phaser.Scene {
             return; // Don't process stage selection input while in character selection mode
         }
         // No need to check for gamepads - multiplayer is handled at title screen
-        // Skip input during cooldown period
-        if (!this.inputEnabled) return;
-        // Multiplayer is now handled at title screen - no activation needed here
         // Handle gamepad
         const pad = this.input.gamepad ? this.input.gamepad.pad1 : null;
+
+        // Skip input during cooldown period, but still update button states to prevent carryover
+        if (!this.inputEnabled) {
+            // Update button states even during cooldown to prevent "just pressed" detection
+            if (pad) {
+                this.leftPressed = pad.leftStick.x < -0.5;
+                this.rightPressed = pad.leftStick.x > 0.5;
+                this.upPressed = pad.leftStick.y < -0.5;
+                this.downPressed = pad.leftStick.y > 0.5;
+                this.dpadLeftPressed = pad.buttons[14] && pad.buttons[14].pressed;
+                this.dpadRightPressed = pad.buttons[15] && pad.buttons[15].pressed;
+                this.dpadUpPressed = pad.buttons[12] && pad.buttons[12].pressed;
+                this.dpadDownPressed = pad.buttons[13] && pad.buttons[13].pressed;
+                this.confirmPressed = pad.buttons[0] && pad.buttons[0].pressed;
+                this.backPressed = pad.buttons[1] && pad.buttons[1].pressed;
+            }
+            return;
+        }
+        // Multiplayer is now handled at title screen - no activation needed here
         // Handle navigation
         const leftJustPressed = Phaser.Input.Keyboard.JustDown(this.cursors.left) ||
             (pad && pad.leftStick.x < -0.5 && !this.leftPressed) ||
@@ -4734,6 +4579,20 @@ class StageSelectScene extends Phaser.Scene {
                 this.transitionToTitle();
             }
         }
+
+        // Y button to open character select (or C key)
+        const cKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
+        const changeCharJustPressed = Phaser.Input.Keyboard.JustDown(cKey) ||
+            (pad && pad.buttons[3] && pad.buttons[3].pressed && !this.yPressed);
+
+        if (changeCharJustPressed && !this.detailViewActive && !this.changingCharacter) {
+            this.changingCharacter = true;
+            if (this.changeCharButton) {
+                this.changeCharButton.setColor('#8b7355'); // Visual feedback
+            }
+            this.openCharacterSelect();
+        }
+
         // Store button states
         this.leftPressed = pad && pad.leftStick.x < -0.5;
         this.rightPressed = pad && pad.leftStick.x > 0.5;
@@ -4745,6 +4604,7 @@ class StageSelectScene extends Phaser.Scene {
         this.dpadDownPressed = pad && pad.buttons[13] && pad.buttons[13].pressed;
         this.confirmPressed = pad && pad.buttons[0].pressed;
         this.backPressed = pad && pad.buttons[1].pressed;
+        this.yPressed = pad && pad.buttons[3] && pad.buttons[3].pressed;
     }
     highlightStage(index) {
         // Clear previous highlight
@@ -4815,25 +4675,13 @@ class StageSelectScene extends Phaser.Scene {
                     duration: 500,
                     ease: 'Power2',
                     onComplete: () => {
-                        this.scene.start('TalentTreeScene');
+                        // Pass music reference to TalentTreeScene to keep it playing
+                        this.scene.start('TalentTreeScene', {
+                            stageSelectMusic: this.stageSelectMusic
+                        });
                     }
                 });
-                // Fade out music
-                if (this.stageSelectMusic && this.stageSelectMusic.isPlaying) {
-                    this.tweens.add({
-                        targets: this.stageSelectMusic,
-                        volume: 0,
-                        duration: 500,
-                        ease: 'Power2',
-                        onComplete: () => {
-                            if (this.stageSelectMusic) {
-                                this.stageSelectMusic.stop();
-                                this.stageSelectMusic.destroy();
-                                this.stageSelectMusic = null;
-                            }
-                        }
-                    });
-                }
+                // Keep music playing (don't fade out)
             } else if (stage.isArcade) {
                 // Start arcade game
                 this.startArcadeGame();
@@ -4946,9 +4794,11 @@ class StageSelectScene extends Phaser.Scene {
                 }
             }
         });
-        // Create details section on the right
+        // Create details section on the right (skip for Nexus and Arcade)
         this.time.delayedCall(800, () => {
-            this.createStageDetails(selectedStage, index);
+            if (!selectedStage.isNexus && !selectedStage.isArcade) {
+                this.createStageDetails(selectedStage, index);
+            }
             this.input.enabled = true;
         });
         // Hide constellation paths
@@ -4961,66 +4811,95 @@ class StageSelectScene extends Phaser.Scene {
         }
     }
     createStageDetails(stage, index) {
-        // Create details container
-        this.detailsContainer = this.add.container(600, 300);
+        // Create details container - shifted down to avoid overlap with stage title
+        this.detailsContainer = this.add.container(550, 360);
         this.detailsContainer.setAlpha(0);
-        // Background for details
-        const detailsBg = this.add.rectangle(0, 0, 350, 400, 0x000000, 0.8);
-        detailsBg.setStrokeStyle(2, 0xffffff);
+
+        // Background for details - smaller since we removed enemies/items
+        const detailsBg = this.add.rectangle(0, 0, 350, 200, 0x000000, 0.9);
+        detailsBg.setStrokeStyle(3, 0xffd700);
         this.detailsContainer.add(detailsBg);
-        // Stage stats (no title needed since it's already shown at top)
-        const stats = this.getStageStats(index);
-        let yPos = -120;
-        stats.forEach(stat => {
-            const statText = this.add.text(-140, yPos, stat.label + ':', {
-                fontSize: '18px',
-                color: '#ffffff'
-            }).setOrigin(0, 0.5);
-            this.detailsContainer.add(statText);
-            const valueText = this.add.text(140, yPos, stat.value, {
-                fontSize: '18px',
-                color: stat.color || '#00ff00'
-            }).setOrigin(1, 0.5);
-            this.detailsContainer.add(valueText);
-            yPos += 35;
-        });
-        // Play button
-        const playButton = this.add.rectangle(0, 150, 200, 50, 0x00ff00);
+
+        let yPos = -80;
+
+        // --- BEST STATS SECTION ---
+        const worldId = stage.worldId;
+        const bestStats = this.getBestStageStats(worldId);
+
+        // Best Time
+        const bestTimeLabel = this.add.text(-150, yPos, 'Best Time:', {
+            fontSize: '18px',
+            color: '#ffd700',
+            fontStyle: 'bold'
+        }).setOrigin(0, 0.5);
+        this.detailsContainer.add(bestTimeLabel);
+
+        const bestTimeValue = bestStats.bestTime
+            ? this.formatTime(bestStats.bestTime)
+            : 'N/A';
+        const bestTimeText = this.add.text(150, yPos, bestTimeValue, {
+            fontSize: '18px',
+            color: '#00ff00',
+            fontStyle: 'bold'
+        }).setOrigin(1, 0.5);
+        this.detailsContainer.add(bestTimeText);
+
+        yPos += 40;
+
+        // Attempts
+        const attemptsLabel = this.add.text(-150, yPos, 'Attempts:', {
+            fontSize: '18px',
+            color: '#ffd700',
+            fontStyle: 'bold'
+        }).setOrigin(0, 0.5);
+        this.detailsContainer.add(attemptsLabel);
+
+        const attemptsText = this.add.text(150, yPos, bestStats.attempts.toString(), {
+            fontSize: '18px',
+            color: '#00ff00',
+            fontStyle: 'bold'
+        }).setOrigin(1, 0.5);
+        this.detailsContainer.add(attemptsText);
+
+        yPos += 60;
+
+        // --- PLAY BUTTON ---
+        const playButton = this.add.rectangle(0, yPos, 200, 50, 0x00ff00);
         playButton.setInteractive({ useHandCursor: true });
-        playButton.setStrokeStyle(2, 0xffffff);
+        playButton.setStrokeStyle(3, 0xffffff);
         this.detailsContainer.add(playButton);
-        const playText = this.add.text(0, 150, 'ENTER STAGE', {
+
+        const playText = this.add.text(0, yPos, 'ENTER STAGE', {
             fontSize: '24px',
             color: '#000000',
             fontStyle: 'bold'
         }).setOrigin(0.5);
         this.detailsContainer.add(playText);
+
         // Play button interaction
         playButton.on('pointerover', () => {
             playButton.setFillStyle(0x00cc00);
+            this.tweens.add({
+                targets: playButton,
+                scaleX: 1.1,
+                scaleY: 1.1,
+                duration: 100
+            });
         });
         playButton.on('pointerout', () => {
             playButton.setFillStyle(0x00ff00);
+            this.tweens.add({
+                targets: playButton,
+                scaleX: 1,
+                scaleY: 1,
+                duration: 100
+            });
         });
         playButton.on('pointerdown', () => {
             this.startStage(index);
         });
-        // Back button
-        const backButton = this.add.text(-150, -180, '< BACK', {
-            fontSize: '20px',
-            color: '#ffffff'
-        }).setOrigin(0, 0.5);
-        backButton.setInteractive({ useHandCursor: true });
-        this.detailsContainer.add(backButton);
-        backButton.on('pointerover', () => {
-            backButton.setColor('#ffff00');
-        });
-        backButton.on('pointerout', () => {
-            backButton.setColor('#ffffff');
-        });
-        backButton.on('pointerdown', () => {
-            this.exitDetailView();
-        });
+
+
         // Fade in details
         this.tweens.add({
             targets: this.detailsContainer,
@@ -5028,6 +4907,16 @@ class StageSelectScene extends Phaser.Scene {
             duration: 500,
             ease: 'Power2.easeOut'
         });
+    }
+
+    /**
+     * Format time in milliseconds to MM:SS format
+     */
+    formatTime(ms) {
+        const totalSeconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }
     getStageImageKey(stageName) {
         const imageMap = {
@@ -5046,59 +4935,161 @@ class StageSelectScene extends Phaser.Scene {
         };
         return imageMap[stageName] || null;
     }
-    getStageStats(index) {
-        // Return stage-specific stats
-        const statsMap = {
-            0: [ // Forest
-                { label: 'Difficulty', value: 'Easy', color: '#00ff00' },
-                { label: 'Enemies', value: '25-30' },
-                { label: 'Boss', value: 'Tree Zombie' },
-                { label: 'Elements', value: 'Nature, Earth' }
+    /**
+     * Get enemy sprites to display for each stage
+     * Returns array of {sprite: string, frame: number, scale: number, name: string}
+     */
+    getStageEnemies(index) {
+        const enemyData = {
+            0: [ // Forest Land
+                { sprite: 'mushroom-run', frame: 0, scale: 3, name: 'Mushroom' },
+                { sprite: 'enemy-walk', frame: 0, scale: 1.5, name: 'Tree Ent' },
+                { sprite: 'golem-orange-walk', frame: 0, scale: 1.2, name: 'Earth Golem' }
             ],
-            1: [ // Cave
-                { label: 'Difficulty', value: 'Easy', color: '#00ff00' },
-                { label: 'Enemies', value: '30-35' },
-                { label: 'Boss', value: 'Crystal Guardian' },
-                { label: 'Elements', value: 'Rock, Crystal' }
+            1: [ // Cave Land
+                { sprite: 'golem-blue-walk', frame: 0, scale: 1.2, name: 'Cave Golem' },
+                { sprite: 'kobold-walk', frame: 0, scale: 2, name: 'Kobold' },
+                { sprite: 'bateye-fly', frame: 0, scale: 2, name: 'Bat Eye' }
             ],
-            2: [ // Desert
-                { label: 'Difficulty', value: 'Medium', color: '#ffff00' },
-                { label: 'Enemies', value: '35-40' },
-                { label: 'Boss', value: 'Sand Wyrm' },
-                { label: 'Elements', value: 'Sand, Fire' }
+            2: [ // Sand Land
+                { sprite: 'yellowskeleton-walk', frame: 0, scale: 2, name: 'Skeleton' },
+                { sprite: 'cobra-walk', frame: 0, scale: 2, name: 'Cobra' },
+                { sprite: 'cactuse-walk', frame: 0, scale: 2, name: 'Cactus' }
             ],
-            3: [ // Lava
-                { label: 'Difficulty', value: 'Hard', color: '#ff8800' },
-                { label: 'Enemies', value: '40-50' },
-                { label: 'Boss', value: 'Lava Golem' },
-                { label: 'Elements', value: 'Fire, Lava' }
+            3: [ // Swamp Land
+                { sprite: 'bloboid-walk', frame: 0, scale: 2, name: 'Bloboid' },
+                { sprite: 'swampmerchant-walk', frame: 0, scale: 2, name: 'Swamp Merchant' },
+                { sprite: 'torchboy-walk', frame: 0, scale: 2, name: 'Torch Boy' }
             ],
-            4: [ // Grave
-                { label: 'Difficulty', value: 'Hard', color: '#ff8800' },
-                { label: 'Enemies', value: '45-55' },
-                { label: 'Boss', value: 'Lich King' },
-                { label: 'Elements', value: 'Death, Poison' }
+            4: [ // Snow Land
+                { sprite: 'frost-golem-walk', frame: 0, scale: 2, name: 'Frost Golem' },
+                { sprite: 'spiked-slime-walk', frame: 0, scale: 2, name: 'Spiked Slime' }
             ],
-            5: [ // Castle
-                { label: 'Difficulty', value: 'Very Hard', color: '#ff0000' },
-                { label: 'Enemies', value: '50-60' },
-                { label: 'Boss', value: 'Dark Knight' },
-                { label: 'Elements', value: 'Metal, Arcane' }
+            5: [ // Ocean Land
+                { sprite: 'jellyfish-walk', frame: 0, scale: 2, name: 'Jellyfish' },
+                { sprite: 'crabby-walk', frame: 0, scale: 2, name: 'Crabby' },
+                { sprite: 'shark-walk', frame: 0, scale: 2, name: 'Shark' }
             ],
-            6: [ // Spire
-                { label: 'Difficulty', value: 'Very Hard', color: '#ff0000' },
-                { label: 'Enemies', value: '55-65' },
-                { label: 'Boss', value: 'Sky Serpent' },
-                { label: 'Elements', value: 'Air, Lightning' }
+            6: [ // Lava Land (using fire/demon enemies)
+                { sprite: 'clubimp-walk', frame: 0, scale: 2, name: 'Club Imp' },
+                { sprite: 'axeimp-walk', frame: 0, scale: 2, name: 'Axe Imp' }
             ],
-            7: [ // Void
-                { label: 'Difficulty', value: 'Extreme', color: '#ff00ff' },
-                { label: 'Enemies', value: '60-70' },
-                { label: 'Boss', value: 'Void Lord' },
-                { label: 'Elements', value: 'Void, Chaos' }
+            7: [ // Grave Land
+                { sprite: 'skeletonseeker-walk', frame: 0, scale: 2, name: 'Skeleton Seeker' },
+                { sprite: 'yellowskeleton-walk', frame: 0, scale: 2, name: 'Undead' }
+            ],
+            8: [ // Castle Land
+                { sprite: 'castle-knight-walk', frame: 0, scale: 2, name: 'Castle Knight' },
+                { sprite: 'castle-rogue-walk', frame: 0, scale: 2, name: 'Castle Rogue' },
+                { sprite: 'castle-soldier-walk', frame: 0, scale: 2, name: 'Castle Soldier' }
+            ],
+            9: [ // Spire Land
+                { sprite: 'golem-orange-walk', frame: 0, scale: 1.2, name: 'Spire Guardian' }
+            ],
+            10: [ // The Void
+                { sprite: 'voidkin', frame: 0, scale: 1.5, name: 'Voidkin' }
             ]
         };
-        return statsMap[index] || [];
+        return enemyData[index] || [];
+    }
+
+    /**
+     * Get item drops to display for each stage
+     * Returns array of {image: string, scale: number, name: string}
+     */
+    getStageItems(index) {
+        // Common items that drop from all stages
+        const commonItems = [
+            { image: 'essence', scale: 0.3, name: 'Essence Coin' }
+        ];
+
+        // Special items per stage (element orbs)
+        const stageItems = {
+            0: [ // Forest Land
+                { image: 'nature-orb', scale: 0.3, name: 'Nature Orb' },
+                { image: 'earth-orb', scale: 0.3, name: 'Earth Orb' }
+            ],
+            1: [ // Cave Land
+                { image: 'earth-orb', scale: 0.3, name: 'Earth Orb' },
+                { image: 'crystal-orb', scale: 0.3, name: 'Crystal Orb' }
+            ],
+            2: [ // Sand Land
+                { image: 'fire-orb', scale: 0.3, name: 'Fire Orb' },
+                { image: 'sand-orb', scale: 0.3, name: 'Sand Orb' }
+            ],
+            3: [ // Swamp Land
+                { image: 'water-orb', scale: 0.3, name: 'Water Orb' },
+                { image: 'poison-orb', scale: 0.3, name: 'Poison Orb' }
+            ],
+            4: [ // Snow Land
+                { image: 'ice-orb', scale: 0.3, name: 'Ice Orb' },
+                { image: 'water-orb', scale: 0.3, name: 'Water Orb' }
+            ],
+            5: [ // Ocean Land
+                { image: 'water-orb', scale: 0.3, name: 'Water Orb' },
+                { image: 'wave-orb', scale: 0.3, name: 'Wave Orb' }
+            ],
+            6: [ // Lava Land
+                { image: 'fire-orb', scale: 0.3, name: 'Fire Orb' },
+                { image: 'lava-orb', scale: 0.3, name: 'Lava Orb' }
+            ],
+            7: [ // Grave Land
+                { image: 'death-orb', scale: 0.3, name: 'Death Orb' },
+                { image: 'poison-orb', scale: 0.3, name: 'Poison Orb' }
+            ],
+            8: [ // Castle Land
+                { image: 'metal-orb', scale: 0.3, name: 'Metal Orb' },
+                { image: 'arcane-orb', scale: 0.3, name: 'Arcane Orb' }
+            ],
+            9: [ // Spire Land
+                { image: 'air-orb', scale: 0.3, name: 'Air Orb' },
+                { image: 'lightning-orb', scale: 0.3, name: 'Lightning Orb' }
+            ],
+            10: [ // The Void
+                { image: 'chaos-orb', scale: 0.3, name: 'Chaos Orb' },
+                { image: 'arcane-orb', scale: 0.3, name: 'Arcane Orb' }
+            ]
+        };
+
+        const specific = stageItems[index] || [];
+        return [...commonItems, ...specific];
+    }
+
+    /**
+     * Get best score and time from save data
+     */
+    getBestStageStats(worldId) {
+        const saveData = window.saveManager ? window.saveManager.getCurrentSave() : null;
+        if (!saveData || !saveData.stages || !saveData.stages.stageStats) {
+            return { bestTime: null, attempts: 0 };
+        }
+
+        // Return empty stats if worldId is invalid
+        if (!worldId || typeof worldId !== 'string') {
+            return { bestTime: null, attempts: 0 };
+        }
+
+        // Convert worldId to stageId format (e.g., 'forestland' -> 'forest-1')
+        // Extract the base name and append '-1'
+        let stageId = worldId;
+        if (worldId.endsWith('land')) {
+            stageId = worldId.replace('land', '') + '-1';
+        }
+
+        const stats = saveData.stages.stageStats[stageId];
+        if (!stats) {
+            return { bestTime: null, attempts: 0 };
+        }
+
+        return {
+            bestTime: stats.bestTime,
+            attempts: stats.attempts || 0
+        };
+    }
+
+    getStageStats(index) {
+        // This method is now deprecated - use getStageEnemies, getStageItems, and getBestStageStats instead
+        return [];
     }
     exitDetailView() {
         if (!this.detailViewActive) return;
@@ -5109,7 +5100,10 @@ class StageSelectScene extends Phaser.Scene {
             alpha: 0,
             duration: 300,
             onComplete: () => {
-                this.detailsContainer.destroy();
+                if (this.detailsContainer) {
+                    this.detailsContainer.destroy();
+                    this.detailsContainer = null;
+                }
             }
         });
         // Return planets to original positions
@@ -5186,7 +5180,7 @@ class StageSelectScene extends Phaser.Scene {
                     this.stageSelectMusic.destroy();
                     this.stageSelectMusic = null;
                 }
-                const gameData = { 
+                const gameData = {
                     stage: stageName,
                     multiplayerEnabled: this.multiplayerEnabled || this.playerCount > 1,
                     p2ControllerIndex: this.p2ControllerIndex || 0,
@@ -5199,6 +5193,11 @@ class StageSelectScene extends Phaser.Scene {
                     playerCount: this.playerCount,
                     playerControllers: this.playerControllers
                 };
+
+                // DEBUG: Log data being sent to GameScene
+                console.log('🎮 MULTIPLAYER DEBUG - StageSelectScene sending to LoadingScene:');
+                console.log('  gameData:', gameData);
+
                 this.scene.start('LoadingScene', {
                     nextScene: nextScene,
                     data: gameData
@@ -5467,17 +5466,7 @@ class ArcadeScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5);
         this.menuElements.push(orbCrushText);
-        // Pinball button
-        const pinballButton = this.add.rectangle(400, 300 + buttonSpacing, buttonWidth, buttonHeight, 0x2a2a4a);
-        pinballButton.setInteractive();
-        pinballButton.setStrokeStyle(3, 0x4a4aff);
-        this.menuElements.push(pinballButton);
-        const pinballText = this.add.text(400, 300 + buttonSpacing, 'PINBALL', {
-            fontSize: '28px',
-            color: '#ffffff',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-        this.menuElements.push(pinballText);
+        // Pinball button removed - arcade now only has Orb Crush
         // Back button
         const backButton = this.add.rectangle(400, 500, 150, 50, 0x4a2a2a);
         backButton.setInteractive();
@@ -5500,17 +5489,7 @@ class ArcadeScene extends Phaser.Scene {
         orbCrushButton.on('pointerdown', () => {
             this.startOrbCrush();
         });
-        pinballButton.on('pointerover', () => {
-            pinballButton.setFillStyle(0x4a4a6a);
-            pinballText.setScale(1.1);
-        });
-        pinballButton.on('pointerout', () => {
-            pinballButton.setFillStyle(0x2a2a4a);
-            pinballText.setScale(1);
-        });
-        pinballButton.on('pointerdown', () => {
-            this.startPinball();
-        });
+        // Pinball interactions removed
         backButton.on('pointerover', () => {
             backButton.setFillStyle(0x6a4a4a);
             backText.setScale(1.1);
@@ -7944,11 +7923,11 @@ class GameOverScene extends Phaser.Scene {
         this.saveManager = this.registry.get('saveManager');
         this.achievementManager = this.registry.get('achievementManager');
 
-        // If we have a save manager and player won, update stats and auto-save
-        if (this.won && this.saveManager) {
+        // If we have a save manager, update stats and auto-save (both win and loss)
+        if (this.saveManager) {
             this.updateSaveData();
             this.saveManager.autoSave();
-            console.log('✅ Auto-saved after stage completion');
+            console.log(this.won ? '✅ Auto-saved after stage completion' : '✅ Auto-saved after stage attempt (essence retained)');
         }
 
         // Don't check achievements here - wait until create() when notification system is ready
@@ -8017,20 +7996,19 @@ class GameOverScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5).setAlpha(0).setScale(0.5);
 
-        let essenceText = null;
-        let totalEssence = 0;
-        if (this.won) {
-            const baseEssence = 5;
-            const enemyBonus = Math.floor(this.enemiesKilled / 100);
-            const timeBonus = Math.floor(totalSeconds / 60);
-            totalEssence = baseEssence + enemyBonus + timeBonus;
+        // Calculate essence earned (both win and loss)
+        const baseEssence = this.won ? 5 : 1;
+        const bonusMultiplier = this.won ? 1.0 : 0.5;
+        const enemyBonus = Math.floor(this.enemiesKilled / 100 * bonusMultiplier);
+        const timeBonus = Math.floor(totalSeconds / 60 * bonusMultiplier);
+        const totalEssence = baseEssence + enemyBonus + timeBonus;
 
-            essenceText = this.add.text(400, 470, `Essence Earned: 0`, {
-                fontSize: '28px',
-                color: '#44ffff',
-                fontStyle: 'bold'
-            }).setOrigin(0.5).setAlpha(0).setScale(0.5);
-        }
+        // Show essence text (both win and loss)
+        const essenceText = this.add.text(400, 470, `Essence Earned: 0`, {
+            fontSize: '28px',
+            color: this.won ? '#44ffff' : '#88ffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setAlpha(0).setScale(0.5);
 
         // Animated stat reveals with staggered timing
         let delay = 500;
@@ -8172,8 +8150,8 @@ class GameOverScene extends Phaser.Scene {
 
         delay += 1200;
 
-        // 5. Essence appears (victory only) with sparkle effect
-        if (this.won && essenceText) {
+        // 5. Essence appears (both win and loss) with sparkle effect
+        if (essenceText) {
             this.time.delayedCall(delay, () => {
                 this.tweens.add({
                     targets: essenceText,
@@ -8201,13 +8179,103 @@ class GameOverScene extends Phaser.Scene {
                             yoyo: true
                         });
 
-                        // Add sparkle particles
-                        this.createSparkle(essenceText.x + Phaser.Math.Between(-50, 50),
-                                          essenceText.y + Phaser.Math.Between(-20, 20));
+                        // Add sparkle particles (more subtle on death)
+                        if (this.won || Math.random() < 0.3) {
+                            this.createSparkle(essenceText.x + Phaser.Math.Between(-50, 50),
+                                              essenceText.y + Phaser.Math.Between(-20, 20));
+                        }
                     }
                 });
             });
         }
+
+        // CHARACTER UNLOCK NOTIFICATION - Show if character was unlocked
+        if (this.unlockedCharacter) {
+            const characterNames = {
+                'wizard': 'The Alchemist',
+                'orb': 'The Mystic Sphere',
+                'grim': 'The Death Knight',
+                'blip': 'The Enigma'
+            };
+
+            const unlockedName = characterNames[this.unlockedCharacter] || this.unlockedCharacter;
+
+            // Show notification after essence animation
+            delay += 500;
+
+            const unlockBanner = this.add.rectangle(400, 520, 600, 80, 0x000000, 0.9);
+            unlockBanner.setOrigin(0.5);
+            unlockBanner.setAlpha(0);
+            unlockBanner.setStrokeStyle(4, 0xffd700);
+            unlockBanner.setDepth(100);
+
+            const unlockTitle = this.add.text(400, 500, 'NEW CHARACTER UNLOCKED!', {
+                fontSize: '20px',
+                color: '#ffd700',
+                fontStyle: 'bold'
+            }).setOrigin(0.5).setAlpha(0).setDepth(101);
+
+            const unlockCharName = this.add.text(400, 530, unlockedName, {
+                fontSize: '28px',
+                color: '#ffffff',
+                fontStyle: 'bold'
+            }).setOrigin(0.5).setAlpha(0).setDepth(101);
+
+            this.time.delayedCall(delay, () => {
+                // Fade in banner
+                this.tweens.add({
+                    targets: unlockBanner,
+                    alpha: 1,
+                    duration: 400,
+                    ease: 'Power2.easeOut'
+                });
+
+                // Bounce in title
+                this.tweens.add({
+                    targets: unlockTitle,
+                    alpha: 1,
+                    y: 505,
+                    duration: 500,
+                    ease: 'Back.easeOut',
+                    onStart: () => {
+                        this.sound.play('levelup', { volume: 0.6 });
+                    }
+                });
+
+                // Bounce in character name
+                this.tweens.add({
+                    targets: unlockCharName,
+                    alpha: 1,
+                    y: 535,
+                    duration: 500,
+                    ease: 'Back.easeOut',
+                    delay: 200
+                });
+
+                // Add sparkle effects
+                for (let i = 0; i < 10; i++) {
+                    this.time.delayedCall(i * 100, () => {
+                        this.createSparkle(
+                            400 + Phaser.Math.Between(-280, 280),
+                            520 + Phaser.Math.Between(-35, 35)
+                        );
+                    });
+                }
+
+                // Pulsing glow effect
+                this.tweens.add({
+                    targets: unlockCharName,
+                    scale: { from: 1, to: 1.1 },
+                    duration: 800,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+            });
+
+            delay += 1000; // Extra delay for character unlock visibility
+        }
+
         // Different text for arcade mode (show after animations)
         let buttonText;
         if (this.arcadeMode) {
@@ -8400,8 +8468,11 @@ class GameOverScene extends Phaser.Scene {
         const saveData = this.saveManager.currentSaveData;
         const stageId = `${this.stage}-1`; // e.g., 'forest-1'
 
-        // Add completed stage if not already in list
-        if (!saveData.stages.completedStages.includes(stageId)) {
+        // Check if this is first completion (before adding to completed list)
+        const isFirstCompletion = !saveData.stages.completedStages.includes(stageId);
+
+        // Add completed stage if not already in list (only on victory)
+        if (this.won && isFirstCompletion) {
             saveData.stages.completedStages.push(stageId);
         }
 
@@ -8417,8 +8488,14 @@ class GameOverScene extends Phaser.Scene {
         const stageStats = saveData.stages.stageStats[stageId];
         stageStats.attempts += 1;
 
-        // Update best time if this is better
-        if (!stageStats.bestTime || this.survivalTime < stageStats.bestTime) {
+        // Track deaths if player didn't win
+        if (!this.won) {
+            stageStats.deaths = (stageStats.deaths || 0) + 1;
+            saveData.stats.totalDeaths = (saveData.stats.totalDeaths || 0) + 1;
+        }
+
+        // Update best time if this is better (only on victory)
+        if (this.won && (!stageStats.bestTime || this.survivalTime < stageStats.bestTime)) {
             stageStats.bestTime = this.survivalTime;
         }
 
@@ -8426,13 +8503,13 @@ class GameOverScene extends Phaser.Scene {
         saveData.stats.totalEnemiesDefeated += this.enemiesKilled;
         saveData.stats.totalGoldCollected += this.itemsCollected;
 
-        // Award talent points (essence) for completing the stage
-        // Base reward: 5 essence for completing any stage
-        // Bonus: 1 essence per 100 enemies killed
-        // Bonus: 1 essence per minute survived
-        const baseEssence = 5;
-        const enemyBonus = Math.floor(this.enemiesKilled / 100);
-        const timeBonus = Math.floor(this.survivalTime / 60000); // Convert ms to minutes
+        // Award talent points (essence) based on performance
+        // VICTORY: Base reward: 5 essence + bonuses
+        // DEATH: Reduced reward: 1 essence + half bonuses (for effort)
+        const baseEssence = this.won ? 5 : 1;
+        const bonusMultiplier = this.won ? 1.0 : 0.5;
+        const enemyBonus = Math.floor(this.enemiesKilled / 100 * bonusMultiplier);
+        const timeBonus = Math.floor(this.survivalTime / 60000 * bonusMultiplier); // Convert ms to minutes
         const totalEssence = baseEssence + enemyBonus + timeBonus;
 
         // Ensure talents object exists in save data
@@ -8450,6 +8527,40 @@ class GameOverScene extends Phaser.Scene {
         // Also sync to localStorage for backwards compatibility
         localStorage.setItem('talentPoints', saveData.talents.essence.toString());
 
+        // CHARACTER UNLOCK SYSTEM - Unlock character on first stage completion
+        if (isFirstCompletion) {
+            // Ensure characters object exists
+            if (!saveData.characters) {
+                saveData.characters = {
+                    unlocked: ['wizard'] // Wizard is always unlocked
+                };
+            }
+
+            // Map stages to character unlocks
+            const stageUnlockMap = {
+                'forest': 'orb',      // Complete Forest Land -> Unlock Orb
+                'cave': 'grim',       // Complete Cave Land -> Unlock Grim
+                'desert': 'blip',     // Complete Sand Land -> Unlock Blip
+                'swamp': null,        // No unlock
+                'snow': null,         // No unlock
+                'ocean': null,        // No unlock
+                'lava': null,         // No unlock
+                'graveyard': null,    // No unlock
+                'castle': null,       // No unlock
+                'spire': null,        // No unlock
+                'nexus': null         // No unlock
+            };
+
+            const characterToUnlock = stageUnlockMap[this.stage];
+
+            if (characterToUnlock && !saveData.characters.unlocked.includes(characterToUnlock)) {
+                saveData.characters.unlocked.push(characterToUnlock);
+                this.unlockedCharacter = characterToUnlock; // Store for notification
+
+                console.log(`🎉 CHARACTER UNLOCKED: ${characterToUnlock} (Completed ${this.stage} for the first time)`);
+            }
+        }
+
         console.log('[GameOverScene] ESSENCE SAVE:', {
             completedStage: stageId,
             totalCompleted: saveData.stages.completedStages.length,
@@ -8457,7 +8568,9 @@ class GameOverScene extends Phaser.Scene {
             essenceAwarded: totalEssence,
             previousEssence: previousEssence,
             newEssence: saveData.talents.essence,
-            savedToSlot: this.saveManager.currentSlot
+            savedToSlot: this.saveManager.currentSlot,
+            firstCompletion: isFirstCompletion,
+            unlockedCharacter: this.unlockedCharacter || 'none'
         });
     }
 }
@@ -8481,7 +8594,9 @@ class TalentTreeScene extends Phaser.Scene {
             this.load.image(`node-${type}-selected`, `assets/talentnodes/${type}2.PNG`);
         });
     }
-    create() {
+    create(data) {
+        // Store music reference from StageSelectScene
+        this.stageSelectMusic = data.stageSelectMusic;
         // Load essence from SaveManager if available, otherwise fallback to localStorage
         const saveData = window.saveManager ? window.saveManager.getCurrentSave() : null;
         let essenceValue = 0;
@@ -8514,8 +8629,9 @@ class TalentTreeScene extends Phaser.Scene {
             this.unlockedTalents = JSON.parse(localStorage.getItem('unlockedTalents') || '[]');
         }
 
-        // Set dark background
-        this.cameras.main.setBackgroundColor('#0a0618');
+        // Set space background (same as stage select)
+        this.cameras.main.setBackgroundColor('#0a0a1a');
+        this.createAbyssParticles();
 
         // No background image - just use the node icons
         // Store offset for collision map alignment (center of screen)
@@ -8536,15 +8652,14 @@ class TalentTreeScene extends Phaser.Scene {
             stroke: '#000000',
             strokeThickness: 2
         }).setOrigin(0.5);
-        // Load collision map and create clickable nodes
-        const collisionData = this.cache.json.get('talent-collision-map');
-        this.createTalentNodesFromCollisionMap(collisionData);
-        // Selected talent info panel
-        this.infoPanel = this.add.group();
-        this.createInfoPanel();
+        // Initialize new talent tree system
+        this.initializeTalentTree();
+        this.createTalentTreeVisuals();
+        this.initializeRuneSystem();
+
         // Instructions
-        this.add.text(400, 550, 'Click nodes to unlock • Requires connected path from center', {
-            fontSize: '14px',
+        this.add.text(400, 545, 'Unlock talents to progress paths • Equip runes for flexible builds', {
+            fontSize: '12px',
             color: '#aaaaaa'
         }).setOrigin(0.5);
         // Back button
@@ -8559,7 +8674,8 @@ class TalentTreeScene extends Phaser.Scene {
             this.saveTalents();
             this.scene.start('StageSelectScene', {
                 fromCharacterSelect: true,
-                showCharacterSelect: false
+                showCharacterSelect: false,
+                stageSelectMusic: this.stageSelectMusic
             });
         });
         // Reset button
@@ -8574,685 +8690,456 @@ class TalentTreeScene extends Phaser.Scene {
             this.resetTalents();
         });
     }
-    createTalentNodesFromCollisionMap(collisionData) {
-        if (!collisionData || !collisionData.shapes) return;
-        // Use the same offset as the background image
-        const adjustX = this.collisionOffsetX || 0;
-        const adjustY = this.collisionOffsetY || 0;
-        // Create clickable areas for each talent node
-        collisionData.shapes.forEach((shape, index) => {
-            if (shape.type === 'rect' && shape.width > 0 && shape.height > 0) {
-                // Get the node type for this talent
-                const nodeType = this.getTalentNodeType(shape.name);
-                const isUnlocked = this.unlockedTalents.includes(shape.name);
+    // ===== OLD COLLISION MAP SYSTEM (DEPRECATED - REMOVED) =====
+    // The following functions have been replaced by the new path-based talent tree
+    // Old functions removed: createTalentNodesFromCollisionMap, getTalentNodeType,
+    // getTalentCost, getTalentDescription, showTalentInfo, hideInfoPanel,
+    // createInfoPanel, attemptUnlockTalent, addGlowEffect, applyTalentBonus,
+    // showNotEnoughEssence, drawConnections, and related deprecated code
 
-                // Create image sprite for the node
-                const nodeImage = this.add.image(
-                    shape.x + adjustX + shape.width / 2,
-                    shape.y + adjustY + shape.height / 2,
-                    isUnlocked ? `node-${nodeType}-selected` : `node-${nodeType}-unselected`
-                );
-
-                // Scale the image to fit the collision area (with some padding)
-                const scaleX = (shape.width * 2) / nodeImage.width;
-                const scaleY = (shape.height * 2) / nodeImage.height;
-                const scale = Math.min(scaleX, scaleY, 0.15); // Cap at 0.15 scale
-                nodeImage.setScale(scale);
-                nodeImage.setInteractive({ useHandCursor: true });
-
-                // Store node data
-                const nodeData = {
-                    name: shape.name,
-                    x: shape.x + adjustX + shape.width / 2,
-                    y: shape.y + adjustY + shape.height / 2,
-                    width: shape.width,
-                    height: shape.height,
-                    unlocked: isUnlocked,
-                    image: nodeImage,
-                    nodeType: nodeType,
-                    cost: this.getTalentCost(shape.name)
-                };
-                this.talentNodes.push(nodeData);
-
-                // Add hover glow effect
-                if (nodeData.unlocked) {
-                    this.addGlowEffect(nodeData);
-                }
-
-                // Add hover effects
-                nodeImage.on('pointerover', () => {
-                    // Scale up on hover
-                    this.tweens.add({
-                        targets: nodeImage,
-                        scale: scale * 1.1,
-                        duration: 100,
-                        ease: 'Power2'
-                    });
-                    this.showTalentInfo(nodeData);
-                });
-                nodeImage.on('pointerout', () => {
-                    // Scale back down
-                    this.tweens.add({
-                        targets: nodeImage,
-                        scale: scale,
-                        duration: 100,
-                        ease: 'Power2'
-                    });
-                    this.hideInfoPanel();
-                });
-                // Click to unlock
-                nodeImage.on('pointerdown', () => {
-                    this.attemptUnlockTalent(nodeData);
-                });
+    saveTalents() {
+        // Save to SaveManager if available
+        const saveData = window.saveManager ? window.saveManager.getCurrentSave() : null;
+        if (saveData) {
+            if (!saveData.talents) {
+                saveData.talents = { essence: 0, unlockedTalents: [] };
             }
-        });
+            saveData.talents.essence = this.playerEssence;
+            saveData.talents.unlockedTalents = this.unlockedTalents;
+            window.saveManager.autoSave();
+        }
+        // Also save to localStorage for backwards compatibility
+        localStorage.setItem('talentPoints', this.playerEssence.toString());
+        localStorage.setItem('unlockedTalents', JSON.stringify(this.unlockedTalents));
     }
-    getTalentNodeType(talentName) {
-        // Map talent names to visual node types
-        const nodeTypeMap = {
-            'speed': 'boot',
-            'obelisksenabled': 'lock',
-            'elitesenabled': 'lock',
-            '5%damage': 'staff',
-            '2.5%shield': 'brainjar',
-            '15': 'flex',
-            '2.5%dmg': 'staff',
-            '1%dmg': 'staff',
-            'poisonduration': 'alchemy',
-            'ressurect': 'vampirism',
-            '7.5%dmg': 'staff',
-            'passive': 'spellbook',
-            'active': 'spellbook',
-            'lightiningmastery': 'critical',
-            'deathmastery': 'critical',
-            'baseprojdmg5%': 'staff',
-            'retaliate5%': 'dice',
-            'essence5%': 'alchemy',
-            'shield5%': 'brainjar'
+
+    // ===== TALENT TREE SYSTEM =====
+    // Old collision map-based system removed - now using path-based progression
+    initializeTalentTree() {
+        this.talentTreeData = this.getTalentTreeData();
+        this.talentNodes = [];
+        this.runeSlots = [];
+        this.equippedRunes = JSON.parse(localStorage.getItem('equippedRunes') || '[]');
+    }
+
+    getTalentTreeData() {
+        // Streamlined talent tree with unique node assets
+        // Available node types: lock, boot, brainjar, dice, flex, vampirism, alchemy, critical, staff, spellbook, bosses
+        return {
+            // CENTER - Origin Node
+            origin: {
+                id: 'origin',
+                name: 'Origin',
+                desc: 'The nexus of power',
+                cost: 0,
+                unlocked: true,
+                path: 'center',
+                tier: 0,
+                x: 400,
+                y: 280,
+                nodeType: 'lock',
+                effect: null
+            },
+
+            // TOP-LEFT PATH - Offense
+            spell_power: {
+                id: 'spell_power',
+                name: 'Spell Power',
+                desc: '+25% Spell Damage',
+                cost: 15,
+                path: 'offense',
+                tier: 1,
+                x: 260,
+                y: 180,
+                nodeType: 'staff',
+                requires: ['origin'],
+                effect: { type: 'damage', value: 0.25 }
+            },
+            devastation: {
+                id: 'devastation',
+                name: 'Devastation',
+                desc: '+50% Spell Damage, +20% Area',
+                cost: 40,
+                path: 'offense',
+                tier: 2,
+                x: 160,
+                y: 120,
+                nodeType: 'spellbook',
+                requires: ['spell_power'],
+                effect: { type: 'devastation', damageBonus: 0.50, areaBonus: 0.20 }
+            },
+
+            // TOP-RIGHT PATH - Defense
+            vitality: {
+                id: 'vitality',
+                name: 'Vitality',
+                desc: '+50% Max Health',
+                cost: 15,
+                path: 'defense',
+                tier: 1,
+                x: 540,
+                y: 180,
+                nodeType: 'brainjar',
+                requires: ['origin'],
+                effect: { type: 'maxHealth', value: 0.50 }
+            },
+            regeneration: {
+                id: 'regeneration',
+                name: 'Regeneration',
+                desc: 'Heal 1% max HP per second',
+                cost: 30,
+                path: 'defense',
+                tier: 2,
+                x: 640,
+                y: 120,
+                nodeType: 'flex',
+                requires: ['vitality'],
+                effect: { type: 'healthRegen', value: 0.01 }
+            },
+
+            // BOTTOM-LEFT PATH - Utility
+            swift_feet: {
+                id: 'swift_feet',
+                name: 'Swift Feet',
+                desc: '+30% Movement Speed',
+                cost: 15,
+                path: 'utility',
+                tier: 1,
+                x: 260,
+                y: 380,
+                nodeType: 'boot',
+                requires: ['origin'],
+                effect: { type: 'moveSpeed', value: 0.30 }
+            },
+            magnetism: {
+                id: 'magnetism',
+                name: 'Magnetism',
+                desc: '+60% Pickup Radius',
+                cost: 30,
+                path: 'utility',
+                tier: 2,
+                x: 160,
+                y: 440,
+                nodeType: 'dice',
+                requires: ['swift_feet'],
+                effect: { type: 'pickupRadius', value: 0.60 }
+            },
+
+            // BOTTOM-RIGHT PATH - Mastery
+            fusion_expert: {
+                id: 'fusion_expert',
+                name: 'Fusion Expert',
+                desc: 'Fusion spells +40% damage',
+                cost: 15,
+                path: 'mastery',
+                tier: 1,
+                x: 540,
+                y: 380,
+                nodeType: 'alchemy',
+                requires: ['origin'],
+                effect: { type: 'fusionDamage', value: 0.40 }
+            },
+            vampirism: {
+                id: 'vampirism',
+                name: 'Vampirism',
+                desc: '+10% Lifesteal on all damage',
+                cost: 35,
+                path: 'mastery',
+                tier: 2,
+                x: 640,
+                y: 440,
+                nodeType: 'vampirism',
+                requires: ['fusion_expert'],
+                effect: { type: 'lifesteal', value: 0.10 }
+            },
+
+            // CHALLENGE NODES (Left and Right of Origin)
+            elite_enemies: {
+                id: 'elite_enemies',
+                name: 'Elite Encounters',
+                desc: 'Unlock elite enemies for greater rewards',
+                cost: 15,
+                path: 'challenge',
+                tier: 1,
+                x: 300,
+                y: 280,
+                nodeType: 'critical',
+                requires: ['origin'],
+                effect: { type: 'enableElites', value: true }
+            },
+            boss_fights: {
+                id: 'boss_fights',
+                name: 'Boss Battles',
+                desc: 'Unlock boss fights at end of stages',
+                cost: 25,
+                path: 'challenge',
+                tier: 2,
+                x: 500,
+                y: 280,
+                nodeType: 'bosses',
+                requires: ['origin'],
+                effect: { type: 'enableBosses', value: true }
+            }
         };
-        return nodeTypeMap[talentName] || 'flex';
     }
-    getTalentCost(talentName) {
-        // Define costs for each talent based on name
-        const costs = {
-            'speed': 10,
-            'obelisksenabled': 25,
-            'elitesenabled': 30,
-            '5%damage': 15,
-            '2.5%shield': 10,
-            '15': 5, // Assuming this is a basic stat
-            '2.5%dmg': 10,
-            '1%dmg': 5,
-            'poisonduration': 20,
-            'ressurect': 50,
-            '7.5%dmg': 25,
-            'passive': 30,
-            'active': 30,
-            'lightiningmastery': 40,
-            'deathmastery': 40,
-            'baseprojdmg5%': 20,
-            'retaliate5%': 25,
-            'essence5%': 15,
-            'shield5%': 20
-        };
-        return costs[talentName] || 10;
-    }
-    getTalentDescription(talentName) {
-        const descriptions = {
-            'speed': 'Movement Speed +10%',
-            'obelisksenabled': 'Unlock Obelisk Abilities',
-            'elitesenabled': 'Enable Elite Enemies (Better Loot & XP)',
-            '5%damage': 'All Damage +5%',
-            '2.5%shield': 'Shield Strength +2.5%',
-            '15': 'Base Stats +15',
-            '2.5%dmg': 'Damage +2.5%',
-            '1%dmg': 'Damage +1%',
-            'poisonduration': 'Poison Duration +2s',
-            'ressurect': 'Resurrect on Death (Once per stage)',
-            '7.5%dmg': 'Damage +7.5%',
-            'passive': 'Unlock Passive Slot',
-            'active': 'Unlock Active Ability',
-            'lightiningmastery': 'Lightning Spell Power +25%',
-            'deathmastery': 'Death Spell Power +25%',
-            'baseprojdmg5%': 'Projectile Damage +5%',
-            'retaliate5%': 'Retaliation Damage +5%',
-            'essence5%': 'Essence Gain +5%',
-            'shield5%': 'Shield +5%'
-        };
-        return descriptions[talentName] || talentName;
-    }
-    showTalentInfo(nodeData) {
-        if (this.infoText) {
-            this.infoText.setText([
-                nodeData.unlocked ? '[UNLOCKED]' : `Cost: ${nodeData.cost} Essence`,
-                this.getTalentDescription(nodeData.name)
-            ]);
-            this.infoPanel.setVisible(true);
-        }
-    }
-    hideInfoPanel() {
-        if (this.infoPanel) {
-            this.infoPanel.setVisible(false);
-        }
-    }
-    createInfoPanel() {
-        // Create info panel background
-        const panelBg = this.add.rectangle(400, 500, 400, 60, 0x000000, 0.8);
-        panelBg.setStrokeStyle(2, 0x444444);
-        this.infoPanel.add(panelBg);
-        // Info text
-        this.infoText = this.add.text(400, 500, '', {
-            fontSize: '16px',
-            color: '#ffffff',
-            align: 'center'
-        }).setOrigin(0.5);
-        this.infoPanel.add(this.infoText);
-        this.infoPanel.setVisible(false);
-    }
-    attemptUnlockTalent(nodeData) {
-        if (nodeData.unlocked) {
-            return;
-        }
-        if (this.playerEssence >= nodeData.cost) {
-            // Deduct essence
-            this.playerEssence -= nodeData.cost;
 
-            // Mark as unlocked
-            nodeData.unlocked = true;
-            this.unlockedTalents.push(nodeData.name);
-
-            // Save to SaveManager if available
-            const saveData = window.saveManager ? window.saveManager.getCurrentSave() : null;
-            if (saveData) {
-                if (!saveData.talents) {
-                    saveData.talents = { essence: 0, unlockedTalents: [] };
-                }
-                saveData.talents.essence = this.playerEssence;
-                saveData.talents.unlockedTalents = this.unlockedTalents;
-                window.saveManager.autoSave();
-                console.log('[TalentTreeScene] Saved talent unlock to slot', window.saveManager.currentSlot);
-            }
-
-            // Also save to localStorage for backwards compatibility
-            localStorage.setItem('talentPoints', this.playerEssence.toString());
-            localStorage.setItem('unlockedTalents', JSON.stringify(this.unlockedTalents));
-
-            // Update visuals - swap to selected image
-            if (nodeData.image) {
-                const currentScale = nodeData.image.scaleX;
-                nodeData.image.setTexture(`node-${nodeData.nodeType}-selected`);
-                nodeData.image.setScale(currentScale); // Preserve scale
-
-                // Add a brief flash effect
-                this.tweens.add({
-                    targets: nodeData.image,
-                    alpha: 0.5,
-                    duration: 100,
-                    yoyo: true,
-                    repeat: 2,
-                    ease: 'Power2'
-                });
-            }
-
-            this.addGlowEffect(nodeData);
-            // Update essence display
-            this.essenceText.setText(`Essence: ${this.playerEssence}`);
-            // Apply talent bonus
-            this.applyTalentBonus(nodeData.name);
-            // Play unlock sound if available
-            if (this.sound.get('powerup')) {
-                this.sound.play('powerup');
-            }
-        } else {
-            // Not enough essence
-            this.showNotEnoughEssence();
-        }
-    }
-    addGlowEffect(nodeData) {
-        const glow = this.add.rectangle(
-            nodeData.x,  // Already adjusted in nodeData
-            nodeData.y,  // Already adjusted in nodeData
-            nodeData.width + 4,
-            nodeData.height + 4,
-            0x00ff00,
-            0
-        );
-        glow.setStrokeStyle(3, 0x00ff00, 0.3);
-        glow.setDepth(-1);
-        this.tweens.add({
-            targets: glow,
-            alpha: { from: 0.3, to: 0.6 },
-            duration: 1000,
-            yoyo: true,
-            repeat: -1
-        });
-    }
-    applyTalentBonus(talentName) {
-        // Store talent bonuses in localStorage for GameScene to read
-        const bonuses = JSON.parse(localStorage.getItem('talentBonuses') || '{}');
-        switch(talentName) {
-            case 'speed':
-                bonuses.moveSpeed = (bonuses.moveSpeed || 1) + 0.1;
-                break;
-            case 'obelisksenabled':
-                bonuses.obelisksEnabled = true;
-                break;
-            case 'elitesenabled':
-                bonuses.elitesEnabled = true;
-                break;
-            case '5%damage':
-                bonuses.damageMultiplier = (bonuses.damageMultiplier || 1) + 0.05;
-                break;
-            case '2.5%shield':
-                bonuses.shieldMultiplier = (bonuses.shieldMultiplier || 1) + 0.025;
-                break;
-            case '2.5%dmg':
-                bonuses.damageMultiplier = (bonuses.damageMultiplier || 1) + 0.025;
-                break;
-            case '1%dmg':
-                bonuses.damageMultiplier = (bonuses.damageMultiplier || 1) + 0.01;
-                break;
-            case '7.5%dmg':
-                bonuses.damageMultiplier = (bonuses.damageMultiplier || 1) + 0.075;
-                break;
-            case 'poisonduration':
-                bonuses.poisonDuration = (bonuses.poisonDuration || 0) + 2000;
-                break;
-            case 'ressurect':
-                bonuses.resurrect = true;
-                break;
-            case 'passive':
-                bonuses.passiveSlot = true;
-                break;
-            case 'active':
-                bonuses.activeSlot = true;
-                break;
-            case 'lightiningmastery':
-                bonuses.lightningPower = (bonuses.lightningPower || 1) + 0.25;
-                break;
-            case 'deathmastery':
-                bonuses.deathPower = (bonuses.deathPower || 1) + 0.25;
-                break;
-            case 'baseprojdmg5%':
-                bonuses.projectileDamage = (bonuses.projectileDamage || 1) + 0.05;
-                break;
-            case 'retaliate5%':
-                bonuses.retaliationDamage = (bonuses.retaliationDamage || 0) + 0.05;
-                break;
-            case 'essence5%':
-                bonuses.essenceGain = (bonuses.essenceGain || 1) + 0.05;
-                break;
-            case 'shield5%':
-                bonuses.shieldMultiplier = (bonuses.shieldMultiplier || 1) + 0.05;
-                break;
-            case '15':
-                bonuses.baseStats = (bonuses.baseStats || 0) + 15;
-                break;
-        }
-        localStorage.setItem('talentBonuses', JSON.stringify(bonuses));
-    }
-    showNotEnoughEssence() {
-        const warningText = this.add.text(400, 300, 'Not Enough Essence!', {
-            fontSize: '32px',
-            color: '#ff0000',
-            stroke: '#000000',
-            strokeThickness: 3
-        }).setOrigin(0.5);
-        this.tweens.add({
-            targets: warningText,
-            alpha: 0,
-            y: 280,
-            duration: 1000,
-            onComplete: () => warningText.destroy()
-        });
-    }
-    createMysticalParticles() {
-        for (let i = 0; i < 30; i++) {
-            const x = Phaser.Math.Between(0, 800);
-            const y = Phaser.Math.Between(0, 600);
-            const particle = this.add.circle(x, y, 2, 0x9966ff, 0.3);
-            this.tweens.add({
-                targets: particle,
-                y: y - 100,
-                x: x + Phaser.Math.Between(-50, 50),
-                alpha: 0,
-                duration: Phaser.Math.Between(5000, 8000),
-                repeat: -1,
-                delay: Phaser.Math.Between(0, 5000),
-                onRepeat: () => {
-                    particle.x = Phaser.Math.Between(0, 800);
-                    particle.y = 600;
-                    particle.setAlpha(0.3);
-                }
-            });
-        }
-    }
-    // Old createTalentTree method - no longer used with new collision map system
-    createTalentTree() {
-        // This method is kept for compatibility but no longer used
-        return;
-//         // Define talent nodes with three paths and four tiers
-//         // Path positions: Left (Shadow Weaver), Center (Unending Thirst), Right (Crimson Blade)
-//         const talentData = [
-//             // Origin node at the bottom center
-//             { id: 'origin', x: 400, y: 500, name: 'Origin', desc: 'The beginning of power', cost: 0, 
-//               effect: null, iconFrame: 10, color: 0xffd700, unlocked: true, tier: 0 }, // Star icon
-//             // PATH 1: CRIMSON BLADE (Right side - Offense)
-//             // Tier 1
-//             { id: 'serrated1', x: 550, y: 420, name: 'Serrated Edge I', desc: '+5% Base Damage', cost: 1,
-//               effect: { damage: 1.05 }, iconFrame: 22, color: 0xff4444, requires: ['origin'], tier: 1, path: 'crimson', ranks: 3 },
-//             { id: 'serrated2', x: 600, y: 420, name: 'Serrated Edge II', desc: '+10% Base Damage', cost: 1,
-//               effect: { damage: 1.10 }, iconFrame: 22, color: 0xff4444, requires: ['serrated1'], tier: 1, path: 'crimson', ranks: 3 },
-//             { id: 'serrated3', x: 650, y: 420, name: 'Serrated Edge III', desc: '+15% Base Damage', cost: 1,
-//               effect: { damage: 1.15 }, iconFrame: 22, color: 0xff4444, requires: ['serrated2'], tier: 1, path: 'crimson', ranks: 3 },
-//             // Tier 2
-//             { id: 'reckless', x: 600, y: 340, name: 'Reckless Strike', desc: '+15% DMG, +5% DMG taken', cost: 1,
-//               effect: { damage: 1.15, damageTaken: 1.05 }, iconFrame: 17, color: 0xff6666, requires: ['serrated3'], tier: 2, path: 'crimson' },
-//             // Tier 3
-//             { id: 'keen1', x: 570, y: 260, name: 'Keen Eye I', desc: '+5% Crit, +10% Crit DMG', cost: 1,
-//               effect: { critChance: 0.05, critDamage: 1.1 }, iconFrame: 31, color: 0xff8888, requires: ['reckless'], tier: 3, path: 'crimson', ranks: 2 },
-//             { id: 'keen2', x: 630, y: 260, name: 'Keen Eye II', desc: '+10% Crit, +20% Crit DMG', cost: 1,
-//               effect: { critChance: 0.10, critDamage: 1.2 }, iconFrame: 31, color: 0xff8888, requires: ['keen1'], tier: 3, path: 'crimson', ranks: 2 },
-//             // Tier 4
-//             { id: 'frenzy', x: 600, y: 180, name: 'Frenzied Strikes', desc: 'Kill: +10% AtkSpd (3s, x3)', cost: 1,
-//               effect: { onKill: 'frenzy' }, iconFrame: 16, color: 0xffaaaa, requires: ['keen2'], tier: 4, path: 'crimson' },
-//             // PATH 2: UNENDING THIRST (Center - Defense)
-//             // Tier 1
-//             { id: 'blood1', x: 350, y: 420, name: 'Blood Pact I', desc: '+10% Max Health', cost: 1,
-//               effect: { maxHealth: 1.1 }, iconFrame: 51, color: 0x44ff44, requires: ['origin'], tier: 1, path: 'thirst', ranks: 3 },
-//             { id: 'blood2', x: 400, y: 420, name: 'Blood Pact II', desc: '+20% Max Health', cost: 1,
-//               effect: { maxHealth: 1.2 }, iconFrame: 51, color: 0x44ff44, requires: ['blood1'], tier: 1, path: 'thirst', ranks: 3 },
-//             { id: 'blood3', x: 450, y: 420, name: 'Blood Pact III', desc: '+30% Max Health', cost: 1,
-//               effect: { maxHealth: 1.3 }, iconFrame: 51, color: 0x44ff44, requires: ['blood2'], tier: 1, path: 'thirst', ranks: 3 },
-//             // Tier 2
-//             { id: 'vampiric', x: 400, y: 340, name: 'Vampiric Touch', desc: 'Heal 2% of damage dealt', cost: 1,
-//               effect: { lifesteal: 0.02 }, iconFrame: 29, color: 0x66ff66, requires: ['blood3'], tier: 2, path: 'thirst' },
-//             // Tier 3
-//             { id: 'iron1', x: 370, y: 260, name: 'Iron Skin I', desc: '-5% Damage Taken', cost: 1,
-//               effect: { damageReduction: 0.95 }, iconFrame: 45, color: 0x88ff88, requires: ['vampiric'], tier: 3, path: 'thirst', ranks: 2 },
-//             { id: 'iron2', x: 430, y: 260, name: 'Iron Skin II', desc: '-10% Damage Taken', cost: 1,
-//               effect: { damageReduction: 0.90 }, iconFrame: 45, color: 0x88ff88, requires: ['iron1'], tier: 3, path: 'thirst', ranks: 2 },
-//             // Tier 4
-//             { id: 'immortal', x: 400, y: 180, name: 'Immortal Will', desc: '<20% HP: 2s invuln (60s CD)', cost: 1,
-//               effect: { lowHealthInvuln: true }, iconFrame: 6, color: 0xaaffaa, requires: ['iron2'], tier: 4, path: 'thirst' },
-//             // PATH 3: SHADOW WEAVER (Left side - Utility)
-//             // Tier 1
-//             { id: 'fleet1', x: 150, y: 420, name: 'Fleet Foot I', desc: '+5% Movement Speed', cost: 1,
-//               effect: { moveSpeed: 1.05 }, iconFrame: 11, color: 0x4444ff, requires: ['origin'], tier: 1, path: 'shadow', ranks: 3 },
-//             { id: 'fleet2', x: 200, y: 420, name: 'Fleet Foot II', desc: '+10% Movement Speed', cost: 1,
-//               effect: { moveSpeed: 1.10 }, iconFrame: 11, color: 0x4444ff, requires: ['fleet1'], tier: 1, path: 'shadow', ranks: 3 },
-//             { id: 'fleet3', x: 250, y: 420, name: 'Fleet Foot III', desc: '+15% Movement Speed', cost: 1,
-//               effect: { moveSpeed: 1.15 }, iconFrame: 11, color: 0x4444ff, requires: ['fleet2'], tier: 1, path: 'shadow', ranks: 3 },
-//             // Tier 2
-//             { id: 'arcane', x: 200, y: 340, name: 'Arcane Shroud', desc: '-10% All Cooldowns', cost: 1,
-//               effect: { cooldown: 0.9 }, iconFrame: 41, color: 0x6666ff, requires: ['fleet3'], tier: 2, path: 'shadow' },
-//             // Tier 3
-//             { id: 'expand1', x: 170, y: 260, name: 'Expanding Shadow I', desc: '+10% AoE Size', cost: 1,
-//               effect: { aoeSize: 1.1 }, iconFrame: 4, color: 0x8888ff, requires: ['arcane'], tier: 3, path: 'shadow', ranks: 2 },
-//             { id: 'expand2', x: 230, y: 260, name: 'Expanding Shadow II', desc: '+20% AoE Size', cost: 1,
-//               effect: { aoeSize: 1.2 }, iconFrame: 4, color: 0x8888ff, requires: ['expand1'], tier: 3, path: 'shadow', ranks: 2 },
-//             // Tier 4
-//             { id: 'temporal', x: 200, y: 180, name: 'Temporal Flux', desc: 'Zone: -50% enemy speed (30s)', cost: 1,
-//               effect: { temporalZone: true }, iconFrame: 24, color: 0xaaaaff, requires: ['expand2'], tier: 4, path: 'shadow' }
-//         ];
-//         // Store talent data for animation
-//         this.talentData = talentData;
-//         // Create center node immediately
-//         const centerNode = talentData.find(t => t.id === 'origin');
-//         this.createTalentNode(centerNode);
-//         // Animate other nodes emerging from center
-//         this.time.delayedCall(500, () => {
-//             talentData.forEach((talent, index) => {
-//                 if (talent.id !== 'origin') {
-//                     // Calculate delay based on distance from center
-//                     const distance = Phaser.Math.Distance.Between(400, 300, talent.x, talent.y);
-//                     const delay = index * 100 + (distance / 3);
-//                     this.time.delayedCall(delay, () => {
-//                         this.createTalentNodeAnimated(talent);
-//                     });
-//                 }
-//             });
-//             // Draw connections after animation completes
-//             const maxDelay = talentData.length * 100 + 300;
-//             this.time.delayedCall(maxDelay, () => {
-//                 this.drawConnections();
-//             });
-//         });
-    }
-    createTalentNodeAnimated(talent) {
-        // Start at center for animation
-        const container = this.add.container(400, 300);
-        container.setScale(0.1);
-        container.setAlpha(0);
-        // Create the node
-        this.createTalentNodeContent(talent, container);
-        // Animate to final position
-        this.tweens.add({
-            targets: container,
-            x: talent.x,
-            y: talent.y,
-            scale: 1,
-            alpha: 1,
-            duration: 600,
-            ease: 'Power2.easeOut',
-            onStart: () => {
-                // Create trail effect
-                const trail = this.add.circle(400, 300, 5, talent.color, 0.8);
-                this.tweens.add({
-                    targets: trail,
-                    x: talent.x,
-                    y: talent.y,
-                    scale: 0.1,
-                    alpha: 0,
-                    duration: 600,
-                    ease: 'Power2.easeOut',
-                    onComplete: () => trail.destroy()
-                });
-            }
-        });
-        // Store reference
-        this.nodeButtons.push({ container, talent, components: {} });
-    }
-    createTalentNode(talent) {
-        const container = this.add.container(talent.x, talent.y);
-        this.createTalentNodeContent(talent, container);
-        this.nodeButtons.push({ container, talent, components: {} });
-    }
-    createTalentNodeContent(talent, container) {
-        const radius = talent.radius || 35;
-        // Check if unlocked
-        const isUnlocked = talent.unlocked || this.talents.has(talent.id);
-        const canUnlock = this.canUnlockTalent(talent);
-        // Glow effect
-        if (isUnlocked || canUnlock) {
-            const glow = this.add.circle(0, 0, radius + 10, talent.color, 0.3);
-            container.add(glow);
-            if (!talent.special) {
-                this.tweens.add({
-                    targets: glow,
-                    scale: { from: 1, to: 1.2 },
-                    alpha: { from: 0.3, to: 0.1 },
-                    duration: 2000,
-                    yoyo: true,
-                    repeat: -1
-                });
-            }
-        }
-        // Main node
-        const node = this.add.circle(0, 0, radius, talent.color, isUnlocked ? 0.9 : 0.3);
-        node.setStrokeStyle(3, isUnlocked ? 0xffffff : (canUnlock ? talent.color : 0x444444));
-        container.add(node);
-        // Icon using sprite
-        if (talent.iconFrame !== undefined) {
-            const icon = this.add.image(0, 0, 'upgrade-icons', talent.iconFrame);
-            // Scale down the large icons to fit in the nodes
-            icon.setScale(talent.special ? 0.15 : 0.2);
-            if (!isUnlocked && !canUnlock) {
-                icon.setTint(0x444444);
-            }
-            container.add(icon);
-        }
-        // Name
-        const name = this.add.text(0, radius + 15, talent.name, {
-            fontSize: '12px',
-            color: isUnlocked ? '#ffffff' : (canUnlock ? '#aaaaaa' : '#666666'),
-            stroke: '#000000',
-            strokeThickness: 2
-        }).setOrigin(0.5);
-        container.add(name);
-        // Cost
-        if (!talent.unlocked && talent.cost > 0) {
-            const costText = this.add.text(0, -radius - 15, `${talent.cost}`, {
-                fontSize: '14px',
-                color: canUnlock && this.talentPoints >= talent.cost ? '#44ff44' : '#ff4444',
-                fontStyle: 'bold',
-                stroke: '#333333',
-                strokeThickness: 2
-            }).setOrigin(0.5);
-            container.add(costText);
-        }
-        // Make interactive if can unlock
-        if (!isUnlocked && canUnlock) {
-            node.setInteractive({ useHandCursor: true });
-            node.on('pointerover', () => {
-                node.setScale(1.1);
-                this.showTalentTooltip(talent, container);
-            });
-            node.on('pointerout', () => {
-                node.setScale(1);
-                this.hideTooltip();
-            });
-            node.on('pointerdown', () => {
-                if (this.talentPoints >= talent.cost) {
-                    this.unlockTalent(talent);
-                }
-            });
-        } else if (isUnlocked) {
-            node.setInteractive({ useHandCursor: true });
-            node.on('pointerover', () => {
-                this.showTalentTooltip(talent, container);
-            });
-            node.on('pointerout', () => {
-                this.hideTooltip();
-            });
-        }
-        // Store node data
-        talent.container = container;
-        talent.node = node;
-        this.nodeButtons.push(talent);
-    }
-    canUnlockTalent(talent) {
-        if (talent.unlocked || this.talents.has(talent.id)) return false;
-        if (!talent.requires) return true;
-        // Check if all required talents are unlocked
-        const hasRequiredTalents = talent.requires.every(reqId => {
-            const reqTalent = this.talentData.find(t => t.id === reqId);
-            return reqTalent && (reqTalent.unlocked || this.talents.has(reqId));
-        });
-        if (!hasRequiredTalents) return false;
-        // Check tier requirements - need 4 points spent in lower tiers to unlock next tier
-        if (talent.tier && talent.tier > 1) {
-            let pointsInLowerTiers = 0;
-            // Count points spent in all tiers below this one
-            for (let tier = 1; tier < talent.tier; tier++) {
-                this.talentData.forEach(t => {
-                    if (t.tier === tier && this.talents.has(t.id)) {
-                        pointsInLowerTiers += t.cost || 1;
-                    }
-                });
-            }
-            // Need at least 4 points total in all tiers below to unlock this tier
-            const requiredPoints = (talent.tier - 1) * 4;
-            if (pointsInLowerTiers < requiredPoints) {
-                return false;
-            }
-        }
-        return true;
-    }
-    unlockTalent(talent) {
-        this.talentPoints -= talent.cost;
-        this.talents.set(talent.id, true);
-        localStorage.setItem('talentPoints', this.talentPoints.toString());
-        // Update points display
-        this.pointsText.setText(`Essence: ${this.talentPoints}`);
-        // Refresh the tree
-        this.nodeButtons.forEach(btn => btn.container.destroy());
-        this.nodeButtons = [];
-        this.createTalentTree();
-        // Show unlock effect
-        this.showUnlockEffect(talent.x, talent.y);
-    }
-    showUnlockEffect(x, y) {
-        const effect = this.add.circle(x, y, 5, 0xffffff, 1);
-        this.tweens.add({
-            targets: effect,
-            scale: 10,
-            alpha: 0,
-            duration: 1000,
-            ease: 'Power2',
-            onComplete: () => effect.destroy()
-        });
-    }
-    drawConnections() {
+    createTalentTreeVisuals() {
+        // Draw connection lines first (so they appear behind nodes)
         const graphics = this.add.graphics();
-        graphics.setDepth(-1);
-        this.talentData.forEach(talent => {
-            if (talent.requires) {
+        graphics.setDepth(0);
+
+        // Draw paths from origin to each branch
+        Object.values(this.talentTreeData).forEach(talent => {
+            if (talent.requires && talent.requires.length > 0) {
                 talent.requires.forEach(reqId => {
-                    const reqTalent = this.talentData.find(t => t.id === reqId);
+                    const reqTalent = this.talentTreeData[reqId];
                     if (reqTalent) {
-                        const isUnlocked = (talent.unlocked || this.talents.has(talent.id)) && 
-                                         (reqTalent.unlocked || this.talents.has(reqId));
-                        graphics.lineStyle(2, isUnlocked ? 0xffd700 : 0x444444, isUnlocked ? 0.8 : 0.3);
+                        // Check if both talents are unlocked for gold line
+                        const bothUnlocked = this.unlockedTalents.includes(talent.id) && this.unlockedTalents.includes(reqId);
+                        graphics.lineStyle(3, bothUnlocked ? 0xffd700 : 0x444444, bothUnlocked ? 1.0 : 0.5);
                         graphics.lineBetween(reqTalent.x, reqTalent.y, talent.x, talent.y);
                     }
                 });
             }
         });
+
+        // Create talent nodes
+        Object.values(this.talentTreeData).forEach(talent => {
+            const isUnlocked = this.unlockedTalents.includes(talent.id);
+            const canUnlock = this.canUnlockTalent(talent);
+
+            // Create node image
+            const nodeImage = this.add.image(
+                talent.x,
+                talent.y,
+                isUnlocked ? `node-${talent.nodeType}-selected` : `node-${talent.nodeType}-unselected`
+            );
+            nodeImage.setScale(0.12);
+            nodeImage.setDepth(1);
+            nodeImage.setInteractive({ useHandCursor: true });
+
+            // Glow effect for unlocked nodes
+            if (isUnlocked) {
+                const glow = this.add.circle(talent.x, talent.y, 18, 0xffd700, 0.3);
+                glow.setDepth(0);
+                this.tweens.add({
+                    targets: glow,
+                    alpha: { from: 0.3, to: 0.6 },
+                    scale: { from: 1.0, to: 1.2 },
+                    duration: 1000,
+                    yoyo: true,
+                    repeat: -1
+                });
+            }
+
+            // Hover effects
+            nodeImage.on('pointerover', () => {
+                this.tweens.add({
+                    targets: nodeImage,
+                    scale: 0.14,
+                    duration: 100
+                });
+                this.showTalentTooltip(talent);
+            });
+
+            nodeImage.on('pointerout', () => {
+                this.tweens.add({
+                    targets: nodeImage,
+                    scale: 0.12,
+                    duration: 100
+                });
+                this.hideTalentTooltip();
+            });
+
+            nodeImage.on('pointerdown', () => {
+                this.attemptUnlockNewTalent(talent);
+            });
+
+            talent.visual = nodeImage;
+        });
+
+        // Add path labels
+        const pathLabels = [
+            { text: 'OFFENSE', x: 140, y: 30, color: '#ff4444' },
+            { text: 'DEFENSE', x: 660, y: 30, color: '#4444ff' },
+            { text: 'UTILITY', x: 140, y: 530, color: '#44ff44' },
+            { text: 'MASTERY', x: 660, y: 530, color: '#ff44ff' }
+        ];
+
+        pathLabels.forEach(label => {
+            this.add.text(label.x, label.y, label.text, {
+                fontSize: '16px',
+                color: label.color,
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+        });
     }
-    showTalentTooltip(talent, container) {
-        if (this.tooltip) this.tooltip.destroy();
-        const bg = this.add.rectangle(container.x, container.y - 80, 200, 60, 0x000000, 0.9);
-        bg.setStrokeStyle(2, talent.color);
-        const desc = this.add.text(container.x, container.y - 80, talent.desc, {
-            fontSize: '14px',
-            color: '#ffffff',
-            align: 'center',
-            wordWrap: { width: 180 }
+
+    canUnlockTalent(talent) {
+        // Already unlocked
+        if (this.unlockedTalents.includes(talent.id)) return false;
+
+        // Can't afford
+        if (this.playerEssence < talent.cost) return false;
+
+        // Check prerequisites
+        if (talent.requires && talent.requires.length > 0) {
+            return talent.requires.every(reqId => this.unlockedTalents.includes(reqId));
+        }
+
+        return true;
+    }
+
+    attemptUnlockNewTalent(talent) {
+        if (!this.canUnlockTalent(talent)) {
+            // Show error feedback
+            if (!this.unlockedTalents.includes(talent.id)) {
+                if (this.playerEssence < talent.cost) {
+                    this.showMessage('Not enough essence!', '#ff4444');
+                } else {
+                    this.showMessage('Unlock prerequisites first!', '#ff4444');
+                }
+            }
+            return;
+        }
+
+        // Unlock talent
+        this.playerEssence -= talent.cost;
+        this.unlockedTalents.push(talent.id);
+
+        // Save to SaveManager and localStorage
+        this.saveTalents();
+
+        // Update essence display
+        if (this.essenceText) {
+            this.essenceText.setText(`Essence: ${this.playerEssence}`);
+        }
+
+        // Visual feedback
+        this.showMessage(`Unlocked: ${talent.name}!`, '#ffd700');
+        this.sound.play('pop', { volume: 0.5 });
+
+        // Refresh visuals
+        this.scene.restart();
+    }
+
+    showTalentTooltip(talent) {
+        const isUnlocked = this.unlockedTalents.includes(talent.id);
+        const canUnlock = this.canUnlockTalent(talent);
+
+        // Create tooltip background
+        if (this.tooltip) {
+            this.tooltip.destroy();
+        }
+
+        const tooltipX = talent.x > 400 ? talent.x - 150 : talent.x + 150;
+        const tooltipY = talent.y;
+
+        const tooltipBg = this.add.rectangle(tooltipX, tooltipY, 280, 100, 0x000000, 0.9);
+        tooltipBg.setStrokeStyle(2, isUnlocked ? 0xffd700 : canUnlock ? 0x44ff44 : 0x444444);
+
+        const nameText = this.add.text(tooltipX, tooltipY - 35, talent.name, {
+            fontSize: '16px',
+            color: isUnlocked ? '#ffd700' : '#ffffff',
+            fontStyle: 'bold'
         }).setOrigin(0.5);
-        this.tooltip = this.add.container(0, 0);
-        this.tooltip.add([bg, desc]);
+
+        const descText = this.add.text(tooltipX, tooltipY - 10, talent.desc, {
+            fontSize: '12px',
+            color: '#cccccc',
+            wordWrap: { width: 260 }
+        }).setOrigin(0.5);
+
+        const costText = this.add.text(tooltipX, tooltipY + 30,
+            isUnlocked ? 'UNLOCKED' : `Cost: ${talent.cost} Essence`,
+            {
+                fontSize: '14px',
+                color: isUnlocked ? '#44ff44' : canUnlock ? '#ffff44' : '#ff4444'
+            }).setOrigin(0.5);
+
+        this.tooltip = this.add.container(0, 0, [tooltipBg, nameText, descText, costText]);
+        this.tooltip.setDepth(100);
     }
-    hideTooltip() {
+
+    hideTalentTooltip() {
         if (this.tooltip) {
             this.tooltip.destroy();
             this.tooltip = null;
         }
     }
-    saveTalents() {
-        // New system already saves talents in attemptUnlockTalent
-        // This method is kept for compatibility
-        localStorage.setItem('unlockedTalents', JSON.stringify(this.unlockedTalents));
+
+    showMessage(text, color) {
+        const message = this.add.text(400, 50, text, {
+            fontSize: '20px',
+            color: color,
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+        message.setDepth(200);
+
+        this.tweens.add({
+            targets: message,
+            y: 30,
+            alpha: 0,
+            duration: 2000,
+            ease: 'Power2',
+            onComplete: () => message.destroy()
+        });
     }
+
+    initializeRuneSystem() {
+        // Rune system will be implemented next
+        // For now, just show placeholder
+        this.add.text(400, 570, 'Rune System: Coming Soon', {
+            fontSize: '12px',
+            color: '#666666'
+        }).setOrigin(0.5);
+    }
+
     resetTalents() {
         // Refund all spent essence
         let refund = 0;
-        this.unlockedTalents.forEach(talentName => {
-            refund += this.getTalentCost(talentName);
+        this.unlockedTalents.forEach(talentId => {
+            const talent = this.talentTreeData[talentId];
+            if (talent) {
+                refund += talent.cost;
+            }
         });
         this.playerEssence += refund;
-        localStorage.setItem('talentPoints', this.playerEssence.toString());
+
         // Clear unlocked talents
         this.unlockedTalents = [];
-        localStorage.setItem('unlockedTalents', JSON.stringify(this.unlockedTalents));
-        // Clear talent bonuses
-        localStorage.removeItem('talentBonuses');
-        // Update essence display
-        if (this.essenceText) {
-            this.essenceText.setText(`Essence: ${this.playerEssence}`);
-        }
-        // Refresh the scene to update all visuals
+
+        // Save
+        this.saveTalents();
+
+        // Refresh the scene
         this.scene.restart();
+    }
+
+    createAbyssParticles() {
+        // Create multiple layers of floating particles (same as stage select)
+        for (let i = 0; i < 50; i++) {
+            const x = Phaser.Math.Between(0, 800);
+            const y = Phaser.Math.Between(0, 600);
+            const size = Phaser.Math.Between(1, 3);
+            const particle = this.add.circle(x, y, size, 0xffffff, Phaser.Math.FloatBetween(0.1, 0.3));
+            // Slow floating animation
+            this.tweens.add({
+                targets: particle,
+                y: y - Phaser.Math.Between(50, 150),
+                x: x + Phaser.Math.Between(-30, 30),
+                alpha: { from: particle.alpha, to: 0 },
+                duration: Phaser.Math.Between(8000, 15000),
+                repeat: -1,
+                onRepeat: () => {
+                    particle.x = Phaser.Math.Between(0, 800);
+                    particle.y = Phaser.Math.Between(600, 700);
+                    particle.setAlpha(Phaser.Math.FloatBetween(0.1, 0.3));
+                }
+            });
+        }
     }
 }
 
@@ -9299,6 +9186,7 @@ class RadialChargeMenu {
         this.stickDeadzone = 0.3;
         this.currentPouchIndex = 0; // For cycling through pouch with Tab
         this.pouchCycleMode = false; // Track if we're in pouch cycling mode
+        this.lastSelectPressed = false; // Track SELECT button state for "just pressed" detection
 
         // Overflow pouch (max 4 extras when slots full)
         if (!this.player.elementPouch) {
@@ -9363,6 +9251,9 @@ class RadialChargeMenu {
 
         this.isOpen = true;
         this.highlightedSocketIndex = 0;
+
+        // Set lastSelectPressed to true to prevent immediate close
+        this.lastSelectPressed = true;
 
         // Pause the game when radial menu opens
         this.scene.pauseGame('radial-menu');
@@ -9775,6 +9666,20 @@ class RadialChargeMenu {
             this.highlightRing.destroy();
         }
 
+        // Remove old description box
+        if (this.descriptionBox) {
+            this.descriptionBox.destroy();
+            this.descriptionBox = null;
+        }
+        if (this.descriptionText) {
+            this.descriptionText.destroy();
+            this.descriptionText = null;
+        }
+        if (this.descriptionTitle) {
+            this.descriptionTitle.destroy();
+            this.descriptionTitle = null;
+        }
+
         if (this.highlightedSocketIndex >= 0 && this.highlightedSocketIndex < this.sockets.length) {
             const socket = this.sockets[this.highlightedSocketIndex];
             this.highlightRing = this.scene.add.circle(socket.x, socket.y, this.SOCKET_SIZE / 2 + 3, 0xFFFFFF, 0);
@@ -9789,7 +9694,131 @@ class RadialChargeMenu {
                 yoyo: true,
                 repeat: -1
             });
+
+            // Add description box for highlighted element
+            // Try player.chargeSlots first, fall back to scene.chargeSlots
+            const chargeSlots = this.player.chargeSlots || this.scene.chargeSlots;
+            const element = chargeSlots ? chargeSlots[this.highlightedSocketIndex] : null;
+
+            console.log('[RadialMenu] updateHighlight called - highlightedIndex:', this.highlightedSocketIndex);
+            console.log('[RadialMenu] chargeSlots:', chargeSlots);
+            console.log('[RadialMenu] element:', element);
+            console.log('[RadialMenu] elementConfig exists:', !!this.scene.elementConfig);
+
+            if (element && this.scene.elementConfig && this.scene.elementConfig[element]) {
+                console.log('[RadialMenu] Creating description box for element:', element);
+                const config = this.scene.elementConfig[element];
+                const elementName = config.name || element.toUpperCase();
+
+                // Get element description
+                const elementDescriptions = this.getElementDescriptions();
+                const description = elementDescriptions[element] || 'No description available';
+
+                // Position description box to the right of radial menu (using FIXED screen coordinates)
+                // Don't use scrollX/scrollY since we're using setScrollFactor(0)
+                const boxX = 580; // Right side of screen (fixed position)
+                const boxY = 300; // Middle height (fixed position)
+                const boxWidth = 200; // Narrower to fit on right side
+                const boxHeight = 80; // Taller for wrapped text
+
+                // Background box - use same pattern as pouch title
+                this.descriptionBox = this.scene.add.rectangle(boxX, boxY, boxWidth, boxHeight, 0x000000, 0.9);
+                this.descriptionBox.setStrokeStyle(2, config.color || 0xFFFFFF, 1);
+                this.descriptionBox.setScrollFactor(0);
+                this.descriptionBox.setDepth(2050);
+                this.menuContainer.add(this.descriptionBox);
+                console.log('[RadialMenu] Created descriptionBox at:', boxX, boxY);
+
+                // Element name/title - use same pattern as pouch title
+                this.descriptionTitle = this.scene.add.text(boxX, boxY - 25, elementName, {
+                    fontSize: '16px',
+                    color: '#' + (config.color || 0xFFFFFF).toString(16).padStart(6, '0'),
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 3
+                });
+                this.descriptionTitle.setOrigin(0.5);
+                this.descriptionTitle.setScrollFactor(0);
+                this.descriptionTitle.setDepth(2051);
+                this.menuContainer.add(this.descriptionTitle);
+                console.log('[RadialMenu] Created descriptionTitle:', elementName);
+
+                // Description text - use same pattern as pouch title
+                this.descriptionText = this.scene.add.text(boxX, boxY + 8, description, {
+                    fontSize: '12px',
+                    color: '#ffffff',
+                    align: 'center',
+                    stroke: '#000000',
+                    strokeThickness: 2,
+                    wordWrap: { width: boxWidth - 20 } // Wrapped to fit narrower box
+                });
+                this.descriptionText.setOrigin(0.5);
+                this.descriptionText.setScrollFactor(0);
+                this.descriptionText.setDepth(2051);
+                this.menuContainer.add(this.descriptionText);
+                console.log('[RadialMenu] Created descriptionText:', description);
+            } else {
+                console.log('[RadialMenu] Description NOT created - element:', element, 'config:', !!this.scene.elementConfig);
+            }
         }
+    }
+
+    /**
+     * Get element descriptions for radial menu
+     */
+    getElementDescriptions() {
+        return {
+            fire: 'Torrent of flame that sets enemies on fire',
+            water: 'Healing bubbles that restore health',
+            earth: 'Orbiting earth fragments that launch at nearby enemies after a while',
+            rock: 'Heavy boulder with massive impact',
+            air: 'Fast wind projectiles',
+            lightning: 'Lightning arrow flies at closest enemy and bounces to nearby enemies',
+            holy: 'Homing light missiles',
+            arcane: 'Magical essence bolts',
+            dust: 'Grants temporary invulnerability',
+            lava: 'Successive blasts that grow larger',
+            steam: 'Healing cloud that follows you',
+            poison: 'Toxic damage over time',
+            volcano: 'Meteor shower from above',
+            ice: 'Freezing spike projectiles',
+            meteor: 'Flaming rocks from the sky',
+            mud: 'Slowing projectiles',
+            storm: 'Summons a lightning tempest',
+            thunder: 'Powerful electric discharge',
+            crystal: 'Spinning crystal shards',
+            death: 'Powerful hex with long cooldown',
+            time: 'Slows all enemies briefly',
+            sand: 'Desert winds that disorient',
+            gravity: 'Pulls enemies together',
+            sun: 'Intense solar flare',
+            smoke: 'Obscuring cloud',
+            blast: 'Explosive force wave',
+            wave: 'Tidal wave that pushes foes',
+            vortex: 'Spinning void that traps',
+            tornado: 'Whirlwind that lifts enemies',
+            snowball: 'Freezing snowball attack',
+            star: 'Bouncing projectiles that penetrate enemies',
+            zodiac: 'Constellation power',
+            hex: 'Chases enemies and deals damage over time',
+            venom: 'Deadly poison spray',
+            moon: 'Lunar energy blast',
+            nature: 'Launches pods that sprout and whip nearby enemies',
+            life: 'Restores vitality',
+            metal: 'Metallic projectiles',
+            chaos: 'Unpredictable chaotic energy',
+            laser: 'Focused beam aimed at nearest enemy',
+            philosopherstone: 'Ultimate transmutation power',
+            halo: 'Divine protection',
+            rook: 'Defensive fortress',
+            bishop: 'Diagonal blessing',
+            knight: 'Leaping strike',
+            queen: 'Royal power',
+            king: 'Supreme command',
+            saturn: 'Ringed planet energy',
+            pawn: 'Humble but essential',
+            joker: 'Wild card ability'
+        };
     }
 
     /**
@@ -9815,6 +9844,19 @@ class RadialChargeMenu {
                     this.highlightRing.destroy();
                     this.highlightRing = null;
                 }
+                // Clean up description elements
+                if (this.descriptionBox) {
+                    this.descriptionBox.destroy();
+                    this.descriptionBox = null;
+                }
+                if (this.descriptionText) {
+                    this.descriptionText.destroy();
+                    this.descriptionText = null;
+                }
+                if (this.descriptionTitle) {
+                    this.descriptionTitle.destroy();
+                    this.descriptionTitle = null;
+                }
                 if (this.menuContainer) {
                     this.menuContainer.destroy();
                     this.menuContainer = null;
@@ -9823,11 +9865,12 @@ class RadialChargeMenu {
                 this.socketSprites = [];
                 this.tierTexts = [];
                 this.pouchSlots = [];
+
+                // Set isOpen to false AFTER cleanup completes
+                this.isOpen = false;
+                console.log(`📕 Radial menu closed for Player ${this.playerNumber}`);
             }
         });
-
-        this.isOpen = false;
-        console.log(`📕 Radial menu closed for Player ${this.playerNumber}`);
     }
 
     /**
@@ -9989,14 +10032,21 @@ class RadialChargeMenu {
 
                     console.log(`🔮 Fused ${element1} + ${element2} = ${fusionResult}`);
 
-                    // Rebuild charges array for projectile firing (if this player is P1)
-                    if (this.player === this.scene.wizard) {
-                        this.scene.charges = [];
-                        for (let i = 0; i < this.scene.MAX_ACTIVE_SLOTS && i < this.scene.chargeSlots.length; i++) {
-                            if (this.scene.chargeSlots[i] !== null && this.scene.chargeSlots[i] !== 'catalyst') {
-                                this.scene.charges.push(this.scene.chargeSlots[i]);
-                            }
+                    // Rebuild charges array for projectile firing
+                    // Update this player's charges array (works for all players)
+                    if (!this.player.charges) {
+                        this.player.charges = [];
+                    }
+                    this.player.charges = [];
+                    const maxActiveSlots = this.player.maxCharges || this.scene.MAX_ACTIVE_SLOTS || 3;
+                    for (let i = 0; i < maxActiveSlots && i < this.player.chargeSlots.length; i++) {
+                        if (this.player.chargeSlots[i] !== null && this.player.chargeSlots[i] !== 'catalyst') {
+                            this.player.charges.push(this.player.chargeSlots[i]);
                         }
+                    }
+                    // If this is P1, also update scene-level charges for backwards compatibility
+                    if (this.player === this.scene.wizard) {
+                        this.scene.charges = this.player.charges.slice(); // Copy the array
                         this.scene.updateChargeGroups();
                     }
 
@@ -10075,6 +10125,23 @@ class RadialChargeMenu {
         }
 
         console.log(`Swapped elements: slot ${fromIndex} ↔ slot ${toIndex}`);
+
+        // Rebuild charges array after swap
+        if (!this.player.charges) {
+            this.player.charges = [];
+        }
+        this.player.charges = [];
+        const maxActiveSlots = this.player.maxCharges || this.scene.MAX_ACTIVE_SLOTS || 3;
+        for (let i = 0; i < maxActiveSlots && i < this.player.chargeSlots.length; i++) {
+            if (this.player.chargeSlots[i] !== null && this.player.chargeSlots[i] !== 'catalyst') {
+                this.player.charges.push(this.player.chargeSlots[i]);
+            }
+        }
+        // If this is P1, also update scene-level charges for backwards compatibility
+        if (this.player === this.scene.wizard) {
+            this.scene.charges = this.player.charges.slice(); // Copy the array
+            this.scene.updateChargeGroups();
+        }
 
         // Refresh menu
         this.refresh();
@@ -10418,7 +10485,14 @@ class RadialChargeMenu {
 
         // Gamepad navigation
         if (this.scene.gamepadManager) {
-            const padIndex = this.playerNumber - 1;
+            // Get the correct gamepad index for this player from playerControllers mapping
+            let padIndex = this.playerNumber - 1; // Default fallback
+            if (this.scene.playerControllers && this.scene.playerControllers.length > 0) {
+                const playerData = this.scene.playerControllers.find(p => p.playerNumber === this.playerNumber);
+                if (playerData && playerData.inputType === 'gamepad') {
+                    padIndex = playerData.padIndex;
+                }
+            }
 
             // Right stick for navigation
             const rightStick = this.scene.gamepadManager.getRightStick(padIndex);
@@ -10462,10 +10536,12 @@ class RadialChargeMenu {
                 this.navigateRight();
             }
 
-            // SELECT/BACK to close
-            if (this.scene.gamepadManager.isButtonPressed(padIndex, 'SELECT')) {
+            // SELECT/BACK to close (with "just pressed" detection to prevent immediate close after opening)
+            const selectPressed = this.scene.gamepadManager.isButtonPressed(padIndex, 'SELECT');
+            if (selectPressed && !this.lastSelectPressed) {
                 this.close();
             }
+            this.lastSelectPressed = selectPressed;
 
             // X button to discard
             if (this.scene.gamepadManager.isButtonPressed(padIndex, 'X')) {
@@ -10943,24 +11019,24 @@ class DialogueManager {
     spawnNPCOrb() {
         if (!this.scene.wizard) return;
 
-        // Position orb to the left of the player
-        const orbX = this.scene.wizard.x - 150;
-        const orbY = this.scene.wizard.y;
+        // Position Blue Witch to the left of the player
+        const witchX = this.scene.wizard.x - 150;
+        const witchY = this.scene.wizard.y;
 
-        // Create the orb NPC sprite
-        this.npcOrb = this.scene.add.sprite(orbX, orbY, 'orb-idle');
+        // Create the Blue Witch NPC sprite
+        this.npcOrb = this.scene.add.sprite(witchX, witchY, 'bluewitch-idle');
         this.npcOrb.setScale(2);
         this.npcOrb.setDepth(this.scene.wizard.depth + 1);
 
         // Play idle animation
-        if (this.scene.anims.exists('orb-idle')) {
-            this.npcOrb.play('orb-idle');
+        if (this.scene.anims.exists('bluewitch-idle')) {
+            this.npcOrb.play('bluewitch-idle');
         }
 
         // Add floating animation
         this.scene.tweens.add({
             targets: this.npcOrb,
-            y: orbY - 10,
+            y: witchY - 10,
             duration: 1000,
             yoyo: true,
             repeat: -1,
@@ -11003,6 +11079,12 @@ class DialogueManager {
             this.bubbleContainer = null;
         }
 
+        // Clear previous portrait element
+        if (this.portraitElement) {
+            this.portraitElement.remove();
+            this.portraitElement = null;
+        }
+
         // Check if conversation is complete
         if (this.currentStep >= this.conversationSteps.length) {
             this.close(this.pauseGame);
@@ -11013,10 +11095,10 @@ class DialogueManager {
 
         // Determine speaker character and info
         let speaker, speakerName, speakerColor;
-        if (step.speaker === 'orb') {
+        if (step.speaker === 'orb' || step.speaker === 'witch') {
             speaker = this.npcOrb;
-            speakerName = 'Guide Orb';
-            speakerColor = '#ffaa00';
+            speakerName = 'Blue Witch';
+            speakerColor = '#6699ff';
         } else if (step.speaker === 'obelisk') {
             speaker = this.npcBoss;
             speakerName = 'The Obelisk';
@@ -11030,62 +11112,80 @@ class DialogueManager {
 
         if (!speaker) return;
 
-        // Create bubble container (follows camera)
+        // Create bubble container (fixed to camera - bottom of screen)
         this.bubbleContainer = this.scene.add.container(0, 0);
         this.bubbleContainer.setDepth(5000);
+        this.bubbleContainer.setScrollFactor(0); // Fixed to camera
 
-        // Get world position for bubble (above character's head)
-        const bubbleX = speaker.x;
-        const bubbleY = speaker.y - 80;
-        const bubbleWidth = 300;
-        const bubbleHeight = 100;
+        // Position at bottom of screen - full width
+        const cam = this.scene.cameras.main;
+        const bubbleWidth = 800; // Full screen width
+        const bubbleHeight = 120; // Taller for better readability
+        const bubbleX = 400; // Center of screen
+        const bubbleY = 540; // Bottom of screen (600 - 60 for margin)
 
-        // Bubble background
+        // Add animated GIF portrait for Blue Witch using HTML overlay
+        let portraitElement = null;
+        if (step.speaker === 'orb' || step.speaker === 'witch') {
+            // Create HTML img element for the animated GIF
+            portraitElement = document.createElement('img');
+            portraitElement.src = 'assets/bluewitch/B_witch.gif';
+            portraitElement.style.position = 'absolute';
+            portraitElement.style.width = '80px'; // Larger portrait
+            portraitElement.style.height = '80px';
+            portraitElement.style.imageRendering = 'pixelated';
+            portraitElement.style.pointerEvents = 'none';
+            portraitElement.style.zIndex = '1000';
+
+            // Position fixed to bottom-left of screen
+            const canvas = this.scene.game.canvas;
+            const canvasRect = canvas.getBoundingClientRect();
+
+            portraitElement.style.left = (canvasRect.left + 20) + 'px'; // 20px from left edge
+            portraitElement.style.bottom = (window.innerHeight - canvasRect.bottom + 20) + 'px'; // 20px from bottom
+
+            // Add to document body
+            document.body.appendChild(portraitElement);
+
+            // Store reference for cleanup
+            this.portraitElement = portraitElement;
+        }
+
+        // Dialogue box background (dark fantasy theme - full width at bottom)
         const bubble = this.scene.add.graphics();
-        bubble.fillStyle(0xffffff, 1);
-        bubble.fillRoundedRect(bubbleX - bubbleWidth/2, bubbleY - bubbleHeight/2, bubbleWidth, bubbleHeight, 10);
-        bubble.lineStyle(3, 0x000000, 1);
-        bubble.strokeRoundedRect(bubbleX - bubbleWidth/2, bubbleY - bubbleHeight/2, bubbleWidth, bubbleHeight, 10);
-
-        // Speech bubble tail (triangle pointing down to character)
-        bubble.fillStyle(0xffffff, 1);
-        bubble.lineStyle(3, 0x000000, 1);
-        bubble.beginPath();
-        bubble.moveTo(bubbleX - 10, bubbleY + bubbleHeight/2);
-        bubble.lineTo(bubbleX, bubbleY + bubbleHeight/2 + 15);
-        bubble.lineTo(bubbleX + 10, bubbleY + bubbleHeight/2);
-        bubble.closePath();
-        bubble.fillPath();
-        bubble.strokePath();
+        bubble.fillStyle(0x2a2a2a, 0.95); // Semi-transparent dark gray (95% opacity)
+        bubble.fillRect(0, bubbleY - bubbleHeight/2, bubbleWidth, bubbleHeight); // Full width rectangle
+        bubble.lineStyle(3, 0x8b7355, 1); // Muted bronze border
+        bubble.strokeRect(0, bubbleY - bubbleHeight/2, bubbleWidth, bubbleHeight);
 
         this.bubbleContainer.add(bubble);
 
-        // Speaker name
-        const nameText = this.scene.add.text(bubbleX, bubbleY - bubbleHeight/2 - 15, speakerName, {
-            fontSize: '14px',
+        // Speaker name (positioned on left side, after portrait)
+        const nameX = step.speaker === 'orb' || step.speaker === 'witch' ? 120 : 30; // Leave space for portrait
+        const nameText = this.scene.add.text(nameX, bubbleY - bubbleHeight/2 + 15, speakerName, {
+            fontSize: '18px',
             fontFamily: 'Arial',
             color: speakerColor,
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 3
-        }).setOrigin(0.5);
+        }).setOrigin(0, 0);
         this.bubbleContainer.add(nameText);
 
-        // Message text
-        const messageText = this.scene.add.text(bubbleX, bubbleY, step.text, {
-            fontSize: '12px',
+        // Message text (ghostly white for dark background, left-aligned with more space)
+        const messageX = step.speaker === 'orb' || step.speaker === 'witch' ? 120 : 30;
+        const messageText = this.scene.add.text(messageX, bubbleY - bubbleHeight/2 + 45, step.text, {
+            fontSize: '16px',
             fontFamily: 'Arial',
-            color: '#000000',
-            align: 'center',
-            wordWrap: { width: bubbleWidth - 30 }
-        }).setOrigin(0.5);
+            color: '#d4c4d8',
+            align: 'left',
+            wordWrap: { width: bubbleWidth - messageX - 30 }
+        }).setOrigin(0, 0);
         this.bubbleContainer.add(messageText);
 
-        // Continue indicator at bottom of screen (follows camera)
+        // Continue indicator in bottom-right corner of dialogue box
         const isLastStep = this.currentStep === this.conversationSteps.length - 1;
-        const continueY = this.scene.cameras.main.scrollY + 560;
-        const continueX = this.scene.cameras.main.scrollX + 400;
-        const continueText = this.scene.add.text(continueX, continueY,
+        const continueText = this.scene.add.text(bubbleWidth - 20, bubbleY + bubbleHeight/2 - 15,
             isLastStep ? 'Press SPACE to close' : 'Press SPACE to continue ▼', {
             fontSize: '14px',
             fontFamily: 'Arial',
@@ -11093,9 +11193,7 @@ class DialogueManager {
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 4
-        }).setOrigin(0.5);
-        continueText.setScrollFactor(0);
-        continueText.setDepth(5001);
+        }).setOrigin(1, 1); // Right-aligned, bottom-aligned
         this.bubbleContainer.add(continueText);
 
         // Blinking animation for continue text
@@ -11135,6 +11233,12 @@ class DialogueManager {
         if (this.bubbleContainer) {
             this.bubbleContainer.destroy();
             this.bubbleContainer = null;
+        }
+
+        // Destroy portrait element
+        if (this.portraitElement) {
+            this.portraitElement.remove();
+            this.portraitElement = null;
         }
 
         // Destroy NPC orb
@@ -11228,7 +11332,8 @@ class GameScene extends Phaser.Scene {
         this.jewels = null;
         this.playerXP = 0;
         this.playerLevel = 0; // Start at level 0
-        this.xpToNextLevel = 25; // Reduced from 50 for faster first level up
+        this.xpToNextLevel = 5; // Matches Vampire Survivors (5 XP to level 2)
+        this.nextLevelUpPlayer = 1; // Track which player gets the next level up reward (alternates in multiplayer)
         // Additional game stats for game over screen
         this.enemiesKilled = 0;
         this.itemsCollected = 0;
@@ -11265,6 +11370,10 @@ class GameScene extends Phaser.Scene {
             slotIncrease: 0,        // +1 active charge slot per stack
             passiveSlotIncrease: 0  // +1 passive slot per stack (for chess pieces/modifiers)
         };
+
+        // Catalyst damage bonus system - NEW!
+        this.catalystCount = 0;     // Number of catalysts collected
+        this.catalystDamageBonus = 0; // +5% damage per catalyst (stacks multiplicatively)
 
         // Revive flag - reset to false at start of each life/game
         this.hasUsedRevive = false;
@@ -11323,6 +11432,21 @@ class GameScene extends Phaser.Scene {
         this.p2Joined = data?.p2Joined || false;
         this.playerCount = data?.playerCount || 1;
         this.playerControllers = data?.playerControllers || [];
+
+        // DEBUG: Log multiplayer data
+        console.log('🎮 MULTIPLAYER DEBUG - GameScene init:');
+        console.log('  multiplayerEnabled:', this.multiplayerEnabled);
+        console.log('  playerCount:', this.playerCount);
+        console.log('  coopMode:', this.coopMode);
+        console.log('  p2Joined:', this.p2Joined);
+        console.log('  p2Character:', this.p2Character);
+        console.log('  p3Character:', this.p3Character);
+        console.log('  playerControllers:', this.playerControllers);
+        if (this.playerControllers && this.playerControllers.length > 0) {
+            this.playerControllers.forEach((ctrl, idx) => {
+                console.log(`    [${idx}] Player ${ctrl.playerNumber}: ${ctrl.inputType} (padIndex: ${ctrl.padIndex})`);
+            });
+        }
         if (this.p2Joined) {
             }
 
@@ -11364,6 +11488,22 @@ class GameScene extends Phaser.Scene {
         this.MAX_CATALYSTS_ON_FLOOR = 10;   // Fusion catalysts
         this.MAX_STANDALONE_ITEMS_ON_FLOOR = 20; // Muffins, character unlocks, etc.
 
+        // Sound pooling system - prevents audio chaos when many sounds play at once
+        this.soundPools = {
+            'enemy-death': { max: 8, current: 0 },
+            'enemy-hit': { max: 5, current: 0 },
+            'fire-impact': { max: 6, current: 0 },
+            'ice-impact': { max: 6, current: 0 },
+            'lightning-impact': { max: 6, current: 0 },
+            'earth-impact': { max: 6, current: 0 },
+            'dark-impact': { max: 6, current: 0 },
+            'holy-impact': { max: 6, current: 0 },
+            'fire-cast': { max: 4, current: 0 },
+            'ice-cast': { max: 4, current: 0 },
+            'lightning-cast': { max: 4, current: 0 },
+            'spell-cast-generic': { max: 8, current: 0 }
+        };
+
         // Helper function to get slot type by index
         this.getSlotType = (index) => {
             if (index < this.MAX_ACTIVE_SLOTS) return 'active';
@@ -11380,6 +11520,17 @@ class GameScene extends Phaser.Scene {
         // All assets are loaded in LoadingScene
     }
     create() {
+        // Reset passive upgrades for new game (constructor values persist between runs)
+        this.passiveUpgrades = {
+            revive: 0,
+            spellArea: 0,
+            moveSpeed: 0,
+            maxHealth: 0,
+            damage: 0,
+            slotIncrease: 0,
+            passiveSlotIncrease: 0
+        };
+
         // Add fullscreen toggle
         setupFullscreenKey(this);
 
@@ -11396,67 +11547,18 @@ class GameScene extends Phaser.Scene {
         // Initialize dialogue manager
         this.dialogueManager = new DialogueManager(this);
 
-        // Forest tutorial segments - progressive teaching
+        // Simplified tutorial - runs at start before enemies spawn
         this.forestTutorialSegments = [
             {
                 id: 'intro',
                 trigger: () => true, // Always trigger at start
                 conversation: [
-                    { speaker: 'orb', text: 'Welcome, young wizard! I am your guide through the Forestland.' },
-                    { speaker: 'wizard', text: 'Guide? What is this place?' },
-                    { speaker: 'orb', text: 'This is where all wizards begin their journey. I will teach you the ways of magic!' },
-                    { speaker: 'wizard', text: 'I\'m ready to learn!' }
-                ]
-            },
-            {
-                id: 'movement_combat',
-                trigger: () => this.survivalTime > 10000, // After 10 seconds
-                conversation: [
-                    { speaker: 'orb', text: 'You\'re doing well! Let me explain the basics of combat.' },
-                    { speaker: 'wizard', text: 'How do I fight these creatures?' },
-                    { speaker: 'orb', text: 'Your equipped elements attack automatically! Use arrow keys to move and dodge enemy attacks.' },
-                    { speaker: 'wizard', text: 'So I just need to survive and move strategically!' }
-                ]
-            },
-            {
-                id: 'element_collection',
-                trigger: () => this.enemiesKilled >= 5, // After killing 5 enemies
-                conversation: [
-                    { speaker: 'orb', text: 'Excellent! Notice the glowing orbs enemies drop?' },
-                    { speaker: 'wizard', text: 'Yes, what are those?' },
-                    { speaker: 'orb', text: 'Element orbs! Walk over them to collect and gain new magical powers. Each element has unique abilities!' },
-                    { speaker: 'wizard', text: 'More elements means more power!' }
-                ]
-            },
-            {
-                id: 'radial_menu',
-                trigger: () => this.charges && this.charges.length >= 2, // Has 2+ elements
-                conversation: [
-                    { speaker: 'orb', text: 'You\'re collecting elements! Now let me show you how to manage them.' },
-                    { speaker: 'wizard', text: 'How do I organize my powers?' },
-                    { speaker: 'orb', text: 'Press TAB or SELECT to open your RADIAL MENU. You can drag elements between slots to optimize your build!' },
-                    { speaker: 'wizard', text: 'That\'s incredibly useful!' }
-                ]
-            },
-            {
-                id: 'level_up',
-                trigger: () => this.playerLevel >= 2, // Reached level 2
-                conversation: [
-                    { speaker: 'orb', text: 'Congratulations on leveling up! This is important.' },
-                    { speaker: 'wizard', text: 'What happens when I level up?' },
-                    { speaker: 'orb', text: 'You get to choose from 3 powerful upgrades! Pick passive buffs, new elements, or fusion rituals to combine elements!' },
-                    { speaker: 'wizard', text: 'So I can customize my playstyle!' }
-                ]
-            },
-            {
-                id: 'boss_warning',
-                trigger: () => this.survivalTime > 120000, // After 2 minutes
-                conversation: [
-                    { speaker: 'orb', text: 'Wizard, I sense a powerful presence approaching...' },
-                    { speaker: 'wizard', text: 'What is it?' },
-                    { speaker: 'orb', text: 'The Forest Guardian - a mighty boss! It will spawn soon. Prepare yourself with strong elements and upgrades!' },
-                    { speaker: 'wizard', text: 'I\'m ready for the challenge!' },
-                    { speaker: 'orb', text: 'Remember: dodge its attacks, use your most powerful elements, and don\'t give up! Good luck!' }
+                    { speaker: 'witch', text: 'Welcome! Your goal is to survive for 10 minutes.' },
+                    { speaker: 'witch', text: 'All equipped spell orbs cast automatically. Just move with arrow keys to dodge attacks!' },
+                    { speaker: 'witch', text: 'Press TAB or SELECT to open your RADIAL MENU. Here you can manage your spell slots and pouch.' },
+                    { speaker: 'witch', text: 'The outer ring shows your active spell slots. The bottom shows your pouch for extra storage.' },
+                    { speaker: 'witch', text: 'Press P (or Y on controller) to toggle between spell slots and pouch in the radial menu.' },
+                    { speaker: 'witch', text: 'Drag and drop orbs between slots to organize your build. Good luck!' }
                 ]
             }
         ];
@@ -11464,69 +11566,69 @@ class GameScene extends Phaser.Scene {
         // Stage-specific dialogue conversations
         this.stageConversations = {
             forest: [
-                { speaker: 'orb', text: 'Welcome, young wizard! This is the Forestland, where your journey begins.' },
+                { speaker: 'witch', text: 'Welcome, young wizard! This is the Forestland, where your journey begins.' },
                 { speaker: 'wizard', text: 'What should I know about this place?' },
-                { speaker: 'orb', text: 'Enemies here drop element orbs when defeated. Collect them to gain new magical powers!' },
+                { speaker: 'witch', text: 'Enemies here drop element orbs when defeated. Collect them to gain new magical powers!' },
                 { speaker: 'wizard', text: 'Got it! Time to hunt some creatures!' }
             ],
             cave: [
-                { speaker: 'orb', text: 'The Caveland... dark and treacherous. Many have lost their way here.' },
+                { speaker: 'witch', text: 'The Caveland... dark and treacherous. Many have lost their way here.' },
                 { speaker: 'wizard', text: 'I\'m ready for the challenge.' },
-                { speaker: 'orb', text: 'Good! Remember, you can use FUSION RITUAL at level up to combine two elements into something more powerful!' },
+                { speaker: 'witch', text: 'Good! Remember, you can use FUSION RITUAL at level up to combine two elements into something more powerful!' },
                 { speaker: 'wizard', text: 'Fusion magic... interesting. I\'ll try it!' }
             ],
             desert: [
-                { speaker: 'orb', text: 'The scorching Desertland awaits. The heat here is unbearable!' },
+                { speaker: 'witch', text: 'The scorching Desertland awaits. The heat here is unbearable!' },
                 { speaker: 'wizard', text: 'How do I manage my elements effectively?' },
-                { speaker: 'orb', text: 'Open the RADIAL MENU with TAB or SELECT button. You can drag elements between slots to optimize your build!' },
+                { speaker: 'witch', text: 'Open the RADIAL MENU with TAB or SELECT button. You can drag elements between slots to optimize your build!' },
                 { speaker: 'wizard', text: 'That\'ll help me adapt to different situations!' }
             ],
             swamp: [
-                { speaker: 'orb', text: 'Welcome to the Swampland. Poison and disease run rampant here...' },
+                { speaker: 'witch', text: 'Welcome to the Swampland. Poison and disease run rampant here...' },
                 { speaker: 'wizard', text: 'Sounds dangerous. Any survival tips?' },
-                { speaker: 'orb', text: 'When you level up, look for PHOENIX HEART and other defensive passives. They can save your life!' },
+                { speaker: 'witch', text: 'When you level up, look for PHOENIX HEART and other defensive passives. They can save your life!' },
                 { speaker: 'wizard', text: 'I won\'t take any chances then.' }
             ],
             snow: [
-                { speaker: 'orb', text: 'Brrr! The Snowland... one of the harshest environments.' },
+                { speaker: 'witch', text: 'Brrr! The Snowland... one of the harshest environments.' },
                 { speaker: 'wizard', text: 'What enemies should I watch out for?' },
-                { speaker: 'orb', text: 'Ice creatures are weak to fire elements, and snow beasts fear lightning. Use elemental advantages!' },
+                { speaker: 'witch', text: 'Ice creatures are weak to fire elements, and snow beasts fear lightning. Use elemental advantages!' },
                 { speaker: 'wizard', text: 'Strategy over brute force. I understand.' }
             ],
             ocean: [
-                { speaker: 'orb', text: 'The depths of Oceanland hold ancient secrets and powerful guardians.' },
+                { speaker: 'witch', text: 'The depths of Oceanland hold ancient secrets and powerful guardians.' },
                 { speaker: 'wizard', text: 'I feel the power increasing with each level...' },
-                { speaker: 'orb', text: 'Yes! Each level grants you three choices. Pick wisely to build your perfect wizard!' },
+                { speaker: 'witch', text: 'Yes! Each level grants you three choices. Pick wisely to build your perfect wizard!' },
                 { speaker: 'wizard', text: 'I\'ll choose upgrades that complement my playstyle.' }
             ],
             lava: [
-                { speaker: 'orb', text: 'This is Lavaland - the infernal realm. Only the strongest survive here!' },
+                { speaker: 'witch', text: 'This is Lavaland - the infernal realm. Only the strongest survive here!' },
                 { speaker: 'wizard', text: 'The enemies here are relentless!' },
-                { speaker: 'orb', text: 'Movement speed upgrades are crucial here. Dodge attacks and kite enemies!' },
+                { speaker: 'witch', text: 'Movement speed upgrades are crucial here. Dodge attacks and kite enemies!' },
                 { speaker: 'wizard', text: 'Speed is survival. Got it!' }
             ],
             grave: [
-                { speaker: 'orb', text: 'Graveland... where the dead don\'t rest. Steel your nerves, wizard.' },
+                { speaker: 'witch', text: 'Graveland... where the dead don\'t rest. Steel your nerves, wizard.' },
                 { speaker: 'wizard', text: 'I need more power to face these undead hordes...' },
-                { speaker: 'orb', text: 'Search for MIND ORBS - they look like golden flasks. They\'ll expand your socket count permanently!' },
+                { speaker: 'witch', text: 'Search for MIND ORBS - they look like golden flasks. They\'ll expand your socket count permanently!' },
                 { speaker: 'wizard', text: 'More slots means more elements. I\'ll find them!' }
             ],
             castle: [
-                { speaker: 'orb', text: 'The corrupted Castle... once a beacon of hope, now a fortress of darkness.' },
+                { speaker: 'witch', text: 'The corrupted Castle... once a beacon of hope, now a fortress of darkness.' },
                 { speaker: 'wizard', text: 'These guards are incredibly strong!' },
-                { speaker: 'orb', text: 'Look for chess piece passives from treasure chests. Each provides unique strategic bonuses!' },
+                { speaker: 'witch', text: 'Look for chess piece passives from treasure chests. Each provides unique strategic bonuses!' },
                 { speaker: 'wizard', text: 'I\'ll use every advantage I can get.' }
             ],
             spire: [
-                { speaker: 'orb', text: 'The Spire... you\'ve reached the peak of challenge. Are you ready?' },
+                { speaker: 'witch', text: 'The Spire... you\'ve reached the peak of challenge. Are you ready?' },
                 { speaker: 'wizard', text: 'I\'ve come this far. I won\'t turn back now!' },
-                { speaker: 'orb', text: 'Smart! Combine damage and spell area upgrades for devastating AoE attacks!' },
+                { speaker: 'witch', text: 'Smart! Combine damage and spell area upgrades for devastating AoE attacks!' },
                 { speaker: 'wizard', text: 'Time to unleash my full power!' }
             ],
             nexus: [
-                { speaker: 'orb', text: 'The Nexus... where all magical energies converge. This is an endless trial.' },
+                { speaker: 'witch', text: 'The Nexus... where all magical energies converge. This is an endless trial.' },
                 { speaker: 'wizard', text: 'Endless? How long can I survive?' },
-                { speaker: 'orb', text: 'That depends on your skill! Waves will spawn forever. How long can YOU last?' },
+                { speaker: 'witch', text: 'That depends on your skill! Waves will spawn forever. How long can YOU last?' },
                 { speaker: 'wizard', text: 'Let\'s find out!' }
             ]
         };
@@ -11837,6 +11939,7 @@ class GameScene extends Phaser.Scene {
         });
         // Set speed multiplier based on mode
         const speedMultipliers = {
+            'walk': 0.5,      // Half speed (20 min games)
             'frolic': 1.0,    // Original speed
             'vibe': 1.5,      // Current hyper mode speed
             'hyper': 2.25,    // 50% faster than vibe (1.5 * 1.5)
@@ -11844,7 +11947,7 @@ class GameScene extends Phaser.Scene {
         };
         this.speedMultiplier = speedMultipliers[this.speedMode] || 1.0;
         // Keep hyperMode for backward compatibility checks
-        this.hyperMode = this.speedMode !== 'frolic';
+        this.hyperMode = this.speedMode !== 'frolic' && this.speedMode !== 'walk';
         // Set enemy density multiplier
         const enemyDensity = localStorage.getItem('enemyDensity') || 'normal';
         const densityMultipliers = {
@@ -11880,8 +11983,8 @@ class GameScene extends Phaser.Scene {
         this.waveSpawnInterval = 500; // ms between spawns in a wave
         this.lastWaveSpawn = 0; // Initialize spawn timer
         this.bossSpawned = false; // Track if boss has spawned
-        // Alchemy orb drop system - starts at 1%, increases 1% per wave, resets when player picks extra slot
-        this.alchemyOrbDropChance = 0.01; // 1% base drop chance
+        // Alchemy orb drop system - starts at 0.2%, increases 0.2% per wave (max 2%), resets when player picks extra slot
+        this.alchemyOrbDropChance = 0.002; // 0.2% base drop chance (VS-style rarity)
         // Chrome-specific garbage collection optimization
         if (navigator.userAgent.includes('Chrome')) {
             this.isChrome = true;
@@ -11899,7 +12002,7 @@ class GameScene extends Phaser.Scene {
         this.standaloneItems = this.physics.add.group();
         this.playerXP = 0;
         this.playerLevel = 0; // Start at level 0
-        this.xpToNextLevel = 25; // Reduced from 50 for faster first level up
+        this.xpToNextLevel = 5; // Matches Vampire Survivors (5 XP to level 2)
         // Additional game stats for game over screen
         this.enemiesKilled = 0;
         this.itemsCollected = 0;
@@ -11967,25 +12070,10 @@ class GameScene extends Phaser.Scene {
             duration: 2000,
             ease: 'Power2'
         });
-        // Add starting element from options
-        const startElement = localStorage.getItem('startElement');
-        if (startElement && startElement !== 'none') {
-            // Check if it's a passive element (like rook, bishop, or joker)
-            if (startElement === 'rook' || startElement === 'bishop' || startElement === 'joker') {
-                // Add passive element to first passive slot (slot 4)
-                this.chargeSlots[4] = startElement;
-                } else {
-                // Normal active element
-                this.charges = [startElement];
-                this.chargeSlots[0] = startElement; // Also update chargeSlots
-                this.discoveredElements.add(startElement); // Add to discovered elements
-                // Auto-activate philosopher stone if it's the starting element
-                if (startElement === 'philosopherstone') {
-                    // Store flag to activate later when game is ready
-                    this.shouldAutoActivatePhilosopherStone = true;
-                }
-            }
-        }
+        // WHEEL OF FORTUNE SYSTEM - Spin for starting element!
+        // The wheel will be shown after create() and will assign a random starting element
+        this.wheelOfFortuneActive = true; // Flag to show wheel before game starts
+        this.selectedStartElement = null; // Will be set after wheel spin
         // Initialize cooldown system
         this.spellCooldowns = new Map(); // Map to track cooldowns by spell type
         this.globalSpellCooldown = 0; // Global cooldown to prevent spell spam
@@ -12011,7 +12099,7 @@ class GameScene extends Phaser.Scene {
             mud: { frame: 0, color: 0x664422, name: 'Mud', sheet: 'mud-orb', isImage: true, fireRate: 4500 },
             storm: { frame: 0, color: 0xffff00, name: 'Storm', sheet: 'storm-orb', isImage: true },
             thunder: { frame: 0, color: 0x9966ff, name: 'Thunder', sheet: 'tempest-orb', isImage: true, fireRate: 3000 },
-            crystal: { frame: 0, color: 0xffaaff, name: 'Crystal', sheet: 'crystal-orb', isImage: true, fireRate: 3000 },
+            crystal: { frame: 0, color: 0xffaaff, name: 'Crystal', sheet: 'crystal-orb', isImage: true, fireRate: 300 },
             // Updated to use new orb images
             death: { frame: 0, color: 0x333333, name: 'Death', sheet: 'death-orb', isImage: true, fireRate: 30000 },
             time: { frame: 0, color: 0xffd700, name: 'Time', sheet: 'time-orb', isImage: true },
@@ -12175,6 +12263,19 @@ class GameScene extends Phaser.Scene {
             } else if (this.elementFusions[combo2]) {
                 return this.elementFusions[combo2];
             }
+
+            // Orb character special ability: can fuse ANY two elements
+            // If no fusion exists, produce a random fusion result
+            if (this.wizard && this.wizard.characterType === 'orb') {
+                // Get all possible fusion results
+                const allFusionResults = Object.values(this.elementFusions);
+                if (allFusionResults.length > 0) {
+                    // Return random fusion result
+                    const randomIndex = Math.floor(Math.random() * allFusionResults.length);
+                    return allFusionResults[randomIndex];
+                }
+            }
+
             return null; // No fusion exists
         };
 
@@ -12406,7 +12507,7 @@ class GameScene extends Phaser.Scene {
                 }
             },
             air: {
-                baseDamage: 1.5,
+                baseDamage: 15.0, // Increased from 1.5 to 15.0 (10x) - comparable to other AOE spells
                 baseSpeed: 400,
                 cooldown: 1200,
                 piercing: false,
@@ -12455,7 +12556,7 @@ class GameScene extends Phaser.Scene {
                 }
             },
             wave: {
-                baseDamage: 3.0,
+                baseDamage: 4.5, // Buffed from 3.0 - fusion spell should be stronger
                 baseSpeed: 400,
                 cooldown: 3000,
                 piercing: true,
@@ -12472,7 +12573,7 @@ class GameScene extends Phaser.Scene {
                 }
             },
             crystal: {
-                baseDamage: 2.5,
+                baseDamage: 3.5, // Buffed from 2.5 - fires 8 needles, should hit harder
                 baseSpeed: 400,
                 cooldown: 2000,
                 piercing: true,
@@ -12487,7 +12588,7 @@ class GameScene extends Phaser.Scene {
                 }
             },
             venom: {
-                baseDamage: 2.0,
+                baseDamage: 3.0, // Buffed from 2.0 - fusion spell with poison DoT
                 baseSpeed: 350,
                 cooldown: 2000,
                 piercing: true,
@@ -12556,7 +12657,7 @@ class GameScene extends Phaser.Scene {
                 }
             },
             mud: {
-                baseDamage: 2.0,
+                baseDamage: 2.5, // Buffed from 2.0 - fusion spell with AoE slow
                 baseSpeed: 300,
                 cooldown: 3000,
                 piercing: false,
@@ -12630,6 +12731,11 @@ class GameScene extends Phaser.Scene {
             // Apply global passive bonuses
             if (this.passiveBonuses && this.passiveBonuses.damageMultiplier) {
                 damage *= this.passiveBonuses.damageMultiplier;
+            }
+
+            // Apply catalyst damage bonus (+5% per catalyst, stacks multiplicatively)
+            if (this.catalystDamageBonus && this.catalystDamageBonus > 0) {
+                damage *= (1 + this.catalystDamageBonus);
             }
 
             return damage;
@@ -12778,7 +12884,13 @@ class GameScene extends Phaser.Scene {
         this.createCharacterAnimations(this.p1Character, false);
         this.wizard.setFrame(0); // Set initial frame to prevent errors
         // Create player 2 if multiplayer is enabled
+        console.log('🎮 MULTIPLAYER DEBUG - Checking player 2 spawn:');
+        console.log('  this.multiplayerEnabled =', this.multiplayerEnabled);
+        console.log('  this.playerCount =', this.playerCount);
+        console.log('  this.p2Character =', this.p2Character);
+
         if (this.multiplayerEnabled) {
+            console.log('✅ Spawning Player 2!');
             const wizard2X = this.stage === 'spire' ? wizardStartX + 50 : 2100;
             const wizard2Y = this.stage === 'spire' ? wizardStartY : 1080;
             const p2Sprite = this.getCharacterSprite(this.p2Character || 'wizard', true);
@@ -12807,6 +12919,7 @@ class GameScene extends Phaser.Scene {
             // Create animations for P2 character
             this.createCharacterAnimations(this.p2Character || 'wizard', true);
             // Apply hitbox from hitbox-config.js only for P2
+            let hitboxApplied = false;
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
                 const config = hitboxConfig.hitboxes[this.p2Character] || hitboxConfig.hitboxes['wizard'];
                 if (config && config.width && config.height) {
@@ -12995,6 +13108,8 @@ class GameScene extends Phaser.Scene {
                 this.wizard4.directionBuffer = [];
                 this.wizard4.lastStableDirection = 'down';
             }
+        } else {
+            console.log('❌ NOT spawning additional players - multiplayer disabled');
         }
         // Apply hitbox configuration from hitbox-config.js only
         if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
@@ -13157,6 +13272,47 @@ class GameScene extends Phaser.Scene {
             this.pKey = this.input.keyboard.addKey('P');
             this.tabKey = this.input.keyboard.addKey('TAB');
             this.debugKey = this.input.keyboard.addKey('D');
+
+            // Create gamepad manager for radial menu and other gamepad interactions
+            this.gamepadManager = {
+                getGamepad: (playerIndex) => {
+                    if (!this.input.gamepad) return null;
+                    return this.input.gamepad.getPad(playerIndex);
+                },
+                getRightStick: (playerIndex) => {
+                    const pad = this.gamepadManager.getGamepad(playerIndex);
+                    if (!pad) return null;
+                    return {
+                        x: pad.rightStick.x,
+                        y: pad.rightStick.y
+                    };
+                },
+                isButtonPressed: (playerIndex, buttonName) => {
+                    const pad = this.gamepadManager.getGamepad(playerIndex);
+                    if (!pad || !pad.buttons) return false;
+
+                    const buttonMap = {
+                        'A': 0,
+                        'B': 1,
+                        'X': 2,
+                        'Y': 3,
+                        'LB': 4,
+                        'RB': 5,
+                        'LT': 6,
+                        'RT': 7,
+                        'SELECT': 8,
+                        'START': 9,
+                        'DPAD_UP': 12,
+                        'DPAD_DOWN': 13,
+                        'DPAD_LEFT': 14,
+                        'DPAD_RIGHT': 15
+                    };
+
+                    const buttonIndex = buttonMap[buttonName];
+                    if (buttonIndex === undefined || !pad.buttons[buttonIndex]) return false;
+                    return pad.buttons[buttonIndex].pressed;
+                }
+            };
             // God mode toggle (G key)
             this.gKey = this.input.keyboard.addKey('G');
             this.gKey.on('down', () => {
@@ -13207,6 +13363,15 @@ class GameScene extends Phaser.Scene {
             removeCallback: (enemy) => {
                 if (enemy.body) {
                     enemy.body.enable = false;
+                }
+            }
+        });
+        // Grim Reaper allies group (summoned by death spell)
+        this.grimReapers = this.physics.add.group({
+            runChildUpdate: true,
+            removeCallback: (reaper) => {
+                if (reaper.body) {
+                    reaper.body.enable = false;
                 }
             }
         });
@@ -13601,6 +13766,13 @@ class GameScene extends Phaser.Scene {
 
         if (this.multiplayerEnabled && this.wizard2) {
             this.radialChargeMenu2 = new RadialChargeMenu(this, this.wizard2, 2);
+
+            // Debug: Verify arrays are separate
+            console.log('🔍 POST-RADIAL MENU CREATION CHECK:');
+            console.log('   wizard.chargeSlots:', this.wizard.chargeSlots);
+            console.log('   wizard2.chargeSlots:', this.wizard2.chargeSlots);
+            console.log('   Are they the same array?', this.wizard.chargeSlots === this.wizard2.chargeSlots);
+            console.log('   this.chargeSlots === wizard.chargeSlots?', this.chargeSlots === this.wizard.chargeSlots);
         }
         if (this.playerCount > 2 && this.wizard3) {
             this.radialChargeMenu3 = new RadialChargeMenu(this, this.wizard3, 3);
@@ -13610,21 +13782,21 @@ class GameScene extends Phaser.Scene {
         }
         console.log('✅ Radial Charge Menus initialized for all players');
 
-        // Create minimal level/XP text (since old charge UI is disabled)
-        this.levelText = this.add.text(20, 20, `Level ${this.playerLevel}`, {
-            fontSize: '16px',
-            color: '#ffffff',
-            fontStyle: 'bold'
-        });
-        this.levelText.setScrollFactor(0);
-        this.levelText.setDepth(560);
+        // REMOVED: Level/XP text display - no longer needed with new wheel of fortune system
+        // this.levelText = this.add.text(20, 20, `Level ${this.playerLevel}`, {
+        //     fontSize: '16px',
+        //     color: '#ffffff',
+        //     fontStyle: 'bold'
+        // });
+        // this.levelText.setScrollFactor(0);
+        // this.levelText.setDepth(560);
 
-        this.xpText = this.add.text(20, 45, `XP: ${this.playerXP}/${this.xpToNextLevel}`, {
-            fontSize: '14px',
-            color: '#aaaaaa'
-        });
-        this.xpText.setScrollFactor(0);
-        this.xpText.setDepth(560);
+        // this.xpText = this.add.text(20, 45, `XP: ${this.playerXP}/${this.xpToNextLevel}`, {
+        //     fontSize: '14px',
+        //     color: '#aaaaaa'
+        // });
+        // this.xpText.setScrollFactor(0);
+        // this.xpText.setDepth(560);
 
         // Initialize empty charge indicators array for compatibility
         this.chargeIndicators = [];
@@ -14749,6 +14921,26 @@ class GameScene extends Phaser.Scene {
             frameRate: 10,
             repeat: -1
         });
+        // Grim Reaper animations (summoned ally)
+        createAnimIfNotExists({
+            key: 'grimreaper-floating',
+            frames: this.anims.generateFrameNumbers('grimreaper-idle', { start: 0, end: 7 }),
+            frameRate: 8,
+            repeat: -1
+        });
+        createAnimIfNotExists({
+            key: 'grimreaper-attacking',
+            frames: this.anims.generateFrameNumbers('grimreaper-attack', { start: 0, end: 12 }), // Only first 13 frames (0-12)
+            frameRate: 15,
+            repeat: 0
+        });
+        // Blue Witch animation (tutorial guide)
+        createAnimIfNotExists({
+            key: 'bluewitch-idle',
+            frames: this.anims.generateFrameNumbers('bluewitch-idle', { start: 0, end: 5 }),
+            frameRate: 6,
+            repeat: -1
+        });
         // Skeleton animations for grave stage
         createAnimIfNotExists({
             key: 'skeleton-yellow-walking',
@@ -15456,45 +15648,29 @@ class GameScene extends Phaser.Scene {
                     targets: stageImage,
                     alpha: 0,
                     duration: 500,
-                    onComplete: () => stageImage.destroy()
-                });
-                // Create FIGHT image with dynamic animation
-                const fightImage = this.add.image(400, 300, 'fight-title');
-                fightImage.setOrigin(0.5);
-                fightImage.setScrollFactor(0);
-                fightImage.setDepth(902);
-                fightImage.setScale(0.1);
-                // Animate FIGHT image with retro zoom effect
-                this.tweens.add({
-                    targets: fightImage,
-                    scale: 1.2,
-                    duration: 500,
-                    ease: 'Back.easeOut',
                     onComplete: () => {
-                        // Add shake effect for retro feel
-                        this.tweens.add({
-                            targets: fightImage,
-                            x: '+=10',
-                            duration: 50,
-                            yoyo: true,
-                            repeat: 3
-                        });
-                        // Hold for a moment then fade out
-                        this.time.delayedCall(700, () => {
-                            this.tweens.add({
-                                targets: [fightImage, overlay],
-                                alpha: 0,
-                                duration: 1000,
-                                onComplete: () => {
-                                    fightImage.destroy();
-                                    overlay.destroy();
-                                    // Re-enable input
-                                    this.input.keyboard.enabled = true;
-                                    // Start the game
-                                    this.startGame();
-                                }
+                        stageImage.destroy();
+                        overlay.destroy();
+                        // Re-enable input
+                        this.input.keyboard.enabled = true;
+
+                        // Show WHEEL OF FORTUNE to grant starting element!
+                        // In multiplayer, spin for each player sequentially
+                        if (this.multiplayerEnabled) {
+                            this.spinWheelForAllPlayers();
+                        } else {
+                            // Single player - just spin once
+                            this.showWheelOfFortune((wonElement) => {
+                                // Assign the won element to first charge slot
+                                this.chargeSlots[0] = wonElement;
+                                this.charges = [wonElement];
+                                this.discoveredElements.add(wonElement);
+
+                                // Update UI and start the game
+                                this.updateChargeUI();
+                                this.startGame();
                             });
-                        });
+                        }
                     }
                 });
             });
@@ -15550,7 +15726,7 @@ class GameScene extends Phaser.Scene {
             const centerX = cam.width / 2;
             const centerY = cam.height / 2;
             const selectionBg = this.add.rectangle(centerX, centerY, 700, 400, 0x000000);
-            selectionBg.setStrokeStyle(5, 0xffd700); // Gold border
+            selectionBg.setStrokeStyle(5, 0x8b7355); // Muted bronze border
             selectionBg.setScrollFactor(0);
             selectionBg.setDepth(500); // Very high depth to ensure visibility
             selectionBg.setInteractive(); // Make background interactive to block clicks below
@@ -15564,7 +15740,7 @@ class GameScene extends Phaser.Scene {
             // Title
             const title = this.add.text(centerX, centerY - 200, 'Choose Your Starting Element!', {
                 fontSize: '24px',
-                color: '#ffd700',
+                color: '#8b7355',
                 fontStyle: 'bold'
             });
             title.setOrigin(0.5);
@@ -15735,6 +15911,220 @@ class GameScene extends Phaser.Scene {
             this.updateChargeUI();
             this.startGame();
         }
+    }
+    /**
+     * MULTIPLAYER WHEEL SEQUENCE - Spin wheel for each player
+     */
+    spinWheelForAllPlayers() {
+        const players = [];
+        if (this.wizard) players.push({ wizard: this.wizard, number: 1 });
+        if (this.wizard2) players.push({ wizard: this.wizard2, number: 2 });
+        if (this.wizard3) players.push({ wizard: this.wizard3, number: 3 });
+        if (this.wizard4) players.push({ wizard: this.wizard4, number: 4 });
+
+        let currentPlayerIndex = 0;
+
+        const spinForNextPlayer = () => {
+            if (currentPlayerIndex >= players.length) {
+                // All players done - start the game
+                this.updateChargeUI();
+                this.startGame();
+                return;
+            }
+
+            const currentPlayer = players[currentPlayerIndex];
+            const playerNum = currentPlayer.number;
+            const wizard = currentPlayer.wizard;
+
+            // Show which player is spinning
+            this.showWheelOfFortune((wonElement) => {
+                // Assign element to the correct player's charge slots
+                wizard.chargeSlots[0] = wonElement;
+                this.discoveredElements.add(wonElement);
+
+                // Update wizard.charges for multiplayer firing system
+                if (!wizard.charges) {
+                    wizard.charges = [];
+                }
+                wizard.charges = [wonElement];
+
+                // CRITICAL: For P1, also update scene-level charges for backwards compatibility
+                if (playerNum === 1) {
+                    this.charges = wizard.charges.slice(); // Copy the array
+                }
+
+                // Debug logging
+                console.log(`🎡 Player ${playerNum} won ${wonElement}`);
+                console.log(`   wizard.chargeSlots:`, wizard.chargeSlots);
+                console.log(`   wizard.charges:`, wizard.charges);
+                if (playerNum === 1) {
+                    console.log(`   this.chargeSlots === wizard.chargeSlots?`, this.chargeSlots === wizard.chargeSlots);
+                    console.log(`   this.chargeSlots:`, this.chargeSlots);
+                    console.log(`   this.charges:`, this.charges);
+                }
+
+                // Move to next player
+                currentPlayerIndex++;
+                spinForNextPlayer();
+            }, playerNum); // Pass player number to show in wheel
+        };
+
+        spinForNextPlayer();
+    }
+
+    /**
+     * WHEEL OF FORTUNE - Spin for starting element!
+     * Shows a spinning wheel that selects a random basic element at game start
+     */
+    showWheelOfFortune(callback, playerNumber = 1) {
+        // Pause time during wheel spin
+        this.gamePaused = true;
+        this.time.timeScale = 0;
+        this.physics.pause();
+
+        // Basic elements for the wheel (6 primaries)
+        const wheelElements = ['fire', 'water', 'earth', 'air', 'lightning', 'arcane'];
+
+        // Pre-select the winning element
+        const winningElement = Phaser.Utils.Array.GetRandom(wheelElements);
+        const winningIndex = wheelElements.indexOf(winningElement);
+
+        // Create dark overlay
+        const overlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.85);
+        overlay.setScrollFactor(0);
+        overlay.setDepth(10000);
+
+        // Player-specific colors
+        const playerColors = ['#d4c4d8', '#00BFFF', '#FF4444', '#BA55D3']; // Ghostly white, blue, red, purple
+        const playerColor = playerColors[playerNumber - 1] || '#d4c4d8';
+
+        // Show which player is spinning
+        const playerTitle = this.add.text(400, 100, `PLAYER ${playerNumber}`, {
+            fontSize: '48px',
+            color: playerColor,
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 6
+        });
+        playerTitle.setOrigin(0.5);
+        playerTitle.setScrollFactor(0);
+        playerTitle.setDepth(10001);
+
+        // Create wheel container
+        const wheelCenterX = 400;
+        const wheelCenterY = 320;
+        const wheelRadius = 150;
+
+        // Draw wheel background (dark fantasy - muted bronze border)
+        const wheelBg = this.add.circle(wheelCenterX, wheelCenterY, wheelRadius, 0x333333);
+        wheelBg.setStrokeStyle(8, 0x8b7355);
+        wheelBg.setScrollFactor(0);
+        wheelBg.setDepth(10001);
+
+        // Create wheel segments (element icons)
+        const segmentAngle = (Math.PI * 2) / wheelElements.length;
+        const wheelSegments = [];
+        const wheelIcons = [];
+
+        wheelElements.forEach((element, index) => {
+            const angle = index * segmentAngle - Math.PI / 2; // Start at top
+            const config = this.elementConfig[element];
+
+            // Calculate position for icon
+            const iconRadius = wheelRadius * 0.7;
+            const iconX = wheelCenterX + Math.cos(angle) * iconRadius;
+            const iconY = wheelCenterY + Math.sin(angle) * iconRadius;
+
+            // Create element icon
+            let icon;
+            if (config.isImage) {
+                icon = this.add.image(iconX, iconY, config.sheet);
+                icon.setScale(0.3);
+            } else {
+                icon = this.add.sprite(iconX, iconY, config.sheet, config.frame);
+                icon.setScale(0.3);
+            }
+            icon.setScrollFactor(0);
+            icon.setDepth(10002);
+            wheelIcons.push({ icon, element, angle });
+        });
+
+        // Create pointer/arrow at top
+        const pointerGraphics = this.add.graphics();
+        pointerGraphics.setScrollFactor(0);
+        pointerGraphics.setDepth(10003);
+        pointerGraphics.fillStyle(0xff0000);
+        pointerGraphics.fillTriangle(
+            wheelCenterX, wheelCenterY - wheelRadius - 30,      // top point
+            wheelCenterX - 20, wheelCenterY - wheelRadius - 10,  // bottom left
+            wheelCenterX + 20, wheelCenterY - wheelRadius - 10   // bottom right
+        );
+
+        // Spin the wheel!
+        const spins = 5; // Number of full rotations
+        // Fix alignment: subtract winning index to align with pointer (counterclockwise adjustment)
+        const segmentDegrees = 360 / wheelElements.length;
+        const targetAngle = (spins * 360) - (winningIndex * segmentDegrees);
+
+        // Store initial rotations for icons
+        const initialRotations = wheelIcons.map(w => ({ x: w.icon.x, y: w.icon.y, angle: w.angle }));
+
+        // Create spinning animation
+        let currentRotation = 0;
+        const spinDuration = 4000; // 4 seconds
+
+        const spinTween = this.tweens.add({
+            targets: { rotation: 0 },
+            rotation: targetAngle,
+            duration: spinDuration,
+            ease: 'Cubic.easeOut',
+            onUpdate: (tween) => {
+                const rotation = tween.getValue();
+                const radians = Phaser.Math.DegToRad(rotation);
+
+                // Rotate all icons around the wheel center
+                wheelIcons.forEach((w, i) => {
+                    const newAngle = initialRotations[i].angle + radians;
+                    const iconRadius = wheelRadius * 0.7;
+                    w.icon.x = wheelCenterX + Math.cos(newAngle) * iconRadius;
+                    w.icon.y = wheelCenterY + Math.sin(newAngle) * iconRadius;
+                });
+            },
+            onComplete: () => {
+                // Flash the winning icon
+                const winningIcon = wheelIcons[winningIndex].icon;
+                this.tweens.add({
+                    targets: winningIcon,
+                    scale: 0.5,
+                    duration: 200,
+                    yoyo: true,
+                    repeat: 3
+                });
+
+                // Wait 2 seconds then clean up and start game
+                // Use regular timer instead of delayedCall since timeScale is 0
+                setTimeout(() => {
+                    // Clean up UI - check if objects still exist before destroying
+                    if (overlay && overlay.scene) overlay.destroy();
+                    if (wheelBg && wheelBg.scene) wheelBg.destroy();
+                    if (pointerGraphics && pointerGraphics.scene) pointerGraphics.destroy();
+                    if (playerTitle && playerTitle.scene) playerTitle.destroy();
+                    wheelIcons.forEach(w => {
+                        if (w.icon && w.icon.scene) w.icon.destroy();
+                    });
+
+                    // Resume game BEFORE calling callback
+                    this.gamePaused = false;
+                    this.time.timeScale = 1;
+                    this.physics.resume();
+
+                    // Call callback with winning element
+                    if (callback) {
+                        callback(winningElement);
+                    }
+                }, 2000);
+            }
+        });
     }
     showElementSelectionForChest(selectedElements) {
         this.pauseGame('chest');
@@ -16518,6 +16908,20 @@ class GameScene extends Phaser.Scene {
                     // Create debug graphics if it doesn't exist
                     this.physics.world.createDebugGraphic();
                 }
+            }
+            // Create or show/hide FPS text
+            if (newDebugState && !this.fpsText) {
+                this.fpsText = this.add.text(10, 10, 'FPS: 0', {
+                    fontSize: '16px',
+                    color: '#00ff00',
+                    backgroundColor: '#000000',
+                    padding: { x: 5, y: 5 }
+                });
+                this.fpsText.setScrollFactor(0);
+                this.fpsText.setDepth(1000);
+            }
+            if (this.fpsText) {
+                this.fpsText.setVisible(newDebugState);
             }
             // Show feedback
             const debugText = this.add.text(400, 50, `Debug Mode: ${newDebugState ? 'ON' : 'OFF'}`, {
@@ -17398,12 +17802,32 @@ class GameScene extends Phaser.Scene {
             return; // Skip normal tutorial flow
         }
 
-        // Tutorial disabled for all modes - start game immediately
-        this.gameStarted = true;
+        // Show tutorial at start for forest stage (unless in demo or arcade mode)
+        if (this.stage === 'forest' && !this.demoMode && !this.arcadeMode) {
+            // Show simplified tutorial before game starts
+            const tutorialConversation = this.forestTutorialSegments[0].conversation;
+            this.dialogueManager.showConversation({
+                conversation: tutorialConversation,
+                pauseGame: true,
+                spawnOrb: true,
+                onClose: () => {
+                    // Mark tutorial as shown
+                    if (!this.forestTutorialShown) {
+                        this.forestTutorialShown = new Set();
+                    }
+                    this.forestTutorialShown.add('intro');
+                    // Start game after tutorial
+                    this.gameStarted = true;
+                    this.updateChargeUI();
+                }
+            });
+        } else {
+            // Skip tutorial for non-forest stages or special modes
+            this.gameStarted = true;
+            this.updateChargeUI();
+        }
 
         // NOTE: gameStarted is now set either after dialogue closes or immediately above
-        // Update charge UI with starting element (don't reset charges)
-        this.updateChargeUI();
         // Set up camera to follow both players in multiplayer
         if (this.multiplayerEnabled && this.wizard2) {
             // Create a target point that follows midpoint between players
@@ -17427,11 +17851,11 @@ class GameScene extends Phaser.Scene {
         if (this.stage === 'spire') {
             this.setupSpireland();
         }
-        // Spawn dungeon gate for non-spire stages in single player mode
+        // Dungeon gates disabled in single player
         // In co-op mode, it will spawn when a player dies
-        if (this.stage !== 'spire' && this.stage !== 'nexus' && !this.multiplayerEnabled) {
-            this.spawnDungeonGate();
-        }
+        // if (this.stage !== 'spire' && this.stage !== 'nexus' && !this.multiplayerEnabled) {
+        //     this.spawnDungeonGate();
+        // }
         // Mark animations as ready to prevent errors
         this.animationsReady = true;
         // updateChargeUI should handle all the display updates now
@@ -17480,7 +17904,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'fireslime', weight: 25, count: 3 },
                         { type: 'fireworm', weight: 30, count: 2 },
                         { type: 'orangegolem', weight: 25, count: 1 },
-                        { type: 'giant-fireslime', weight: 3, count: 1 }
+                        { type: 'giant-fireslime', weight: 1.5, count: 1 }  // Reduced from 3
                     ],
                     spawnInterval: 1500,
                     maxEnemies: 45,
@@ -17504,7 +17928,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'orangegolem', weight: 30, count: 2 },
                         { type: 'summoner', weight: 20, count: 1 },
                         { type: 'fireworm', weight: 30, count: 3 },
-                        { type: 'giant-fireslime', weight: 4, count: 2 }
+                        { type: 'giant-fireslime', weight: 2, count: 2 }  // Reduced from 4
                     ],
                     spawnInterval: 1000,
                     maxEnemies: 65,
@@ -17518,7 +17942,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'fireslime', weight: 20, count: 4 },
                         { type: 'fireworm', weight: 20, count: 4 },
                         { type: 'bat', weight: 15, count: 5 },
-                        { type: 'giant-fireslime', weight: 4, count: 3 }
+                        { type: 'giant-fireslime', weight: 2, count: 3 }  // Reduced from 4
                     ],
                     spawnInterval: 600, // Reduced from 800ms (Vampire Survivors style)
                     maxEnemies: 150 // Increased from 80 (Vampire Survivors allows up to 300)
@@ -17556,7 +17980,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'clubimp', weight: 10, count: 1 },
                         { type: 'axeimp', weight: 10, count: 1 },
                         { type: 'skullhound', weight: 20, count: 1 },
-                        { type: 'giant-yellowskeleton', weight: 3, count: 1 }
+                        { type: 'giant-yellowskeleton', weight: 1.5, count: 1 }  // Reduced from 3
                     ],
                     spawnInterval: 1500,
                     maxEnemies: 45,
@@ -17584,7 +18008,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'axeimp', weight: 15, count: 2 },
                         { type: 'yellowskeleton', weight: 15, count: 3 },
                         { type: 'skullhound', weight: 15, count: 2 },
-                        { type: 'giant-yellowskeleton', weight: 4, count: 2 }
+                        { type: 'giant-yellowskeleton', weight: 2, count: 2 }  // Reduced from 4
                     ],
                     spawnInterval: 1000,
                     maxEnemies: 65,
@@ -17598,7 +18022,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'soul', weight: 20, count: 3 },
                         { type: 'clubimp', weight: 12, count: 2 },
                         { type: 'axeimp', weight: 13, count: 2 },
-                        { type: 'giant-yellowskeleton', weight: 4, count: 3 }
+                        { type: 'giant-yellowskeleton', weight: 2, count: 3 }  // Reduced from 4
                     ],
                     spawnInterval: 600, // Reduced from 800ms (Vampire Survivors style)
                     maxEnemies: 150 // Increased from 80 (Vampire Survivors allows up to 300)
@@ -17636,7 +18060,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'soul', weight: 20, count: 2 },
                         { type: 'golem', weight: 15, count: 1 },
                         { type: 'intellectdevourer', weight: 20, count: 1 },
-                        { type: 'giant-slime', weight: 2, count: 1 }
+                        { type: 'giant-slime', weight: 1, count: 1 }  // Reduced from 2
                     ],
                     spawnInterval: 1500,
                     maxEnemies: 45,
@@ -17663,7 +18087,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'slime', weight: 30, count: 3 },
                         { type: 'intellectdevourer', weight: 20, count: 2 },
                         { type: 'brainmole', weight: 10, count: 2 },
-                        { type: 'giant-slime', weight: 3, count: 2 }
+                        { type: 'giant-slime', weight: 1.5, count: 2 }  // Reduced from 3
                     ],
                     spawnInterval: 1000,
                     maxEnemies: 65,
@@ -17679,7 +18103,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'kobold', weight: 10, count: 2 },
                         { type: 'brainmole', weight: 10, count: 2 },
                         { type: 'intellectdevourer', weight: 10, count: 2 },
-                        { type: 'giant-slime', weight: 4, count: 3 }
+                        { type: 'giant-slime', weight: 2, count: 3 }  // Reduced from 4
                     ],
                     spawnInterval: 600, // Reduced from 800ms (Vampire Survivors style)
                     maxEnemies: 150 // Increased from 80 (Vampire Survivors allows up to 300)
@@ -17714,7 +18138,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'castle-rogue', weight: 25, count: 2 },
                         { type: 'castle-knight', weight: 25, count: 1 },
                         { type: 'castle-squire', weight: 25, count: 3 },
-                        { type: 'giant-castle-knight', weight: 2, count: 1 }
+                        { type: 'giant-castle-knight', weight: 1, count: 1 }  // Reduced from 2
                     ],
                     spawnInterval: 1500,
                     maxEnemies: 45,
@@ -17738,7 +18162,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'castle-bladekeeper', weight: 25, count: 2 },
                         { type: 'castle-soldier', weight: 20, count: 3 },
                         { type: 'castle-rogue', weight: 30, count: 3 },
-                        { type: 'giant-castle-knight', weight: 3, count: 2 }
+                        { type: 'giant-castle-knight', weight: 1.5, count: 2 }  // Reduced from 3
                     ],
                     spawnInterval: 1000,
                     maxEnemies: 65,
@@ -17752,7 +18176,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'castle-soldier', weight: 20, count: 3 },
                         { type: 'castle-rogue', weight: 20, count: 4 },
                         { type: 'castle-squire', weight: 15, count: 4 },
-                        { type: 'giant-castle-knight', weight: 4, count: 3 }
+                        { type: 'giant-castle-knight', weight: 2, count: 3 }  // Reduced from 4
                     ],
                     spawnInterval: 600, // Reduced from 800ms (Vampire Survivors style)
                     maxEnemies: 150 // Increased from 80 (Vampire Survivors allows up to 300)
@@ -17792,7 +18216,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'caveghoul', weight: 20, count: 2 },
                         { type: 'soul', weight: 15, count: 2 },
                         { type: 'bat', weight: 10, count: 3 },
-                        { type: 'giant-cobra', weight: 3, count: 1 }
+                        { type: 'giant-cobra', weight: 1.5, count: 1 }  // Reduced from 3
                     ],
                     spawnInterval: 1500,
                     maxEnemies: 45,
@@ -17819,7 +18243,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'caveghoul', weight: 25, count: 4 },
                         { type: 'cactuse', weight: 15, count: 3 },
                         { type: 'golem', weight: 15, count: 2 },
-                        { type: 'giant-cobra', weight: 4, count: 2 }
+                        { type: 'giant-cobra', weight: 2, count: 2 }  // Reduced from 4
                     ],
                     spawnInterval: 1000,
                     maxEnemies: 65,
@@ -17833,7 +18257,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'cactuse', weight: 20, count: 3 },
                         { type: 'golem', weight: 10, count: 2 },
                         { type: 'soul', weight: 10, count: 3 },
-                        { type: 'giant-cobra', weight: 4, count: 3 }
+                        { type: 'giant-cobra', weight: 2, count: 3 }  // Reduced from 4
                     ],
                     spawnInterval: 600, // Reduced from 800ms (Vampire Survivors style)
                     maxEnemies: 150 // Increased from 80 (Vampire Survivors allows up to 300)
@@ -17871,7 +18295,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'mudguard', weight: 20, count: 3 },
                         { type: 'bloboid', weight: 20, count: 3 },
                         { type: 'giantfly', weight: 15, count: 3 },
-                        { type: 'giant-bloboid', weight: 3, count: 1 }
+                        { type: 'giant-bloboid', weight: 1.5, count: 1 }  // Reduced from 3
                     ],
                     spawnInterval: 2300,
                     maxEnemies: 35
@@ -17896,7 +18320,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'mudguard', weight: 25, count: 4 },
                         { type: 'swampmerchant', weight: 15, count: 3 },
                         { type: 'bloboid', weight: 10, count: 4 },
-                        { type: 'giant-bloboid', weight: 4, count: 2 }
+                        { type: 'giant-bloboid', weight: 2, count: 2 }  // Reduced from 4
                     ],
                     spawnInterval: 1800,
                     maxEnemies: 50
@@ -17910,7 +18334,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'swampmerchant', weight: 15, count: 4 },
                         { type: 'bloboid', weight: 10, count: 5 },
                         { type: 'giantfly', weight: 5, count: 5 },
-                        { type: 'giant-bloboid', weight: 4, count: 3 }
+                        { type: 'giant-bloboid', weight: 2, count: 3 }  // Reduced from 4
                     ],
                     spawnInterval: 800,
                     maxEnemies: 60
@@ -17951,7 +18375,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'squirrel', weight: 15, count: 3 },
                         { type: 'redpanda', weight: 15, count: 2 },
                         { type: 'arcaneslime', weight: 3, count: 1 },  // Element orb source
-                        { type: 'giant-mushroom', weight: 2, count: 1 }  // Rare giant mushroom spawn
+                        { type: 'giant-mushroom', weight: 1, count: 1 }  // Rare giant mushroom spawn (reduced from 2)
                     ],
                     spawnInterval: 1500,
                     maxEnemies: 45,
@@ -17981,7 +18405,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'redpanda', weight: 10, count: 3 },
                         { type: 'arcaneslime', weight: 10, count: 2 },  // Element orb source (doubled)
                         { type: 'earthslime', weight: 3, count: 1 },  // Element orb source
-                        { type: 'giant-mushroom', weight: 3, count: 2 }  // 2 giant mushrooms per spawn
+                        { type: 'giant-mushroom', weight: 1.5, count: 2 }  // 2 giant mushrooms per spawn (reduced from 3)
                     ],
                     spawnInterval: 1000,
                     maxEnemies: 65,
@@ -17998,7 +18422,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'redpanda', weight: 10, count: 3 },
                         { type: 'arcaneslime', weight: 3, count: 1 },  // Element orb source
                         { type: 'earthslime', weight: 3, count: 1 },  // Element orb source
-                        { type: 'giant-mushroom', weight: 4, count: 3 }  // Small groups of 3 giant mushrooms
+                        { type: 'giant-mushroom', weight: 2, count: 3 }  // Small groups of 3 giant mushrooms (reduced from 4)
                     ],
                     spawnInterval: 600, // Reduced from 800ms (Vampire Survivors style)
                     maxEnemies: 150 // Increased from 80 (Vampire Survivors allows up to 300)
@@ -18651,16 +19075,14 @@ class GameScene extends Phaser.Scene {
         }
 
         // Handle TAB key to toggle radial menu (P1)
-        if (this.input.keyboard) {
-            const tabKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TAB);
-            if (Phaser.Input.Keyboard.JustDown(tabKey)) {
-                // Don't allow opening radial menu when chest UI or other menus are active
-                if (!this.chestSelectionActive && this.radialChargeMenu) {
-                    if (this.radialChargeMenu.isOpen) {
-                        this.radialChargeMenu.close();
-                    } else {
-                        this.radialChargeMenu.open();
-                    }
+        // NOTE: tabKey is already created in create() method, don't create it here!
+        if (this.tabKey && Phaser.Input.Keyboard.JustDown(this.tabKey)) {
+            // Don't allow opening radial menu when chest UI or other menus are active
+            if (!this.chestSelectionActive && this.radialChargeMenu) {
+                if (this.radialChargeMenu.isOpen) {
+                    this.radialChargeMenu.close();
+                } else {
+                    this.radialChargeMenu.open();
                 }
             }
         }
@@ -18672,29 +19094,47 @@ class GameScene extends Phaser.Scene {
         }
 
         if (this.gamepadManager) {
+            // Get gamepad index for each player from playerControllers mapping
+            const getGamepadIndexForPlayer = (playerNum) => {
+                if (!this.playerControllers || this.playerControllers.length === 0) {
+                    // Fallback: assume gamepad index = player number - 1
+                    return playerNum - 1;
+                }
+                const playerData = this.playerControllers.find(p => p.playerNumber === playerNum);
+                if (playerData && playerData.inputType === 'gamepad') {
+                    return playerData.padIndex;
+                }
+                return -1; // Keyboard or not found
+            };
+
+            const p1GamepadIndex = getGamepadIndexForPlayer(1);
+            const p2GamepadIndex = getGamepadIndexForPlayer(2);
+            const p3GamepadIndex = getGamepadIndexForPlayer(3);
+            const p4GamepadIndex = getGamepadIndexForPlayer(4);
+
             // P1
-            const p1SelectPressed = this.gamepadManager.isButtonPressed(0, 'SELECT');
+            const p1SelectPressed = p1GamepadIndex >= 0 ? this.gamepadManager.isButtonPressed(p1GamepadIndex, 'SELECT') : false;
             if (!this.chestSelectionActive && p1SelectPressed && !this.radialMenuSelectPressed[0] && this.radialChargeMenu) {
                 this.radialChargeMenu.toggle();
             }
             this.radialMenuSelectPressed[0] = p1SelectPressed;
 
             // P2
-            const p2SelectPressed = this.gamepadManager.isButtonPressed(1, 'SELECT');
+            const p2SelectPressed = p2GamepadIndex >= 0 ? this.gamepadManager.isButtonPressed(p2GamepadIndex, 'SELECT') : false;
             if (!this.chestSelectionActive && this.multiplayerEnabled && p2SelectPressed && !this.radialMenuSelectPressed[1] && this.radialChargeMenu2) {
                 this.radialChargeMenu2.toggle();
             }
             this.radialMenuSelectPressed[1] = p2SelectPressed;
 
             // P3
-            const p3SelectPressed = this.gamepadManager.isButtonPressed(2, 'SELECT');
+            const p3SelectPressed = p3GamepadIndex >= 0 ? this.gamepadManager.isButtonPressed(p3GamepadIndex, 'SELECT') : false;
             if (!this.chestSelectionActive && this.playerCount > 2 && p3SelectPressed && !this.radialMenuSelectPressed[2] && this.radialChargeMenu3) {
                 this.radialChargeMenu3.toggle();
             }
             this.radialMenuSelectPressed[2] = p3SelectPressed;
 
             // P4
-            const p4SelectPressed = this.gamepadManager.isButtonPressed(3, 'SELECT');
+            const p4SelectPressed = p4GamepadIndex >= 0 ? this.gamepadManager.isButtonPressed(p4GamepadIndex, 'SELECT') : false;
             if (!this.chestSelectionActive && this.playerCount > 3 && p4SelectPressed && !this.radialMenuSelectPressed[3] && this.radialChargeMenu4) {
                 this.radialChargeMenu4.toggle();
             }
@@ -18735,23 +19175,8 @@ class GameScene extends Phaser.Scene {
                 if (DEBUG_MODE && (entityCounts.jewels > 200 || entityCounts.enemies > 100 || entityCounts.projectiles > 500)) {
                     debugLog('Performance check - Entity counts:', entityCounts);
                 }
-                // If too many jewels, force cleanup of far ones
-                if (entityCounts.jewels > 300) {
-                    debugWarn('Too many jewels, forcing cleanup');
-                    const jewelsToRemove = [];
-                    this.jewels.children.entries.forEach(jewel => {
-                        if (jewel && jewel.active) {
-                            const dist = Phaser.Math.Distance.Between(
-                                jewel.x, jewel.y, 
-                                this.wizard.x, this.wizard.y
-                            );
-                            if (dist > 2000) { // Remove jewels very far away
-                                jewelsToRemove.push(jewel);
-                            }
-                        }
-                    });
-                    jewelsToRemove.forEach(jewel => this.safeDestroyCollectible(jewel));
-                    }
+                // Emergency jewel cleanup removed - jewels persist indefinitely
+                // (Allows unlimited jewels on screen for better player experience)
             }
         }
         // Clean up stuck damage texts periodically
@@ -18853,6 +19278,10 @@ class GameScene extends Phaser.Scene {
                 }
             });
         }
+        // Update Grim Reaper allies
+        if (this.grimReapers && this.grimReapers.children.entries.length > 0) {
+            this.updateGrimReapers(time, delta);
+        }
         // Periodic cleanup of invalid enemy projectiles (every 2 seconds)
         if (!this.lastProjectileCleanup) this.lastProjectileCleanup = 0;
         if (time - this.lastProjectileCleanup > 2000) {
@@ -18899,6 +19328,13 @@ class GameScene extends Phaser.Scene {
                 this.updateDungeonArrow(); // Update dungeon gate arrow
                 this.obeliskIndicatorThrottle = 0;
             }
+        // Cull offscreen entities for performance (throttled to every 10 frames)
+        if (!this.cullThrottle) this.cullThrottle = 0;
+        this.cullThrottle++;
+        if (this.cullThrottle >= 10) {
+            this.cullOffscreenEntities();
+            this.cullThrottle = 0;
+        }
             // Update orbital projectiles if Saturn passive is active
             if (this.orbitalProjectiles && this.orbitalProjectiles.length > 0) {
                 const dt = delta / 1000; // Convert to seconds
@@ -19044,21 +19480,34 @@ class GameScene extends Phaser.Scene {
         }
         // Check win condition based on speed mode
         const winMinutesByMode = {
+            'walk': 20,       // Slow pace 20 minutes
             'frolic': 10,     // Original 10 minutes
             'vibe': 5,        // Half time (was hyper mode)
             'hyper': 3.33,    // 10 / 3 minutes
             'warp': 1.67      // 10 / 6 minutes
         };
         const winMinutes = winMinutesByMode[this.speedMode] || 10;
-        // Check if boss fights are enabled in settings (or disabled if in arcade mode)
-        const bossEnabled = localStorage.getItem('bossEnabled') !== 'false' && !this.arcadeMode;
+        const winTimeMs = winMinutes * 60 * 1000;
+        const timeRemaining = winTimeMs - this.survivalTime;
+        const secondsRemaining = Math.ceil(timeRemaining / 1000);
+
+        // COUNTDOWN - Last 5 seconds before timer ends
+        if (secondsRemaining <= 5 && secondsRemaining > 0 && !this.countdownActive && !this.bossSpawned) {
+            this.startVictoryCountdown(secondsRemaining);
+        }
+
+        // Check if boss fights are enabled via talent unlock (or disabled if in arcade mode)
+        const saveData = window.saveManager ? window.saveManager.getCurrentSave() : null;
+        const unlockedTalents = (saveData && saveData.talents && saveData.talents.unlockedTalents) ? saveData.talents.unlockedTalents : [];
+        const bossEnabled = unlockedTalents.includes('boss_fights') && !this.arcadeMode;
+
         if (minutes >= winMinutes && !this.bossSpawned && bossEnabled) {
             this.spawnBoss();
         }
-        // When bosses are disabled (arcade mode or disabled in settings), automatically win when time is up
-        if (minutes >= winMinutes && !bossEnabled && !this.bossSpawned) {
+        // When bosses are disabled (no talent or arcade mode), automatically win when time is up
+        if (minutes >= winMinutes && !bossEnabled && !this.bossSpawned && !this.victorySequenceActive) {
             this.bossSpawned = true; // Prevent re-triggering
-            this.handleArcadeModeVictory();
+            this.startVictorySequence();
         }
         // Removed duplicate timer update
         // Initialize gamepad button tracking
@@ -19123,11 +19572,12 @@ class GameScene extends Phaser.Scene {
         // TAB or ESC key to open spellbook (consolidated menu)
         let selectPressed = false;
         
-        // Check all player controllers for select button
+        // Check all player controllers for start/select buttons
+        let startPressed = false;
         for (let i = 0; i < this.playerCount; i++) {
             const playerNum = i + 1;
             let gamepad = null;
-            
+
             if (playerNum === 1) {
                 // P1 can use keyboard or first controller
                 if (this.playerControllers.length >= 1) {
@@ -19145,12 +19595,13 @@ class GameScene extends Phaser.Scene {
                     gamepad = this.input.gamepad.getPad(playerController.padIndex);
                 }
             }
-            
-            if (gamepad && gamepad.buttons[8]) {
-                const buttonPressed = gamepad.buttons[8].pressed;
-                const wasPressed = this.gamepadButtonStates && this.gamepadButtonStates[`p${playerNum}_select`];
+
+            // Check START button (button 9) for spellbook
+            if (gamepad && gamepad.buttons[9]) {
+                const buttonPressed = gamepad.buttons[9].pressed;
+                const wasPressed = this.gamepadButtonStates && this.gamepadButtonStates[`p${playerNum}_start`];
                 if (buttonPressed && !wasPressed) {
-                    selectPressed = true;
+                    startPressed = true;
                     break; // First player to press gets to open
                 }
             }
@@ -19160,10 +19611,8 @@ class GameScene extends Phaser.Scene {
             this.closeObeliskMenu();
             return; // Don't process other ESC actions
         }
-        // Handle spellbook toggle
-        if (((this.escKey && Phaser.Input.Keyboard.JustDown(this.escKey)) || 
-            (this.tabKey && Phaser.Input.Keyboard.JustDown(this.tabKey)) ||
-            selectPressed) &&
+        // Handle spellbook toggle (ESC key or START button - TAB and SELECT open radial menu)
+        if (((this.escKey && Phaser.Input.Keyboard.JustDown(this.escKey)) || startPressed) &&
             !this.isPaused && !this.chestSelectionActive && !this.fusionUI && !this.obeliskMenuOpen) {
             this.toggleSpellbook();
         }
@@ -19184,6 +19633,20 @@ class GameScene extends Phaser.Scene {
                 if (this.physics.world.debugGraphic) {
                     this.physics.world.debugGraphic.setVisible(newDebugState);
                 }
+            }
+            // Create or show/hide FPS text
+            if (newDebugState && !this.fpsText) {
+                this.fpsText = this.add.text(10, 10, 'FPS: 0', {
+                    fontSize: '16px',
+                    color: '#00ff00',
+                    backgroundColor: '#000000',
+                    padding: { x: 5, y: 5 }
+                });
+                this.fpsText.setScrollFactor(0);
+                this.fpsText.setDepth(1000);
+            }
+            if (this.fpsText) {
+                this.fpsText.setVisible(newDebugState);
             }
             // Show/hide wave debug text
             if (this.waveDebugText) {
@@ -19858,8 +20321,8 @@ class GameScene extends Phaser.Scene {
         }
         // Handle P2 movement if multiplayer is enabled and P2 is alive
         if (this.multiplayerEnabled && this.wizard2 && this.wizard2.health > 0) {
-            const p2Movement = handleWizardMovement(this.wizard2, true);
-            applyWizardMovement(this.wizard2, p2Movement.velocityX, p2Movement.velocityY, p2Movement.moving, true);
+            const p2Movement = handleWizardMovement(this.wizard2, true, 2); // Pass playerNumber = 2
+            applyWizardMovement(this.wizard2, p2Movement.velocityX, p2Movement.velocityY, p2Movement.moving, true, 2);
         }
         
         // Handle P3 movement if player count > 2 and P3 is alive
@@ -19998,14 +20461,23 @@ class GameScene extends Phaser.Scene {
         }
         // Element orbs are now collected by walking over them
         // No manual charging system
-        // Always fire basic projectile regardless of charges
-        if (!this.lastFireTime || time > this.lastFireTime + this.fireRate) {
-            this.fireBasicProjectile();
-            this.lastFireTime = time;
-        }
+        // REMOVED: Basic projectile removed - players now start with wheel of fortune element
+        // Default projectile disabled - player must have elements to attack!
         // Also fire element projectiles from active slots only
         // FIXED: Use wizard.chargeSlots directly to ensure we read from radial menu's array
         const p1ChargeSlots = this.wizard ? this.wizard.chargeSlots : this.chargeSlots;
+
+        // DEBUG: Log what P1 is about to fire (only once at start)
+        if (!this._p1FireDebugLogged && p1ChargeSlots && p1ChargeSlots.some(e => e !== null)) {
+            console.log(`🔫 P1 FIRING DEBUG:`);
+            console.log(`   this.wizard.chargeSlots:`, this.wizard.chargeSlots);
+            console.log(`   this.wizard2.chargeSlots:`, this.wizard2 ? this.wizard2.chargeSlots : 'N/A');
+            console.log(`   p1ChargeSlots:`, p1ChargeSlots);
+            console.log(`   this.chargeSlots:`, this.chargeSlots);
+            console.log(`   Are wizard.chargeSlots === wizard2.chargeSlots?`, this.wizard2 ? (this.wizard.chargeSlots === this.wizard2.chargeSlots) : 'N/A');
+            this._p1FireDebugLogged = true;
+        }
+
         if (p1ChargeSlots && p1ChargeSlots.length > 0) {
             // Use actual chargeSlots array length to process all active slots
             // This ensures dynamically added slots work correctly
@@ -20035,15 +20507,26 @@ class GameScene extends Phaser.Scene {
         }
         // Handle P2's projectile firing in multiplayer
         if (this.multiplayerEnabled && this.wizard2 && this.wizard2.active) {
-            // P2 basic projectile
-            if (!this.wizard2.lastFireTime || time > this.wizard2.lastFireTime + this.fireRate) {
+            // REMOVED: P2 basic projectile - starts with wheel element instead
+            // P2 basic projectile disabled
+            if (false) {  // Disabled
                 this.fireBasicProjectileForWizard(this.wizard2);
                 this.wizard2.lastFireTime = time;
             }
             // P2 element projectiles (using charge slots like P1)
             if (this.wizard2.chargeSlots && this.wizard2.chargeSlots.length > 0) {
+                // DEBUG: Log what P2 is about to fire (only once at start)
+                if (!this._p2FireDebugLogged && this.wizard2.chargeSlots.some(e => e !== null)) {
+                    console.log(`🔫 P2 FIRING DEBUG:`);
+                    console.log(`   this.wizard2.chargeSlots:`, this.wizard2.chargeSlots);
+                    console.log(`   this.wizard.chargeSlots:`, this.wizard.chargeSlots);
+                    console.log(`   Are they the same?`, this.wizard.chargeSlots === this.wizard2.chargeSlots);
+                    this._p2FireDebugLogged = true;
+                }
+
                 // Use actual maxCharges for P2
                 const maxActiveSlots = this.wizard2.maxCharges || this.MAX_ACTIVE_SLOTS || 4;
+
                 for (let slotIndex = 0; slotIndex < maxActiveSlots; slotIndex++) {
                     const element = this.wizard2.chargeSlots[slotIndex];
                     // Skip passive elements (chess orbs don't fire directly)
@@ -20071,8 +20554,8 @@ class GameScene extends Phaser.Scene {
         }
         // Handle P3's projectile firing if player count > 2
         if (this.playerCount > 2 && this.wizard3 && this.wizard3.active) {
-            // P3 basic projectile
-            if (!this.wizard3.lastFireTime || time > this.wizard3.lastFireTime + this.fireRate) {
+            // REMOVED: P3 basic projectile - starts with wheel element instead
+            if (false) {  // Disabled
                 this.fireBasicProjectileForWizard(this.wizard3);
                 this.wizard3.lastFireTime = time;
             }
@@ -20107,8 +20590,8 @@ class GameScene extends Phaser.Scene {
         }
         // Handle P4's projectile firing if player count > 3
         if (this.playerCount > 3 && this.wizard4 && this.wizard4.active) {
-            // P4 basic projectile
-            if (!this.wizard4.lastFireTime || time > this.wizard4.lastFireTime + this.fireRate) {
+            // REMOVED: P4 basic projectile - starts with wheel element instead
+            if (false) {  // Disabled
                 this.fireBasicProjectileForWizard(this.wizard4);
                 this.wizard4.lastFireTime = time;
             }
@@ -20715,7 +21198,7 @@ class GameScene extends Phaser.Scene {
                             }
                     }
                     // Flip enemies to face target player
-                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'soul' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'mushroom' || enemy.enemyType === 'clubimp' || enemy.enemyType === 'axeimp' || enemy.enemyType === 'kobold' || enemy.enemyType === 'yellowskeleton' || enemy.enemyType === 'skeletonseeker' || enemy.enemyType === 'giantfly' || enemy.enemyType === 'squirrel' || enemy.enemyType === 'redpanda' || enemy.enemyType === 'intellectdevourer' || enemy.enemyType === 'brainmole' || enemy.enemyType === 'cobra' || enemy.enemyType === 'caveghoul' || enemy.enemyType === 'cactuse' || enemy.enemyType === 'swampmerchant' || enemy.enemyType === 'torchboy' || enemy.enemyType === 'mudguard' || enemy.enemyType === 'eyewalker' || enemy.enemyType === 'frost-golem' || enemy.enemyType === 'spiked-slime' || enemy.enemyType === 'jellyfish' || enemy.enemyType === 'crabby' || enemy.enemyType === 'shark' || enemy.enemyType === 'squid' || enemy.enemyType === 'crablore' || enemy.enemyType === 'castle-knight' || enemy.enemyType === 'castle-rogue' || enemy.enemyType === 'castle-soldier' || enemy.enemyType === 'castle-bladekeeper' || enemy.enemyType === 'castle-squire' || enemy.enemyType === 'skullhound') {
+                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'soul' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'giant-bloboid' || enemy.enemyType === 'mushroom' || enemy.enemyType === 'giant-mushroom' || enemy.enemyType === 'clubimp' || enemy.enemyType === 'axeimp' || enemy.enemyType === 'kobold' || enemy.enemyType === 'yellowskeleton' || enemy.enemyType === 'giant-yellowskeleton' || enemy.enemyType === 'skeletonseeker' || enemy.enemyType === 'giantfly' || enemy.enemyType === 'squirrel' || enemy.enemyType === 'redpanda' || enemy.enemyType === 'intellectdevourer' || enemy.enemyType === 'brainmole' || enemy.enemyType === 'cobra' || enemy.enemyType === 'giant-cobra' || enemy.enemyType === 'caveghoul' || enemy.enemyType === 'cactuse' || enemy.enemyType === 'swampmerchant' || enemy.enemyType === 'torchboy' || enemy.enemyType === 'mudguard' || enemy.enemyType === 'eyewalker' || enemy.enemyType === 'frost-golem' || enemy.enemyType === 'spiked-slime' || enemy.enemyType === 'jellyfish' || enemy.enemyType === 'crabby' || enemy.enemyType === 'shark' || enemy.enemyType === 'squid' || enemy.enemyType === 'crablore' || enemy.enemyType === 'castle-knight' || enemy.enemyType === 'giant-castle-knight' || enemy.enemyType === 'castle-rogue' || enemy.enemyType === 'castle-soldier' || enemy.enemyType === 'castle-bladekeeper' || enemy.enemyType === 'castle-squire' || enemy.enemyType === 'skullhound') {
                         if (targetPlayer.x < enemy.x) {
                             enemy.setFlipX(true); // Face left
                         } else {
@@ -20737,7 +21220,7 @@ class GameScene extends Phaser.Scene {
                         enemy.play(`golem-${enemy.golemColor}-walk`);
                     }
                     // Flip enemies to face target player even when stopped
-                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'mushroom' || enemy.enemyType === 'clubimp' || enemy.enemyType === 'axeimp' || enemy.enemyType === 'kobold' || enemy.enemyType === 'yellowskeleton' || enemy.enemyType === 'skeletonseeker' || enemy.enemyType === 'eyewalker' || enemy.enemyType === 'frost-golem' || enemy.enemyType === 'spiked-slime' || enemy.enemyType === 'jellyfish' || enemy.enemyType === 'crabby' || enemy.enemyType === 'shark' || enemy.enemyType === 'squid' || enemy.enemyType === 'crablore' || enemy.enemyType === 'castle-knight' || enemy.enemyType === 'castle-rogue' || enemy.enemyType === 'castle-soldier' || enemy.enemyType === 'castle-bladekeeper' || enemy.enemyType === 'castle-squire' || enemy.enemyType === 'skullhound') {
+                    if (enemy.enemyType === 'golem' || enemy.enemyType === 'bat' || enemy.enemyType === 'fireworm' || enemy.enemyType === 'bloboid' || enemy.enemyType === 'giant-bloboid' || enemy.enemyType === 'mushroom' || enemy.enemyType === 'giant-mushroom' || enemy.enemyType === 'clubimp' || enemy.enemyType === 'axeimp' || enemy.enemyType === 'kobold' || enemy.enemyType === 'yellowskeleton' || enemy.enemyType === 'giant-yellowskeleton' || enemy.enemyType === 'skeletonseeker' || enemy.enemyType === 'eyewalker' || enemy.enemyType === 'frost-golem' || enemy.enemyType === 'spiked-slime' || enemy.enemyType === 'jellyfish' || enemy.enemyType === 'crabby' || enemy.enemyType === 'shark' || enemy.enemyType === 'squid' || enemy.enemyType === 'crablore' || enemy.enemyType === 'castle-knight' || enemy.enemyType === 'giant-castle-knight' || enemy.enemyType === 'castle-rogue' || enemy.enemyType === 'castle-soldier' || enemy.enemyType === 'castle-bladekeeper' || enemy.enemyType === 'castle-squire' || enemy.enemyType === 'skullhound') {
                         if (targetPlayer.x < enemy.x) {
                             enemy.setFlipX(true); // Face left
                         } else {
@@ -21103,8 +21586,10 @@ class GameScene extends Phaser.Scene {
                         break;
                 }
 
-                this.activeFlamethrower.x = this.wizard.x + offsetX;
-                this.activeFlamethrower.y = this.wizard.y + offsetY;
+                // Use flamethrowerOwner instead of this.wizard for multiplayer support
+                const owner = this.flamethrowerOwner || this.wizard;
+                this.activeFlamethrower.x = owner.x + offsetX;
+                this.activeFlamethrower.y = owner.y + offsetY;
                 this.activeFlamethrower.setRotation(angle);
             }
         }
@@ -21176,13 +21661,8 @@ class GameScene extends Phaser.Scene {
                 this.collectJewel(targetWizard, jewel);
                 return;
             }
-            // Performance: destroy jewels that have been around too long (30 seconds)
-            if (!jewel.spawnTime) {
-                jewel.spawnTime = this.time.now;
-            } else if (this.time.now - jewel.spawnTime > 30000) {
-                jewelsToDestroy.push(jewel);
-                return;
-            }
+            // Jewels now persist indefinitely - no timeout
+            // (Removed 30-second timeout to prevent jewels from disappearing during intense combat)
             if (closerDistance < 120) { // Doubled from 60 to 120 for stronger magnet range
                 // Attract jewel to the closer wizard
                 const angle = Phaser.Math.Angle.Between(jewel.x, jewel.y, targetWizard.x, targetWizard.y);
@@ -21423,36 +21903,8 @@ class GameScene extends Phaser.Scene {
                 }
             }
         });
-        // Cleanup excess collectibles to prevent framerate drops
-        const maxCollectibles = 100; // Maximum allowed on screen
-        const cleanupDistance = 800; // Distance beyond which to remove items
-        // Cleanup excess jewels
-        if (this.jewels && this.jewels.children && this.jewels.children.entries.length > maxCollectibles) {
-            const jewelsToRemove = [];
-            this.jewels.children.entries.forEach((jewel, index) => {
-                if (jewel.active) {
-                    const dist = Phaser.Math.Distance.Between(jewel.x, jewel.y, this.wizard.x, this.wizard.y);
-                    if (dist > cleanupDistance) {
-                        jewelsToRemove.push(jewel);
-                    }
-                }
-            });
-            // Remove farthest jewels first if we're still over the limit
-            if (this.jewels.children.entries.length - jewelsToRemove.length > maxCollectibles) {
-                const sortedJewels = this.jewels.children.entries
-                    .filter(j => j.active)
-                    .sort((a, b) => {
-                        const distA = Phaser.Math.Distance.Between(a.x, a.y, this.wizard.x, this.wizard.y);
-                        const distB = Phaser.Math.Distance.Between(b.x, b.y, this.wizard.x, this.wizard.y);
-                        return distB - distA; // Sort by distance descending
-                    });
-                const toRemove = sortedJewels.slice(maxCollectibles);
-                toRemove.forEach(jewel => this.safeDestroyCollectible(jewel));
-            } else {
-                // Just remove the far ones
-                jewelsToRemove.forEach(jewel => this.safeDestroyCollectible(jewel));
-            }
-        }
+        // Jewel quantity cap removed - jewels persist indefinitely until collected
+        // (Performance: Let the browser/Phaser handle it - jewels are lightweight sprites)
         // Cleanup excess muffins
         if (this.muffins && this.muffins.children && this.muffins.children.entries.length > 20) {
             const muffinsToRemove = [];
@@ -22563,7 +23015,7 @@ class GameScene extends Phaser.Scene {
         });
 
         // Play sound if available
-        if (this.sound.get('power-up')) {
+        if (this.cache.audio.exists('power-up')) {
             this.sound.play('power-up', { volume: 0.5 });
         }
     }
@@ -24701,8 +25153,12 @@ class GameScene extends Phaser.Scene {
         // Skip if enemy is already dying, immune, or doesn't have physics body
         if (!enemy || !enemy.active || enemy.isDying || !enemy.body) return;
 
-        // Some enemies are knockback resistant (bosses, large enemies)
-        const enemyResistance = enemy.knockbackResistance || 1.0;
+        // Skip knockback for bosses and immovable enemies
+        if (enemy.isBoss || enemy.isObeliskBoss || (enemy.body && enemy.body.immovable)) return;
+
+        // Some enemies are knockback resistant (large enemies)
+        // knockbackResistance: 1.0 = full knockback, 0.5 = half knockback, 0.0 = no knockback
+        const enemyResistance = enemy.knockbackResistance !== undefined ? enemy.knockbackResistance : 1.0;
         const finalMultiplier = knockbackMultiplier * enemyResistance;
 
         // If completely resistant, skip knockback
@@ -24756,6 +25212,8 @@ class GameScene extends Phaser.Scene {
                 enemy.body.enable = false;
             }
             enemy.isDying = true;
+            // Play enemy death sound
+            this.playEnemyDeath();
             // Increment enemies killed counter
             this.enemiesKilled++;
             // Clean up any active effects
@@ -24936,10 +25394,17 @@ class GameScene extends Phaser.Scene {
                         const offsetY = (Math.random() - 0.5) * 30;
                         this.dropCoin(deathX + offsetX, deathY + offsetY, eliteCoinValue, 1.8);
                     }
-                    // Elite enemies drop reward chest (except golems - they spawn too frequently)
-                    if (enemyType !== 'golem') {
-                        this.dropRewardChest(deathX, deathY);
+                    // Elite enemies have a chance to drop chest (VS-style rarity)
+                    // 30% chance for non-golem elites (VS light sources are random encounters)
+                    if (enemyType !== 'golem' && Math.random() < 0.3) {
+                        this.dropChest(deathX, deathY);
                     }
+
+                    // Rare chance to drop level up orb (2% chance from any enemy)
+                    if (Math.random() < 0.02) {
+                        this.dropLevelUpOrb(deathX, deathY);
+                    }
+
                     this.enemiesKilled++; // Just increment the total count
                     // Ensure physics body is disabled before destroy
                 if (enemy.body) {
@@ -25460,6 +25925,57 @@ class GameScene extends Phaser.Scene {
                 }
                 this.safeDestroyEnemy(enemy);
             });
+        } else if (enemy.enemyType === 'giant-mushroom' || enemy.enemyType === 'giant-slime' || enemy.enemyType === 'giant-fireslime' ||
+                   enemy.enemyType === 'giant-cobra' || enemy.enemyType === 'giant-bloboid' || enemy.enemyType === 'giant-yellowskeleton' ||
+                   enemy.enemyType === 'giant-castle-knight') {
+            // Giant enemy death - always drops a chest!
+            enemy.setVelocity(0, 0);
+            // Immediately disable physics body to prevent collision errors
+            if (enemy.body) {
+                enemy.body.enable = false;
+            }
+            // Store position for chest and loot
+            const deathX = enemyX;
+            const deathY = enemyY;
+            const enemyMaxHealth = enemy.maxHealth || 500;
+
+            // Death animation - scale down and fade
+            this.tweens.add({
+                targets: enemy,
+                scale: { from: enemy.scaleX, to: enemy.scaleX * 0.5 },
+                alpha: 0,
+                duration: 800,
+                ease: 'Power2',
+                onComplete: () => {
+                    // Drop XP jewels - giants are valuable!
+                    const baseXP = 10; // Higher XP for giant enemies
+                    const waveBonus = Math.floor(this.currentWave / 2);
+                    const xpValue = baseXP + waveBonus;
+                    for (let i = 0; i < 15; i++) { // More jewels!
+                        const offsetX = (Math.random() - 0.5) * 60;
+                        const offsetY = (Math.random() - 0.5) * 60;
+                        this.dropJewel(deathX + offsetX, deathY + offsetY, xpValue, 0.15);
+                    }
+                    // Drop essence coins
+                    const coinValue = 5 + Math.floor(this.currentWave / 2); // Higher value coins
+                    for (let i = 0; i < 4; i++) { // More coins!
+                        const offsetX = (Math.random() - 0.5) * 50;
+                        const offsetY = (Math.random() - 0.5) * 50;
+                        this.dropCoin(deathX + offsetX, deathY + offsetY, coinValue, 2.5);
+                    }
+                    // Giant enemies have high chance to drop chest (75% - still rewarding but not guaranteed)
+                    // These are major threats so slightly more generous than regular elites
+                    if (Math.random() < 0.75) {
+                        this.dropChest(deathX, deathY);
+                    }
+
+                    this.enemiesKilled++;
+                    if (enemy.body) {
+                        enemy.body.enable = false;
+                    }
+                    this.safeDestroyEnemy(enemy);
+                }
+            });
         } else {
             // Generic enemy death animation - spin and fade
             // Immediately disable physics body to prevent collision errors
@@ -25523,46 +26039,87 @@ class GameScene extends Phaser.Scene {
             });
         }
 
-        // Drop coins based on wave (1-5 coins)
-        const coinCount = Math.min(5, 1 + Math.floor(this.currentWave / 3));
-        const coinValue = 2 + Math.floor(this.currentWave / 2);
-
-        for (let i = 0; i < coinCount; i++) {
-            const angle = Math.PI / 4 + (Math.PI * 2 * i) / coinCount; // Offset from jewels
-            const distance = 30 + Math.random() * 20;
-            const coinX = x + Math.cos(angle) * distance;
-            const coinY = y + Math.sin(angle) * distance;
-
-            this.time.delayedCall(i * 40 + 100, () => {
-                this.dropCoin(coinX, coinY, coinValue, 1.5);
+        // Drop coins with Vampire Survivors-like rarity system
+        // Single coin: 1.5% chance (similar to VS gold coin rarity 50)
+        if (Math.random() < 0.015) {
+            const coinValue = 1 + Math.floor(this.currentWave / 4); // 1-3 coins based on wave
+            const coinX = x + (Math.random() - 0.5) * 40;
+            const coinY = y + (Math.random() - 0.5) * 40;
+            this.time.delayedCall(100, () => {
+                this.dropCoin(coinX, coinY, coinValue, 1.3);
             });
         }
 
-        // Play pop sound effect
-        this.sound.play('pop', { volume: 0.3 });
-
-        // 1% chance to drop health muffin
-        if (Math.random() < 0.01) {
+        // Coin bag (10 coins): 0.3% chance (similar to VS coin bag rarity 10)
+        if (Math.random() < 0.003) {
+            const coinValue = 10 + Math.floor(this.currentWave / 3); // 10-13 coins based on wave
+            const coinX = x + (Math.random() - 0.5) * 40;
+            const coinY = y + (Math.random() - 0.5) * 40;
             this.time.delayedCall(150, () => {
+                this.dropCoin(coinX, coinY, coinValue, 2.0);
+            });
+        }
+
+        // Rich coin bag (100 coins): 0.04% chance (similar to VS rich bag rarity 1)
+        if (Math.random() < 0.0004) {
+            const coinValue = 100 + Math.floor(this.currentWave / 2); // 100-105 coins based on wave
+            const coinX = x + (Math.random() - 0.5) * 40;
+            const coinY = y + (Math.random() - 0.5) * 40;
+            this.time.delayedCall(200, () => {
+                this.dropCoin(coinX, coinY, coinValue, 2.5);
+            });
+        }
+
+        // Enemy death sound now played in killEnemy() function with pooling system
+
+        // Health muffin: 0.4% chance (similar to VS floor chicken rarity 12)
+        if (Math.random() < 0.004) {
+            this.time.delayedCall(250, () => {
                 this.dropStandaloneItem(x, y + 20, 'muffin');
             });
         }
 
-        // Alchemy orb drop with escalating chance (1% + 1% per wave)
-        const alchemyDropChance = this.alchemyOrbDropChance + (this.currentWave * 0.01);
+        // Alchemy orb drop with escalating chance (0.2% + 0.2% per wave, max 2%)
+        // Slightly more generous than VS but still rare
+        const alchemyDropChance = Math.min(0.02, this.alchemyOrbDropChance + (this.currentWave * 0.002));
         if (Math.random() < alchemyDropChance) {
-            this.time.delayedCall(200, () => {
+            this.time.delayedCall(300, () => {
                 this.dropStandaloneItem(x, y + 30, 'alchemy');
             });
-            console.log(`Alchemy orb dropped! (${(alchemyDropChance * 100).toFixed(1)}% chance at wave ${this.currentWave})`);
+            console.log(`Alchemy orb dropped! (${(alchemyDropChance * 100).toFixed(2)}% chance at wave ${this.currentWave})`);
         }
 
-        // Magnet orb drop with small chance (2%)
-        if (Math.random() < 0.02) {
-            this.time.delayedCall(250, () => {
+        // Magnet orb: 0.07% chance (similar to VS Vacuum/Orologion rarity 2)
+        if (Math.random() < 0.0007) {
+            this.time.delayedCall(350, () => {
                 this.dropStandaloneItem(x, y + 40, 'magnet');
             });
-            console.log('Magnet orb dropped! (2% chance)');
+            console.log('Magnet orb dropped! (0.07% chance)');
+        }
+
+        // Butterfly jar: 0.07% chance (similar to VS utility item rarity 2)
+        if (Math.random() < 0.0007) {
+            this.time.delayedCall(400, () => {
+                this.dropStandaloneItem(x, y + 50, 'butterflyjar');
+            });
+            console.log('Butterfly jar dropped! (0.07% chance)');
+        }
+
+        // Bomb orb: 0.04% chance (similar to VS Rosary rarity 1 - most powerful screen-clear)
+        if (Math.random() < 0.0004) {
+            this.time.delayedCall(450, () => {
+                this.dropStandaloneItem(x, y + 60, 'bomb');
+            });
+            console.log('Bomb orb dropped! (0.04% chance - ultra rare!)');
+        }
+
+        // Catalyst: 0.2% chance (permanent upgrade should be rare)
+        // More common than ultra-rare items but still special
+        if (Math.random() < 0.002) {
+            this.time.delayedCall(500, () => {
+                this.dropCatalyst(x, y + 70);
+            });
+            console.log('Catalyst dropped! (0.2% chance - grants +5% damage)');
         }
     }
 
@@ -25958,7 +26515,7 @@ class GameScene extends Phaser.Scene {
         if (multiplier >= 7) {
             // Five/Six of a kind bonus
             this.showFloatingText(x, y - 110, 'LEGENDARY COMBO!', '#ff00ff', 24);
-            this.dropRewardChest(x + 30, y + 20);
+            this.dropChest(x + 30, y + 20);
             this.dropCoin(x - 30, y, 10 + Math.floor(this.currentWave / 2), 2.5);
 
             // 15% chance to drop mind orb on legendary combo
@@ -26110,6 +26667,13 @@ class GameScene extends Phaser.Scene {
                 icon: '✨',
                 category: 'special',
                 effect: () => 'Select from 3 random elements'
+            },
+            lifesteal: {
+                name: 'Blood Harvest',
+                description: 'Heal for a % of damage dealt (Grim only)',
+                icon: '🩸',
+                category: 'offensive',
+                effect: (stacks) => `+${stacks * 2}% lifesteal`
             }
         };
     }
@@ -26137,11 +26701,11 @@ class GameScene extends Phaser.Scene {
         overlay.setDepth(2000);
         overlay.setScrollFactor(0);
 
-        // Title
+        // Title (dark fantasy - muted bronze)
         const title = this.add.text(400, 150, 'LEVEL UP - CHOOSE UPGRADE', {
             fontSize: '32px',
             fontFamily: 'Arial',
-            color: '#ffd700',
+            color: '#8b7355',
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 4
@@ -26181,22 +26745,22 @@ class GameScene extends Phaser.Scene {
             icon.setDepth(2002);
             icon.setScrollFactor(0);
 
-            // Name
+            // Name (ghostly white)
             const name = this.add.text(cardX, cardY - 30, def.name, {
                 fontSize: '20px',
                 fontFamily: 'Arial',
-                color: '#ffffff',
+                color: '#d4c4d8',
                 fontStyle: 'bold'
             });
             name.setOrigin(0.5);
             name.setDepth(2002);
             name.setScrollFactor(0);
 
-            // Description
+            // Description (dimmer ghostly white)
             const desc = this.add.text(cardX, cardY + 10, def.description, {
                 fontSize: '14px',
                 fontFamily: 'Arial',
-                color: '#cccccc',
+                color: '#b8a8bc',
                 wordWrap: { width: cardWidth - 20 },
                 align: 'center'
             });
@@ -26204,12 +26768,12 @@ class GameScene extends Phaser.Scene {
             desc.setDepth(2002);
             desc.setScrollFactor(0);
 
-            // Current stacks
+            // Current stacks (deep purple instead of bright green)
             const currentStacks = this.passiveUpgrades[upgradeKey] || 0;
             const stackText = this.add.text(cardX, cardY + 60, def.effect(currentStacks + 1), {
                 fontSize: '16px',
                 fontFamily: 'Arial',
-                color: '#00ff00',
+                color: '#5c2d6e',
                 fontStyle: 'bold'
             });
             stackText.setOrigin(0.5);
@@ -26242,12 +26806,12 @@ class GameScene extends Phaser.Scene {
             });
         });
 
-        // Function to update visual selection
+        // Function to update visual selection (dark fantasy - muted bronze highlight)
         this.updateUpgradeSelection = () => {
             upgradeCards.forEach((elements, i) => {
                 const [card] = elements;
                 if (i === this.upgradeSelectionIndex) {
-                    card.setStrokeStyle(4, 0xffd700);
+                    card.setStrokeStyle(4, 0x8b7355); // Muted bronze highlight
                     card.setFillStyle(0x3a3a54);
                 } else {
                     card.setStrokeStyle(3, 0x888888);
@@ -26314,8 +26878,21 @@ class GameScene extends Phaser.Scene {
      */
     getRandomUpgrades(count, exclude = []) {
         const definitions = this.getPassiveUpgradeDefinitions();
-        const allUpgrades = Object.keys(definitions).filter(key => !exclude.includes(key));
+        let allUpgrades = Object.keys(definitions).filter(key => !exclude.includes(key));
+
+        // Filter out lifesteal if not playing as Grim character
+        if (this.wizard && this.wizard.characterType !== 'grim') {
+            allUpgrades = allUpgrades.filter(key => key !== 'lifesteal');
+        }
+
         const selected = [];
+
+        // Grim character special: 30% chance to add lifesteal as an extra option
+        if (this.wizard && this.wizard.characterType === 'grim' && !exclude.includes('lifesteal')) {
+            if (Math.random() < 0.3 && !allUpgrades.includes('lifesteal')) {
+                allUpgrades.push('lifesteal');
+            }
+        }
 
         // Create weighted list (recent picks have lower weight)
         const weights = allUpgrades.map(key => {
@@ -26585,6 +27162,11 @@ class GameScene extends Phaser.Scene {
 
             case 'damage':
                 // Damage is applied as multiplier when dealing damage
+                break;
+
+            case 'lifesteal':
+                // Lifesteal is applied when dealing damage (Grim character only)
+                // Tracked via passiveUpgrades.lifesteal counter, applied in damage calculation
                 break;
 
             case 'slotIncrease':
@@ -26976,18 +27558,27 @@ class GameScene extends Phaser.Scene {
         const originalCharges = this.charges;
         const originalChargeSlots = this.chargeSlots;
         const originalElementTiers = this.elementTiers;
+        const originalSpellOwner = this.currentSpellOwner;
+
         // Temporarily switch context to P2
         this.wizard = wizard;
         this.charges = wizard.charges;
         this.chargeSlots = wizard.chargeSlots;
         this.elementTiers = wizard.elementTiers;
+
+        // CRITICAL: Store spell owner for callbacks/timers that execute after context is restored
+        // This allows delayed callbacks to know which wizard cast the spell
+        this.currentSpellOwner = wizard;
+
         // Use the same spell system as P1
         this.fireIndividualCharge(chargeIndex, element);
+
         // Restore P1 context
         this.wizard = originalWizard;
         this.charges = originalCharges;
         this.chargeSlots = originalChargeSlots;
         this.elementTiers = originalElementTiers;
+        this.currentSpellOwner = originalSpellOwner;
     }
     fireElementProjectileForWizard(wizard, element) {
         // Simplified element firing for P2 - just fire basic element projectile
@@ -27283,7 +27874,7 @@ class GameScene extends Phaser.Scene {
             const bat = this.physics.add.sprite(spawnX, spawnY, 'bat-fly', 0);
             // Apply scale from config (bat scale will be used)
             this.applySavedScale(bat, 'bat');
-            const baseHealth = 2; // Increased by 50%
+            const baseHealth = 8; // Increased from 2 for better balance
 
             this.scaleEnemyHealth(bat, baseHealth);
             bat.enemyType = 'bat';
@@ -27747,13 +28338,22 @@ class GameScene extends Phaser.Scene {
             }
             return;
         }
-        // Check if elite enemies are unlocked via Nexus talent
-        const eliteEnabled = this.talentData && this.talentData.unlockedTalents && this.talentData.unlockedTalents.includes('elitesenabled');
+        // Check if elite enemies are unlocked via talent
+        const saveData = window.saveManager ? window.saveManager.getCurrentSave() : null;
+        const unlockedTalents = (saveData && saveData.talents && saveData.talents.unlockedTalents) ? saveData.talents.unlockedTalents : [];
+        const eliteEnabled = unlockedTalents.includes('elite_enemies');
 
-        // Filter out elite enemies (eyewalker) if not unlocked
+        // Filter out elite/giant enemies if not unlocked
+        const giantEnemyTypes = ['giant-mushroom', 'giant-slime', 'giant-fireslime', 'giant-cobra',
+                                 'giant-bloboid', 'giant-yellowskeleton', 'giant-castle-knight'];
         const availableEnemies = waveDef.enemies.filter(e => {
+            // Skip eyewalker (elite) if talent not unlocked
             if (e.type === 'eyewalker' && !eliteEnabled) {
-                return false; // Skip elite enemies if talent not unlocked
+                return false;
+            }
+            // Skip giant enemies if talent not unlocked
+            if (giantEnemyTypes.includes(e.type) && !eliteEnabled) {
+                return false;
             }
             return true;
         });
@@ -27962,12 +28562,61 @@ class GameScene extends Phaser.Scene {
     getWaveHealthMultiplier() {
         if (!this.currentWave) return 1.0;
 
-        // Strong scaling: +110% health per wave for challenging late game (50% increase from previous 40%)
-        // Wave 1: 1.0x, Wave 2: 2.1x, Wave 3: 4.41x, Wave 4: 9.26x, Wave 5: 19.45x, etc.
-        const multiplier = Math.pow(2.10, this.currentWave - 1);
+        // Get stage-based difficulty multiplier
+        const stageDifficultyBase = this.getStageDifficultyBase();
+
+        // Apply stage-specific scaling rates
+        const scalingRate = this.getStageScalingRate();
+
+        // Calculate wave-based multiplier using stage-specific rate
+        // Early stages: gentler curve, Late stages: steeper curve
+        const waveMultiplier = Math.pow(scalingRate, this.currentWave - 1);
+
+        // Apply base difficulty and wave multiplier
+        const multiplier = stageDifficultyBase * waveMultiplier;
 
         // High cap for extended sessions - enemies stay challenging
         return Math.min(20.0, multiplier);
+    }
+
+    /**
+     * Get base difficulty multiplier for current stage
+     * Early stages start easier, late stages start harder
+     */
+    getStageDifficultyBase() {
+        const stageDifficulty = {
+            'forest': 0.6,      // 40% easier starting health
+            'cave': 0.7,        // 30% easier starting health
+            'desert': 0.8,      // 20% easier starting health
+            'lava': 1.0,        // Normal starting health
+            'grave': 1.1,       // 10% harder starting health
+            'castle': 1.2,      // 20% harder starting health
+            'swamp': 1.3,       // 30% harder starting health
+            'snow': 1.4,        // 40% harder starting health
+            'ocean': 1.5        // 50% harder starting health
+        };
+
+        return stageDifficulty[this.stage] || 1.0;
+    }
+
+    /**
+     * Get health scaling rate per wave for current stage
+     * Early stages scale slower, late stages scale faster
+     */
+    getStageScalingRate() {
+        const stageScaling = {
+            'forest': 1.6,      // +60% health per wave (gentle curve)
+            'cave': 1.7,        // +70% health per wave
+            'desert': 1.8,      // +80% health per wave
+            'lava': 2.0,        // +100% health per wave (balanced)
+            'grave': 2.2,       // +120% health per wave
+            'castle': 2.4,      // +140% health per wave (steep curve)
+            'swamp': 2.6,       // +160% health per wave
+            'snow': 2.8,        // +180% health per wave
+            'ocean': 3.0        // +200% health per wave (very steep)
+        };
+
+        return stageScaling[this.stage] || 2.1; // Default 2.1x (original)
     }
 
     /**
@@ -28185,7 +28834,7 @@ class GameScene extends Phaser.Scene {
             enemy.enemyType = 'tree';
             // Apply saved scale (always returns true now)
             this.applySavedScale(enemy, 'tree');
-            const baseHealth = 5; // Reduced by 50% from 9
+            const baseHealth = 15; // Increased from 5 for better early game balance
             this.scaleEnemyHealth(enemy, baseHealth);
             this.setEnemySpeed(enemy, 40); // Reduced by 20% from 50
             enemy.damage = 15; // Base enemy damage
@@ -28200,7 +28849,7 @@ class GameScene extends Phaser.Scene {
             bat.enemyType = 'bat';
             // Apply saved scale (always returns true now)
             this.applySavedScale(bat, 'bat');
-            const baseHealth = 2; // Increased by 50%
+            const baseHealth = 8; // Increased from 2 for better early game balance
 
             this.scaleEnemyHealth(bat, baseHealth);
             // Apply hitbox from config or use defaults
@@ -28218,7 +28867,7 @@ class GameScene extends Phaser.Scene {
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
                 hitboxConfig.applyFlip(mushroom, 'mushroom');
             }
-            const baseHealth = 5; // Increased by 50%
+            const baseHealth = 15; // Increased from 5 for better early game balance
 
             this.scaleEnemyHealth(mushroom, baseHealth);
             mushroom.enemyType = 'mushroom';
@@ -28238,8 +28887,8 @@ class GameScene extends Phaser.Scene {
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
                 hitboxConfig.applyFlip(giantMushroom, 'mushroom');
             }
-            // 100x health of normal mushroom
-            const baseHealth = 5 * 100; // 500 health
+            // 50x health of normal mushroom (reduced by 50%)
+            const baseHealth = 15 * 50; // 750 health (updated with new base)
             this.scaleEnemyHealth(giantMushroom, baseHealth);
             giantMushroom.enemyType = 'giant-mushroom';
             // Half speed of normal mushroom
@@ -28255,7 +28904,7 @@ class GameScene extends Phaser.Scene {
             const giantSlime = this.physics.add.sprite(x, y, 'slime-idle', 0);
             this.applySavedScale(giantSlime, 'slime');
             giantSlime.setScale(giantSlime.scaleX * 3, giantSlime.scaleY * 3);
-            const baseHealth = 4 * 100; // 400 health
+            const baseHealth = 12 * 50; // 600 health (updated with new base)
             this.scaleEnemyHealth(giantSlime, baseHealth);
             giantSlime.enemyType = 'giant-slime';
             this.setEnemySpeed(giantSlime, 30 / 2); // 15 speed
@@ -28271,7 +28920,7 @@ class GameScene extends Phaser.Scene {
             this.applySavedScale(giantFireSlime, 'fireslime');
             giantFireSlime.setScale(giantFireSlime.scaleX * 3, giantFireSlime.scaleY * 3);
             giantFireSlime.setTint(0x881111); // Darker red tint
-            const baseHealth = 5 * 100; // 500 health
+            const baseHealth = 15 * 50; // 750 health (updated with new base)
             this.scaleEnemyHealth(giantFireSlime, baseHealth);
             giantFireSlime.enemyType = 'giant-fireslime';
             this.setEnemySpeed(giantFireSlime, 30 / 2); // 15 speed
@@ -28290,7 +28939,7 @@ class GameScene extends Phaser.Scene {
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
                 hitboxConfig.applyFlip(giantCobra, 'cobra');
             }
-            const baseHealth = 7 * 100; // 700 health (cobra base is 7)
+            const baseHealth = 20 * 50; // 1000 health (updated with new base)
             this.scaleEnemyHealth(giantCobra, baseHealth);
             giantCobra.enemyType = 'giant-cobra';
             this.setEnemySpeed(giantCobra, 50 / 2); // 25 speed
@@ -28308,7 +28957,7 @@ class GameScene extends Phaser.Scene {
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
                 hitboxConfig.applyFlip(giantBloboid, 'bloboid');
             }
-            const baseHealth = 5 * 100; // 500 health
+            const baseHealth = 15 * 50; // 750 health (updated with new base)
             this.scaleEnemyHealth(giantBloboid, baseHealth);
             giantBloboid.enemyType = 'giant-bloboid';
             this.setEnemySpeed(giantBloboid, 30 / 2); // 15 speed
@@ -28326,7 +28975,7 @@ class GameScene extends Phaser.Scene {
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
                 hitboxConfig.applyFlip(giantSkeleton, 'yellowskeleton');
             }
-            const baseHealth = 10 * 100; // 1000 health (skeleton base is 10)
+            const baseHealth = 30 * 50; // 1500 health (updated with new base)
             this.scaleEnemyHealth(giantSkeleton, baseHealth);
             giantSkeleton.enemyType = 'giant-yellowskeleton';
             this.setEnemySpeed(giantSkeleton, 40 / 2); // 20 speed
@@ -28344,7 +28993,7 @@ class GameScene extends Phaser.Scene {
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
                 hitboxConfig.applyFlip(giantKnight, 'castle-knight');
             }
-            const baseHealth = 12 * 100; // 1200 health (knight base is 12)
+            const baseHealth = 30 * 50; // 1500 health (updated with new base)
             this.scaleEnemyHealth(giantKnight, baseHealth);
             giantKnight.enemyType = 'giant-castle-knight';
             this.setEnemySpeed(giantKnight, 35 / 2); // 17.5 speed
@@ -28363,7 +29012,7 @@ class GameScene extends Phaser.Scene {
             const giantfly = this.physics.add.sprite(x, y, 'giantfly-walk', 0);
             // Apply scale from config
             this.applySavedScale(giantfly, 'giantfly');
-            const baseHealth = 4; // Low-medium health, flies are fragile
+            const baseHealth = 12; // Increased from 4 for better balance
 
             this.scaleEnemyHealth(giantfly, baseHealth);
             giantfly.enemyType = 'giantfly';
@@ -28394,7 +29043,7 @@ class GameScene extends Phaser.Scene {
                 hitboxConfig.applyFlip(bumblebee, 'bumblebee');
             }
 
-            const baseHealth = 3; // Low health, flying insects are fragile
+            const baseHealth = 10; // Increased from 3 for better balance
 
 
             this.scaleEnemyHealth(bumblebee, baseHealth);
@@ -28420,7 +29069,7 @@ class GameScene extends Phaser.Scene {
             const squirrel = this.physics.add.sprite(x, y, 'squirrel-walk', 0);
             // Apply scale from config
             this.applySavedScale(squirrel, 'squirrel');
-            const baseHealth = 5; // Medium health
+            const baseHealth = 15; // Increased from 5 for better balance
 
             this.scaleEnemyHealth(squirrel, baseHealth);
             squirrel.enemyType = 'squirrel';
@@ -28444,7 +29093,7 @@ class GameScene extends Phaser.Scene {
             const redpanda = this.physics.add.sprite(x, y, 'redpanda-walk', 0);
             // Apply scale from config
             this.applySavedScale(redpanda, 'redpanda');
-            const baseHealth = 7; // Medium-high health
+            const baseHealth = 20; // Increased from 7 for better balance
 
             this.scaleEnemyHealth(redpanda, baseHealth);
             redpanda.enemyType = 'redpanda';
@@ -28463,7 +29112,7 @@ class GameScene extends Phaser.Scene {
             const fireworm = this.physics.add.sprite(x, y, 'fireworm-walk', 0);
             // Apply scale from config
             this.applySavedScale(fireworm, 'fireworm');
-            const baseHealth = 3; // Increased by 50%
+            const baseHealth = 10; // Increased from 3 for better balance
 
             this.scaleEnemyHealth(fireworm, baseHealth);
             fireworm.enemyType = 'fireworm';
@@ -28478,7 +29127,7 @@ class GameScene extends Phaser.Scene {
             const summoner = this.physics.add.sprite(x, y, 'summoner-walk', 0);
             // Apply scale from config
             this.applySavedScale(summoner, 'summoner');
-            const baseHealth = 12; // Increased by 50%
+            const baseHealth = 30; // Increased from 12 for better balance
 
             this.scaleEnemyHealth(summoner, baseHealth);
             summoner.enemyType = 'summoner';
@@ -28501,7 +29150,7 @@ class GameScene extends Phaser.Scene {
             } else {
                 soul.setScale(isGrave ? 1.0 : 0.8); // Fallback: Larger in grave stage
             }
-            const baseHealth = 6; // Increased by 50%
+            const baseHealth = 18; // Increased from 6 for better balance
 
             this.scaleEnemyHealth(soul, baseHealth);
             soul.enemyType = 'soul';
@@ -28528,7 +29177,7 @@ class GameScene extends Phaser.Scene {
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
                 hitboxConfig.applyFlip(bloboid, 'bloboid');
             }
-            const baseHealth = 8; // Increased by 50%
+            const baseHealth = 24; // Increased from 8 for better balance
 
             this.scaleEnemyHealth(bloboid, baseHealth);
             bloboid.enemyType = 'bloboid';
@@ -28543,7 +29192,7 @@ class GameScene extends Phaser.Scene {
             const slime = this.physics.add.sprite(x, y, 'slime-idle', 0);
             // Apply scale from config
             this.applySavedScale(slime, 'slime');
-            const baseHealth = 4; // Increased by 50%
+            const baseHealth = 12; // Increased from 4 for better balance
 
             this.scaleEnemyHealth(slime, baseHealth);
             slime.enemyType = 'slime';
@@ -28559,7 +29208,7 @@ class GameScene extends Phaser.Scene {
             // Apply scale from config
             this.applySavedScale(slime, 'fireslime');
             slime.setTint(0xff4444); // Red tint for fire slime
-            const baseHealth = 5; // Slightly more health than regular slime
+            const baseHealth = 15; // Increased from 5 for better balance
 
             this.scaleEnemyHealth(slime, baseHealth);
             slime.enemyType = 'fireslime';
@@ -28667,7 +29316,7 @@ class GameScene extends Phaser.Scene {
             const golem = this.physics.add.sprite(x, y, `golem-${golemColor}-walk`, 0);
             // Apply scale from config
             this.applySavedScale(golem, 'golem');
-            const baseHealth = 15; // Increased by 50%
+            const baseHealth = 40; // Increased from 15 for better balance
 
             this.scaleEnemyHealth(golem, baseHealth);
             golem.enemyType = 'golem';
@@ -28684,7 +29333,7 @@ class GameScene extends Phaser.Scene {
             const golem = this.physics.add.sprite(x, y, 'golem-orange-walk', 0);
             // Apply scale from config
             this.applySavedScale(golem, 'golem-blue');
-            const baseHealth = 18; // More health than regular golem
+            const baseHealth = 50; // Increased from 18 for better balance
 
             this.scaleEnemyHealth(golem, baseHealth);
             golem.enemyType = 'golem';
@@ -28704,7 +29353,7 @@ class GameScene extends Phaser.Scene {
             const imp = this.physics.add.sprite(x, y, 'club-imp-walk-1');
             // Apply saved scale
             this.applySavedScale(imp, 'clubimp');
-            const baseHealth = 5;
+            const baseHealth = 15; // Increased from 5 for better balance
 
             this.scaleEnemyHealth(imp, baseHealth);
             imp.enemyType = 'clubimp';
@@ -28723,7 +29372,7 @@ class GameScene extends Phaser.Scene {
             const imp = this.physics.add.sprite(x, y, 'axe-imp-walk-1');
             // Apply saved scale
             this.applySavedScale(imp, 'axeimp');
-            const baseHealth = 4;
+            const baseHealth = 12; // Increased from 4 for better balance
 
             this.scaleEnemyHealth(imp, baseHealth);
             imp.enemyType = 'axeimp';
@@ -28741,7 +29390,7 @@ class GameScene extends Phaser.Scene {
             const kobold = this.physics.add.sprite(x, y, 'kobold-walk', 0);
             // Apply scale from config
             this.applySavedScale(kobold, 'kobold');
-            const baseHealth = 6;
+            const baseHealth = 18; // Increased from 6 for better balance
 
             this.scaleEnemyHealth(kobold, baseHealth);
             kobold.enemyType = 'kobold';
@@ -28757,7 +29406,7 @@ class GameScene extends Phaser.Scene {
             const darkbat = this.physics.add.sprite(x, y, 'dark-bat-fly', 0);
             // Apply scale from config
             this.applySavedScale(darkbat, 'darkbat');
-            const baseHealth = 3;
+            const baseHealth = 10; // Increased from 3 for better balance
 
             this.scaleEnemyHealth(darkbat, baseHealth);
             darkbat.enemyType = 'darkbat';
@@ -28775,7 +29424,7 @@ class GameScene extends Phaser.Scene {
             const brainmole = this.physics.add.sprite(x, y, 'brainmole-walk', 0);
             // Apply scale from config
             this.applySavedScale(brainmole, 'brainmole');
-            const baseHealth = 5; // Medium health
+            const baseHealth = 15; // Increased from 5 for better balance
 
             this.scaleEnemyHealth(brainmole, baseHealth);
             brainmole.enemyType = 'brainmole';
@@ -28791,7 +29440,7 @@ class GameScene extends Phaser.Scene {
             const devourer = this.physics.add.sprite(x, y, 'intellectdevourer-walk', 0);
             // Apply scale from config
             this.applySavedScale(devourer, 'intellectdevourer');
-            const baseHealth = 8; // High health for a brain creature
+            const baseHealth = 24; // Increased from 8 for better balance
 
             this.scaleEnemyHealth(devourer, baseHealth);
             devourer.enemyType = 'intellectdevourer';
@@ -28808,7 +29457,7 @@ class GameScene extends Phaser.Scene {
             const wraith = this.physics.add.sprite(x, y, 'wraith-walk', 0);
             // Apply scale from config
             this.applySavedScale(wraith, 'wraith');
-            const baseHealth = 10; // High health for undead creature
+            const baseHealth = 30; // Increased from 10 for better balance
 
             this.scaleEnemyHealth(wraith, baseHealth);
             wraith.enemyType = 'wraith';
@@ -28829,7 +29478,7 @@ class GameScene extends Phaser.Scene {
             const skullhound = this.physics.add.sprite(x, y, 'skullhound-walk', 0);
             // Apply scale from config
             this.applySavedScale(skullhound, 'skullhound');
-            const baseHealth = 9; // Medium-high health for undead hound
+            const baseHealth = 27; // Increased from 9 for better balance
 
             this.scaleEnemyHealth(skullhound, baseHealth);
             skullhound.enemyType = 'skullhound';
@@ -28848,7 +29497,7 @@ class GameScene extends Phaser.Scene {
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
                 hitboxConfig.applyFlip(demon, 'flyingdemon');
             }
-            const baseHealth = 8;
+            const baseHealth = 24; // Increased from 8 for better balance
 
             this.scaleEnemyHealth(demon, baseHealth);
             demon.enemyType = 'flyingdemon';
@@ -28868,7 +29517,7 @@ class GameScene extends Phaser.Scene {
             const skeleton = this.physics.add.sprite(x, y, 'skeleton-yellow-walk', 0);
             // Apply scale from config
             this.applySavedScale(skeleton, 'yellowskeleton');
-            const baseHealth = 4;
+            const baseHealth = 12; // Increased from 4 for better balance
 
             this.scaleEnemyHealth(skeleton, baseHealth);
             skeleton.enemyType = 'yellowskeleton';
@@ -28887,7 +29536,7 @@ class GameScene extends Phaser.Scene {
             } else {
                 seeker.setScale(0.8); // Fallback scale
             }
-            const baseHealth = 6;
+            const baseHealth = 18; // Increased from 6 for better balance
 
             this.scaleEnemyHealth(seeker, baseHealth);
             seeker.enemyType = 'skeletonseeker';
@@ -28911,7 +29560,7 @@ class GameScene extends Phaser.Scene {
             } else {
                 knight.setScale(0.4); // Fallback scale
             }
-            const baseHealth = 8;
+            const baseHealth = 24; // Increased from 8 for better balance
 
             this.scaleEnemyHealth(knight, baseHealth);
             knight.enemyType = 'castle-knight';
@@ -29993,6 +30642,11 @@ class GameScene extends Phaser.Scene {
         });
     }
     activateButterflyJar(wizard = null) {
+        // Play power-up sound for butterfly jar activation
+        if (this.cache.audio.exists('power-up')) {
+            this.sound.play('power-up', { volume: 0.6 });
+        }
+
         // Default to P1 if no wizard specified (for backward compatibility)
         const targetWizard = wizard || this.wizard;
         const isP2 = targetWizard === this.wizard2;
@@ -30077,6 +30731,11 @@ class GameScene extends Phaser.Scene {
                             butterfly.setFlipX(dx < 0);
                         }
                     });
+                    // Update P1 indicator position
+                    if (this.butterflyIndicator && this.wizard) {
+                        this.butterflyIndicator.x = this.wizard.x;
+                        this.butterflyIndicator.y = this.wizard.y - 70;
+                    }
                 }
                 // Update P2's butterflies
                 if (this.butterflyProtectionP2 && this.butterflyProtectionP2.active && this.wizard2) {
@@ -30091,6 +30750,11 @@ class GameScene extends Phaser.Scene {
                             butterfly.setFlipX(dx < 0);
                         }
                     });
+                    // Update P2 indicator position
+                    if (this.butterflyIndicatorP2 && this.wizard2) {
+                        this.butterflyIndicatorP2.x = this.wizard2.x;
+                        this.butterflyIndicatorP2.y = this.wizard2.y - 70;
+                    }
                 }
             },
             loop: true
@@ -30358,6 +31022,147 @@ class GameScene extends Phaser.Scene {
 
         console.log(`Magnet activated - instantly collecting ${totalCollected} items!`);
     }
+
+    /**
+     * BOMB ORB - Massive explosion that damages all enemies on screen!
+     */
+    activateBombExplosion(wizard) {
+        // Visual feedback - show BOMB text
+        const bombText = this.add.text(wizard.x, wizard.y - 60, 'BOMB!', {
+            fontSize: '48px',
+            color: '#ff0000',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 6
+        });
+        bombText.setOrigin(0.5);
+        bombText.setDepth(150);
+
+        // Animate the text
+        this.tweens.add({
+            targets: bombText,
+            y: wizard.y - 120,
+            scale: { from: 1, to: 2 },
+            alpha: 0,
+            duration: 1500,
+            ease: 'Power2',
+            onComplete: () => bombText.destroy()
+        });
+
+        // Create massive explosion effect at wizard position
+        const explosionRadius = 600; // Screen-wide explosion
+        const explosionGraphics = this.add.graphics();
+        explosionGraphics.setDepth(100);
+
+        // Draw expanding shockwave circles
+        for (let i = 0; i < 5; i++) {
+            this.time.delayedCall(i * 100, () => {
+                const wave = this.add.circle(wizard.x, wizard.y, 50, 0xff6600, 0.6);
+                wave.setDepth(99);
+                this.tweens.add({
+                    targets: wave,
+                    radius: explosionRadius + (i * 100),
+                    alpha: 0,
+                    duration: 800,
+                    ease: 'Power2',
+                    onComplete: () => wave.destroy()
+                });
+            });
+        }
+
+        // Create fire particles explosion
+        const particleCount = 50;
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (Math.PI * 2 / particleCount) * i;
+            const speed = 300 + Math.random() * 200;
+            const distance = 400 + Math.random() * 200;
+
+            const particle = this.add.circle(wizard.x, wizard.y, 8, 0xff4400);
+            particle.setDepth(98);
+
+            const targetX = wizard.x + Math.cos(angle) * distance;
+            const targetY = wizard.y + Math.sin(angle) * distance;
+
+            this.tweens.add({
+                targets: particle,
+                x: targetX,
+                y: targetY,
+                alpha: 0,
+                scale: 0,
+                duration: 600 + Math.random() * 400,
+                ease: 'Power2',
+                onComplete: () => particle.destroy()
+            });
+        }
+
+        // Screen shake for impact
+        this.cameras.main.shake(500, 0.02);
+
+        // Flash wizard red
+        wizard.setTint(0xff0000);
+        this.time.delayedCall(300, () => {
+            if (wizard && wizard.active) {
+                wizard.clearTint();
+            }
+        });
+
+        // DAMAGE ALL ENEMIES ON SCREEN!
+        let enemiesHit = 0;
+        const bombDamage = 100; // Massive damage
+
+        if (this.enemies && this.enemies.children && this.enemies.children.entries) {
+            const enemiesToDamage = [...this.enemies.children.entries];
+
+            enemiesToDamage.forEach(enemy => {
+                if (enemy && enemy.active && enemy.body && enemy.health > 0) {
+                    // Check if enemy is on screen (within camera view)
+                    const cam = this.cameras.main;
+                    const onScreen = (
+                        enemy.x > cam.worldView.x - 100 &&
+                        enemy.x < cam.worldView.x + cam.worldView.width + 100 &&
+                        enemy.y > cam.worldView.y - 100 &&
+                        enemy.y < cam.worldView.y + cam.worldView.height + 100
+                    );
+
+                    if (onScreen) {
+                        // Deal massive damage
+                        enemy.health -= bombDamage;
+
+                        // Show damage number
+                        this.showDamageNumber(enemy.x, enemy.y - 30, bombDamage, '#ff6600');
+
+                        // Flash enemy red
+                        enemy.setTint(0xff0000);
+                        this.time.delayedCall(200, () => {
+                            if (enemy && enemy.active) {
+                                enemy.clearTint();
+                            }
+                        });
+
+                        // Knockback effect
+                        const angle = Math.atan2(enemy.y - wizard.y, enemy.x - wizard.x);
+                        const knockbackForce = 800;
+                        enemy.setVelocity(
+                            Math.cos(angle) * knockbackForce,
+                            Math.sin(angle) * knockbackForce
+                        );
+
+                        // Check if enemy died from bomb
+                        if (enemy.health <= 0) {
+                            this.killEnemy(enemy);
+                        }
+
+                        enemiesHit++;
+                    }
+                }
+            });
+        }
+
+        // Explosion sound removed for cleaner audio experience
+
+        console.log(`BOMB! Dealt ${bombDamage} damage to ${enemiesHit} enemies on screen!`);
+    }
+
     collectChargeExpansion(wizard, expansion) {
         // Extra safety check
         if (!wizard || !expansion || expansion.isDestroying || !expansion.active) {
@@ -32064,21 +32869,86 @@ class GameScene extends Phaser.Scene {
             onComplete: () => text.destroy()
         });
     }
-    showDamageNumber(x, y, damage, color = '#ffff00') {
+
+    // Sound pooling helper functions
+    playSoundPooled(soundKey, config = {}) {
+        // Check if sound exists in cache
+        if (!this.cache.audio.exists(soundKey)) {
+            console.warn(`Sound "${soundKey}" not found in cache. Skipping.`);
+            return; // Sound not loaded, skip silently
+        }
+
+        const pool = this.soundPools[soundKey];
+
+        // Check pool limit
+        if (pool && pool.current >= pool.max) {
+            return; // At limit, skip this sound
+        }
+
+        // Default config with pitch variation for variety
+        const finalConfig = {
+            volume: config.volume || 0.5,
+            rate: config.rate !== undefined ? config.rate : Phaser.Math.FloatBetween(0.9, 1.1),
+            ...config
+        };
+
+        // Play sound
+        const sound = this.sound.add(soundKey, finalConfig);
+        sound.play();
+
+        // Track it in pool
+        if (pool) {
+            pool.current++;
+            sound.once('complete', () => {
+                pool.current--;
+                sound.destroy(); // Clean up
+            });
+        } else {
+            // No pool tracking, just clean up when done
+            sound.once('complete', () => {
+                sound.destroy();
+            });
+        }
+    }
+
+    playEnemyDeath() {
+        const pool = this.soundPools['enemy-death'];
+        if (!pool) {
+            return; // Pool not initialized
+        }
+
+        // Dynamic volume scaling - quieter when many death sounds playing
+        const volumeScale = Math.max(0.2, 1.0 - (pool.current / pool.max) * 0.6);
+
+        this.playSoundPooled('enemy-death', {
+            volume: 0.4 * volumeScale,
+            rate: Phaser.Math.FloatBetween(0.85, 1.15) // More pitch variation for variety
+        });
+    }
+
+    playEnemyHit() {
+        this.playSoundPooled('enemy-hit', {
+            volume: 0.2,
+            rate: Phaser.Math.FloatBetween(0.9, 1.1)
+        });
+    }
+
+    showDamageNumber(x, y, damage, color = '#ffff00', scale = 1.0) {
         try {
             // Don't create damage numbers if game is paused or ending
             if (this.gamePaused || this.gameEnded) return;
             // Round damage if it's a number
             const displayDamage = typeof damage === 'number' ? Math.round(damage) : damage;
             const damageText = this.add.text(x, y, displayDamage.toString(), {
-                fontSize: '24px',
+                fontSize: '12px',
                 color: color,
                 fontStyle: 'bold',
                 stroke: '#000000',
-                strokeThickness: 4
+                strokeThickness: 2
             });
             damageText.setOrigin(0.5);
             damageText.setDepth(150);
+            damageText.setScale(scale); // Apply scale for critical hits
             // Debug disabled - tween system is working
             // Animate floating up and fading out
             const tween = this.tweens.add({
@@ -32214,6 +33084,14 @@ class GameScene extends Phaser.Scene {
         }
         // Apply passive damage multiplier from upgrades
         damage *= this.getDamageMultiplier();
+
+        // CRITICAL HIT SYSTEM - 5% chance for 2x damage
+        const isCritical = Math.random() < 0.05; // 5% chance
+        if (isCritical) {
+            damage *= 2;
+            projectile.isCriticalHit = true; // Mark for visual feedback
+        }
+
         // Debug log for Nekros
         if (enemy.enemyType === 'nekros-boss') {
             // Check for invalid damage values
@@ -32272,14 +33150,38 @@ class GameScene extends Phaser.Scene {
             }
         enemy.health -= damage;
 
+        // Play impact sound based on element type
+        if (projectile.element === 'lightning') {
+            this.playSoundPooled('lightning-impact', {
+                volume: 0.3,
+                rate: Phaser.Math.FloatBetween(0.9, 1.1)
+            });
+        } else if (projectile.element === 'ice') {
+            this.playSoundPooled('ice-impact', {
+                volume: 0.3,
+                rate: Phaser.Math.FloatBetween(0.9, 1.1)
+            });
+        }
+
         // Vampire Survivors style: Flash white when hit (visual feedback)
         if (!enemy.isFlashing) {
             enemy.isFlashing = true;
+            // Save original tint for bosses (they have phase-specific tints)
+            if (enemy.isBoss || enemy.isObeliskBoss) {
+                enemy.savedTint = enemy.tintTopLeft; // Store current tint
+            }
             enemy.setTint(0xffffff); // Flash white
             this.time.delayedCall(50, () => {
                 if (enemy && enemy.active && !enemy.isDying) {
                     enemy.isFlashing = false;
-                    // Tint will be restored by status effect system in update loop
+                    // Restore boss tint, clear tint for regular enemies
+                    if ((enemy.isBoss || enemy.isObeliskBoss) && enemy.savedTint !== undefined) {
+                        enemy.setTint(enemy.savedTint);
+                        enemy.savedTint = undefined;
+                    } else {
+                        enemy.clearTint();
+                    }
+                    // Tint will be re-applied by status effect system in update loop if needed
                 }
             });
         }
@@ -32302,9 +33204,12 @@ class GameScene extends Phaser.Scene {
         }
         this.applyKnockback(enemy, projectile.x, projectile.y, knockbackStrength);
 
-        // Grim's lifesteal ability - heal for 5% of damage dealt
+        // Grim's lifesteal ability - heal for 5% of damage dealt + 2% per lifesteal upgrade
         if (this.wizard.characterType === 'grim' && damage > 0) {
-            const lifestealAmount = Math.floor(damage * 0.05);
+            const baseLifesteal = 0.05; // 5% base lifesteal
+            const upgradeLifesteal = (this.passiveUpgrades.lifesteal || 0) * 0.02; // +2% per upgrade
+            const totalLifesteal = baseLifesteal + upgradeLifesteal;
+            const lifestealAmount = Math.floor(damage * totalLifesteal);
             if (lifestealAmount > 0 && this.playerHealth < this.playerMaxHealth) {
                 this.playerHealth = Math.min(this.playerHealth + lifestealAmount, this.playerMaxHealth);
                 this.updateHealthDisplay();
@@ -32536,15 +33441,31 @@ class GameScene extends Phaser.Scene {
                 // Fallback to using rotation
                 pushAngle = projectile.rotation;
             }
-            // Apply push force
-            const pushForce = projectile.pushForce || 400;
-            const currentTime = this.time.now;
-            // Check knockback immunity
-            if (!enemy.knockbackImmuneUntil || currentTime > enemy.knockbackImmuneUntil) {
-                if (enemy.body) {
-                    enemy.body.velocity.x = Math.cos(pushAngle) * pushForce;
-                    enemy.body.velocity.y = Math.sin(pushAngle) * pushForce;
-                }
+            // Apply push force (skip for bosses)
+            if (enemy.isBoss || enemy.isObeliskBoss) {
+                // Bosses are immune to knockback - show visual feedback
+                const immuneText = this.add.text(enemy.x, enemy.y - 40, 'IMMUNE', {
+                    fontSize: '16px',
+                    color: '#ff4444',
+                    fontStyle: 'bold'
+                });
+                immuneText.setOrigin(0.5);
+                this.tweens.add({
+                    targets: immuneText,
+                    y: enemy.y - 60,
+                    alpha: 0,
+                    duration: 1000,
+                    onComplete: () => immuneText.destroy()
+                });
+            } else {
+                const pushForce = projectile.pushForce || 400;
+                const currentTime = this.time.now;
+                // Check knockback immunity
+                if (!enemy.knockbackImmuneUntil || currentTime > enemy.knockbackImmuneUntil) {
+                    if (enemy.body) {
+                        enemy.body.velocity.x = Math.cos(pushAngle) * pushForce;
+                        enemy.body.velocity.y = Math.sin(pushAngle) * pushForce;
+                    }
                 // Set knockback immunity for 1.5 seconds
                 enemy.knockbackImmuneUntil = currentTime + 1500;
                 enemy.knockbackImmune = true;
@@ -32553,16 +33474,17 @@ class GameScene extends Phaser.Scene {
                         enemy.knockbackImmune = false;
                     }
                 });
-                // Visual feedback - brief white flash
-                enemy.setTint(0xccffcc);
-                this.time.delayedCall(150, () => {
-                    if (enemy && enemy.active && !enemy.isDying) {
-                        // Only clear tint if not affected by other effects
-                        if (!enemy.burning && !enemy.frozen && !enemy.stunned && !enemy.poisoned && !enemy.slowed && !enemy.wet && !enemy.muddy) {
-                            enemy.clearTint();
+                    // Visual feedback - brief white flash
+                    enemy.setTint(0xccffcc);
+                    this.time.delayedCall(150, () => {
+                        if (enemy && enemy.active && !enemy.isDying) {
+                            // Only clear tint if not affected by other effects
+                            if (!enemy.burning && !enemy.frozen && !enemy.stunned && !enemy.poisoned && !enemy.slowed && !enemy.wet && !enemy.muddy) {
+                                enemy.clearTint();
+                            }
                         }
-                    }
-                });
+                    });
+                }
             }
         }
         // Apply earth effect - impact animation and shatter damage on frozen enemies
@@ -32591,8 +33513,8 @@ class GameScene extends Phaser.Scene {
                 // Screen shake for shatter
                 this.cameras.main.shake(200, 0.01);
             }
-            // Apply knockback
-            if (projectile.knockbackForce && enemy.body && !enemy.knockbackImmune) {
+            // Apply knockback (skip for bosses)
+            if (projectile.knockbackForce && enemy.body && !enemy.knockbackImmune && !enemy.isBoss && !enemy.isObeliskBoss) {
                 const angle = Math.atan2(enemy.y - this.wizard.y, enemy.x - this.wizard.x);
                 enemy.body.velocity.x = Math.cos(angle) * projectile.knockbackForce;
                 enemy.body.velocity.y = Math.sin(angle) * projectile.knockbackForce;
@@ -32610,8 +33532,11 @@ class GameScene extends Phaser.Scene {
             iceImpact.on('animationcomplete', () => {
                 iceImpact.destroy();
             });
-            // Apply freeze status
+
             const freezeDuration = projectile.freezeDuration || 2000;
+            const freezeAoERadius = projectile.freezeAoERadius || 100;
+
+            // Apply freeze to hit enemy
             enemy.frozen = true;
             enemy.frozenEndTime = this.time.now + freezeDuration;
             // Stop enemy movement
@@ -32632,15 +33557,74 @@ class GameScene extends Phaser.Scene {
             });
             // Show freeze text
             this.showDamageNumber(enemy.x, enemy.y - 40, 'FROZEN!', '#00ccff');
+
+            // FREEZE AOE - Freeze nearby enemies
+            if (freezeAoERadius > 0) {
+                // Visual AoE indicator
+                const freezeCircle = this.add.circle(enemy.x, enemy.y, freezeAoERadius, 0x00ccff, 0.3);
+                freezeCircle.setDepth(enemy.depth - 1);
+                freezeCircle.setStrokeStyle(3, 0x00ffff, 0.8);
+
+                // Expanding animation
+                this.tweens.add({
+                    targets: freezeCircle,
+                    scale: { from: 0.5, to: 1.2 },
+                    alpha: { from: 0.5, to: 0 },
+                    duration: 600,
+                    ease: 'Power2.easeOut',
+                    onComplete: () => freezeCircle.destroy()
+                });
+
+                // Freeze all enemies in radius
+                this.enemies.children.entries.forEach(nearbyEnemy => {
+                    if (!nearbyEnemy || !nearbyEnemy.active || nearbyEnemy === enemy) return;
+                    if (nearbyEnemy.isDying || nearbyEnemy.frozen) return;
+
+                    const distance = Phaser.Math.Distance.Between(
+                        enemy.x, enemy.y,
+                        nearbyEnemy.x, nearbyEnemy.y
+                    );
+
+                    if (distance <= freezeAoERadius) {
+                        // Freeze this enemy
+                        nearbyEnemy.frozen = true;
+                        nearbyEnemy.frozenEndTime = this.time.now + freezeDuration * 0.6; // 60% duration for AoE
+                        if (nearbyEnemy.body) {
+                            nearbyEnemy.setVelocity(0, 0);
+                        }
+                        nearbyEnemy.setTint(0x00ccff);
+
+                        // Unfreeze after duration
+                        this.time.delayedCall(freezeDuration * 0.6, () => {
+                            if (nearbyEnemy && nearbyEnemy.active && !nearbyEnemy.isDying) {
+                                nearbyEnemy.frozen = false;
+                                if (!nearbyEnemy.burning && !nearbyEnemy.stunned && !nearbyEnemy.poisoned && !nearbyEnemy.slowed && !nearbyEnemy.wet && !nearbyEnemy.muddy) {
+                                    nearbyEnemy.clearTint();
+                                }
+                            }
+                        });
+
+                        // Visual freeze effect on nearby enemy
+                        const nearbyImpact = this.add.sprite(nearbyEnemy.x, nearbyEnemy.y, 'ice-spike-hit1');
+                        nearbyImpact.setScale(0.8);
+                        nearbyImpact.setDepth(nearbyEnemy.depth + 1);
+                        nearbyImpact.play('ice-spike-impact');
+                        nearbyImpact.on('animationcomplete', () => nearbyImpact.destroy());
+
+                        this.showDamageNumber(nearbyEnemy.x, nearbyEnemy.y - 40, 'FROZEN!', '#88ddff');
+                    }
+                });
+            }
         }
         // Track total damage dealt
         this.damageDealt += damage;
         // Debug: Log state after damage
         if (enemy.enemyType === 'nekros-boss') {
             }
-        // Show damage number (with critical indicator for rock projectiles)
-        if (projectile.element === 'rock' && projectile.isCritical) {
-            this.showDamageNumber(enemy.x, enemy.y - 20, damage + '!', '#ff6666');
+        // Show damage number (with critical indicator)
+        if (isCritical || (projectile.element === 'rock' && projectile.isCritical)) {
+            // CRITICAL HIT - larger, red text with exclamation
+            this.showDamageNumber(enemy.x, enemy.y - 20, Math.round(damage) + '!', '#ff0000', 1.5);
         } else {
             this.showDamageNumber(enemy.x, enemy.y - 20, damage);
         }
@@ -32699,7 +33683,7 @@ class GameScene extends Phaser.Scene {
         // Apply knockback for earth projectiles
         if (projectile.knockbackForce && projectile.element === 'earth') {
             // Bosses are immune to knockback
-            if (enemy.isBoss) {
+            if (enemy.isBoss || enemy.isObeliskBoss) {
                 // Visual feedback for boss knockback immunity
                 const immuneText = this.add.text(enemy.x, enemy.y - 40, 'IMMUNE', {
                     fontSize: '16px',
@@ -33523,8 +34507,8 @@ class GameScene extends Phaser.Scene {
             jewel.cull = false;
         }
 
-        // Enforce item cap before adding new jewel
-        this.enforceItemCap(this.jewels, this.MAX_JEWELS_ON_FLOOR);
+        // No item cap - jewels stay on floor indefinitely (like Vampire Survivors)
+        // this.enforceItemCap(this.jewels, this.MAX_JEWELS_ON_FLOOR);
 
         this.jewels.add(jewel);
         return jewel;
@@ -33560,12 +34544,44 @@ class GameScene extends Phaser.Scene {
             coin.cull = false;
         }
 
-        // Enforce item cap before adding new coin (coins share cap with jewels)
-        this.enforceItemCap(this.jewels, this.MAX_JEWELS_ON_FLOOR);
+        // No item cap - coins stay on floor indefinitely (like Vampire Survivors)
+        // this.enforceItemCap(this.jewels, this.MAX_JEWELS_ON_FLOOR);
 
         // Add to jewels group for now (can create separate coins group later)
         this.jewels.add(coin);
         return coin;
+    }
+    dropLevelUpOrb(x, y) {
+        // Create level up orb sprite using luck.png
+        const levelUpOrb = this.physics.add.sprite(x, y, 'luck-orb');
+        levelUpOrb.setDepth(25);
+        levelUpOrb.setScale(1.0);
+        levelUpOrb.body.setVelocity(0, 0);
+        levelUpOrb.body.setSize(32, 32); // Collision box for orb
+
+        // Mark as level up orb
+        levelUpOrb.isLevelUpOrb = true;
+
+        // Disable camera culling
+        levelUpOrb.setScrollFactor(1, 1);
+        if (levelUpOrb.cull) {
+            levelUpOrb.cull = false;
+        }
+
+        // Add pulsing glow effect
+        this.tweens.add({
+            targets: levelUpOrb,
+            scale: { from: 1.0, to: 1.2 },
+            alpha: { from: 0.8, to: 1.0 },
+            duration: 800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // Add to jewels group for pickup detection
+        this.jewels.add(levelUpOrb);
+        return levelUpOrb;
     }
     dropMuffin(x, y) {
         const muffin = this.physics.add.sprite(x, y, 'muffin');
@@ -33589,8 +34605,8 @@ class GameScene extends Phaser.Scene {
             repeat: -1
         });
 
-        // Enforce item cap before adding new muffin
-        this.enforceItemCap(this.muffins, this.MAX_MUFFINS_ON_FLOOR);
+        // No item cap - muffins stay on floor indefinitely (like Vampire Survivors)
+        // this.enforceItemCap(this.muffins, this.MAX_MUFFINS_ON_FLOOR);
 
         this.muffins.add(muffin);
         return muffin;
@@ -33676,8 +34692,8 @@ class GameScene extends Phaser.Scene {
             ease: 'Sine.easeInOut'
         });
 
-        // Enforce item cap before adding new element orb
-        this.enforceItemCap(this.elementOrbs, this.MAX_ELEMENT_ORBS_ON_FLOOR);
+        // No item cap - element orbs stay on floor indefinitely (like Vampire Survivors)
+        // this.enforceItemCap(this.elementOrbs, this.MAX_ELEMENT_ORBS_ON_FLOOR);
 
         // Add to element orbs group
         this.elementOrbs.add(orb);
@@ -33686,6 +34702,79 @@ class GameScene extends Phaser.Scene {
         return orb;
     }
 
+    levelUpAllElements(wizard) {
+        // Get all elements from charge slots and pouch
+        const chargeSlots = wizard.chargeSlots || [];
+        const pouchSlots = wizard.elementPouch || this.elementPouch || [];
+
+        // Combine all slots
+        const allSlots = [...chargeSlots, ...pouchSlots];
+
+        // Passive orbs that shouldn't be leveled
+        const passiveOrbs = ['rook', 'bishop', 'knight', 'queen', 'king', 'pawn', 'joker',
+                              'saturn', 'spiral', 'wizardOrb', 'summonOrb', 'saturnOrb',
+                              'knightOrb', 'kingOrb', 'rookOrb', 'flameOrb', 'healOrb',
+                              'dashOrb', 'catalyst', 'mind'];
+
+        let leveledCount = 0;
+
+        // Iterate through all slots
+        allSlots.forEach((element, slotIndex) => {
+            if (!element || passiveOrbs.includes(element)) return;
+
+            // Get tier key for this element
+            const tierKey = `${element}_${slotIndex}`;
+            const currentTier = wizard.elementTiers.get(tierKey) || this.elementTiers.get(tierKey) || 1;
+
+            // Only level up if not at max tier (5)
+            if (currentTier < 5) {
+                const newTier = currentTier + 1;
+
+                // Update tier in both wizard and scene
+                if (wizard.elementTiers) {
+                    wizard.elementTiers.set(tierKey, newTier);
+                }
+                if (this.elementTiers) {
+                    this.elementTiers.set(tierKey, newTier);
+                }
+
+                leveledCount++;
+
+                // Show individual tier up text above wizard
+                const elementConfig = this.elementConfig[element];
+                const elementName = elementConfig ? elementConfig.name : element;
+                const tierText = this.add.text(
+                    wizard.x + (Math.random() - 0.5) * 60,
+                    wizard.y - 30 - (leveledCount * 20),
+                    `${elementName} → Tier ${newTier}!`,
+                    {
+                        fontSize: '16px',
+                        color: elementConfig ? '#' + elementConfig.color.toString(16).padStart(6, '0') : '#ffffff',
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 3
+                    }
+                );
+                tierText.setOrigin(0.5);
+                tierText.setDepth(151);
+                this.tweens.add({
+                    targets: tierText,
+                    y: tierText.y - 40,
+                    alpha: 0,
+                    duration: 1500,
+                    delay: leveledCount * 100,
+                    onComplete: () => tierText.destroy()
+                });
+            }
+        });
+
+        // Refresh UI if radial menu exists
+        if (this.radialChargeMenu && this.radialChargeMenu.refresh) {
+            this.radialChargeMenu.refresh();
+        }
+
+        console.log(`✨ Level Up Orb: Leveled up ${leveledCount} elements for wizard`);
+    }
     collectJewel(wizard, jewel) {
         // Extra safety check - PREVENT COLLECTION AFTER VICTORY/GAME OVER
         if (this.gameEnded || this.isGameOver) {
@@ -33699,6 +34788,39 @@ class GameScene extends Phaser.Scene {
         if (!jewel.body || !jewel.body.enable) {
             return;
         }
+
+        // Check if this is a level up orb - tier up all elements for this player
+        if (jewel.isLevelUpOrb) {
+            // Level up all elements held by this wizard
+            this.levelUpAllElements(wizard);
+
+            // Visual feedback
+            const levelUpText = this.add.text(wizard.x, wizard.y - 50, 'ALL ORBS +1!', {
+                fontSize: '28px',
+                color: '#00ff00',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 4
+            });
+            levelUpText.setOrigin(0.5);
+            levelUpText.setDepth(150);
+            this.tweens.add({
+                targets: levelUpText,
+                y: wizard.y - 100,
+                scale: { from: 0.8, to: 1.5 },
+                alpha: 0,
+                duration: 2000,
+                onComplete: () => levelUpText.destroy()
+            });
+
+            // Play special sound effect
+            this.sound.play('levelup', { volume: 0.8 });
+
+            // Destroy the orb
+            this.safeDestroyCollectible(jewel);
+            return;
+        }
+
         // DON'T mark isDestroying here - let safeDestroyCollectible do it
         // Check if this is a coin (has coinValue) or a gem (has xpValue)
         if (jewel.coinValue !== undefined) {
@@ -33805,154 +34927,215 @@ class GameScene extends Phaser.Scene {
             // Play level up sound
             this.sound.play('levelup', { volume: 1.2 }); // Increased by 100%
 
-            // Level Milestone Rewards
-            if (this.playerLevel === 5) {
-                // Level 5: Free chest reward
-                this.dropChest(wizard.x, wizard.y - 30);
+            // Level Milestone Rewards - drop near all alive players
+            // Get reference player for milestone drops (any alive player, preferably P1)
+            const milestonePlayer = (this.wizard && this.wizard.health > 0) ? this.wizard :
+                                   (this.wizard2 && this.wizard2.health > 0) ? this.wizard2 :
+                                   (this.wizard3 && this.wizard3.health > 0) ? this.wizard3 :
+                                   (this.wizard4 && this.wizard4.health > 0) ? this.wizard4 : null;
 
-                // Show milestone notification
-                const milestoneText = this.add.text(wizard.x, wizard.y - 90,
-                    'MILESTONE! FREE CHEST!', {
-                    fontSize: '26px',
-                    color: '#ffaa00',
-                    fontStyle: 'bold',
-                    stroke: '#000000',
-                    strokeThickness: 4
-                });
-                milestoneText.setOrigin(0.5);
-                milestoneText.setDepth(150);
-                this.tweens.add({
-                    targets: milestoneText,
-                    y: wizard.y - 130,
-                    alpha: 0,
-                    duration: 2500,
-                    onComplete: () => milestoneText.destroy()
-                });
-                console.log('🎉 LEVEL 5 MILESTONE: Free chest!');
-            } else if (this.playerLevel === 10) {
-                // Level 10: Free chest reward
-                this.dropChest(wizard.x, wizard.y - 30);
+            if (milestonePlayer) {
+                if (this.playerLevel === 5) {
+                    // Level 5: Free chest reward
+                    this.dropChest(milestonePlayer.x, milestonePlayer.y - 30);
 
-                // Show milestone notification
-                const milestoneText = this.add.text(wizard.x, wizard.y - 90,
-                    'MILESTONE! FREE CHEST!', {
-                    fontSize: '26px',
-                    color: '#ffaa00',
-                    fontStyle: 'bold',
-                    stroke: '#000000',
-                    strokeThickness: 4
-                });
-                milestoneText.setOrigin(0.5);
-                milestoneText.setDepth(150);
-                this.tweens.add({
-                    targets: milestoneText,
-                    y: wizard.y - 130,
-                    alpha: 0,
-                    duration: 2500,
-                    onComplete: () => milestoneText.destroy()
-                });
-                console.log('🎉 LEVEL 10 MILESTONE: Free chest!');
-            } else if (this.playerLevel === 15) {
-                // Level 15: Drop 3-5 catalysts for fusion/tier-up
-                const catalystCount = 3 + Math.floor(Math.random() * 3); // 3-5 catalysts
-                for (let i = 0; i < catalystCount; i++) {
-                    const angle = (Math.PI * 2 * i) / catalystCount;
-                    const distance = 40;
-                    this.dropCatalyst(
-                        wizard.x + Math.cos(angle) * distance,
-                        wizard.y + Math.sin(angle) * distance
-                    );
+                    // Show milestone notification
+                    const milestoneText = this.add.text(milestonePlayer.x, milestonePlayer.y - 90,
+                        'MILESTONE! FREE CHEST!', {
+                        fontSize: '26px',
+                        color: '#ffaa00',
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 4
+                    });
+                    milestoneText.setOrigin(0.5);
+                    milestoneText.setDepth(150);
+                    this.tweens.add({
+                        targets: milestoneText,
+                        y: milestonePlayer.y - 130,
+                        alpha: 0,
+                        duration: 2500,
+                        onComplete: () => milestoneText.destroy()
+                    });
+                    console.log('🎉 LEVEL 5 MILESTONE: Free chest!');
+                } else if (this.playerLevel === 10) {
+                    // Level 10: Free chest reward
+                    this.dropChest(milestonePlayer.x, milestonePlayer.y - 30);
+
+                    // Show milestone notification
+                    const milestoneText = this.add.text(milestonePlayer.x, milestonePlayer.y - 90,
+                        'MILESTONE! FREE CHEST!', {
+                        fontSize: '26px',
+                        color: '#ffaa00',
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 4
+                    });
+                    milestoneText.setOrigin(0.5);
+                    milestoneText.setDepth(150);
+                    this.tweens.add({
+                        targets: milestoneText,
+                        y: milestonePlayer.y - 130,
+                        alpha: 0,
+                        duration: 2500,
+                        onComplete: () => milestoneText.destroy()
+                    });
+                    console.log('🎉 LEVEL 10 MILESTONE: Free chest!');
+                } else if (this.playerLevel === 15) {
+                    // Level 15: Drop 3-5 catalysts for fusion/tier-up
+                    const catalystCount = 3 + Math.floor(Math.random() * 3); // 3-5 catalysts
+                    for (let i = 0; i < catalystCount; i++) {
+                        const angle = (Math.PI * 2 * i) / catalystCount;
+                        const distance = 40;
+                        this.dropCatalyst(
+                            milestonePlayer.x + Math.cos(angle) * distance,
+                            milestonePlayer.y + Math.sin(angle) * distance
+                        );
+                    }
+
+                    // Show milestone notification
+                    const milestoneText = this.add.text(milestonePlayer.x, milestonePlayer.y - 90,
+                        `MILESTONE! ${catalystCount} CATALYSTS!`, {
+                        fontSize: '26px',
+                        color: '#ffaa00',
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 4
+                    });
+                    milestoneText.setOrigin(0.5);
+                    milestoneText.setDepth(150);
+                    this.tweens.add({
+                        targets: milestoneText,
+                        y: milestonePlayer.y - 130,
+                        alpha: 0,
+                        duration: 2500,
+                        onComplete: () => milestoneText.destroy()
+                    });
+                    console.log(`🎉 LEVEL 15 MILESTONE: Dropped ${catalystCount} catalysts!`);
+                } else if (this.playerLevel === 20) {
+                    // Level 20: Guaranteed Rare Chess Piece (Joker) + 5 Catalysts
+                    this.dropChest(milestonePlayer.x, milestonePlayer.y - 30);
+
+                    // Also drop 5 catalysts
+                    for (let i = 0; i < 5; i++) {
+                        const angle = (Math.PI * 2 * i) / 5;
+                        const distance = 50;
+                        this.dropCatalyst(
+                            milestonePlayer.x + Math.cos(angle) * distance,
+                            milestonePlayer.y + Math.sin(angle) * distance
+                        );
+                    }
+
+                    // Show milestone notification
+                    const milestoneText = this.add.text(milestonePlayer.x, milestonePlayer.y - 90,
+                        'MILESTONE! CHEST + 5 CATALYSTS!', {
+                        fontSize: '26px',
+                        color: '#ff00ff',
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 4
+                    });
+                    milestoneText.setOrigin(0.5);
+                    milestoneText.setDepth(150);
+                    this.tweens.add({
+                        targets: milestoneText,
+                        y: milestonePlayer.y - 130,
+                        alpha: 0,
+                        duration: 2500,
+                        onComplete: () => milestoneText.destroy()
+                    });
+                    console.log('🎉 LEVEL 20 MILESTONE: Guaranteed rare chess piece + 5 catalysts!');
                 }
-
-                // Show milestone notification
-                const milestoneText = this.add.text(wizard.x, wizard.y - 90,
-                    `MILESTONE! ${catalystCount} CATALYSTS!`, {
-                    fontSize: '26px',
-                    color: '#ffaa00',
-                    fontStyle: 'bold',
-                    stroke: '#000000',
-                    strokeThickness: 4
-                });
-                milestoneText.setOrigin(0.5);
-                milestoneText.setDepth(150);
-                this.tweens.add({
-                    targets: milestoneText,
-                    y: wizard.y - 130,
-                    alpha: 0,
-                    duration: 2500,
-                    onComplete: () => milestoneText.destroy()
-                });
-                console.log(`🎉 LEVEL 15 MILESTONE: Dropped ${catalystCount} catalysts!`);
-            } else if (this.playerLevel === 20) {
-                // Level 20: Guaranteed Rare Chess Piece (Joker) + 5 Catalysts
-                this.dropChest(wizard.x, wizard.y - 30);
-
-                // Also drop 5 catalysts
-                for (let i = 0; i < 5; i++) {
-                    const angle = (Math.PI * 2 * i) / 5;
-                    const distance = 50;
-                    this.dropCatalyst(
-                        wizard.x + Math.cos(angle) * distance,
-                        wizard.y + Math.sin(angle) * distance
-                    );
-                }
-
-                // Show milestone notification
-                const milestoneText = this.add.text(wizard.x, wizard.y - 90,
-                    'MILESTONE! CHEST + 5 CATALYSTS!', {
-                    fontSize: '26px',
-                    color: '#ff00ff',
-                    fontStyle: 'bold',
-                    stroke: '#000000',
-                    strokeThickness: 4
-                });
-                milestoneText.setOrigin(0.5);
-                milestoneText.setDepth(150);
-                this.tweens.add({
-                    targets: milestoneText,
-                    y: wizard.y - 130,
-                    alpha: 0,
-                    duration: 2500,
-                    onComplete: () => milestoneText.destroy()
-                });
-                console.log('🎉 LEVEL 20 MILESTONE: Guaranteed rare chess piece + 5 catalysts!');
             }
 
-            // Progressive scaling - steeper curve for meaningful progression
-            if (this.playerLevel <= 3) {
-                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.25); // 25% increase for levels 1-3
-            } else if (this.playerLevel <= 7) {
-                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.35); // 35% increase for levels 4-7
-            } else if (this.playerLevel <= 12) {
-                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.45); // 45% increase for levels 8-12
-            } else if (this.playerLevel <= 20) {
-                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.50); // 50% increase for levels 13-20
+            // Vampire Survivors scaling system
+            if (this.playerLevel <= 20) {
+                // Levels 1-20: Increase by 10 XP per level
+                this.xpToNextLevel += 10;
+            } else if (this.playerLevel <= 40) {
+                // Levels 21-40: Increase by 13 XP per level
+                this.xpToNextLevel += 13;
             } else {
-                this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.60); // 60% increase for levels 21+
+                // Levels 41+: Increase by 16 XP per level
+                this.xpToNextLevel += 16;
+            }
+
+            // Special XP penalties at milestone levels (matches VS)
+            if (this.playerLevel === 20) {
+                this.xpToNextLevel += 600; // Extra 600 XP at level 20
+                console.log('🎯 LEVEL 20: +600 XP requirement');
+            } else if (this.playerLevel === 40) {
+                this.xpToNextLevel += 2400; // Extra 2400 XP at level 40
+                console.log('🎯 LEVEL 40: +2400 XP requirement');
             }
             // Unlock charge slot every 10 levels
             if (this.playerLevel % 10 === 0 && this.maxCharges < 8) {
                 this.maxCharges++;
                 this.updateChargeUI();
-                // Visual feedback for slot unlock
-                const slotText = this.add.text(wizard.x, wizard.y - 60, 'CHARGE SLOT UNLOCKED!', {
-                    fontSize: '28px',
-                    color: '#ff00ff',
-                    fontStyle: 'bold'
-                });
-                slotText.setOrigin(0.5);
-                slotText.setDepth(150);
-                this.tweens.add({
-                    targets: slotText,
-                    y: wizard.y - 100,
-                    alpha: 0,
-                    duration: 2000,
-                    onComplete: () => slotText.destroy()
-                });
+                // Visual feedback for slot unlock - use milestonePlayer if available
+                if (milestonePlayer) {
+                    const slotText = this.add.text(milestonePlayer.x, milestonePlayer.y - 60, 'CHARGE SLOT UNLOCKED!', {
+                        fontSize: '28px',
+                        color: '#ff00ff',
+                        fontStyle: 'bold'
+                    });
+                    slotText.setOrigin(0.5);
+                    slotText.setDepth(150);
+                    this.tweens.add({
+                        targets: slotText,
+                        y: milestonePlayer.y - 100,
+                        alpha: 0,
+                        duration: 2000,
+                        onComplete: () => slotText.destroy()
+                    });
+                }
             }
-            // Show level up reward selection
+            // Show level up reward selection - alternate between players in multiplayer
             if (!this.chestSelectionActive && !this.chestOpening) {
-                this.openChest(wizard, null);
+                // Determine which player gets this level up reward
+                let levelUpWizard = this.wizard; // Default to P1
+
+                if (this.multiplayerEnabled) {
+                    console.log(`📊 LEVEL UP DEBUG - Before assignment:`);
+                    console.log(`   nextLevelUpPlayer: ${this.nextLevelUpPlayer}`);
+                    console.log(`   playerCount: ${this.playerCount}`);
+
+                    // Get array of alive players
+                    const alivePlayers = [];
+                    // P1 uses this.playerHealth, not this.wizard.health
+                    if (this.wizard && this.playerHealth > 0) alivePlayers.push({ player: this.wizard, number: 1 });
+                    if (this.wizard2 && this.wizard2.health > 0) alivePlayers.push({ player: this.wizard2, number: 2 });
+                    if (this.wizard3 && this.wizard3.health > 0) alivePlayers.push({ player: this.wizard3, number: 3 });
+                    if (this.wizard4 && this.wizard4.health > 0) alivePlayers.push({ player: this.wizard4, number: 4 });
+
+                    console.log(`   alivePlayers: ${alivePlayers.map(p => `P${p.number}`).join(', ')}`);
+
+                    if (alivePlayers.length > 0) {
+                        // Find the next alive player starting from nextLevelUpPlayer
+                        let found = false;
+                        for (let i = 0; i < alivePlayers.length * 2; i++) { // Loop twice to wrap around
+                            const checkPlayer = ((this.nextLevelUpPlayer - 1 + i) % this.playerCount) + 1;
+                            const alivePlayer = alivePlayers.find(p => p.number === checkPlayer);
+                            console.log(`   Checking player ${checkPlayer}: ${alivePlayer ? 'FOUND' : 'not found'}`);
+                            if (alivePlayer) {
+                                levelUpWizard = alivePlayer.player;
+                                this.nextLevelUpPlayer = checkPlayer;
+                                found = true;
+                                console.log(`   ✅ Assigned to Player ${checkPlayer}`);
+                                break;
+                            }
+                        }
+
+                        // Advance to next player for next level up
+                        const oldNext = this.nextLevelUpPlayer;
+                        this.nextLevelUpPlayer = (this.nextLevelUpPlayer % this.playerCount) + 1;
+                        console.log(`   Advanced nextLevelUpPlayer: ${oldNext} → ${this.nextLevelUpPlayer}`);
+
+                        console.log(`🎁 Level ${this.playerLevel} reward going to Player ${levelUpWizard.playerNumber}`);
+                    }
+                }
+
+                this.openChest(levelUpWizard, null);
             }
             // Spawn a cacodemon every 2 levels (2, 4, 6, etc.) - only if elites enabled
             if (this.playerLevel % 2 === 0) {
@@ -33962,20 +35145,22 @@ class GameScene extends Phaser.Scene {
                 }
             }
             this.updateChargeUI();
-            // Level up effect
-            const levelUpText = this.add.text(wizard.x, wizard.y - 50, 'LEVEL UP!', {
-                fontSize: '24px',
-                color: '#ffdd44',
-                fontStyle: 'bold'
-            });
-            levelUpText.setOrigin(0.5);
-            this.tweens.add({
-                targets: levelUpText,
-                y: wizard.y - 100,
-                alpha: 0,
-                duration: 1500,
-                onComplete: () => levelUpText.destroy()
-            });
+            // Level up effect - use milestonePlayer if available
+            if (milestonePlayer) {
+                const levelUpText = this.add.text(milestonePlayer.x, milestonePlayer.y - 50, 'LEVEL UP!', {
+                    fontSize: '24px',
+                    color: '#ffdd44',
+                    fontStyle: 'bold'
+                });
+                levelUpText.setOrigin(0.5);
+                this.tweens.add({
+                    targets: levelUpText,
+                    y: milestonePlayer.y - 100,
+                    alpha: 0,
+                    duration: 1500,
+                    onComplete: () => levelUpText.destroy()
+                });
+            }
         }
         // Update UI (optional - old charge UI disabled in favor of radial menu)
         if (this.levelText) {
@@ -34060,8 +35245,8 @@ class GameScene extends Phaser.Scene {
             }
         });
 
-        // Enforce item cap before adding new element orb
-        this.enforceItemCap(this.elementOrbs, this.MAX_ELEMENT_ORBS_ON_FLOOR);
+        // No item cap - element orbs stay on floor indefinitely (like Vampire Survivors)
+        // this.enforceItemCap(this.elementOrbs, this.MAX_ELEMENT_ORBS_ON_FLOOR);
 
         this.elementOrbs.add(orb);
         return orb;
@@ -34102,8 +35287,8 @@ class GameScene extends Phaser.Scene {
             repeat: -1
         });
 
-        // Enforce item cap before adding new catalyst
-        this.enforceItemCap(this.fusionCatalysts, this.MAX_CATALYSTS_ON_FLOOR);
+        // No item cap - catalysts stay on floor indefinitely (like Vampire Survivors)
+        // this.enforceItemCap(this.fusionCatalysts, this.MAX_CATALYSTS_ON_FLOOR);
 
         // Add to fusionCatalysts group for collection overlap
         this.fusionCatalysts.add(catalyst);
@@ -34135,41 +35320,59 @@ class GameScene extends Phaser.Scene {
         // Explicitly hide the sprite immediately
         catalyst.visible = false;
 
-        // Add to catalyst count (stored in center slot of radial menu)
-        if (!wizard.catalystCount) {
-            wizard.catalystCount = 0;
-        }
-        wizard.catalystCount++;
+        // NEW CATALYST SYSTEM: Grant 5% permanent damage increase!
+        this.catalystCount++;
+        this.catalystDamageBonus += 0.05; // +5% damage per catalyst
 
-        // Visual collection effect
-        const flash = this.add.circle(catalyst.x, catalyst.y, 30, 0xffaa00, 0.8);
+        // Calculate total damage multiplier for display
+        const totalDamageMultiplier = (1 + this.catalystDamageBonus);
+        const damagePercent = Math.round(this.catalystDamageBonus * 100);
+
+        // Play power-up sound for catalyst collection
+        if (this.cache.audio.exists('power-up')) {
+            this.sound.play('power-up', { volume: 0.6 });
+        }
+
+        // Visual collection effect - more dramatic for damage boost!
+        const flash = this.add.circle(catalyst.x, catalyst.y, 40, 0xff6600, 0.9);
         flash.setDepth(26);
         this.tweens.add({
             targets: flash,
-            scale: 2,
+            scale: 3,
             alpha: 0,
-            duration: 300,
+            duration: 500,
+            ease: 'Power2',
             onComplete: () => flash.destroy()
         });
 
-        // Show collection text
-        const displayText = `+CATALYST (${wizard.catalystCount})`;
+        // Show collection text with damage boost info
+        const displayText = `+5% DAMAGE!\n(Total: +${damagePercent}%)`;
         const collectionText = this.add.text(catalyst.x, catalyst.y - 40, displayText, {
-            fontSize: '18px',
-            color: '#ffaa00',
+            fontSize: '20px',
+            color: '#ff6600',
             fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 4
+            strokeThickness: 4,
+            align: 'center'
         });
         collectionText.setOrigin(0.5);
         collectionText.setDepth(27);
         this.tweens.add({
             targets: collectionText,
-            y: catalyst.y - 70,
-            scale: 1.2,
+            y: catalyst.y - 90,
+            scale: 1.3,
             alpha: 0,
-            duration: 1200,
+            duration: 1500,
+            ease: 'Power2',
             onComplete: () => collectionText.destroy()
+        });
+
+        // Flash wizard orange for damage boost
+        wizard.setTint(0xff6600);
+        this.time.delayedCall(300, () => {
+            if (wizard && wizard.active) {
+                wizard.clearTint();
+            }
         });
 
         // Track item collection
@@ -34303,11 +35506,25 @@ class GameScene extends Phaser.Scene {
 
         // If radial menu exists, use its addElement method
         if (radialMenu) {
-            console.log(`🔍 Calling radialMenu.addElement for ${orb.element}`);
             const wasAdded = radialMenu.addElement(orb.element);
-            console.log(`🔍 AFTER addElement: chargeSlots.length = ${wizard.chargeSlots ? wizard.chargeSlots.length : 'undefined'}`);
 
             if (wasAdded) {
+                // Update wizard.charges array for multiplayer firing system
+                if (!wizard.charges) {
+                    wizard.charges = [];
+                }
+                // Rebuild charges from active chargeSlots (excluding nulls and passive elements)
+                wizard.charges = [];
+                const maxActiveSlots = wizard.maxCharges || this.MAX_ACTIVE_SLOTS || 3;
+                for (let i = 0; i < maxActiveSlots && i < wizard.chargeSlots.length; i++) {
+                    if (wizard.chargeSlots[i] !== null) {
+                        wizard.charges.push(wizard.chargeSlots[i]);
+                    }
+                }
+                console.log(`💎 Collected ${orb.element} for P${wizard.playerNumber || 1}`);
+                console.log(`   wizard.chargeSlots:`, wizard.chargeSlots);
+                console.log(`   wizard.charges:`, wizard.charges);
+
                 // Discover the element
                 const wasNewDiscovery = !this.discoveredElements.has(orb.element);
                 this.discoveredElements.add(orb.element);
@@ -34358,15 +35575,9 @@ class GameScene extends Phaser.Scene {
                             this.charges.push(this.chargeSlots[i]);
                         }
                     }
-                } else if (wizard.charges) {
-                    // For other players, rebuild their charges array
-                    wizard.charges = [];
-                    for (let i = 0; i < this.MAX_ACTIVE_SLOTS && i < wizard.chargeSlots.length; i++) {
-                        if (wizard.chargeSlots[i] !== null && wizard.chargeSlots[i] !== 'catalyst') {
-                            wizard.charges.push(wizard.chargeSlots[i]);
-                        }
-                    }
+                    console.log(`   P1: Updated this.charges:`, this.charges);
                 }
+                // NOTE: Removed duplicate wizard.charges rebuild for P2+ since we already did it above (lines 35488-35494)
 
                 // Update charge groups for projectile firing
                 this.updateChargeGroups();
@@ -34443,6 +35654,12 @@ class GameScene extends Phaser.Scene {
         this.globalSpellCooldown = now + 100;
     }
     fireIndividualCharge(chargeIndex, element) {
+        // MULTIPLAYER NOTE: When this function is called from fireIndividualChargeForWizard,
+        // this.wizard is temporarily set to the casting player, and this.currentSpellOwner
+        // stores the actual wizard reference. All spell functions called from here should
+        // capture: const casterWizard = this.currentSpellOwner || this.wizard;
+        // at the start to ensure callbacks use the correct player.
+
         // Build charges array from chargeSlots (filter out nulls for legacy code compatibility)
         const charges = this.chargeSlots ? this.chargeSlots.filter(slot => slot !== null) : [];
 
@@ -35227,6 +36444,17 @@ class GameScene extends Phaser.Scene {
     }
 
     fireFireProjectile(currentGroup = ['fire'], allCharges = null, slotIndex = 0, elementTier = 1) {
+        // MULTIPLAYER FIX: Capture the wizard who is casting this spell
+        // During multiplayer, this.wizard gets temporarily set to the caster, then restored.
+        // We need to capture it NOW before any async callbacks execute.
+        const casterWizard = this.currentSpellOwner || this.wizard;
+
+        // Play fire cast sound
+        this.playSoundPooled('fire-cast', {
+            volume: 0.4,
+            rate: Phaser.Math.FloatBetween(0.9, 1.1)
+        });
+
         // ELEMENT REDESIGN: Fire is now a CONTROLLED FLAMETHROWER
         // Get slot buffs
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
@@ -35255,7 +36483,7 @@ class GameScene extends Phaser.Scene {
             down: Math.PI,             // 180° to face down
             'down-right': 3 * Math.PI / 4  // 135°
         };
-        const angle = directions[this.wizard.lastDirection] || 0;
+        const angle = directions[casterWizard.lastDirection] || 0;
 
         // Calculate position offset based on facing direction
         // We want the flame to start from the wizard's "mouth" position
@@ -35266,7 +36494,7 @@ class GameScene extends Phaser.Scene {
         let offsetY = 0;
 
         // Offset backward so flame extends forward through player position
-        switch(this.wizard.lastDirection) {
+        switch(casterWizard.lastDirection) {
             case 'up':
                 offsetY = offsetDistance; // Move sprite down, flame extends up through player
                 break;
@@ -35303,8 +36531,11 @@ class GameScene extends Phaser.Scene {
             this.flamethrowerLastCastTime = this.time.now;
             this.flamethrowerDuration = flameDuration; // Store duration for update loop cleanup check
 
+            // CRITICAL: Store which wizard owns this flamethrower (for multiplayer)
+            this.flamethrowerOwner = casterWizard;
+
             // Create visual sprite (no physics on main sprite)
-            this.activeFlamethrower = this.add.sprite(this.wizard.x + offsetX, this.wizard.y + offsetY, 'flamethrower-0');
+            this.activeFlamethrower = this.add.sprite(casterWizard.x + offsetX, casterWizard.y + offsetY, 'flamethrower-0');
             this.activeFlamethrower.setOrigin(0.5, 1.0); // Origin at bottom-center (base of flame)
             this.activeFlamethrower.setRotation(angle);
             this.activeFlamethrower.setDepth(4);
@@ -35359,9 +36590,11 @@ class GameScene extends Phaser.Scene {
 
                     // Update flamethrower position to follow wizard with offset
                     // Recalculate offset based on current direction (same logic as initial setup)
+                    // CRITICAL: Use flamethrowerOwner for multiplayer support
+                    const owner = this.flamethrowerOwner || this.wizard;
                     const offsetDist = 50;
                     let offX = 0, offY = 0;
-                    switch(this.wizard.lastDirection) {
+                    switch(owner.lastDirection) {
                         case 'up': offY = offsetDist; break; // Move sprite down, flame extends up
                         case 'down': offY = -offsetDist; break; // Move sprite up, flame extends down
                         case 'left': offX = offsetDist; break; // Move sprite right, flame extends left
@@ -35371,7 +36604,7 @@ class GameScene extends Phaser.Scene {
                         case 'down-left': offX = offsetDist * 0.707; offY = -offsetDist * 0.707; break;
                         case 'down-right': offX = -offsetDist * 0.707; offY = -offsetDist * 0.707; break;
                     }
-                    this.activeFlamethrower.setPosition(this.wizard.x + offX, this.wizard.y + offY);
+                    this.activeFlamethrower.setPosition(owner.x + offX, owner.y + offY);
 
                     // Update hitbox circle positions along the flame
                     if (this.flamethrowerHitboxes && this.flamethrowerHitboxes.length > 0) {
@@ -35399,9 +36632,10 @@ class GameScene extends Phaser.Scene {
                             const dirY = -Math.cos(rotation);
 
                             // Position circles extending from wizard position
+                            // CRITICAL: Use owner (not this.wizard) for multiplayer
                             this.flamethrowerHitboxes[i].setPosition(
-                                this.wizard.x + dirX * distance,
-                                this.wizard.y + dirY * distance
+                                owner.x + dirX * distance,
+                                owner.y + dirY * distance
                             );
                         }
                     }
@@ -35632,7 +36866,8 @@ class GameScene extends Phaser.Scene {
             // Create fire projectile (following water/earth/lightning pattern)
             const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'firebolt');
             projectile.element = 'fire';
-            projectile.damage = (2 + fireCount * 0.5) * slotBuff.damageMultiplier * tierDamageScale * kingMultiplier;
+            // Use getSpellDamage to include ALL multipliers (catalyst, passive bonuses, etc.)
+            projectile.damage = this.getSpellDamage('fire', slotIndex);
             projectile.burnMagnitude = 3; // Burn magnitude to apply
             projectile.slotIndex = slotIndex;
             projectile.body.setCollideWorldBounds(false);
@@ -35691,6 +36926,9 @@ class GameScene extends Phaser.Scene {
         }
     }
     createWaterOrb(elementGroup = ['water'], allCharges = null, slotIndex = 0, elementTier = 1) {
+        // MULTIPLAYER FIX: Capture the wizard who is casting this spell
+        const casterWizard = this.currentSpellOwner || this.wizard;
+
         // ELEMENT REDESIGN: Water now creates expanding wave rings
         // Get slot buffs and apply damage multiplier
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
@@ -35700,14 +36938,19 @@ class GameScene extends Phaser.Scene {
         // Tier scaling for Water waves - increased damage by 40% from previous
         const ringCount = 1 + elementTier; // Tier 1 = 2 rings, Tier 5 = 6 rings
         const slowAmount = 0.4 + (elementTier * 0.1); // Tier 1 = 50%, Tier 5 = 90%
-        const damage = (7 + elementTier * 1.75) * slotBuff.damageMultiplier * tierDamageScale; // +40% damage
+        // Use getSpellDamage for catalyst bonus
+        const damage = this.getSpellDamage('water', slotIndex);
+
+        // CRITICAL: Capture wizard position NOW before delayed callbacks
+        const wizardX = casterWizard.x;
+        const wizardY = casterWizard.y;
 
         // Create expanding wave rings
         for (let i = 0; i < ringCount; i++) {
             // Delay each ring slightly for cascade effect
             this.time.delayedCall(i * 200, () => {
-                // Create visual ring using graphics
-                const ring = this.add.circle(this.wizard.x, this.wizard.y, 40, 0x4488ff, 0);
+                // Create visual ring using graphics - use captured position
+                const ring = this.add.circle(wizardX, wizardY, 40, 0x4488ff, 0);
                 ring.setStrokeStyle(4, 0x88ccff, 0.7);
                 ring.setDepth(4);
 
@@ -35740,22 +36983,33 @@ class GameScene extends Phaser.Scene {
                             if (Math.abs(distance - ringRadius) < 20) {
                                 hitEnemies.add(enemy);
 
-                                // Deal damage
+                                // Deal damage with multipliers
                                 if (enemy.health) {
-                                    enemy.health -= damage;
-                                    this.showDamageNumber(enemy.x, enemy.y - 30, damage, '#4488ff');
+                                    let finalDamage = damage * this.getDamageMultiplier();
+
+                                    // CRITICAL HIT SYSTEM - 5% chance for 2x damage
+                                    const isCritical = Math.random() < 0.05;
+                                    if (isCritical) {
+                                        finalDamage *= 2;
+                                        this.showDamageNumber(enemy.x, enemy.y - 30, Math.round(finalDamage) + '!', '#ff0000', 1.5);
+                                    } else {
+                                        this.showDamageNumber(enemy.x, enemy.y - 30, Math.round(finalDamage), '#4488ff');
+                                    }
+
+                                    enemy.health -= finalDamage;
+
+                                    // Apply knockback
+                                    this.applyKnockback(enemy, ring.x, ring.y, 0.3);
                                 }
 
-                                // Apply slow effect
+                                // Apply slow effect (don't modify velocity directly to avoid overriding knockback)
                                 if (!enemy.waterSlowed) {
                                     enemy.waterSlowed = true;
                                     const originalSpeed = enemy.body ? enemy.body.speed : 0;
 
-                                    // Slow enemy
+                                    // Slow enemy by reducing max speed only (let knockback handle velocity)
                                     if (enemy.body) {
                                         enemy.body.maxSpeed *= (1 - slowAmount);
-                                        const currentVel = enemy.body.velocity;
-                                        enemy.body.setVelocity(currentVel.x * (1 - slowAmount), currentVel.y * (1 - slowAmount));
                                     }
 
                                     // Visual slow effect
@@ -35796,6 +37050,15 @@ class GameScene extends Phaser.Scene {
         console.log(`💧 Water waves! ${ringCount} rings, ${Math.round(slowAmount * 100)}% slow`);
     }
     fireLightningProjectile(slotIndex = 0, elementTier = 1) {
+        // MULTIPLAYER FIX: Capture the wizard who is casting this spell
+        const casterWizard = this.currentSpellOwner || this.wizard;
+
+        // Play lightning cast sound
+        this.playSoundPooled('lightning-cast', {
+            volume: 0.4,
+            rate: Phaser.Math.FloatBetween(0.9, 1.1)
+        });
+
         // Get slot buffs
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
         // Apply tier damage scaling
@@ -35811,9 +37074,10 @@ class GameScene extends Phaser.Scene {
         const baseSpeed = 400;
         const speed = baseSpeed * slotBuff.speedMultiplier * this.speedMultiplier;
         const createLightningProjectile = (direction = null) => {
-            const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'lightning-projectile');
+            const projectile = this.physics.add.sprite(casterWizard.x, casterWizard.y, 'lightning-projectile');
             projectile.element = 'lightning';
-            projectile.damage = 2 * slotBuff.damageMultiplier * tierDamageScale;
+            // Use getSpellDamage for catalyst bonus
+            projectile.damage = this.getSpellDamage('lightning', slotIndex);
             projectile.slotIndex = slotIndex;
             projectile.speed = speed;
             projectile.body.setCollideWorldBounds(false);
@@ -35840,7 +37104,7 @@ class GameScene extends Phaser.Scene {
                 this.enemies.children.entries.forEach(enemy => {
                     if (enemy.active && !enemy.isDying) {
                         const dist = Phaser.Math.Distance.Between(
-                            this.wizard.x, this.wizard.y,
+                            casterWizard.x, casterWizard.y,
                             enemy.x, enemy.y
                         );
                         if (dist < closestDist) {
@@ -35858,7 +37122,7 @@ class GameScene extends Phaser.Scene {
                 // Set initial velocity toward closest enemy or mouse
                 if (closestEnemy) {
                     const angle = Phaser.Math.Angle.Between(
-                        this.wizard.x, this.wizard.y,
+                        casterWizard.x, casterWizard.y,
                         closestEnemy.x, closestEnemy.y
                     );
                     projectile.setVelocity(
@@ -36181,7 +37445,8 @@ class GameScene extends Phaser.Scene {
                 damageSprite.play('air-explosion-damage');
                 // Deal damage immediately when damage phase starts
                 const damageRadius = 50 + elementTier * 8; // Smaller than blast
-                const damage = Math.floor((100 + elementTier * 30) * 0.15 * damageMultiplier); // Reduced by 50% (from 0.3 to 0.15)
+                // Use getSpellDamage for catalyst bonus
+                const damage = Math.floor(this.getSpellDamage('air', slotIndex) * damageMultiplier);
                 const pushForce = 300 * damageMultiplier; // Knockback force
                 // Visual effect circle
                 const effectCircle = this.add.circle(targetX, targetY, damageRadius, 0x88ccff, 0.3);
@@ -36393,8 +37658,10 @@ class GameScene extends Phaser.Scene {
             // Initialize continuous spawner if not already running for this slot
             const spawnerKey = `earthSpawner_${slotIndex}`;
             if (!this[spawnerKey] || !this[spawnerKey].active) {
-                const orbitDamage = (15 + elementTier * 3) * slotBuff.damageMultiplier * tierDamageScale * 1.5;
-                const launchDamage = (40 + elementTier * 10) * slotBuff.damageMultiplier * tierDamageScale * 1.5;
+                // Use getSpellDamage for catalyst bonus
+                const baseDamage = this.getSpellDamage('earth', slotIndex);
+                const orbitDamage = baseDamage * 0.5; // Orbit hits do 50% damage
+                const launchDamage = baseDamage * 1.5; // Launch hits do 150% damage
                 const orbitDuration = 4000; // 4 seconds before launch
                 const orbitSpeed = 3; // Orbit rotation speed
                 const maxEarthRocks = 12; // Maximum number of earth rocks orbiting at once
@@ -36600,19 +37867,30 @@ class GameScene extends Phaser.Scene {
         }
     }
     fireIceProjectile(slotIndex = 0, elementTier = 1) {
+        // Play ice cast sound
+        this.playSoundPooled('ice-cast', {
+            volume: 0.4,
+            rate: Phaser.Math.FloatBetween(0.9, 1.1)
+        });
+
         // Get slot buffs
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
-        // Apply tier damage scaling
-        const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
 
         // Create ice projectile creator function for chess modifier system
         const baseSpeed = 320;
         const speed = baseSpeed * slotBuff.speedMultiplier * this.speedMultiplier;
-        const createIceProjectile = (direction = null) => {
+
+        // Calculate number of fan projectiles based on tier
+        const fanCount = Math.max(0, elementTier - 1); // Tier 1 = 0 extra, Tier 2 = 1 extra, Tier 3 = 2 extra, etc.
+        const freezeAoERadius = 80 + (elementTier * 20); // Tier 1 = 100px, Tier 2 = 120px, Tier 3 = 140px, etc.
+
+        const createIceProjectile = (direction = null, isFanProjectile = false) => {
             const projectile = this.physics.add.sprite(this.wizard.x, this.wizard.y, 'ice-spike-start1');
             projectile.element = 'ice';
-            projectile.damage = 2.5 * slotBuff.damageMultiplier * tierDamageScale;
-            projectile.freezeDuration = 2000;
+            // Use getSpellDamage for catalyst bonus
+            projectile.damage = this.getSpellDamage('ice', slotIndex) * (isFanProjectile ? 0.7 : 1.0); // Fan projectiles do 70% damage
+            projectile.freezeDuration = 2000 + (elementTier * 500); // Longer freeze at higher tiers
+            projectile.freezeAoERadius = freezeAoERadius;
             projectile.slotIndex = slotIndex;
             projectile.body.setCollideWorldBounds(false);
             projectile.setDepth(5);
@@ -36630,7 +37908,7 @@ class GameScene extends Phaser.Scene {
             this.projectiles.add(projectile);
 
             if (direction) {
-                // Fixed direction from chess modifier
+                // Fixed direction from chess modifier or fan spread
                 projectile.body.setVelocity(direction.x * speed, direction.y * speed);
                 const angle = Math.atan2(direction.y, direction.x);
                 projectile.setRotation(angle);
@@ -36682,8 +37960,54 @@ class GameScene extends Phaser.Scene {
             return;
         }
 
-        // Normal single ice projectile
+        // Main ice projectile
         createIceProjectile();
+
+        // Fan projectiles based on tier level (tier 2+ gets additional projectiles)
+        if (fanCount > 0) {
+            const wizardDir = this.wizard.lastDirection || 'down';
+            const baseAngle = this.getDirectionAngle(wizardDir);
+
+            // Fan spread: 30 degrees between each projectile
+            const spreadAngle = Math.PI / 6; // 30 degrees in radians
+
+            for (let i = 1; i <= fanCount; i++) {
+                // Create projectiles on both sides of main projectile
+                const leftAngle = baseAngle - (spreadAngle * i);
+                const rightAngle = baseAngle + (spreadAngle * i);
+
+                // Left fan projectile
+                const leftDir = {
+                    x: Math.cos(leftAngle),
+                    y: Math.sin(leftAngle)
+                };
+                createIceProjectile(leftDir, true);
+
+                // Right fan projectile
+                const rightDir = {
+                    x: Math.cos(rightAngle),
+                    y: Math.sin(rightAngle)
+                };
+                createIceProjectile(rightDir, true);
+            }
+        }
+    }
+
+    /**
+     * Helper to get angle from direction string
+     */
+    getDirectionAngle(direction) {
+        const angles = {
+            'up': -Math.PI / 2,
+            'down': Math.PI / 2,
+            'left': Math.PI,
+            'right': 0,
+            'up-left': -3 * Math.PI / 4,
+            'up-right': -Math.PI / 4,
+            'down-left': 3 * Math.PI / 4,
+            'down-right': Math.PI / 4
+        };
+        return angles[direction] || Math.PI / 2; // Default to down
     }
     createPoisonMines(slotIndex = 0, elementTier = 1) {
         // Create a group to track active poison fields if not exists
@@ -36898,7 +38222,10 @@ class GameScene extends Phaser.Scene {
                                         // Apply poison to enemies in cloud
                                         if (!enemy.poisoned) {
                                             enemy.poisoned = true;
-                                            enemy.poisonDamage = 1 * slotBuff.damageMultiplier * tierDamageScale * damageMultiplier;
+                                            // Improved poison damage: base 3, scales well with tier (3, 6, 12, 24, 48)
+                                            const basePoisonDamage = 3;
+                                            const tierMultiplier = Math.pow(2, elementTier - 1); // Exponential tier scaling: 1x, 2x, 4x, 8x, 16x
+                                            enemy.poisonDamage = basePoisonDamage * tierMultiplier * slotBuff.damageMultiplier * damageMultiplier;
                                             enemy.setTint(0x00ff00);
 
                                             if (enemy.poisonTimer) {
@@ -36906,11 +38233,12 @@ class GameScene extends Phaser.Scene {
                                             }
 
                                             enemy.poisonTimer = this.time.addEvent({
-                                                delay: 2000,
+                                                delay: 2000, // Tick every 2 seconds
                                                 callback: () => {
                                                     if (enemy.active && !enemy.isDying) {
-                                                        enemy.health -= enemy.poisonDamage * damageMultiplier;
-                                                        this.showDamageNumber(enemy.x, enemy.y - 20, enemy.poisonDamage, '#00ff00');
+                                                        const tickDamage = enemy.poisonDamage * this.getDamageMultiplier();
+                                                        enemy.health -= tickDamage;
+                                                        this.showDamageNumber(enemy.x, enemy.y - 20, Math.round(tickDamage), '#00ff00');
                                                         if (enemy.health <= 0) {
                                                             if (enemy.poisonTimer) {
                                                                 enemy.poisonTimer.destroy();
@@ -37391,9 +38719,9 @@ class GameScene extends Phaser.Scene {
         const snowballCount = Math.min(elementTier, 5);
         // Fan spread angle (wider spread for more snowballs)
         const spreadAngle = snowballCount > 1 ? Math.PI / 4 : 0; // 45 degree total spread
-        // Calculate damage per snowball (50% of rock damage, with reduction for multiple)
+        // Calculate damage per snowball - buffed fusion spell damage
         const damageMultiplier = snowballCount > 1 ? (1 - (snowballCount - 1) * 0.1) : 1;
-        const baseDamage = 12.5 * slotBuff.damageMultiplier * tierDamageScale * damageMultiplier; // Half of rock's 25
+        const baseDamage = 18 * slotBuff.damageMultiplier * tierDamageScale * damageMultiplier; // Buffed from 12.5 - Ice+Rock fusion should hit hard
         // Create each snowball with slight delay between them
         for (let i = 0; i < snowballCount; i++) {
             // Calculate angle offset for fan pattern
@@ -37800,9 +39128,8 @@ class GameScene extends Phaser.Scene {
         // Arcane element - boomerang that passes through enemies and returns
         // Get slot buffs
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
-        // Apply tier damage scaling
-        const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
-        const damageScale = slotBuff.damageMultiplier * tierDamageScale;
+        // Use getSpellDamage for catalyst bonus (returns full damage including all multipliers)
+        const damageScale = this.getSpellDamage('arcane', slotIndex) / 3; // Divide by base damage to get multiplier for arcane boomerang
 
         // Check for chess modifiers
         let hasJoker = false;
@@ -38788,7 +40115,7 @@ class GameScene extends Phaser.Scene {
                                     nearbyEnemy.setTint(0xff0000);
 
                                     // Show ignition feedback
-                                    this.showDamageNumber(nearbyEnemy.x, nearbyEnemy.y - 30, 'IGNITED!', '#ff4400');
+                                    // Removed popup text for cleaner visuals
 
                                     // Visual fire spread effect
                                     const spreadEffect = this.add.sprite(
@@ -39175,7 +40502,7 @@ class GameScene extends Phaser.Scene {
     }
     // New element implementations for elements2.PNG
     fireLavaProjectile(slotIndex = 0, elementTier = 1) {
-        // Lava spell - creates volcanic eruptions similar to mud spell but with burning
+        // Lava spell - creates a directional line of successive volcanic eruptions that decrease in size
         // Get slot buffs
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
         // Apply tier damage scaling
@@ -39229,15 +40556,15 @@ class GameScene extends Phaser.Scene {
         }
 
         // Function to create a single lava eruption
-        const createLavaEruption = (targetX, targetY, damageMultiplier = 1) => {
+        const createLavaEruption = (targetX, targetY, scale, damageMultiplier = 1) => {
             const lavaSplash = this.add.sprite(targetX, targetY, 'volcano-splash');
             lavaSplash.setDepth(8);
-            lavaSplash.setScale(2.0 * damageMultiplier); // Larger than mud
+            lavaSplash.setScale(scale * damageMultiplier); // Apply custom scale
             lavaSplash.setTint(0xff6600); // Orange-red tint
 
-            // Physics body for collision
+            // Physics body for collision - scale hitbox with sprite
             this.physics.add.existing(lavaSplash);
-            lavaSplash.body.setCircle(60); // Slightly larger than mud
+            lavaSplash.body.setCircle(60 * scale); // Scale hitbox proportionally
             lavaSplash.body.setImmovable(true);
 
             lavaSplash.damage = damage * damageMultiplier;
@@ -39252,12 +40579,37 @@ class GameScene extends Phaser.Scene {
                 if (!splash.hitEnemies.has(enemy)) {
                     splash.hitEnemies.add(enemy);
 
-                    // Apply damage
-                    enemy.health -= splash.damage;
-                    this.showDamageNumber(enemy.x, enemy.y - 20, splash.damage, '#ff6600');
+                    // Apply damage with multipliers
+                    let finalDamage = splash.damage * this.getDamageMultiplier();
 
-                    // Apply burning instead of slow
-                    this.applyBurning(enemy, 3000, 10); // 3 seconds burn with magnitude 10
+                    // CRITICAL HIT SYSTEM - 5% chance for 2x damage
+                    const isCritical = Math.random() < 0.05;
+                    if (isCritical) {
+                        finalDamage *= 2;
+                        this.showDamageNumber(enemy.x, enemy.y - 20, Math.round(finalDamage) + '!', '#ff0000', 1.5);
+                    } else {
+                        this.showDamageNumber(enemy.x, enemy.y - 20, Math.round(finalDamage), '#ff6600');
+                    }
+
+                    enemy.health -= finalDamage;
+
+                    // Apply knockback
+                    this.applyKnockback(enemy, splash.x, splash.y, 0.5);
+
+                    // Apply burning DOT effect
+                    const burnMagnitude = 10;
+                    if (!enemy.burnMagnitude) {
+                        enemy.burnMagnitude = 0;
+                    }
+                    enemy.burnMagnitude += burnMagnitude;
+                    enemy.burning = true;
+                    enemy.setTint(0xff0000);
+
+                    // Clear existing burn timer if any and create new one
+                    if (enemy.burnTimer) {
+                        enemy.burnTimer.destroy();
+                    }
+                    this.createSpreadingBurnTimer(enemy);
 
                     if (enemy.health <= 0) {
                         this.killEnemy(enemy);
@@ -39272,7 +40624,26 @@ class GameScene extends Phaser.Scene {
             });
         };
 
-        // Determine splash pattern based on modifiers
+        // Function to create a line of lava blasts in a direction
+        const createLavaLine = (dirX, dirY, numBlasts = 5) => {
+            const baseScale = 1.3; // Increased by 30% (was 1.0, now 1.3)
+            const spacing = 56; // Reduced by 30% (was 80, now 56) - makes blasts closer together
+
+            for (let i = 0; i < numBlasts; i++) {
+                // Start with smallest blast, each gets 2x larger (reversed from numBlasts-1 down to 0)
+                const scale = baseScale * Math.pow(0.5, numBlasts - 1 - i);
+                const distance = spacing * (i + 1);
+                const targetX = this.wizard.x + dirX * distance;
+                const targetY = this.wizard.y + dirY * distance;
+
+                // Delay each blast slightly for successive effect
+                this.time.delayedCall(i * 100, () => {
+                    createLavaEruption(targetX, targetY, scale, 1.0);
+                });
+            }
+        };
+
+        // Determine direction based on player's facing
         const direction = this.wizard.lastDirection || 'down';
         const diagonalValue = 1 / Math.sqrt(2);
         const directionVectors = {
@@ -39286,35 +40657,29 @@ class GameScene extends Phaser.Scene {
             'down-right': { x: diagonalValue, y: diagonalValue }
         };
         const dir = directionVectors[direction] || directionVectors['down'];
-        const baseDistance = 100;
 
         if (hasRookModifier && hasBishopModifier) {
-            // Both rook and bishop: 8-directional spread
+            // Both rook and bishop: 8-directional lines
             const angles = [0, 45, 90, 135, 180, 225, 270, 315];
             angles.forEach(angle => {
                 const rad = angle * Math.PI / 180;
-                const x = this.wizard.x + Math.cos(rad) * baseDistance;
-                const y = this.wizard.y + Math.sin(rad) * baseDistance;
-                createLavaEruption(x, y, 1);
+                createLavaLine(Math.cos(rad), Math.sin(rad), 4); // Shorter lines for 8 directions
             });
         } else if (hasRookModifier) {
-            // Rook: 4 cardinal directions
-            createLavaEruption(this.wizard.x, this.wizard.y - baseDistance, 1);
-            createLavaEruption(this.wizard.x + baseDistance, this.wizard.y, 1);
-            createLavaEruption(this.wizard.x, this.wizard.y + baseDistance, 1);
-            createLavaEruption(this.wizard.x - baseDistance, this.wizard.y, 1);
+            // Rook: 4 cardinal direction lines
+            createLavaLine(0, -1, 5);  // Up
+            createLavaLine(1, 0, 5);   // Right
+            createLavaLine(0, 1, 5);   // Down
+            createLavaLine(-1, 0, 5);  // Left
         } else if (hasBishopModifier) {
-            // Bishop: 4 diagonal directions
-            const diag = baseDistance / Math.sqrt(2);
-            createLavaEruption(this.wizard.x + diag, this.wizard.y - diag, 1);
-            createLavaEruption(this.wizard.x + diag, this.wizard.y + diag, 1);
-            createLavaEruption(this.wizard.x - diag, this.wizard.y - diag, 1);
-            createLavaEruption(this.wizard.x - diag, this.wizard.y + diag, 1);
+            // Bishop: 4 diagonal direction lines
+            createLavaLine(diagonalValue, -diagonalValue, 5);  // Up-right
+            createLavaLine(diagonalValue, diagonalValue, 5);   // Down-right
+            createLavaLine(-diagonalValue, -diagonalValue, 5); // Up-left
+            createLavaLine(-diagonalValue, diagonalValue, 5);  // Down-left
         } else {
-            // Default: single eruption in front of player
-            const targetX = this.wizard.x + dir.x * baseDistance;
-            const targetY = this.wizard.y + dir.y * baseDistance;
-            createLavaEruption(targetX, targetY, 1.5);
+            // Default: single line in facing direction
+            createLavaLine(dir.x, dir.y, 5);
         }
     }
     getDirectionAngle() {
@@ -39964,6 +41329,81 @@ class GameScene extends Phaser.Scene {
             vortex.isActive = false;
             updateMovement.destroy();
             enemyCollider.destroy();
+
+            // Create explosion AOE effect - expanding water rings
+            const explosionRings = 3; // Number of rings in the explosion
+            const explosionDamage = damage * 1.5; // 50% more damage than regular ticks
+
+            for (let i = 0; i < explosionRings; i++) {
+                // Delay each ring slightly for cascade effect
+                this.time.delayedCall(i * 100, () => {
+                    // Create visual ring using graphics
+                    const ring = this.add.circle(vortex.x, vortex.y, 30, 0x0099ff, 0);
+                    ring.setStrokeStyle(5, 0x66ccff, 0.8);
+                    ring.setDepth(6);
+
+                    // Track which enemies this ring has hit
+                    const hitEnemies = new Set();
+
+                    // Maximum radius based on tier (120 + tier scaling)
+                    const maxRadius = 120 + (elementTier - 1) * 15;
+
+                    // Expand the ring
+                    this.tweens.add({
+                        targets: ring,
+                        radius: maxRadius,
+                        alpha: 0,
+                        duration: 600,
+                        ease: 'Quad.easeOut',
+                        onUpdate: () => {
+                            // Check collision with enemies as ring expands
+                            if (!this.enemies || !this.enemies.children) return;
+
+                            this.enemies.children.entries.forEach(enemy => {
+                                if (!enemy.active || enemy.isDying) return;
+                                if (hitEnemies.has(enemy)) return;
+
+                                // Check if enemy is within the ring's current radius
+                                const distance = Phaser.Math.Distance.Between(ring.x, ring.y, enemy.x, enemy.y);
+                                const ringRadius = ring.radius;
+
+                                // Hit if enemy is within 25 units of the ring's edge
+                                if (Math.abs(distance - ringRadius) < 25) {
+                                    hitEnemies.add(enemy);
+
+                                    // Deal explosion damage
+                                    if (enemy.health) {
+                                        const finalDamage = explosionDamage * this.getDamageMultiplier();
+                                        this.showDamageNumber(enemy.x, enemy.y - 30, Math.round(finalDamage), '#00ddff');
+                                        enemy.health -= finalDamage;
+
+                                        // Apply knockback away from vortex center
+                                        this.applyKnockback(enemy, ring.x, ring.y, 0.4);
+
+                                        // Visual feedback
+                                        enemy.setTint(0x00bbff);
+                                        this.time.delayedCall(150, () => {
+                                            if (enemy.active && !enemy.isDying) {
+                                                enemy.clearTint();
+                                            }
+                                        });
+
+                                        // Check if enemy died
+                                        if (enemy.health <= 0) {
+                                            if (enemy.body) enemy.body.enable = false;
+                                            this.killEnemy(enemy);
+                                        }
+                                    }
+                                }
+                            });
+                        },
+                        onComplete: () => {
+                            ring.destroy();
+                        }
+                    });
+                });
+            }
+
             // Stop loop and play end animation
             vortex.stop();
             vortex.play('vortex-end-anim');
@@ -40134,30 +41574,54 @@ class GameScene extends Phaser.Scene {
         const sandRing = this.add.graphics();
         sandRing.setDepth(15);
         sandRing.setAlpha(0.4); // Semi-transparent
+        // Position the graphics at the spell center so rotation works correctly
+        sandRing.x = x;
+        sandRing.y = y;
 
         // Track current radius for collision detection
         let currentRadius = 0;
+        let currentRotation = 0;
         let damagedEnemies = new Set();
-        const baseDamagePerTick = 6 + (elementTier * 3); // 9-24 damage per tick
+        // 2x DAMAGE BOOST - doubled from 6 to 12 base
+        const baseDamagePerTick = 12 + (elementTier * 6); // 18-48 damage per tick (doubled)
         const tickInterval = 150; // Damage every 150ms
 
-        // Draw function for the ring
-        const drawRing = (radius) => {
+        // Draw function for the ring with rotation
+        const drawRing = (radius, rotation) => {
             sandRing.clear();
+            // Set rotation property for the entire graphics object
+            sandRing.rotation = rotation;
             sandRing.lineStyle(ringThickness, sandColor, 0.6);
-            sandRing.strokeCircle(x, y, radius);
+            // Draw circle at origin (0,0) since the graphics object is already positioned at x,y
+            sandRing.strokeCircle(0, 0, radius);
             currentRadius = radius;
+            currentRotation = rotation;
         };
 
-        // Expand animation
+        // Combined expand and rotation animation
         this.tweens.add({
-            targets: { radius: 0 },
+            targets: { radius: 0, rotation: 0 },
             radius: maxRadius,
+            rotation: Math.PI * 4, // 2 full rotations
             duration: expandDuration,
             ease: 'Cubic.easeOut',
             onUpdate: (tween) => {
-                const radius = tween.getValue();
-                drawRing(radius);
+                const radius = tween.data[0].current; // Get current radius value
+                const rotation = tween.data[1].current; // Get current rotation value
+                drawRing(radius, rotation);
+            },
+            onComplete: () => {
+                // Continue rotating at max radius during persist duration
+                this.tweens.add({
+                    targets: { rotation: currentRotation },
+                    rotation: currentRotation + Math.PI * 2, // Continue rotation
+                    duration: persistDuration,
+                    ease: 'Linear',
+                    onUpdate: (tween) => {
+                        const rotation = tween.getValue();
+                        drawRing(currentRadius, rotation);
+                    }
+                });
             }
         });
 
@@ -40177,16 +41641,28 @@ class GameScene extends Phaser.Scene {
                     const inRing = Math.abs(dist - currentRadius) < (ringThickness + 20); // Within ring area
 
                     if (inRing) {
-                        // Apply damage
-                        const damage = baseDamagePerTick * tierDamageScale;
-                        enemy.health -= damage;
-                        this.showDamageNumber(enemy.x, enemy.y - 20, damage, '#f4a460');
+                        // Apply damage with multipliers
+                        let damage = baseDamagePerTick * tierDamageScale * this.getDamageMultiplier();
 
-                        // Apply slow effect
+                        // CRITICAL HIT SYSTEM - 5% chance for 2x damage
+                        const isCritical = Math.random() < 0.05;
+                        if (isCritical) {
+                            damage *= 2;
+                            this.showDamageNumber(enemy.x, enemy.y - 20, Math.round(damage) + '!', '#ff0000', 1.5);
+                        } else {
+                            this.showDamageNumber(enemy.x, enemy.y - 20, Math.round(damage), '#f4a460');
+                        }
+
+                        enemy.health -= damage;
+
+                        // Apply knockback from center of spell
+                        this.applyKnockback(enemy, x, y, 0.25);
+
+                        // Apply SEVERE slow effect - reduced from 50% to 30% speed
                         if (!enemy.sandSlowed) {
                             enemy.sandSlowed = true;
                             enemy.originalSpeed = enemy.moveSpeed || 40;
-                            enemy.moveSpeed = enemy.originalSpeed * 0.5; // 50% slow
+                            enemy.moveSpeed = enemy.originalSpeed * 0.3; // 70% slow (severe!)
                             enemy.setTint(0xf4a460);
                         }
 
@@ -40927,6 +42403,8 @@ class GameScene extends Phaser.Scene {
         projectile.element = 'holy';
         projectile.damage = 3 * slotBuff.damageMultiplier * tierDamageScale; // Holy does more damage
         projectile.slotIndex = slotIndex;
+        projectile.elementTier = elementTier; // Store tier for crucifix scaling
+        projectile.penetrating = true; // Holy penetrates enemies
         projectile.body.setCollideWorldBounds(false);
         projectile.setDepth(5);
         projectile.setScale(1.5); // Holy projectile is larger
@@ -40995,11 +42473,18 @@ class GameScene extends Phaser.Scene {
             },
             loop: true
         });
-        // Destroy after 2 seconds
-        this.time.delayedCall(2000, () => {
+        // Destroy after 0.7 seconds (70% of original 1 second)
+        this.time.delayedCall(700, () => {
             if (projectile.active) {
+                // Store impact position
+                const impactX = projectile.x;
+                const impactY = projectile.y;
+
+                // Create massive crucifix-shaped light AOE explosion
+                this.createHolyCrucifixExplosion(impactX, impactY, projectile.damage, slotBuff, tierDamageScale, projectile.elementTier || 1);
+
                 // Play impact animation before destroying
-                const impact = this.add.sprite(projectile.x, projectile.y, 'holy-impact-1');
+                const impact = this.add.sprite(impactX, impactY, 'holy-impact-1');
                 impact.setScale(2);
                 impact.setDepth(6);
                 impact.play('holy-impact');
@@ -41011,6 +42496,127 @@ class GameScene extends Phaser.Scene {
             }
         });
     }
+
+    createHolyCrucifixExplosion(x, y, baseDamage, slotBuff, tierDamageScale, elementTier = 1) {
+        // Calculate size based on spell level: 50% base size + 20% per level
+        const baseSize = 200; // 50% of original 400
+        const sizePerLevel = baseSize * 0.20; // 20% increase per level
+        const crucifixSize = baseSize + (sizePerLevel * elementTier);
+        const beamThickness = crucifixSize * 0.3; // Maintain proportion
+
+        // Massive damage multiplier for the explosion
+        const explosionDamage = baseDamage * 15 * this.getDamageMultiplier(); // 15x damage on impact
+
+        // Create vertical beam of the cross
+        const verticalBeam = this.add.rectangle(x, y, beamThickness, crucifixSize, 0xffffaa, 0.8);
+        verticalBeam.setDepth(20);
+
+        // Create horizontal beam of the cross
+        const horizontalBeam = this.add.rectangle(x, y, crucifixSize, beamThickness, 0xffffaa, 0.8);
+        horizontalBeam.setDepth(20);
+
+        // Inner bright glow for vertical
+        const verticalGlow = this.add.rectangle(x, y, beamThickness * 0.6, crucifixSize, 0xffffff, 0.9);
+        verticalGlow.setDepth(21);
+
+        // Inner bright glow for horizontal
+        const horizontalGlow = this.add.rectangle(x, y, crucifixSize, beamThickness * 0.6, 0xffffff, 0.9);
+        horizontalGlow.setDepth(21);
+
+        // Create outer glow ring
+        const outerGlow = this.add.circle(x, y, crucifixSize * 0.6, 0xffffaa, 0.3);
+        outerGlow.setDepth(19);
+
+        // Add light particles
+        for (let i = 0; i < 30; i++) {
+            const angle = (Math.PI * 2 / 30) * i;
+            const radius = crucifixSize * 0.4;
+            const px = x + Math.cos(angle) * radius;
+            const py = y + Math.sin(angle) * radius;
+
+            const particle = this.add.circle(px, py, 8, 0xffffff, 0.8);
+            particle.setDepth(22);
+
+            this.tweens.add({
+                targets: particle,
+                scale: { from: 1, to: 0 },
+                alpha: { from: 0.8, to: 0 },
+                duration: 600,
+                ease: 'Power2',
+                onComplete: () => particle.destroy()
+            });
+        }
+
+        // Fade in effect
+        const beams = [verticalBeam, horizontalBeam, verticalGlow, horizontalGlow, outerGlow];
+        beams.forEach(beam => {
+            beam.setScale(0.1);
+            this.tweens.add({
+                targets: beam,
+                scaleX: 1,
+                scaleY: 1,
+                duration: 150,
+                ease: 'Back.easeOut'
+            });
+        });
+
+        // Deal massive damage to all enemies in the crucifix area
+        this.enemies.children.entries.forEach(enemy => {
+            if (!enemy || !enemy.active || enemy.isDying) return;
+
+            const dx = Math.abs(enemy.x - x);
+            const dy = Math.abs(enemy.y - y);
+
+            // Check if enemy is within the cross shape
+            const inVertical = dx < beamThickness / 2 && dy < crucifixSize / 2;
+            const inHorizontal = dy < beamThickness / 2 && dx < crucifixSize / 2;
+
+            if (inVertical || inHorizontal) {
+                // Deal massive damage
+                enemy.health -= explosionDamage;
+
+                // Show big damage number
+                this.showDamageNumber(enemy.x, enemy.y - 30, Math.round(explosionDamage), '#ffffaa', 1.5);
+
+                // Flash enemy bright white
+                enemy.setTint(0xffffff);
+                this.time.delayedCall(100, () => {
+                    if (enemy && enemy.active) {
+                        enemy.clearTint();
+                    }
+                });
+
+                // Light burst effect on enemy
+                const burst = this.add.circle(enemy.x, enemy.y, 20, 0xffffaa, 0.8);
+                burst.setDepth(21);
+                this.tweens.add({
+                    targets: burst,
+                    scale: 2,
+                    alpha: 0,
+                    duration: 300,
+                    onComplete: () => burst.destroy()
+                });
+
+                // Check if enemy died
+                if (enemy.health <= 0) {
+                    this.killEnemy(enemy);
+                }
+            }
+        });
+
+        // Fade out and destroy the cross
+        this.tweens.add({
+            targets: beams,
+            alpha: 0,
+            duration: 600,
+            delay: 200,
+            ease: 'Power2',
+            onComplete: () => {
+                beams.forEach(beam => beam.destroy());
+            }
+        });
+    }
+
     createHolyBeam() {
         // Original beam implementation (kept as separate function if needed)
         const beamWidth = 80;
@@ -41428,7 +43034,7 @@ class GameScene extends Phaser.Scene {
         // Star element - creates 4 bouncing projectiles that fly in different directions
         const starCount = 4;
         const speed = 400;
-        const damage = 2;
+        const damage = 3.5; // Buffed from 2.0 - Lightning+Arcane fusion should be stronger
         // Create 4 star projectiles, one for each diagonal direction
         const directions = [
             { x: 1, y: 1 },     // Down-Right
@@ -41594,7 +43200,7 @@ class GameScene extends Phaser.Scene {
         // Zodiac spell - creates 4 bouncing projectiles with light trails (reduced from 6 for performance)
         const starCount = 4;
         const speed = 350;
-        const damage = 4; // Increased damage to compensate for fewer projectiles
+        const damage = 5.5; // Buffed from 4.0 - rare fusion spell should hit harder
         // Create 6 star projectiles in a hexagonal pattern
         for (let i = 0; i < starCount; i++) {
             const angle = (Math.PI * 2 / starCount) * i;
@@ -42861,8 +44467,11 @@ class GameScene extends Phaser.Scene {
     createHexSpell(slotIndex = 0, elementTier = 1) {
         // Hex element - homing projectile that passes through enemies applying strong poison
         // Duration increases by 1 second per tier
+        // Base projectile count: 2 + tier (Tier 1 = 3, Tier 2 = 4, ..., Tier 5 = 7)
+        const baseProjectileCount = 2 + elementTier;
+
         // Determine number and pattern of projectiles based on chess passive
-        let projectileCount = 1;
+        let projectileCount = baseProjectileCount;
         let projectileAngles = [];
         const baseAngle = this.getDirectionAngle(this.wizard.lastDirection || 'down');
         // Check for chess piece modifiers in passive slots (slots 4-7)
@@ -42897,26 +44506,38 @@ class GameScene extends Phaser.Scene {
         }
         // Determine projectile pattern based on chess pieces
         if (hasQueen || (hasRook && hasBishop)) {
-            // 8 projectiles in all directions
-            projectileCount = 8;
-            for (let i = 0; i < 8; i++) {
-                projectileAngles.push((Math.PI * 2 * i) / 8);
+            // 8 projectiles in all directions (plus base count bonus)
+            projectileCount = 8 + baseProjectileCount;
+            for (let i = 0; i < projectileCount; i++) {
+                projectileAngles.push((Math.PI * 2 * i) / projectileCount);
             }
         } else if (hasRook) {
-            // 4 projectiles in cardinal directions
-            projectileCount = 4;
-            projectileAngles = [0, Math.PI/2, Math.PI, -Math.PI/2];
+            // 4 projectiles in cardinal directions (plus base count bonus)
+            projectileCount = 4 + baseProjectileCount;
+            for (let i = 0; i < projectileCount; i++) {
+                projectileAngles.push((Math.PI * 2 * i) / projectileCount);
+            }
         } else if (hasBishop) {
-            // 4 projectiles in diagonal directions
-            projectileCount = 4;
-            projectileAngles = [Math.PI/4, 3*Math.PI/4, -3*Math.PI/4, -Math.PI/4];
+            // 4 projectiles in diagonal directions (plus base count bonus)
+            projectileCount = 4 + baseProjectileCount;
+            for (let i = 0; i < projectileCount; i++) {
+                projectileAngles.push((Math.PI * 2 * i) / projectileCount);
+            }
         } else if (hasKing) {
-            // 3 projectiles in a cone
-            projectileCount = 3;
-            projectileAngles = [baseAngle - Math.PI/6, baseAngle, baseAngle + Math.PI/6];
+            // Base count projectiles in a spread cone
+            projectileCount = baseProjectileCount;
+            const spreadAngle = Math.PI / 3; // 60 degree spread
+            for (let i = 0; i < projectileCount; i++) {
+                const offset = (i / (projectileCount - 1) - 0.5) * spreadAngle;
+                projectileAngles.push(baseAngle + offset);
+            }
         } else {
-            // Default: single projectile
-            projectileAngles = [baseAngle];
+            // Default: base count projectiles in a spread
+            for (let i = 0; i < baseProjectileCount; i++) {
+                const spreadAngle = Math.PI / 4; // 45 degree spread
+                const offset = (i / Math.max(1, baseProjectileCount - 1) - 0.5) * spreadAngle;
+                projectileAngles.push(baseAngle + offset);
+            }
         }
         // Find nearest enemy to target for homing
         let nearestEnemy = null;
@@ -42967,7 +44588,9 @@ class GameScene extends Phaser.Scene {
         // Projectile properties
         const turnSpeed = 3; // Radians per second
         let currentTarget = initialTarget;
-        hexProjectile.lifespan = 5000 + (elementTier * 1000); // Base 5 seconds + 1 second per tier
+        // Tier 5 = infinite lifespan, otherwise base 5 seconds + 1 second per tier
+        const isInfinite = elementTier >= 5;
+        hexProjectile.lifespan = isInfinite ? Infinity : (5000 + (elementTier * 1000));
         // Strong poison properties
         const poisonDamage = 8; // Strong poison damage per tick
         const poisonDuration = 6000; // 6 seconds
@@ -42980,15 +44603,17 @@ class GameScene extends Phaser.Scene {
                     homingUpdate.destroy();
                     return;
                 }
-                // Check lifespan
-                hexProjectile.lifespan -= 16;
-                if (hexProjectile.lifespan <= 0) {
-                    hexProjectile.destroy();
-                    homingUpdate.destroy();
-                    return;
+                // Check lifespan (skip for infinite tier 5 projectiles)
+                if (!isInfinite) {
+                    hexProjectile.lifespan -= 16;
+                    if (hexProjectile.lifespan <= 0) {
+                        hexProjectile.destroy();
+                        homingUpdate.destroy();
+                        return;
+                    }
                 }
                 // Find new target if current is dead or too far
-                if (!currentTarget || !currentTarget.active || 
+                if (!currentTarget || !currentTarget.active ||
                     (currentTarget.x && Phaser.Math.Distance.Between(hexProjectile.x, hexProjectile.y, currentTarget.x, currentTarget.y) > 500)) {
                     // Find nearest unpoisoned enemy
                     let newTarget = null;
@@ -43002,6 +44627,24 @@ class GameScene extends Phaser.Scene {
                             }
                         }
                     });
+
+                    // For tier 5 infinite projectiles: if no unpoisoned enemies, target ANY enemy to keep bouncing
+                    if (!newTarget && isInfinite) {
+                        this.enemies.children.entries.forEach(enemy => {
+                            if (enemy.active && !enemy.isDying) {
+                                const dist = Phaser.Math.Distance.Between(hexProjectile.x, hexProjectile.y, enemy.x, enemy.y);
+                                if (dist < nearestDist && dist < 300) {
+                                    nearestDist = dist;
+                                    newTarget = enemy;
+                                }
+                            }
+                        });
+                        // If we're re-targeting a poisoned enemy, allow re-poisoning by clearing from set
+                        if (newTarget && poisonedEnemies.has(newTarget)) {
+                            poisonedEnemies.delete(newTarget);
+                        }
+                    }
+
                     currentTarget = newTarget;
                 }
                 // Homing behavior (similar to lost soul projectile)
@@ -44209,6 +45852,12 @@ class GameScene extends Phaser.Scene {
         });
     }
     createStormSpell(slotIndex = 0, elementTier = 1) {
+        // Play lightning cast sound
+        this.playSoundPooled('lightning-cast', {
+            volume: 0.4,
+            rate: Phaser.Math.FloatBetween(0.9, 1.1)
+        });
+
         // Storm element - shoots bouncing projectile that chains between enemies
         // Get slot buffs
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
@@ -44449,15 +46098,23 @@ class GameScene extends Phaser.Scene {
         }
     }
     createThunderSpell(slotIndex = 0, elementTier = 1) {
-        // Thunder element - targets a random enemy in viewport and strikes with thunder
+        // Play lightning cast sound
+        this.playSoundPooled('lightning-cast', {
+            volume: 0.4,
+            rate: Phaser.Math.FloatBetween(0.9, 1.1)
+        });
+
+        // Thunder element - targets multiple enemies (5 per tier) with increasing damage per tier
         // Get slot buffs
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
-        // Apply tier damage scaling
-        const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
+        // Apply tier damage scaling - 100% more damage per tier (Tier 1 = 100%, Tier 2 = 200%, etc.)
+        const tierDamageScale = elementTier; // 1x, 2x, 3x, 4x, 5x damage based on tier
         // Calculate damage with modifiers
         const kingMultiplier = this.getKingDamageMultiplier(slotIndex);
         const damage = 25 * slotBuff.damageMultiplier * tierDamageScale * kingMultiplier;
         const stunDuration = 500; // 0.5 seconds stun
+        // Number of enemies to hit: 5 per tier
+        const baseTargetCount = 5 * elementTier;
         // Find all enemies in viewport
         const viewportBounds = this.cameras.main.worldView;
         const enemiesInView = this.enemies.children.entries.filter(enemy => {
@@ -44472,92 +46129,45 @@ class GameScene extends Phaser.Scene {
             this.createThunderStrikeEffect(this.wizard.x, this.wizard.y);
             return;
         }
-        // Select a random enemy
-        const targetEnemy = Phaser.Utils.Array.GetRandom(enemiesInView);
-        // Create thunder strike animation at enemy position
-        this.createThunderStrikeEffect(targetEnemy.x, targetEnemy.y, () => {
-            // Apply damage when animation hits
-            if (targetEnemy.active) {
-                // Deal damage
-                if (targetEnemy.isBoss) {
-                    targetEnemy.health -= damage;
-                    if (targetEnemy.health <= 0) {
-                        this.handleBossDeath(targetEnemy);
-                    }
-                } else {
-                    targetEnemy.health -= damage;
-                    if (targetEnemy.health <= 0) {
-                        this.killEnemy(targetEnemy);
-                    } else {
-                        // Apply stun effect
-                        this.stunEnemy(targetEnemy, stunDuration);
-                    }
-                }
-                // Visual feedback
-                this.showDamageNumber(targetEnemy.x, targetEnemy.y, damage, '#ffdd00');
-                // Flash effect
-                targetEnemy.setTint(0xffff00);
-                this.time.delayedCall(100, () => {
-                    if (targetEnemy.active) {
-                        targetEnemy.clearTint();
-                    }
-                });
-            }
-        });
-        // Handle chess modifiers - strike multiple enemies
-        const passiveSlotIndex = (this.MAX_ACTIVE_SLOTS || 4) + slotIndex;
-        const hasQueenModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'queen';
-        const hasPawnModifier = this.chargeSlots && this.chargeSlots[passiveSlotIndex] === 'pawn';
-        // Check for joker
-        let hasJoker = false;
-        const passiveStart = this.MAX_ACTIVE_SLOTS || 4;
-        const passiveEnd = this.MAX_CHARGE_SLOTS || 8;
-        for (let i = passiveStart; i < passiveEnd; i++) {
-            if (this.chargeSlots && this.chargeSlots[i] === 'joker') {
-                hasJoker = true;
-                break;
-            }
-        }
-        // Strike additional enemies if modifiers are active
-        let additionalTargets = 0;
-        if (hasQueenModifier || (hasJoker && this.chargeSlots.includes('queen'))) {
-            additionalTargets = 3; // Strike 4 total enemies
-        } else if (hasPawnModifier || (hasJoker && this.chargeSlots.includes('pawn'))) {
-            additionalTargets = 1; // Strike 2 total enemies
-        }
-        if (additionalTargets > 0) {
-            // Get other enemies excluding the first target
-            const otherEnemies = enemiesInView.filter(e => e !== targetEnemy);
-            const additionalEnemies = Phaser.Utils.Array.Shuffle(otherEnemies).slice(0, additionalTargets);
-            // Strike each additional enemy with a slight delay
-            additionalEnemies.forEach((enemy, index) => {
-                this.time.delayedCall(100 * (index + 1), () => {
-                    this.createThunderStrikeEffect(enemy.x, enemy.y, () => {
-                        if (enemy.active) {
-                            // Deal damage
-                            if (enemy.isBoss) {
-                                enemy.health -= damage * 0.7; // Slightly less damage for additional strikes
-                            } else {
-                                enemy.health -= damage * 0.7;
-                                if (enemy.health <= 0) {
-                                    this.killEnemy(enemy);
-                                } else {
-                                    this.stunEnemy(enemy, stunDuration);
-                                }
+        // Select random enemies up to baseTargetCount (5 per tier)
+        const shuffledEnemies = Phaser.Utils.Array.Shuffle([...enemiesInView]);
+        const targetEnemies = shuffledEnemies.slice(0, Math.min(baseTargetCount, enemiesInView.length));
+
+        // Strike each enemy with a slight delay for visual cascade effect
+        targetEnemies.forEach((enemy, index) => {
+            this.time.delayedCall(80 * index, () => {
+                this.createThunderStrikeEffect(enemy.x, enemy.y, () => {
+                    if (enemy.active) {
+                        // Deal full damage to all targets
+                        const finalDamage = damage * this.getDamageMultiplier();
+
+                        if (enemy.isBoss) {
+                            enemy.health -= finalDamage;
+                            if (enemy.health <= 0) {
+                                this.handleBossDeath(enemy);
                             }
-                            // Visual feedback
-                            this.showDamageNumber(enemy.x, enemy.y, Math.floor(damage * 0.7), '#ffdd00');
-                            enemy.setTint(0xffff00);
-                            this.time.delayedCall(100, () => {
-                                if (enemy.active) {
-                                    enemy.clearTint();
-                                }
-                            });
+                        } else {
+                            enemy.health -= finalDamage;
+                            if (enemy.health <= 0) {
+                                this.killEnemy(enemy);
+                            } else {
+                                // Apply stun effect
+                                this.stunEnemy(enemy, stunDuration);
+                            }
                         }
-                    });
+                        // Visual feedback
+                        this.showDamageNumber(enemy.x, enemy.y, Math.round(finalDamage), '#ffdd00');
+                        // Flash effect
+                        enemy.setTint(0xffff00);
+                        this.time.delayedCall(100, () => {
+                            if (enemy.active) {
+                                enemy.clearTint();
+                            }
+                        });
+                    }
                 });
             });
-        }
+        });
     }
     createThunderStrikeEffect(x, y, onHitCallback) {
         // Create thunder strike animation if it doesn't exist
@@ -44621,9 +46231,177 @@ class GameScene extends Phaser.Scene {
             stunIndicator.destroy();
         });
     }
+    summonGrimReaper(x, y, elementTier = 1) {
+        // Summon a Grim Reaper ally that floats around and attacks enemies
+        const reaper = this.physics.add.sprite(x, y, 'grimreaper-idle');
+        reaper.setScale(0.8);
+        reaper.setDepth(50);
+        reaper.play('grimreaper-floating');
+
+        // Reaper properties
+        reaper.health = 50 + (elementTier * 20); // Scales with tier
+        reaper.maxHealth = reaper.health;
+        reaper.damage = 15 + (elementTier * 5); // Attack damage scales with tier
+        reaper.attackRange = 150;
+        reaper.attackCooldown = 0;
+        reaper.attackRate = 1500; // 1.5 seconds between attacks
+        reaper.moveSpeed = 100;
+        reaper.lifetime = 20000 + (elementTier * 5000); // 20-40 seconds depending on tier
+        reaper.createdTime = this.time.now;
+        reaper.isGrimReaper = true;
+        reaper.targetEnemy = null;
+
+        // Add to group
+        this.grimReapers.add(reaper);
+
+        // Spawn effect
+        const spawnCircle = this.add.circle(x, y, 50, 0x000000, 0.5);
+        spawnCircle.setDepth(49);
+        this.tweens.add({
+            targets: spawnCircle,
+            scale: { from: 0, to: 2 },
+            alpha: { from: 0.8, to: 0 },
+            duration: 500,
+            onComplete: () => spawnCircle.destroy()
+        });
+
+        // Fade in reaper
+        reaper.setAlpha(0);
+        this.tweens.add({
+            targets: reaper,
+            alpha: 1,
+            duration: 500
+        });
+
+        // Auto-destroy after lifetime
+        this.time.delayedCall(reaper.lifetime, () => {
+            if (reaper && reaper.active) {
+                // Fade out effect
+                this.tweens.add({
+                    targets: reaper,
+                    alpha: 0,
+                    scale: 0,
+                    duration: 500,
+                    onComplete: () => {
+                        if (reaper && reaper.active) {
+                            reaper.destroy();
+                        }
+                    }
+                });
+            }
+        });
+
+        return reaper;
+    }
+
+    updateGrimReapers(time, delta) {
+        // Update all active grim reapers
+        this.grimReapers.children.entries.forEach(reaper => {
+            if (!reaper || !reaper.active) return;
+
+            // Update attack cooldown
+            if (reaper.attackCooldown > 0) {
+                reaper.attackCooldown -= delta;
+            }
+
+            // Find nearest enemy
+            let nearestEnemy = null;
+            let nearestDist = Infinity;
+
+            this.enemies.children.entries.forEach(enemy => {
+                if (enemy.active && !enemy.isDying && enemy.health > 0) {
+                    const dist = Phaser.Math.Distance.Between(reaper.x, reaper.y, enemy.x, enemy.y);
+                    if (dist < nearestDist) {
+                        nearestDist = dist;
+                        nearestEnemy = enemy;
+                    }
+                }
+            });
+
+            // Set target
+            reaper.targetEnemy = nearestEnemy;
+
+            if (nearestEnemy) {
+                // Calculate direction to enemy
+                const angle = Phaser.Math.Angle.Between(reaper.x, reaper.y, nearestEnemy.x, nearestEnemy.y);
+
+                // If within attack range, attack
+                if (nearestDist <= reaper.attackRange && reaper.attackCooldown <= 0) {
+                    // Attack!
+                    reaper.attackCooldown = reaper.attackRate;
+
+                    // Play attack animation
+                    reaper.play('grimreaper-attacking');
+                    reaper.once('animationcomplete', () => {
+                        if (reaper && reaper.active) {
+                            reaper.play('grimreaper-floating');
+                        }
+                    });
+
+                    // Deal damage to enemy
+                    if (nearestEnemy.active && !nearestEnemy.isDying) {
+                        nearestEnemy.health -= reaper.damage;
+
+                        // Show damage number
+                        this.showDamageNumber(nearestEnemy.x, nearestEnemy.y - 20, reaper.damage, '#9933ff');
+
+                        // Create scythe slash effect
+                        const slash = this.add.sprite(nearestEnemy.x, nearestEnemy.y, 'ghost-missile-1');
+                        slash.setScale(1.2);
+                        slash.setTint(0x000000);
+                        slash.setAlpha(0.8);
+                        slash.setDepth(60);
+                        slash.play('ghost-missile-anim');
+                        slash.once('animationcomplete', () => {
+                            slash.destroy();
+                        });
+
+                        // Check if enemy died
+                        if (nearestEnemy.health <= 0 && !nearestEnemy.isDying) {
+                            if (nearestEnemy.body) {
+                                nearestEnemy.body.enable = false;
+                            }
+                            this.killEnemy(nearestEnemy);
+                        }
+                    }
+                } else if (nearestDist > reaper.attackRange * 0.7) {
+                    // Move towards enemy if too far away
+                    const velocityX = Math.cos(angle) * reaper.moveSpeed;
+                    const velocityY = Math.sin(angle) * reaper.moveSpeed;
+                    reaper.setVelocity(velocityX, velocityY);
+
+                    // Flip sprite based on direction
+                    reaper.setFlipX(velocityX < 0);
+                } else {
+                    // Within comfortable range, slow down
+                    reaper.setVelocity(0, 0);
+                }
+            } else {
+                // No enemies, float around randomly
+                if (!reaper.idleTimer || time > reaper.idleTimer) {
+                    // Pick random direction every 2 seconds
+                    reaper.idleTimer = time + 2000;
+                    const randomAngle = Math.random() * Math.PI * 2;
+                    const idleSpeed = reaper.moveSpeed * 0.3;
+                    reaper.setVelocity(
+                        Math.cos(randomAngle) * idleSpeed,
+                        Math.sin(randomAngle) * idleSpeed
+                    );
+                }
+            }
+
+            // Add floating animation (bobbing effect)
+            if (!reaper.floatOffset) {
+                reaper.floatOffset = Math.random() * Math.PI * 2;
+            }
+            reaper.y += Math.sin(time / 500 + reaper.floatOffset) * 0.3;
+        });
+    }
+
     createDeathSpell(slotIndex = 0, elementTier = 1) {
         // Death element - deals (10 * tier) damage + 10% max health to all enemies in AOE
         // For each kill, reduces cooldown by (1 * tier) seconds
+        // Also summons a Grim Reaper ally
         const deathRadius = 200;
         let killCount = 0;
         // Create death zone visual
@@ -44726,6 +46504,9 @@ class GameScene extends Phaser.Scene {
                 }
             }
         }
+        // Summon Grim Reaper ally
+        this.summonGrimReaper(this.wizard.x, this.wizard.y, elementTier);
+
         // Fade out and cleanup
         this.time.delayedCall(2000, () => {
             this.tweens.add({
@@ -45543,6 +47324,10 @@ class GameScene extends Phaser.Scene {
                 item = this.physics.add.sprite(x, y, 'magnet-orb');
                 scale = 0.175; // Reduced by 30% from 0.25 (0.25 * 0.7 = 0.175)
                 break;
+            case 'bomb':
+                item = this.physics.add.sprite(x, y, 'bomb-orb');
+                scale = 0.25; // Bomb orb size
+                break;
             default:
                 return;
         }
@@ -45567,8 +47352,8 @@ class GameScene extends Phaser.Scene {
             repeat: -1
         });
 
-        // Enforce item cap before adding new standalone item
-        this.enforceItemCap(this.standaloneItems, this.MAX_STANDALONE_ITEMS_ON_FLOOR);
+        // No item cap - standalone items stay on floor indefinitely (like Vampire Survivors)
+        // this.enforceItemCap(this.standaloneItems, this.MAX_STANDALONE_ITEMS_ON_FLOOR);
 
         // Add to standalone items group for collision detection
         this.standaloneItems.add(item);
@@ -45623,6 +47408,9 @@ class GameScene extends Phaser.Scene {
                 break;
             case 'magnet':
                 this.activateMagnetPull(wizard);
+                break;
+            case 'bomb':
+                this.activateBombExplosion(wizard);
                 break;
         }
 
@@ -46993,9 +48781,10 @@ class GameScene extends Phaser.Scene {
             return;
         }
         // Track which player is controlling this menu in multiplayer
-        // Only set if not already set (it may have been set explicitly before calling openChest)
-        if (this.multiplayerEnabled && !this.menuControllingPlayer) {
+        // Set the controlling player for this chest/level-up
+        if (this.multiplayerEnabled) {
             this.menuControllingPlayer = wizard.playerNumber;
+            console.log(`🎮 openChest: Setting menuControllingPlayer to ${wizard.playerNumber}`);
         }
         // For actual chests, play opening animation first
         // For level-ups (when chest is null), skip to showChestRewards below
@@ -47202,12 +48991,32 @@ class GameScene extends Phaser.Scene {
             // Normal level up rewards with rotating first option
             const definitions = this.getPassiveUpgradeDefinitions();
 
-            // Pool of passive upgrades for first slot (exclude element since it's already in slot 2)
-            // Removed passiveSlotIncrease since all slots are now active
-            const passiveOptions = ['revive', 'spellArea', 'moveSpeed', 'maxHealth', 'damage', 'slotIncrease'];
+            // Pool of passive upgrades for first slot with weighted probabilities
+            // Each entry is [passiveKey, weight]
+            // Higher weight = more common
+            const passiveOptions = [
+                ['revive', 5],          // Phoenix Heart - 5% (rare)
+                ['spellArea', 20],      // Spell Area - 20% (common)
+                ['moveSpeed', 20],      // Move Speed - 20% (common)
+                ['maxHealth', 20],      // Max Health - 20% (common)
+                ['damage', 20],         // Damage - 20% (common)
+                ['slotIncrease', 15]    // Slot Increase - 15% (uncommon)
+            ];
 
-            // Randomly select one passive for first slot
-            const randomPassive = passiveOptions[Math.floor(Math.random() * passiveOptions.length)];
+            // Calculate total weight
+            const totalWeight = passiveOptions.reduce((sum, [_, weight]) => sum + weight, 0);
+
+            // Weighted random selection
+            let random = Math.random() * totalWeight;
+            let randomPassive = passiveOptions[0][0]; // Default fallback
+            for (const [key, weight] of passiveOptions) {
+                random -= weight;
+                if (random <= 0) {
+                    randomPassive = key;
+                    break;
+                }
+            }
+
             const passiveDef = definitions[randomPassive];
 
             // Check if player has any fusable element pairs
@@ -47239,7 +49048,16 @@ class GameScene extends Phaser.Scene {
                 };
             } else {
                 // No elements at all - offer a random passive upgrade instead
-                const fallbackPassive = passiveOptions[Math.floor(Math.random() * passiveOptions.length)];
+                // Use weighted random selection (same as slot 1)
+                let randomFallback = Math.random() * totalWeight;
+                let fallbackPassive = passiveOptions[0][0]; // Default fallback
+                for (const [key, weight] of passiveOptions) {
+                    randomFallback -= weight;
+                    if (randomFallback <= 0) {
+                        fallbackPassive = key;
+                        break;
+                    }
+                }
                 const fallbackDef = definitions[fallbackPassive];
                 thirdOption = {
                     type: 'passive',
@@ -48794,16 +50612,7 @@ class GameScene extends Phaser.Scene {
         if (!this.gamePaused) {
             this.pauseGame('chest');
         }
-        // Create fusion particles
-        const particles = this.add.particles(400, 300, 'spark', {
-            speed: { min: 100, max: 200 },
-            scale: { start: 0.5, end: 0 },
-            blendMode: 'ADD',
-            lifespan: 800,
-            quantity: 3
-        });
-        particles.setScrollFactor(0);
-        particles.setDepth(1002);
+        // Removed broken particle effect (was using missing 'spark' texture)
         // Animate sprites moving together
         this.tweens.add({
             targets: sprite1,
@@ -48909,7 +50718,6 @@ class GameScene extends Phaser.Scene {
                         sprite1.destroy();
                         sprite2.destroy();
                         cutsceneBg.destroy();
-                        particles.destroy();
 
                         // Resume game after fusion animation
                         this.chestSelectionActive = false;
@@ -49047,10 +50855,7 @@ class GameScene extends Phaser.Scene {
                 duration: 500,
                 delay: 300,
             });
-            // Stop particles after a bit
-            setTimeout(() => {
-                particles.stop();
-            }, 1500);
+            // Particle effect removed
             // Update game state - remove the fused elements from chargeSlots
             const removedIndices = [];
             // Get the correct player's inventory
@@ -49208,7 +51013,6 @@ class GameScene extends Phaser.Scene {
                 nameText.destroy();
                 successText.destroy();
                 cutsceneBg.destroy();
-                particles.destroy();
                 // Destroy bonus text if it exists
                 if (bonusText && bonusText.active) {
                     bonusText.destroy();
@@ -49648,8 +51452,6 @@ class GameScene extends Phaser.Scene {
         // resumeGame already called above, no need to call again
     }
     selectChestElement(element, config, selectionBg, title, controlHint, buttons) {
-        debugLog('=== selectChestElement called ===');
-        debugLog('Element:', element);
         // Determine which player's inventory to use
         let targetWizard = this.wizard;
         let chargeSlots = this.chargeSlots;
@@ -49657,11 +51459,14 @@ class GameScene extends Phaser.Scene {
         let elementPouch = this.elementPouch;
         let elementTiers = this.elementTiers;
         if (this.multiplayerEnabled && this.menuControllingPlayer === 2 && this.wizard2) {
+            console.log(`✅ P2 selected ${element} - adding to P2's inventory`);
             targetWizard = this.wizard2;
             chargeSlots = this.wizard2.chargeSlots;
             charges = this.wizard2.charges;
             elementPouch = this.wizard2.elementPouch || [];
             elementTiers = this.wizard2.elementTiers;
+        } else if (this.multiplayerEnabled) {
+            console.log(`✅ P1 selected ${element} - adding to P1's inventory`);
         }
         debugLog('Target player:', this.menuControllingPlayer || 1);
         debugLog('Current charges:', charges);
@@ -49936,6 +51741,15 @@ class GameScene extends Phaser.Scene {
                     if (chargeSlots[i] !== null) {
                         targetWizard.charges.push(chargeSlots[i]);
                     }
+                }
+                console.log(`🔄 Updated P${targetWizard.playerNumber} charges after level-up:`);
+                console.log(`   chargeSlots:`, chargeSlots);
+                console.log(`   charges:`, targetWizard.charges);
+                if (this.wizard2) {
+                    console.log(`   wizard.chargeSlots === wizard2.chargeSlots?`, this.wizard.chargeSlots === this.wizard2.chargeSlots);
+                    console.log(`   this.chargeSlots === wizard2.chargeSlots?`, this.chargeSlots === this.wizard2.chargeSlots);
+                    console.log(`   P1 chargeSlots:`, this.wizard.chargeSlots);
+                    console.log(`   P2 chargeSlots:`, this.wizard2.chargeSlots);
                 }
             }
             // Update the correct player's UI
@@ -51113,6 +52927,12 @@ class GameScene extends Phaser.Scene {
         }
 
         this.playerHealth -= damage;
+
+        // Play player hurt sound
+        if (this.cache.audio.exists('player-hurt')) {
+            this.sound.play('player-hurt', { volume: 0.6 });
+        }
+
         this.updateHealthBar();
         this.updateWizardHealthBar();
         // Vampire Survivors-style invulnerability period (0.5 seconds)
@@ -51153,6 +52973,228 @@ class GameScene extends Phaser.Scene {
         // Arcade mode stage completion
         // Show victory screen (GameOverScene) which will handle stage progression
         this.gameWon();
+    }
+
+    /**
+     * Start countdown animation in last 5 seconds
+     */
+    startVictoryCountdown(startingSecond) {
+        this.countdownActive = true;
+        this.countdownSecond = startingSecond;
+
+        // Hide timer display during countdown to avoid confusion
+        if (this.difficultyText) {
+            this.difficultyText.setVisible(false);
+        }
+
+        // Create countdown text (centered, large)
+        this.countdownText = this.add.text(400, 300, startingSecond.toString(), {
+            fontSize: '120px',
+            color: '#ffd700',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 8
+        });
+        this.countdownText.setOrigin(0.5);
+        this.countdownText.setScrollFactor(0);
+        this.countdownText.setDepth(500);
+        this.countdownText.setAlpha(0);
+
+        // Update countdown every second
+        this.countdownTimer = this.time.addEvent({
+            delay: 1000,
+            repeat: startingSecond - 1,
+            callback: () => {
+                this.countdownSecond--;
+
+                if (this.countdownSecond > 0) {
+                    // Animate number change
+                    this.countdownText.setText(this.countdownSecond.toString());
+                    this.countdownText.setAlpha(0);
+                    this.countdownText.setScale(0.5);
+
+                    // Bounce in
+                    this.tweens.add({
+                        targets: this.countdownText,
+                        alpha: 1,
+                        scale: 1.2,
+                        duration: 300,
+                        ease: 'Back.easeOut',
+                        onStart: () => {
+                            this.sound.play('pop', { volume: 0.7, rate: 0.8 + (0.1 * (6 - this.countdownSecond)) });
+                            this.cameras.main.shake(100, 0.005);
+                        }
+                    });
+
+                    // Fade out
+                    this.tweens.add({
+                        targets: this.countdownText,
+                        alpha: 0,
+                        scale: 1.5,
+                        duration: 700,
+                        delay: 300,
+                        ease: 'Power2.easeIn'
+                    });
+                }
+            }
+        });
+
+        // Show first number immediately
+        this.countdownText.setScale(0.5);
+        this.tweens.add({
+            targets: this.countdownText,
+            alpha: 1,
+            scale: 1.2,
+            duration: 300,
+            ease: 'Back.easeOut',
+            onStart: () => {
+                this.sound.play('pop', { volume: 0.7, rate: 0.8 });
+                this.cameras.main.shake(100, 0.005);
+            }
+        });
+
+        this.tweens.add({
+            targets: this.countdownText,
+            alpha: 0,
+            scale: 1.5,
+            duration: 700,
+            delay: 300,
+            ease: 'Power2.easeIn'
+        });
+    }
+
+    /**
+     * Victory sequence: kill enemies, drop items, vacuum to player, transition
+     */
+    startVictorySequence() {
+        this.victorySequenceActive = true;
+
+        // Clean up countdown
+        if (this.countdownText) {
+            this.countdownText.destroy();
+        }
+        if (this.countdownTimer) {
+            this.countdownTimer.remove();
+        }
+
+        // Disable player controls
+        this.input.keyboard.enabled = false;
+        if (this.wizard && this.wizard.body) {
+            this.wizard.setVelocity(0, 0);
+        }
+
+        // STEP 1: Kill all enemies and make them drop items
+        console.log('🎉 VICTORY SEQUENCE: Killing all enemies and dropping loot');
+
+        const enemyPositions = [];
+        this.enemies.children.entries.forEach(enemy => {
+            if (enemy && enemy.active) {
+                enemyPositions.push({ x: enemy.x, y: enemy.y, type: enemy.enemyType });
+            }
+        });
+
+        // Kill enemies with stagger
+        enemyPositions.forEach((pos, index) => {
+            this.time.delayedCall(index * 30, () => {
+                // Death effect
+                const deathEffect = this.add.sprite(pos.x, pos.y, 'fire-spell', 0);
+                deathEffect.setScale(2);
+                deathEffect.play('fire-spell-anim');
+                deathEffect.once('animationcomplete', () => deathEffect.destroy());
+
+                // Drop XP jewel
+                this.dropJewel(pos.x, pos.y, 10);
+
+                // Drop coin (10% chance to match economy - was 100%)
+                if (Math.random() < 0.1) {
+                    this.dropCoin(pos.x, pos.y, 5);
+                }
+
+                // Small chance to drop element orb
+                if (Math.random() < 0.15) {
+                    this.dropElementOrb(pos.x, pos.y, this.getRandomElement());
+                }
+            });
+        });
+
+        // Clear enemies immediately
+        this.enemies.children.entries.forEach(enemy => {
+            if (enemy && enemy.active) {
+                if (enemy.body) {
+                    enemy.body.enable = false;
+                }
+                this.safeDestroyEnemy(enemy);
+            }
+        });
+
+        // STEP 2: After all enemies are dead, vacuum items to player
+        this.time.delayedCall(Math.max(enemyPositions.length * 30 + 500, 1000), () => {
+            this.vacuumAllItemsToPlayer();
+        });
+    }
+
+    /**
+     * Vacuum all items to player with animation
+     */
+    vacuumAllItemsToPlayer() {
+        console.log('🧲 Vacuuming all items to player');
+
+        const allItems = [
+            ...(this.jewels ? this.jewels.children.entries : []),
+            ...(this.essenceCoins ? this.essenceCoins.children.entries : []),
+            ...(this.elementOrbs ? this.elementOrbs.children.entries : [])
+        ];
+
+        console.log(`Found ${allItems.length} items to vacuum`);
+
+        // Disable collision temporarily
+        allItems.forEach(item => {
+            if (item && item.active && item.body) {
+                item.body.enable = false;
+            }
+        });
+
+        // Vacuum each item with stagger
+        allItems.forEach((item, index) => {
+            if (!item || !item.active) return;
+
+            this.time.delayedCall(index * 10, () => {
+                if (!item || !item.active) return;
+
+                const playerX = this.wizard.x;
+                const playerY = this.wizard.y;
+
+                // Tween item to player
+                this.tweens.add({
+                    targets: item,
+                    x: playerX,
+                    y: playerY,
+                    scale: 0.5,
+                    duration: 400,
+                    ease: 'Power2.easeIn',
+                    onComplete: () => {
+                        if (item && item.active) {
+                            // Track items in stats (but don't update UI)
+                            if (item.texture.key.includes('jewel') || item.texture.key.includes('xp')) {
+                                this.itemsCollected++;
+                            } else if (item.texture.key.includes('coin') || item.texture.key.includes('gold')) {
+                                this.itemsCollected++;
+                            } else if (item.texture.key.includes('orb') || item.texture.key.includes('element')) {
+                                this.itemsCollected++;
+                            }
+
+                            // Destroy item silently (no UI updates)
+                            item.destroy();
+                        }
+                    }
+                });
+            });
+        });
+
+        // After all items are collected, show victory
+        this.time.delayedCall(allItems.length * 10 + 500, () => {
+            this.gameWon();
+        });
     }
     spawnBoss() {
         // Mark boss as spawned
@@ -53671,6 +55713,10 @@ class GameScene extends Phaser.Scene {
         if (this.isPaused || this.chestOpening || this.chestSelectionActive) return;
         // Don't update boss AI while stunned
         if (this.boss.isStunned) return;
+
+        // Get current time at the start (needed for all boss types)
+        const currentTime = this.time.now;
+
         // Update boss health bar
         const healthPercent = this.boss.health / this.boss.maxHealth;
         this.bossHealthBar.width = (600 - 6) * healthPercent;
@@ -53688,18 +55734,16 @@ class GameScene extends Phaser.Scene {
         }
         // Mode switching logic for obelisk boss
         if (this.boss.isObeliskBoss) {
-            const currentTime = this.time.now;
             const timeSinceLastChange = currentTime - this.boss.lastModeChange;
             // Check if it's time to switch modes
             if (timeSinceLastChange > this.boss.modeChangeTime) {
-                this.boss.lastModeChange = currentTime;
                 if (this.boss.currentMode === 'stationary') {
                     // Switch to walk mode
                     this.boss.currentMode = 'walk';
                     this.boss.inStationaryMode = false;
                     this.boss.modeChangeTime = this.boss.walkModeTime;
                     this.boss.laserBarrageCount = 0; // Reset laser count
-                    this.boss.homingProjectileTimer = 0; // Initialize homing projectile timer
+                    this.boss.lastHomingProjectileTime = currentTime; // Initialize homing projectile timer
                     // Enable movement
                     this.boss.body.setImmovable(false);
                     this.boss.body.moves = true;
@@ -53726,7 +55770,7 @@ class GameScene extends Phaser.Scene {
                     this.boss.currentMode = 'stationary';
                     this.boss.inStationaryMode = true;
                     this.boss.modeChangeTime = this.boss.stationaryModeTime;
-                    this.boss.lastLaserTime = 0; // Reset laser timing
+                    this.boss.lastLaserTime = currentTime; // Reset laser timing using current time
                     // Disable movement
                     this.boss.setVelocity(0, 0);
                     this.boss.body.setImmovable(true);
@@ -53750,9 +55794,11 @@ class GameScene extends Phaser.Scene {
                         onComplete: () => modeText.destroy()
                     });
                     }
+                // Update lastModeChange AFTER the mode switch completes
+                this.boss.lastModeChange = currentTime;
             }
             // Update boss shadow position regardless of mode
-            if (this.boss.shadow && this.boss.shadow.active) {
+            if (this.boss.shadow && this.boss.shadow.active && this.boss.active) {
                 this.boss.shadow.x = this.boss.x;
                 this.boss.shadow.y = this.boss.y + 20;
             }
@@ -53781,13 +55827,13 @@ class GameScene extends Phaser.Scene {
                         this.boss.setVelocity(0, 0);
                     }
                     // Update boss shadow position
-                    if (this.boss.shadow && this.boss.shadow.active) {
+                    if (this.boss.shadow && this.boss.shadow.active && this.boss.active) {
                         this.boss.shadow.x = this.boss.x;
                         this.boss.shadow.y = this.boss.y + 20;
                     }
                     // Fire homing projectiles periodically
-                    if (!this.boss.homingProjectileTimer) this.boss.homingProjectileTimer = 0;
-                    this.boss.homingProjectileTimer += 2000; // Same rate as AI update
+                    if (!this.boss.lastHomingProjectileTime) this.boss.lastHomingProjectileTime = currentTime;
+                    const timeSinceLastHoming = currentTime - this.boss.lastHomingProjectileTime;
                     // Calculate projectile count based on health
                     const healthPercent = this.boss.health / this.boss.maxHealth;
                     let projectileCount = 1;
@@ -53797,8 +55843,8 @@ class GameScene extends Phaser.Scene {
                         projectileCount = 2; // 2 projectiles at medium health
                     }
                     // Fire homing projectiles every 3 seconds
-                    if (this.boss.homingProjectileTimer >= 3000) {
-                        this.boss.homingProjectileTimer = 0;
+                    if (timeSinceLastHoming >= 3000) {
+                        this.boss.lastHomingProjectileTime = currentTime;
                         // Fire multiple homing projectiles
                         for (let i = 0; i < projectileCount; i++) {
                             this.time.delayedCall(i * 200, () => {
@@ -53811,20 +55857,26 @@ class GameScene extends Phaser.Scene {
                 }
             }
         }
-        // Check phase transitions
+        // Check phase transitions (with completion flags to prevent re-triggering)
         if (healthPercent <= 0.66 && this.boss.currentPhase === 1) {
             this.boss.currentPhase = 2;
+            this.boss.phase2Triggered = true;
             this.bossPhaseTwoTransition();
-        } else if (healthPercent <= 0.33 && this.boss.currentPhase === 2) {
+        } else if (healthPercent <= 0.33 && this.boss.currentPhase === 2 && !this.boss.phase3Triggered) {
             this.boss.currentPhase = 3;
+            this.boss.phase3Triggered = true;
             this.bossPhaseThreeTransition();
         }
-        // Reduce cooldowns
+        // Track last update time for cooldown calculations
+        if (!this.boss.lastAIUpdateTime) this.boss.lastAIUpdateTime = currentTime;
+        const deltaTime = currentTime - this.boss.lastAIUpdateTime;
+        this.boss.lastAIUpdateTime = currentTime;
+        // Reduce cooldowns based on actual time passed
         if (this.boss.attackCooldown > 0) {
-            this.boss.attackCooldown -= 2000; // 2 second tick
+            this.boss.attackCooldown -= deltaTime;
         }
         if (this.boss.immuneTime > 0) {
-            this.boss.immuneTime -= 2000;
+            this.boss.immuneTime -= deltaTime;
             if (this.boss.immuneTime <= 0) {
                 this.boss.clearTint();
                 this.boss.play('obelisk-idle');
@@ -53892,6 +55944,7 @@ class GameScene extends Phaser.Scene {
         }
     }
     bossShootAttack() {
+        if (!this.boss || !this.boss.active) return;
         this.boss.play('obelisk-shoot');
         this.boss.attackCooldown = 3000;
         // Stop moving while attacking in walk mode
@@ -53914,7 +55967,7 @@ class GameScene extends Phaser.Scene {
         }
     }
     createHomingArmProjectile() {
-        if (!this.boss || !this.wizard) return;
+        if (!this.boss || !this.boss.active || !this.wizard) return;
         // Create homing arm projectile as a destructible enemy
         const arm = this.physics.add.sprite(this.boss.x, this.boss.y, 'boss-arm-projectile', 0);
         arm.setScale(1.5);
@@ -53976,6 +56029,7 @@ class GameScene extends Phaser.Scene {
         });
     }
     bossArmProjectileAttack() {
+        if (!this.boss || !this.boss.active) return;
         this.boss.play('obelisk-shoot');
         this.boss.attackCooldown = 4000;
         // Create homing arm projectile as a destructible enemy
@@ -54053,6 +56107,7 @@ class GameScene extends Phaser.Scene {
         this.enemyProjectiles.add(arm);
     }
     bossLaserAttack() {
+        if (!this.boss || !this.boss.active) return;
         this.boss.play('obelisk-laser-cast');
         this.boss.attackCooldown = 1800; // Much faster laser attacks
         // Make boss stationary during laser attack
@@ -54237,6 +56292,7 @@ class GameScene extends Phaser.Scene {
         });
     }
     bossMeleeAttack() {
+        if (!this.boss || !this.boss.active) return;
         this.boss.play('obelisk-melee');
         this.boss.attackCooldown = 3000;
         // Stop moving while attacking in walk mode
@@ -54266,6 +56322,7 @@ class GameScene extends Phaser.Scene {
         }
     }
     bossShieldCast() {
+        if (!this.boss || !this.boss.active) return;
         this.boss.play('obelisk-shield-cast');
         this.boss.attackCooldown = 6000;
         this.boss.shieldActive = true;
@@ -55418,6 +57475,11 @@ class GameScene extends Phaser.Scene {
         this.boss.setTint(0xff88ff);
     }
     handleBossDeath(boss) {
+        // Play boss death sound
+        if (this.cache.audio.exists('boss-death')) {
+            this.sound.play('boss-death', { volume: 0.8 });
+        }
+
         // Clean up any active shield effects
         if (boss.shieldActive) {
             boss.shieldActive = false;
@@ -56257,14 +58319,8 @@ class GameScene extends Phaser.Scene {
             cameraScrollX: this.cameras.main.scrollX,
             cameraScrollY: this.cameras.main.scrollY
         };
-        // Pause main stage timers and stop all enemy spawning
-        if (this.enemySpawnTimer) {
-            this.enemySpawnTimer.paused = true;
-        }
-        // Stop any active wave spawning
-        if (this.waveSpawnTimer) {
-            this.waveSpawnTimer.paused = true;
-        }
+        // Keep enemy waves spawning during boss fight - do not pause spawners
+        // (Changed: previously paused enemy spawning, now continuous waves during boss)
         // Pause survival timer to freeze the wave system
         this.pausedSurvivalTime = this.survivalTime;
         // Clear existing enemies (store them for later)
@@ -57046,39 +59102,6 @@ class GameScene extends Phaser.Scene {
         // Fade back in
         this.cameras.main.fadeIn(500);
         }
-    // Scene cleanup method to prevent null reference errors
-    shutdown() {
-        // Clean up debug text to prevent null reference errors
-        if (this.waveDebugText) {
-            if (this.waveDebugText.destroy && !this.waveDebugText.destroyed) {
-                this.waveDebugText.destroy();
-            }
-            this.waveDebugText = null;
-        }
-        // Clean up any other text objects that might cause issues
-        if (this.scoreText) {
-            this.scoreText = null;
-        }
-        if (this.waveText) {
-            this.waveText = null;
-        }
-        if (this.survivalText) {
-            this.survivalText = null;
-        }
-        // Clean up timers to prevent them from running after scene is destroyed
-        if (this.enemySpawnTimer) {
-            this.enemySpawnTimer.destroy();
-            this.enemySpawnTimer = null;
-        }
-        if (this.barrelSpawnTimer) {
-            this.barrelSpawnTimer.destroy();
-            this.barrelSpawnTimer = null;
-        }
-        if (this.dungeonSpawnTimer) {
-            this.dungeonSpawnTimer.destroy();
-            this.dungeonSpawnTimer = null;
-        }
-        }
     // Danger Warning System - Creates visual indicators for incoming attacks
     // Similar to Vampire Survivors' danger zones
     // Usage examples:
@@ -57310,8 +59333,54 @@ class GameScene extends Phaser.Scene {
             });
         }
     }
+// Performance optimization: Cull offscreen entities
+cullOffscreenEntities() {
+    if (!this.cameras || !this.cameras.main) return;
+    
+    const camera = this.cameras.main;
+    const worldView = camera.worldView;
+    // Add buffer zone around camera to prevent pop-in
+    const bufferZone = 200;
+    const cullBounds = new Phaser.Geom.Rectangle(
+        worldView.x - bufferZone,
+        worldView.y - bufferZone,
+        worldView.width + (bufferZone * 2),
+        worldView.height + (bufferZone * 2)
+    );
+    
+    // Cull enemies (but not boss or dying enemies)
+    if (this.enemies && this.enemies.children) {
+        this.enemies.children.entries.forEach(enemy => {
+            if (!enemy || !enemy.active || enemy.isDying || enemy === this.boss) return;
+            const inView = Phaser.Geom.Intersects.RectangleToRectangle(enemy.getBounds(), cullBounds);
+            enemy.setVisible(inView);
+            // Also disable physics body for far offscreen enemies for extra performance
+            if (enemy.body) {
+                enemy.body.enable = inView;
+            }
+        });
+    }
+    
+    // Cull collectibles (jewels, coins, muffins, orbs)
+    [this.jewels, this.coins, this.muffins, this.elementOrbs].forEach(group => {
+        if (!group || !group.children) return;
+        group.children.entries.forEach(item => {
+            if (!item || !item.active) return;
+            const inView = Phaser.Geom.Intersects.RectangleToRectangle(item.getBounds(), cullBounds);
+            item.setVisible(inView);
+        });
+    });
+    
+    // Cull projectiles (less aggressive - use larger buffer)
+    if (this.projectiles && this.projectiles.children) {
+        this.projectiles.children.entries.forEach(proj => {
+            if (!proj || !proj.active) return;
+            const inView = Phaser.Geom.Intersects.RectangleToRectangle(proj.getBounds(), cullBounds);
+            proj.setVisible(inView);
+        });
+    }
 }
-// Enhanced Boss Cutscene System
+}
 class BossCutsceneSystem {
     constructor(scene) {
         this.scene = scene;
@@ -57370,25 +59439,25 @@ class BossCutsceneSystem {
         }
     }
     playObeliskCutscene() {
-        this.showBossTitleImage('AWAKENED OBELISK', 0xff6666);
+        // Boss name announcement removed - no cutscene
     }
     playNekrosCutscene() {
-        this.showBossTitleImage('NEKROS', 0x8a2be2);
+        // Boss name announcement removed - no cutscene
     }
     playEyelorCutscene() {
-        this.showBossTitleImage('EYELOR', 0xff9900);
+        // Boss name announcement removed - no cutscene
     }
     playDemonSlimeCutscene() {
-        this.showBossTitleImage('DEMON SLIME', 0xff4400);
+        // Boss name announcement removed - no cutscene
     }
     playArcherCutscene() {
-        this.showBossTitleImage('ARCANE ARCHER', 0xff00ff);
+        // Boss name announcement removed - no cutscene
     }
     playKingNothingCutscene() {
-        this.showBossTitleImage('KING NOTHING', 0x666666);
+        // Boss name announcement removed - no cutscene
     }
     playSimpleCutscene(bossType) {
-        this.showBossTitleImage(bossType.toUpperCase(), 0xffffff);
+        // Boss name announcement removed - no cutscene
     }
     showBossTitleImage(bossName, color) {
         // Calculate position between XP bar and screen center
@@ -57559,28 +59628,31 @@ const config = {
         noAudio: false
     },
     // Optimized render settings for Electron + WebGL
-    // Chrome-specific fix: Disable pixelArt mode for WebGL to prevent flickering
     render: {
-        // WebGL flickering fix: Use specific settings to prevent flickering while keeping tint support
-        pixelArt: false, // Set to false to prevent WebGL flickering
         antialias: false,
-        roundPixels: true, // Prevents subpixel rendering - alternative to pixelArt
-        powerPreference: isElectron ? 'high-performance' : 'default',
-        batchSize: 8192,  // Increased to handle many sprites (enemies + projectiles + pickups)
-        maxTextures: -1,  // Auto-detect max textures - needed for many sprite types on screen
-        mipmapFilter: 'NEAREST', // Better for pixel art
+        roundPixels: false,
+        pixelArt: false,
+        powerPreference: 'high-performance',
+        batchSize: 4096,
+        maxTextures: 16,
+        mipmapFilter: 'LINEAR',
         failIfMajorPerformanceCaveat: false,
         transparent: false,
-        // Additional WebGL stability settings
-        preserveDrawingBuffer: false, // Can reduce flickering
+        preserveDrawingBuffer: false,
         premultipliedAlpha: true,
-        desynchronized: false  // Disable for better stability (was true)
+        desynchronized: true
     },
-    scene: [LoadingScene, TitleScene, SaveSlotScene, StageSelectScene, ArcadeScene, TalentTreeScene, CutsceneScene, GameScene, GameOverScene]
+    scene: [LoadingScene, TitleScene, CreditsScene, SaveSlotScene, StageSelectScene, ArcadeScene, TalentTreeScene, CutsceneScene, GameScene, GameOverScene]
 };
 
 let game;
 try {
+    console.log('🎮 Initializing Phaser with config:', {
+        renderType: renderType === Phaser.WEBGL ? 'WebGL' : renderType === Phaser.CANVAS ? 'Canvas' : 'Auto',
+        fpsTarget: config.fps.target,
+        pixelArt: config.render.pixelArt,
+        desynchronized: config.render.desynchronized
+    });
     game = new Phaser.Game(config);
     // Add error handler for runtime WebGL issues
     window.addEventListener('error', function(e) {
