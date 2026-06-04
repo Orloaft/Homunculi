@@ -16,10 +16,11 @@ let mainWindow;
 const isSmokeRun = process.env.HOMUNCULI_SMOKE === '1';
 const isProgressionSmokeRun = process.env.HOMUNCULI_PROGRESSION_SMOKE === '1';
 const isFeelSmokeRun = process.env.HOMUNCULI_FEEL_SMOKE === '1';
+const isForestLiveSmokeRun = process.env.HOMUNCULI_FOREST_LIVE_SMOKE === '1';
 let smokeFailed = false;
 
 function finishSmoke(exitCode, reason) {
-  if ((!isSmokeRun && !isProgressionSmokeRun && !isFeelSmokeRun) || app.isQuitting) return;
+  if ((!isSmokeRun && !isProgressionSmokeRun && !isFeelSmokeRun && !isForestLiveSmokeRun) || app.isQuitting) return;
   app.isQuitting = true;
   console.log(`[smoke] ${reason}`);
   app.exit(exitCode);
@@ -52,7 +53,7 @@ function createWindow() {
   // Load the game
   mainWindow.loadFile(path.join(__dirname, '..', 'index.html'));
 
-  if (isSmokeRun || isProgressionSmokeRun || isFeelSmokeRun) {
+  if (isSmokeRun || isProgressionSmokeRun || isFeelSmokeRun || isForestLiveSmokeRun) {
     mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
       smokeFailed = true;
       finishSmoke(1, `load failed ${errorCode}: ${errorDescription} (${validatedURL})`);
@@ -68,20 +69,24 @@ function createWindow() {
       finishSmoke(1, 'renderer became unresponsive');
     });
 
-    mainWindow.webContents.on('console-message', (_event, _level, message) => {
+    mainWindow.webContents.on('console-message', (_event, _level, message, line, sourceId) => {
       if (!isProgressionSmokeRun && /Uncaught|Failed to initialize Phaser|Script error/i.test(message)) {
         smokeFailed = true;
-        finishSmoke(1, `renderer console error: ${message}`);
+        finishSmoke(1, `renderer console error: ${message}${sourceId ? ` (${sourceId}:${line})` : ''}`);
       }
     });
 
     mainWindow.webContents.once('did-finish-load', () => {
       setTimeout(async () => {
         if (!smokeFailed) {
-          if (isProgressionSmokeRun || isFeelSmokeRun) {
+          if (isProgressionSmokeRun || isFeelSmokeRun || isForestLiveSmokeRun) {
             try {
-              const smokeHelperName = isFeelSmokeRun ? 'runHomunculiFeelSmoke' : 'runHomunculiProgressionSmoke';
-              const smokeLabel = isFeelSmokeRun ? 'feel' : 'progression';
+              const smokeHelperName = isForestLiveSmokeRun
+                ? 'runHomunculiForestLiveSmoke'
+                : isFeelSmokeRun
+                  ? 'runHomunculiFeelSmoke'
+                  : 'runHomunculiProgressionSmoke';
+              const smokeLabel = isForestLiveSmokeRun ? 'forest live' : isFeelSmokeRun ? 'feel' : 'progression';
               const result = await mainWindow.webContents.executeJavaScript(`
                 (async () => {
                   if (!document.querySelector("canvas")) {
@@ -96,7 +101,8 @@ function createWindow() {
               finishSmoke(result && result.ok ? 0 : 1, result && result.ok ? `${smokeLabel} verified ${JSON.stringify(result)}` : `${smokeLabel} verification failed`);
             } catch (error) {
               smokeFailed = true;
-              finishSmoke(1, `${isFeelSmokeRun ? 'feel' : 'progression'} verification error: ${error && error.message ? error.message : error}`);
+              const errorDetails = error && error.stack ? error.stack : error && error.message ? error.message : error;
+              finishSmoke(1, `${isForestLiveSmokeRun ? 'forest live' : isFeelSmokeRun ? 'feel' : 'progression'} verification error: ${errorDetails}`);
             }
           } else {
             const hasCanvas = await mainWindow.webContents.executeJavaScript(

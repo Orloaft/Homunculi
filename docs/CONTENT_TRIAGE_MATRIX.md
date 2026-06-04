@@ -39,7 +39,7 @@ Park:
 ## Immediate Roadmap
 
 1. Finish the Forest/Cave/Sand slice before widening scope.
-2. Add one live-run smoke that starts Forest and survives a short deterministic window with no renderer errors. Current smokes verify boot, progression, and static feel invariants, but not an actual 30-second combat loop.
+2. Keep `npm run smoke:forest-live` healthy as the short live-run gate: it starts Forest through the active runtime, injects a starting element, and verifies 30 seconds of active gameplay with enemy activity.
 3. Promote Swamp only after Forest/Cave/Sand has a human-readable balance summary and the live-run smoke is stable.
 4. Give each promoted world one memorable rule before adding new content. For Swamp, the obvious candidate is poison/mud pressure with the Amphibian as the first "area control" boss.
 5. Keep Spire and Void out of production claims until their wave tables, music, boss identity, and story role are made distinct.

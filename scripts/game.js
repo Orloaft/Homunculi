@@ -59802,6 +59802,153 @@ const config = {
 };
 
 if (typeof window !== 'undefined') {
+    window.runHomunculiForestLiveSmoke = async function runHomunculiForestLiveSmoke() {
+        const originalStorage = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            originalStorage[key] = localStorage.getItem(key);
+        }
+        const rendererErrors = [];
+        const captureRendererError = (event) => {
+            rendererErrors.push({
+                message: event.message,
+                stack: event.error && event.error.stack,
+                filename: event.filename,
+                line: event.lineno,
+                column: event.colno
+            });
+        };
+
+        const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        const waitFor = async (label, predicate, timeoutMs = 10000) => {
+            const start = Date.now();
+            while (Date.now() - start < timeoutMs) {
+                if (predicate()) return;
+                await wait(100);
+            }
+            const activeScenes = typeof game !== 'undefined' && game && game.scene
+                ? game.scene.getScenes(true).map(scene => scene.scene.key).join(', ')
+                : 'none';
+            throw new Error(`Timed out waiting for ${label}; active scenes: ${activeScenes}`);
+        };
+        const assert = (condition, message) => {
+            if (!condition) throw new Error(message);
+        };
+        const assertNoRendererErrors = (label) => {
+            if (rendererErrors.length > 0) {
+                const latestError = rendererErrors[rendererErrors.length - 1];
+                throw new Error(`${label}: ${latestError.message}${latestError.stack ? `\n${latestError.stack}` : ''}`);
+            }
+        };
+        const getForestScene = () => {
+            if (typeof game === 'undefined' || !game || !game.scene) return null;
+            return game.scene.getScene('GameScene');
+        };
+        const closeDialogueIfOpen = (scene) => {
+            if (scene && scene.dialogueManager && scene.dialogueManager.active) {
+                scene.dialogueManager.close(true);
+            }
+        };
+
+        try {
+            window.addEventListener('error', captureRendererError);
+            localStorage.clear();
+            localStorage.setItem('enemyDensity', 'normal');
+
+            await waitFor('Phaser game boot', () => typeof game !== 'undefined' && game && game.scene);
+            await waitFor('title scene and core assets', () => {
+                const titleScene = game.scene.getScene('TitleScene');
+                return titleScene && titleScene.scene && titleScene.scene.isActive() && titleScene.textures && titleScene.textures.exists('wizard-idle');
+            });
+            game.scene.stop('TitleScene');
+            game.scene.start('GameScene', {
+                stage: 'forest',
+                p1Character: 'wizard',
+                multiplayerEnabled: false,
+                arcadeMode: false
+            });
+
+            await waitFor('Forest GameScene create', () => {
+                const scene = getForestScene();
+                return scene && scene.scene && scene.scene.isActive() && scene.stage === 'forest' && scene.wizard;
+            });
+
+            const scene = getForestScene();
+            if (scene.scene && scene.scene.resume) {
+                scene.scene.resume();
+            }
+            if (!scene.gameStarted) {
+                scene.chargeSlots = scene.chargeSlots || new Array(scene.initialMaxCharges || 3).fill(null);
+                scene.chargeSlots[0] = 'fire';
+                scene.charges = ['fire'];
+                if (scene.discoveredElements && scene.discoveredElements.add) {
+                    scene.discoveredElements.add('fire');
+                }
+                if (scene.updateChargeUI) {
+                    scene.updateChargeUI();
+                }
+                scene.gamePaused = false;
+                scene.pauseSource = null;
+                scene.time.timeScale = 1;
+                if (scene.physics && scene.physics.world) {
+                    scene.physics.resume();
+                }
+                if (scene.tweens && scene.tweens.resumeAll) {
+                    scene.tweens.resumeAll();
+                }
+                if (scene.time && scene.time.removeAllEvents) {
+                    scene.time.removeAllEvents();
+                }
+                if (scene.cameras && scene.cameras.main && scene.wizard) {
+                    scene.cameras.main.startFollow(scene.wizard, true, 0.1, 0.1);
+                }
+                scene.gameStarted = true;
+                scene.waveStartTime = scene.time.now;
+                if (scene.startNewWave) {
+                    scene.startNewWave();
+                }
+                scene.animationsReady = true;
+            }
+
+            await waitFor('forest tutorial dialogue or live game', () => scene.gameStarted || (scene.dialogueManager && scene.dialogueManager.active), 8000);
+            closeDialogueIfOpen(scene);
+
+            await waitFor('Forest live gameplay start', () => scene.gameStarted === true, 8000);
+            assert(scene.stage === 'forest', 'Live smoke is not running Forest');
+            assert(scene.wizard && scene.wizard.active, 'Wizard missing after Forest start');
+            assert(scene.enemies && scene.enemies.children, 'Enemy group missing after Forest start');
+            assertNoRendererErrors('Forest start');
+
+            const startSurvivalTime = scene.survivalTime || 0;
+            await wait(30000);
+            assertNoRendererErrors('Forest live window');
+            assert(scene.scene && scene.scene.isActive(), 'GameScene stopped during Forest live smoke');
+            assert(!scene.gameEnded, 'Forest live smoke ended the run early');
+            assert(scene.wizard && scene.wizard.active, 'Wizard was destroyed during Forest live smoke');
+            assert(scene.playerHealth > 0, 'Wizard died during Forest live smoke');
+
+            const activeEnemies = scene.enemies.children.entries.filter(enemy => enemy && enemy.active).length;
+            const totalEnemyActivity = activeEnemies + (scene.enemiesKilled || 0);
+            assert((scene.survivalTime || 0) > startSurvivalTime, 'Survival timer did not advance');
+            assert(totalEnemyActivity > 0, 'Forest live smoke did not observe enemy activity');
+
+            return {
+                ok: true,
+                stage: scene.stage,
+                survivalTime: scene.survivalTime,
+                playerHealth: scene.playerHealth,
+                activeEnemies,
+                enemiesKilled: scene.enemiesKilled || 0,
+                level: scene.playerLevel,
+                charges: scene.charges
+            };
+        } finally {
+            window.removeEventListener('error', captureRendererError);
+            localStorage.clear();
+            Object.entries(originalStorage).forEach(([key, value]) => localStorage.setItem(key, value));
+        }
+    };
+
     window.runHomunculiFeelSmoke = async function runHomunculiFeelSmoke() {
         const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
         const waitFor = async (label, predicate, timeoutMs = 8000) => {

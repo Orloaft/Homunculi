@@ -12,3 +12,9 @@ The smoke boots the real Electron/Phaser renderer, then calls `window.runHomuncu
 - First-slice boss health multipliers remain in the tuned confidence envelope.
 
 This complements `npm run smoke:progression`, which verifies save progression and exact vertical-slice constants. `smoke:feel` intentionally uses ranges and invariants rather than exact values so Track B can keep tuning content without changing the test for every small balance adjustment.
+
+## Forest Live Smoke
+
+`npm run smoke:forest-live` covers the live-run gap from the production proposal. It boots the real Electron/Phaser renderer, starts Forest through the active `GameScene`, injects a starting element through the same runtime state the intro would fill, and lets the run advance for 30 seconds.
+
+The smoke fails if the Phaser canvas is missing, a renderer script error is raised, Forest does not enter active gameplay, the wizard dies, the survival timer does not advance, or no enemy activity is observed. It uses normal enemy density so the wave system has to produce real combat activity during the check.
