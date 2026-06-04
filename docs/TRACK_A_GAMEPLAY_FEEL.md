@@ -1,10 +1,10 @@
 # Track A Gameplay Feel Smoke
 
-Track A added `npm run smoke:feel` as a low-risk automated probe for the Forest/Cave/Sand/Swamp/Snow promoted slice.
+Track A added `npm run smoke:feel` as a low-risk automated probe for the Forest/Cave/Sand/Swamp/Snow/Ocean promoted slice.
 
 The smoke boots the real Electron/Phaser renderer, then calls `window.runHomunculiFeelSmoke()` from `scripts/game.js`. It does not start a live match or tune content. Instead, it instantiates `GameScene` in renderer context and checks deterministic pacing data that should correlate with first-play readability:
 
-- Forest, Cave, Sand, Swamp, and Snow each have a distinct opening enemy roster.
+- Forest, Cave, Sand, Swamp, Snow, and Ocean each have a distinct opening enemy roster.
 - Opening waves stay readable: 3-4 enemy types, no giant enemies, no special events, normalized weights, a slow spawn interval, and a low enemy cap at normal density.
 - Waves 1 and 2 increase pressure through shorter spawn intervals and higher enemy caps.
 - The first three waves contain at least five enemy types per stage.
@@ -13,7 +13,7 @@ The smoke boots the real Electron/Phaser renderer, then calls `window.runHomuncu
 - First-slice boss health multipliers remain in the tuned confidence envelope.
 - Early primary-element rewards set up fusion instead of leaving alchemy to pure chance when the player has one element.
 
-Swamp and Snow are included as promoted post-slice worlds. Their smoke coverage keeps the opening wetland/frozen waves readable, verifies early catalyst support, and protects the first pass of world-theme fusion setup before deeper world-specific mechanics are added.
+Swamp, Snow, and Ocean are included as promoted post-slice worlds. Their smoke coverage keeps the opening wetland/frozen/ocean waves readable, verifies early catalyst support, and protects the first pass of world-theme fusion setup before deeper world-specific mechanics are added.
 
 This complements `npm run smoke:progression`, which verifies save progression and exact vertical-slice constants. `smoke:feel` intentionally uses ranges and invariants rather than exact values so Track B can keep tuning content without changing the test for every small balance adjustment.
 

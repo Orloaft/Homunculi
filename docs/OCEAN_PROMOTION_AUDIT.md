@@ -6,12 +6,12 @@ Scope: docs-only audit for the Ocean/Sea Kings promotion lane. Runtime evidence 
 
 ## Status
 
-Ocean is not ready for promotion. It has a clear aquatic content shell and a dedicated Sea Kings boss entry, and the first Sea Kings boss-hardening pass is now covered by `npm run smoke:ocean-boss`. Ocean still needs deterministic feel/progression coverage and a stable live gate before it should be promoted.
+Ocean is not ready for full promotion. It has a clear aquatic content shell, a dedicated Sea Kings boss entry, and the first Sea Kings boss-hardening pass is covered by `npm run smoke:ocean-boss`. Ocean now has deterministic feel/progression coverage; it still needs a stable named live gate before it should be promoted into `verify:release`.
 
 Promotion should wait until:
 
 - Snow is promoted with deterministic and live gates.
-- Ocean has deterministic feel/progression coverage.
+- Ocean has deterministic feel/progression coverage. Added 2026-06-04.
 - Sea Kings have explicit multi-boss death/completion handling. Fixed 2026-06-04 and covered by `smoke:ocean-boss`.
 - Ocean has one named live smoke that would fail on roster drift, boss entry drift, and completion drift.
 
@@ -67,12 +67,12 @@ Boss content:
 
 ## Runtime Risks
 
-- Ocean is outside the current deterministic feel/progression gate set. `smoke:feel` and progression tuning checks cover Forest, Cave, Sand, and Swamp only.
-- Ocean has no vertical-slice tuning entry. It does not get early catalyst milestones, XP/pickup tuning, readable first-minute spawn interval normalization, or boss health multiplier support.
-- The general random stage spawn branch still maps Ocean to generic enemies: `soul`, `slime`, `bloboid`, `darkbat`, `intellectdevourer`, and `wraith`. Wave spawning uses the aquatic roster, but any older spawn path can still break Ocean identity.
+- Fixed 2026-06-04: Ocean is now inside `smoke:feel` and `smoke:progression`.
+- Fixed 2026-06-04: Ocean has a vertical-slice tuning entry for early catalyst milestones, XP/pickup tuning, readable first-minute spawn interval normalization, and boss health multiplier support.
+- Fixed 2026-06-04: the general random stage spawn branch now maps Ocean to the aquatic roster instead of generic enemies.
 - Ocean health scaling is very steep: base difficulty `1.5` and per-wave scaling `3.0`. Without deterministic balance coverage this can regress live survivability quickly.
-- Ocean wave 0 is more crowded than the promoted first-slice shape. Promoted gates currently expect a readable opener around `6000ms` to `6700ms` after density/tuning, with `7` to `8` max enemies; Ocean opens at `3000ms` and `15` max enemies before any Ocean tuning.
-- Water/Wave identity is present, but early reward bias only helps Forest/Cave/Sand/Swamp. Ocean does not currently bias a single held element toward a compatible fusion setup.
+- Fixed 2026-06-04: Ocean wave 0 now normalizes into the promoted first-slice opener envelope under deterministic smoke density and includes early `waterslime` water-orb support.
+- Fixed 2026-06-04: Ocean now participates in early primary-element reward bias when the player has one held element.
 
 ## Boss And Sea Kings Blockers
 
@@ -88,14 +88,14 @@ Boss content:
 
 Before Ocean is promoted, add deterministic coverage that verifies:
 
-- Ocean opening roster uses aquatic enemies only.
-- Ocean first three waves include at least five distinct aquatic/water enemies.
-- Opening spawn interval and max enemy count are tuned to a readable first minute.
-- Ocean has catalyst support at the same early milestone shape as promoted worlds, or the audit explicitly accepts a different Ocean-specific shape.
-- Ocean boss health tuning is intentional and stable.
-- Early element rewards can produce Water/Wave-compatible setup.
-- Snow victory unlocks Ocean and Ocean victory unlocks Lava, including save reload assertions.
-- Ocean completion records `ocean-1`.
+- Covered by `smoke:feel`: Ocean opening roster uses aquatic enemies only.
+- Covered by `smoke:feel`: Ocean first three waves include at least five distinct aquatic/water enemies.
+- Covered by `smoke:feel`: opening spawn interval and max enemy count are tuned to a readable first minute.
+- Covered by `smoke:feel` and `smoke:progression`: Ocean has catalyst support at the same early milestone shape as promoted worlds.
+- Covered by `smoke:feel` and `smoke:progression`: Ocean boss health tuning is intentional and stable.
+- Covered by `smoke:feel`: early element rewards can produce a compatible fusion setup.
+- Covered by `smoke:progression`: Snow victory unlocks Ocean and Ocean victory unlocks Lava, including save reload assertions.
+- Covered by `smoke:progression`: Ocean completion records `ocean-1`.
 
 Before adding a named live gate, the live harness should be able to assert:
 
@@ -168,9 +168,9 @@ The script also needs corresponding `scripts/main.js` dispatch, but this audit i
 ## Minimal Promotion Sequence
 
 1. Finish Snow promotion first: deterministic feel/progression coverage, Frost Guardian gate, and live sanity.
-2. Add Ocean deterministic coverage to `smoke:feel` and `smoke:progression`, including wave identity, early tuning, save unlock/reload, and `ocean-1` completion.
-3. Add an Ocean vertical-slice tuning entry or document an intentional Ocean-specific alternative for opener pacing, XP, pickup magnet, catalysts, and boss health.
-4. Replace the random Ocean spawn branch with the aquatic roster or prove it is unreachable during the shipped wave loop.
+2. Fixed 2026-06-04: add Ocean deterministic coverage to `smoke:feel` and `smoke:progression`, including wave identity, early tuning, save unlock/reload, and `ocean-1` completion.
+3. Fixed 2026-06-04: add an Ocean vertical-slice tuning entry for opener pacing, XP, pickup magnet, catalysts, and boss health.
+4. Fixed 2026-06-04: replace the random Ocean spawn branch with the aquatic roster.
 5. Fixed 2026-06-04: Sea Kings death semantics now mark only the killed king dead, update combined health, and keep the fight active.
 6. Fixed 2026-06-04: all-kings-dead completion now drops rewards once, stops Sea Kings AI/music once, and calls `gameWon()` once. Lava unlock reload coverage still belongs in Ocean progression smoke.
 7. Fixed 2026-06-04: Sea Kings phase minions now use existing Ocean enemies: `crabby`, `jellyfish`, `squid`, `shark`, `crablore`, or `waterslime`.
@@ -180,4 +180,4 @@ The script also needs corresponding `scripts/main.js` dispatch, but this audit i
 
 ## Decision
 
-Do not promote Ocean now. The Sea Kings multi-boss death/completion slice is fixed and covered by `npm run smoke:ocean-boss`; the viable next Ocean work is deterministic Ocean tuning/progression coverage, followed by a stable named live gate.
+Do not promote Ocean fully yet. Sea Kings multi-boss death/completion and deterministic Ocean tuning/progression are covered; the viable next Ocean work is a stable named live gate, followed by adding that gate to the current release stack after it proves reliable.

@@ -15774,7 +15774,8 @@ class GameScene extends Phaser.Scene {
             forest: 'Survive the timer, collect elements, and prepare for the Obelisk.',
             cave: 'Cave focus: pick up new elements and look for Fusion Ritual at level up.',
             sand: 'Sand focus: keep moving through the heat and prepare for Eyelor.',
-            swamp: 'Swamp focus: use mud and poison discoveries to control crowded wetlands.'
+            swamp: 'Swamp focus: use mud and poison discoveries to control crowded wetlands.',
+            ocean: 'Ocean focus: collect water, discover wave magic, and prepare for the Sea Kings.'
         };
 
         return hints[this.stage] || '';
@@ -18016,7 +18017,7 @@ class GameScene extends Phaser.Scene {
     getPrimaryElementRewardChoices(wizard = null, choiceCount = 3) {
         const primaryElements = this.primaryElements || ['fire', 'water', 'earth', 'air', 'lightning', 'arcane'];
         const choices = [];
-        const firstSliceStages = ['forest', 'cave', 'sand', 'swamp', 'snow'];
+        const firstSliceStages = ['forest', 'cave', 'sand', 'swamp', 'snow', 'ocean'];
         const heldElements = this.getRunElementInventory(wizard);
         const uniqueHeldElements = [...new Set(heldElements)];
 
@@ -18074,6 +18075,14 @@ class GameScene extends Phaser.Scene {
             snow: {
                 bossHealthMultiplier: 1.0,
                 waveSpawnIntervalMultiplier: 1.15,
+                pickupMagnetRadius: 200,
+                pickupMagnetSpeed: 470,
+                xpDropMultiplier: 1.2,
+                earlyCatalystMilestones: { 4: 1, 8: 2 }
+            },
+            ocean: {
+                bossHealthMultiplier: 1.05,
+                waveSpawnIntervalMultiplier: 1.1,
                 pickupMagnetRadius: 200,
                 pickupMagnetSpeed: 470,
                 xpDropMultiplier: 1.2,
@@ -18747,8 +18756,9 @@ class GameScene extends Phaser.Scene {
                 // Wave 0 (0:00-1:00) - Introduction - Easy start with jellyfish and crabby
                 {
                     enemies: [
-                        { type: 'jellyfish', weight: 60, count: 2 },
-                        { type: 'crabby', weight: 40, count: 1 }
+                        { type: 'jellyfish', weight: 50, count: 2 },
+                        { type: 'crabby', weight: 40, count: 1 },
+                        { type: 'waterslime', weight: 10, count: 1 }  // Early water orb source
                     ],
                     spawnInterval: 3000,  // Slower spawn rate
                     maxEnemies: 15  // Fewer total enemies
@@ -28509,19 +28519,19 @@ class GameScene extends Phaser.Scene {
                 enemyType = 'bloboid'; // 30% - bloboids
             }
         } else if (this.stage === 'ocean') {
-            // Ocean enemies: water-themed creatures
+            // Ocean enemies: keep fallback spawning aligned with the authored aquatic wave roster.
             if (rand < 0.25) {
-                enemyType = 'soul'; // 25% - water spirits/souls
+                enemyType = 'jellyfish'; // 25%
             } else if (rand < 0.45) {
-                enemyType = 'slime'; // 20% - water slimes
+                enemyType = 'crabby'; // 20%
             } else if (rand < 0.60) {
-                enemyType = 'bloboid'; // 15% - jellyfish-like blobs
+                enemyType = 'squid'; // 15%
             } else if (rand < 0.75) {
-                enemyType = 'darkbat'; // 15% - flying fish/bats
+                enemyType = 'shark'; // 15%
             } else if (rand < 0.90) {
-                enemyType = 'intellectdevourer'; // 15% - sea creatures
+                enemyType = 'crablore'; // 15%
             } else {
-                enemyType = 'wraith'; // 10% - water wraiths
+                enemyType = 'waterslime'; // 10% - water orb source
             }
         } else if (this.stage === 'grave') {
             // Grave enemies: yellow skeletons, skeleton seekers, skull hounds, lost souls, club imps and axe imps
@@ -60773,12 +60783,17 @@ if (typeof window !== 'undefined') {
         await waitFor('Phaser game boot', () => typeof game !== 'undefined' && game && game.scene);
         await waitFor('GameScene availability', () => typeof GameScene !== 'undefined');
 
-        const stages = ['forest', 'cave', 'sand', 'swamp', 'snow'];
+        const stages = ['forest', 'cave', 'sand', 'swamp', 'snow', 'ocean'];
         const stageExpectations = {
             snow: {
                 requiredOpeningEnemies: ['snowy', 'northerner', 'spiked-slime'],
                 requiredEarlyEnemies: ['snowy', 'northerner', 'spiked-slime', 'elkman', 'frost-golem'],
                 maxBossHealthMultiplier: 1.0
+            },
+            ocean: {
+                requiredOpeningEnemies: ['jellyfish', 'crabby', 'waterslime'],
+                requiredEarlyEnemies: ['jellyfish', 'crabby', 'waterslime', 'squid', 'shark'],
+                maxBossHealthMultiplier: 1.05
             }
         };
         const metrics = {};
@@ -60949,7 +60964,8 @@ if (typeof window !== 'undefined') {
                 ['cave', 0.85, { 4: 1, 8: 2 }],
                 ['sand', 0.9, { 4: 1, 8: 2 }],
                 ['swamp', 0.95, { 4: 1, 8: 2 }],
-                ['snow', 1.0, { 4: 1, 8: 2 }]
+                ['snow', 1.0, { 4: 1, 8: 2 }],
+                ['ocean', 1.05, { 4: 1, 8: 2 }]
             ];
             tuningChecks.forEach(([stage, bossMultiplier, catalysts]) => {
                 const gameScene = new GameScene();
@@ -61044,13 +61060,28 @@ if (typeof window !== 'undefined') {
             stages = await startStageSelectAndGetStages(finalReload);
             assertNoRendererErrors('StageSelect final reload check failed');
             assert(getStage(stages, 'Ocean Land').unlocked === true, 'Stage select did not show Ocean unlocked from save');
+            assert(getStage(stages, 'Lava Land').unlocked === false, 'Stage select unlocked Lava too early');
+
+            saveData = simulateVictory(finalReload, 'ocean', 900000);
+            assert(saveData.stages.completedStages.includes('ocean-1'), 'Ocean completion was not recorded');
+            assert(saveData.stages.unlockedWorlds.includes('lavaland'), 'Ocean victory did not unlock Lava');
+            assert(saveData.stages.stageStats['ocean-1'].attempts >= 1, 'Ocean stage stats attempts were not recorded');
+            assert(saveData.stages.stageStats['ocean-1'].bestTime === 900000, 'Ocean stage stats best time was not recorded');
+
+            const reloadAfterOcean = new SaveManager();
+            window.saveManager = reloadAfterOcean;
+            assert(reloadAfterOcean.loadAndSetCurrent(0), 'Reload after Ocean victory failed');
+            stages = await startStageSelectAndGetStages(reloadAfterOcean);
+            assertNoRendererErrors('StageSelect Ocean reload check failed');
+            assert(getStage(stages, 'Ocean Land').unlocked === true, 'Stage select did not preserve Ocean unlock from save');
+            assert(getStage(stages, 'Lava Land').unlocked === true, 'Stage select did not show Lava unlocked from save');
 
             return {
                 ok: true,
-                completedStages: finalReload.currentSaveData.stages.completedStages,
-                unlockedWorlds: finalReload.currentSaveData.stages.unlockedWorlds,
-                unlockedCharacters: finalReload.currentSaveData.characters.unlocked,
-                essence: finalReload.currentSaveData.talents.essence
+                completedStages: reloadAfterOcean.currentSaveData.stages.completedStages,
+                unlockedWorlds: reloadAfterOcean.currentSaveData.stages.unlockedWorlds,
+                unlockedCharacters: reloadAfterOcean.currentSaveData.characters.unlocked,
+                essence: reloadAfterOcean.currentSaveData.talents.essence
             };
         } finally {
             window.removeEventListener('error', captureRendererError);
