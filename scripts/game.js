@@ -18770,8 +18770,8 @@ class GameScene extends Phaser.Scene {
                         { type: 'crabby', weight: 40, count: 2 },
                         { type: 'squid', weight: 25, count: 1 }
                     ],
-                    spawnInterval: 1500,
-                    maxEnemies: 35
+                    spawnInterval: 2000,
+                    maxEnemies: 28
                 },
                 // Wave 2 (2:00-3:00) - Add sharks
                 {
@@ -18782,8 +18782,8 @@ class GameScene extends Phaser.Scene {
                         { type: 'shark', weight: 20, count: 1 },
                         { type: 'waterslime', weight: 3, count: 1 }  // Element orb source
                     ],
-                    spawnInterval: 1200,
-                    maxEnemies: 45,
+                    spawnInterval: 1500,
+                    maxEnemies: 40,
                     specialEvent: { time: 30, type: 'swarm', enemy: 'jellyfish', count: 10 }
                 },
                 // Wave 3 (3:00-4:00) - Add elite crablore
@@ -60130,6 +60130,9 @@ if (typeof window !== 'undefined') {
         const smokeStageLabel = options.label || `${smokeStage} live`;
         const startElement = options.startElement || 'fire';
         const desiredEnemyDistance = options.desiredEnemyDistance || 110;
+        const movementStep = options.movementStep || 18;
+        const requiredEnemyTypes = Array.isArray(options.requiredEnemyTypes) ? options.requiredEnemyTypes : [];
+        const allowedEnemyTypes = Array.isArray(options.allowedEnemyTypes) ? options.allowedEnemyTypes : [];
         const originalStorage = {};
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
@@ -60170,6 +60173,10 @@ if (typeof window !== 'undefined') {
         const getLiveSmokeScene = () => {
             if (typeof game === 'undefined' || !game || !game.scene) return null;
             return game.scene.getScene('GameScene');
+        };
+        const summarizeActiveScenes = () => {
+            if (typeof game === 'undefined' || !game || !game.scene) return 'none';
+            return game.scene.getScenes(true).map(scene => scene.scene.key).join(', ') || 'none';
         };
         let liveAimTimer = null;
         const closeDialogueIfOpen = (scene) => {
@@ -60263,6 +60270,7 @@ if (typeof window !== 'undefined') {
             assertNoRendererErrors(`${smokeStageLabel} start`);
 
             let firstLevelAt = null;
+            const observedEnemyTypes = new Set();
             liveAimTimer = setInterval(() => {
                 if (firstLevelAt === null && (scene.playerLevel || 0) >= 1) {
                     firstLevelAt = scene.survivalTime || 0;
@@ -60278,6 +60286,11 @@ if (typeof window !== 'undefined') {
                 const enemies = scene.enemies && scene.enemies.children
                     ? scene.enemies.children.entries.filter(enemy => enemy && enemy.active && !enemy.isDying)
                     : [];
+                enemies.forEach(enemy => {
+                    if (enemy.enemyType) {
+                        observedEnemyTypes.add(enemy.enemyType);
+                    }
+                });
                 if (!scene.wizard || (jewels.length === 0 && enemies.length === 0)) return;
                 let nearestPickup = null;
                 let nearestPickupDistance = Infinity;
@@ -60307,8 +60320,19 @@ if (typeof window !== 'undefined') {
                 scene.wizard.lastDirection = direction;
                 scene.wizard.lastStableDirection = direction;
                 const desiredDistance = target === nearestPickup ? 16 : desiredEnemyDistance;
-                if (targetDistance > desiredDistance) {
-                    const step = Math.min(18, targetDistance - desiredDistance);
+                if (target !== nearestPickup && targetDistance < desiredDistance * 0.75) {
+                    const step = Math.min(movementStep, desiredDistance - targetDistance);
+                    scene.wizard.x -= Math.cos(angle) * step;
+                    scene.wizard.y -= Math.sin(angle) * step;
+                    if (scene.wizard.body) {
+                        scene.wizard.body.updateFromGameObject();
+                    }
+                    if (scene.wizard.shadow) {
+                        scene.wizard.shadow.x = scene.wizard.x;
+                        scene.wizard.shadow.y = scene.wizard.y + 20;
+                    }
+                } else if (targetDistance > desiredDistance) {
+                    const step = Math.min(movementStep, targetDistance - desiredDistance);
                     scene.wizard.x += Math.cos(angle) * step;
                     scene.wizard.y += Math.sin(angle) * step;
                     if (scene.wizard.body) {
@@ -60324,7 +60348,7 @@ if (typeof window !== 'undefined') {
             const startSurvivalTime = scene.survivalTime || 0;
             await wait(30000);
             assertNoRendererErrors(`${smokeStageLabel} window`);
-            assert(scene.scene && scene.scene.isActive(), `GameScene stopped during ${smokeStageLabel} smoke`);
+            assert(scene.scene && scene.scene.isActive(), `GameScene stopped during ${smokeStageLabel} smoke; active scenes: ${summarizeActiveScenes()}; gameEnded=${scene.gameEnded === true}; playerHealth=${scene.playerHealth}; survivalTime=${scene.survivalTime}`);
             assert(!scene.gameEnded, `${smokeStageLabel} smoke ended the run early`);
             assert(scene.wizard && scene.wizard.active, `Wizard was destroyed during ${smokeStageLabel} smoke`);
             assert(scene.playerHealth > 0, `Wizard died during ${smokeStageLabel} smoke`);
@@ -60337,6 +60361,14 @@ if (typeof window !== 'undefined') {
             assert((scene.enemiesKilled || 0) > 0, `${smokeStageLabel} smoke did not confirm any enemy kills`);
             assert((scene.itemsCollected || 0) > 0, `${smokeStageLabel} smoke did not collect any XP gems`);
             assert((scene.playerLevel || 0) >= 1, `${smokeStageLabel} smoke did not reach the first level-up timing target`);
+            if (requiredEnemyTypes.length > 0) {
+                const hasRequiredType = requiredEnemyTypes.some(enemyType => observedEnemyTypes.has(enemyType));
+                assert(hasRequiredType, `${smokeStageLabel} smoke did not observe required enemy activity; observed ${Array.from(observedEnemyTypes).join(', ') || 'none'}`);
+            }
+            if (allowedEnemyTypes.length > 0) {
+                const unexpectedTypes = Array.from(observedEnemyTypes).filter(enemyType => !allowedEnemyTypes.includes(enemyType));
+                assert(unexpectedTypes.length === 0, `${smokeStageLabel} smoke observed non-stage enemy activity: ${unexpectedTypes.join(', ')}`);
+            }
 
             return {
                 ok: true,
@@ -60349,6 +60381,7 @@ if (typeof window !== 'undefined') {
                 itemsCollected: scene.itemsCollected || 0,
                 level: scene.playerLevel,
                 firstLevelAt,
+                observedEnemyTypes: Array.from(observedEnemyTypes).sort(),
                 xp: scene.playerXP,
                 xpToNextLevel: scene.xpToNextLevel,
                 charges: scene.charges
@@ -60378,6 +60411,19 @@ if (typeof window !== 'undefined') {
             label: 'Swamp live',
             startElement: 'fire',
             desiredEnemyDistance: 120
+        });
+    };
+
+    window.runHomunculiOceanLiveSmoke = async function runHomunculiOceanLiveSmoke() {
+        const oceanEnemyTypes = ['jellyfish', 'crabby', 'waterslime', 'squid', 'shark', 'crablore'];
+        return window.runHomunculiStageLiveSmoke({
+            stage: 'ocean',
+            label: 'Ocean live',
+            startElement: 'water',
+            desiredEnemyDistance: 160,
+            movementStep: 60,
+            requiredEnemyTypes: oceanEnemyTypes,
+            allowedEnemyTypes: oceanEnemyTypes
         });
     };
 

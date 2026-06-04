@@ -2,7 +2,7 @@
 
 Date: 2026-06-04
 
-Scope: current promoted production path, Forest -> Cave -> Sand -> Swamp -> Snow, plus Ocean deterministic pre-promotion coverage. Values come from the shipped runtime in `scripts/game.js`, with normal enemy density and the deterministic feel/progression smoke assumptions.
+Scope: current promoted production path, Forest -> Cave -> Sand -> Swamp -> Snow -> Ocean. Values come from the shipped runtime in `scripts/game.js`, with normal enemy density and the deterministic feel/progression smoke assumptions.
 
 ## Summary Table
 
@@ -24,7 +24,7 @@ Normal opener values are after the smoke harness sets `enemyDensityMultiplier = 
 - Sand keeps the opener readable with cobra/cactuse/bat, then introduces armadillo, caveghoul, soul, and giant cobra by wave 2.
 - Swamp opens with wetland control enemies, then adds swampmerchant and torchboy before the first giant bloboid.
 - Snow opens with ice survival pressure and adds elkman, frost-golem, and lightningslime by wave 2.
-- Ocean opens with jellyfish, crabby, and an early waterslime water source, then adds squid and shark by wave 2.
+- Ocean opens with jellyfish, crabby, and an early waterslime water source, then adds a gentler squid second wave and brings in shark by wave 2.
 
 ## Fusion And Catalyst Setup
 
@@ -53,11 +53,11 @@ The promoted path currently guarantees:
 
 - `smoke:feel` protects opener roster width, opening spawn interval, opening enemy cap, first-three-wave variety, catalyst milestones, pickup tuning, boss tuning multipliers, and early fusion setup for Forest/Cave/Sand/Swamp/Snow/Ocean.
 - `smoke:progression` protects save unlocks, alchemy recipe persistence, character rewards, essence rewards, and Snow/Ocean reload stats through Lava unlock.
-- `smoke:forest-live`, `smoke:swamp-live`, and `smoke:snow-live` protect short real-renderer survival for promoted live worlds.
-- `smoke:swamp-boss` and `smoke:snow-boss` protect deterministic boss entry and completion for the promoted post-slice bosses.
+- `smoke:forest-live`, `smoke:swamp-live`, `smoke:snow-live`, and `smoke:ocean-live` protect short real-renderer survival for promoted live worlds. Ocean uses a water-start pilot and asserts observed live enemies stay inside the aquatic roster.
+- `smoke:swamp-boss`, `smoke:snow-boss`, and `smoke:ocean-boss` protect deterministic boss entry and completion for the promoted post-slice bosses.
 
 ## Gaps To Close Next
 
 - Cave and Sand do not yet have named live or boss gates, despite being part of the committed production path.
 - First-level timing is only live-proven for Forest. Cave, Sand, Swamp, and Snow rely on deterministic XP/pickup tuning checks, not explicit live level-up assertions.
-- Ocean is deterministically covered but is not fully promoted yet. It still needs a stable named live gate before release claims include it.
+- Lava is the next world in the promotion path and needs the same deterministic feel/progression/boss/live pass before production claims widen past Ocean.

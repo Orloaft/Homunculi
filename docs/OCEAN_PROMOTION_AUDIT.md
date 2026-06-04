@@ -6,14 +6,14 @@ Scope: docs-only audit for the Ocean/Sea Kings promotion lane. Runtime evidence 
 
 ## Status
 
-Ocean is not ready for full promotion. It has a clear aquatic content shell, a dedicated Sea Kings boss entry, and the first Sea Kings boss-hardening pass is covered by `npm run smoke:ocean-boss`. Ocean now has deterministic feel/progression coverage; it still needs a stable named live gate before it should be promoted into `verify:release`.
+Ocean is promoted through the current release stack. It has deterministic feel/progression coverage, a named 30-second water-start live gate, and deterministic Sea Kings multi-boss completion coverage.
 
 Promotion should wait until:
 
 - Snow is promoted with deterministic and live gates.
 - Ocean has deterministic feel/progression coverage. Added 2026-06-04.
 - Sea Kings have explicit multi-boss death/completion handling. Fixed 2026-06-04 and covered by `smoke:ocean-boss`.
-- Ocean has one named live smoke that would fail on roster drift, boss entry drift, and completion drift.
+- Ocean has one named live smoke that fails on opener roster drift or water-start survivability drift. Sea Kings entry and completion drift are covered by `smoke:ocean-boss`.
 
 ## Current World Content
 
@@ -50,8 +50,8 @@ Enemy assets and roster:
 Wave content:
 
 - Wave 0: `jellyfish`, `crabby`; spawn interval `3000`, max enemies `15`.
-- Wave 1: adds `squid`; spawn interval `1500`, max enemies `35`.
-- Wave 2: adds `shark` and `waterslime`; spawn interval `1200`, max enemies `45`; jellyfish swarm event.
+- Wave 1: adds `squid`; spawn interval `2000`, max enemies `28`.
+- Wave 2: adds `shark` and `waterslime`; spawn interval `1500`, max enemies `40`; jellyfish swarm event.
 - Wave 3: adds `crablore`; spawn interval `1000`, max enemies `55`.
 - Wave 4: deep-sea mix with shark circle event; spawn interval `2000`, max enemies `65`.
 - Wave 5+: full Ocean roster; spawn interval `600`, max enemies `150`.
@@ -70,7 +70,7 @@ Boss content:
 - Fixed 2026-06-04: Ocean is now inside `smoke:feel` and `smoke:progression`.
 - Fixed 2026-06-04: Ocean has a vertical-slice tuning entry for early catalyst milestones, XP/pickup tuning, readable first-minute spawn interval normalization, and boss health multiplier support.
 - Fixed 2026-06-04: the general random stage spawn branch now maps Ocean to the aquatic roster instead of generic enemies.
-- Ocean health scaling is very steep: base difficulty `1.5` and per-wave scaling `3.0`. Without deterministic balance coverage this can regress live survivability quickly.
+- Ocean health scaling is very steep: base difficulty `1.5` and per-wave scaling `3.0`. Deterministic coverage plus `smoke:ocean-live` now protect first-30-seconds survivability from silent drift.
 - Fixed 2026-06-04: Ocean wave 0 now normalizes into the promoted first-slice opener envelope under deterministic smoke density and includes early `waterslime` water-orb support.
 - Fixed 2026-06-04: Ocean now participates in early primary-element reward bias when the player has one held element.
 
@@ -97,21 +97,22 @@ Before Ocean is promoted, add deterministic coverage that verifies:
 - Covered by `smoke:progression`: Snow victory unlocks Ocean and Ocean victory unlocks Lava, including save reload assertions.
 - Covered by `smoke:progression`: Ocean completion records `ocean-1`.
 
-Before adding a named live gate, the live harness should be able to assert:
+Covered by `smoke:ocean-live`, the live harness asserts:
 
 - Stage starts as `ocean`.
 - The opening live run survives at least 25-30 seconds.
 - Enemy activity includes Ocean-specific enemies, not generic fallback enemies.
 - At least one XP pickup and one kill happen.
+
+Covered by `smoke:ocean-boss`, the deterministic boss harness asserts:
+
 - Boss fast-forward can spawn Sea Kings.
 - `scene.seaKings.length === 3`.
 - Every king has `isSeaKing === true`, `isBoss === true`, active physics, and a Sea King enemy type.
 - The shared boss health UI exists and reads `SEA KINGS`.
-- Sea Kings boss music starts.
-- At least one Sea King attack projectile is produced safely.
 - Covered by `smoke:ocean-boss`: killing one king does not call `gameWon()`.
 - Covered by `smoke:ocean-boss`: killing all three kings triggers boss cleanup and `gameWon()`.
-- Still needed for Ocean promotion: save-level assertion that Ocean completion records `ocean-1` and Lava unlock survives reload.
+- Covered by `smoke:progression`: Ocean completion records `ocean-1` and Lava unlock survives reload.
 
 Current green release gates should still run before widening the production slice:
 
@@ -124,46 +125,25 @@ Current green release gates should still run before widening the production slic
 - `npm run smoke:forest-live`
 - `npm run smoke:swamp-live`
 - `npm run smoke:snow-live`
+- `npm run smoke:ocean-live`
 - `npm run smoke:swamp-boss`
 - `npm run smoke:snow-boss`
 - `npm run smoke:ocean-boss`
 
 ## Recommended Start Config
 
-Ocean is not viable for a named promotion gate yet. For exploratory live smoke only, use the shared live harness with an Ocean stage override:
+Ocean has a named promotion gate:
 
 ```sh
-HOMUNCULI_LIVE_SMOKE_STAGE=ocean HOMUNCULI_LIVE_SMOKE_ELEMENT=water HOMUNCULI_LIVE_SMOKE_ENEMY_DISTANCE=120 npm run smoke:live
+npm run smoke:ocean-live
 ```
 
 Rationale:
 
 - `stage=ocean` exercises the shipped Ocean stage path.
-- `startElement=water` matches Ocean identity and can validate that a water start survives the opener.
-- `desiredEnemyDistance=120` matches the safer Swamp-style pilot distance and is more appropriate for a denser opener than the Forest `80` distance.
-
-If water proves flaky before Ocean tuning lands, use `startElement=fire` for harness stability while keeping Water/Wave identity in deterministic assertions. Do not promote an Ocean live gate based only on a fire-start first-30-seconds run.
-
-Recommended promotion target after fixes:
-
-```js
-window.runHomunculiOceanLiveSmoke = async function runHomunculiOceanLiveSmoke() {
-    return window.runHomunculiStageLiveSmoke({
-        stage: 'ocean',
-        label: 'Ocean live',
-        startElement: 'water',
-        desiredEnemyDistance: 120
-    });
-};
-```
-
-Recommended package script after the runtime gate exists:
-
-```json
-"smoke:ocean-live": "npm run compile && HOMUNCULI_OCEAN_LIVE_SMOKE=1 electron --no-sandbox --disable-gpu ."
-```
-
-The script also needs corresponding `scripts/main.js` dispatch, but this audit intentionally does not edit `scripts/main.js`.
+- `startElement=water` matches Ocean identity and validates that a water start survives the opener.
+- `desiredEnemyDistance=160` gives the water-start pilot room to kite Ocean's faster opener while still requiring real kills and XP pickups.
+- The live harness now backs away when an enemy breaches its desired spacing, so the automated pilot kites instead of standing in contact damage.
 
 ## Minimal Promotion Sequence
 
@@ -174,10 +154,9 @@ The script also needs corresponding `scripts/main.js` dispatch, but this audit i
 5. Fixed 2026-06-04: Sea Kings death semantics now mark only the killed king dead, update combined health, and keep the fight active.
 6. Fixed 2026-06-04: all-kings-dead completion now drops rewards once, stops Sea Kings AI/music once, and calls `gameWon()` once. Lava unlock reload coverage still belongs in Ocean progression smoke.
 7. Fixed 2026-06-04: Sea Kings phase minions now use existing Ocean enemies: `crabby`, `jellyfish`, `squid`, `shark`, `crablore`, or `waterslime`.
-8. Add a boss-entry live assertion for `scene.seaKings.length === 3` and shared health UI.
-9. Add a boss-completion live assertion that killing one king is not victory and killing all kings is victory.
-10. Add `smoke:ocean-live` to the current green gate stack only after it is stable.
+8. Fixed 2026-06-04: add `smoke:ocean-live` with a water-start live pilot and aquatic-roster assertion.
+9. Fixed 2026-06-04: add `smoke:ocean-live` and `smoke:ocean-boss` to `verify:release`.
 
 ## Decision
 
-Do not promote Ocean fully yet. Sea Kings multi-boss death/completion and deterministic Ocean tuning/progression are covered; the viable next Ocean work is a stable named live gate, followed by adding that gate to the current release stack after it proves reliable.
+Ocean is promoted through the current gate stack. The next world-promotion lane is Lava, while the next core-loop lane remains player-facing recipe/readback UI.

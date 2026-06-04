@@ -26,6 +26,7 @@ Parallel world/release audit notes live in `docs/PARALLEL_WORLD_AUDIT.md`.
 - `npm run smoke:forest-live`
 - `npm run smoke:swamp-live`
 - `npm run smoke:snow-live`
+- `npm run smoke:ocean-live`
 - `npm run smoke:swamp-boss`
 - `npm run smoke:snow-boss`
 - `npm run smoke:ocean-boss`
@@ -44,14 +45,14 @@ Current status:
 - Forest/Cave/Sand have progression, first-pass feel tuning, early fusion support, recipe persistence, and Forest live coverage.
 - Swamp is promoted into deterministic feel/progression gates, 30-second live coverage, and deterministic Amphibian boss-entry/death coverage.
 - Snow is promoted into deterministic feel/progression gates, 30-second live coverage, and deterministic Frost Guardian boss-entry/attack/death coverage.
-- Ocean is covered by deterministic feel/progression gates and deterministic Sea Kings multi-boss completion coverage, but is not promoted into `verify:release` until it has a named live gate.
+- Ocean is promoted into deterministic feel/progression gates, 30-second water-start live coverage, and deterministic Sea Kings multi-boss completion coverage.
 
 Next slices:
 
 1. Keep the reusable live-smoke harness healthy: `smoke:live` enables the shared live harness through `HOMUNCULI_STAGE_LIVE_SMOKE=1` and can be configured with `HOMUNCULI_LIVE_SMOKE_STAGE` and `HOMUNCULI_LIVE_SMOKE_ELEMENT`.
 2. Keep `smoke:swamp-live`/`smoke:snow-live` focused on the first 30 seconds of their worlds, and keep `smoke:swamp-boss`/`smoke:snow-boss` focused on deterministic boss entry and completion.
 3. Use `docs/PROMOTED_BALANCE_SUMMARY.md` as the human-readable balance snapshot for Forest/Cave/Sand/Swamp/Snow when promoting Ocean or changing first-slice tuning.
-4. Keep `smoke:ocean-boss` outside `verify:release` until Ocean has a named live gate.
+4. Keep `smoke:ocean-live` water-start coverage and `smoke:ocean-boss` Sea Kings coverage inside `verify:release` while Ocean remains the front edge of promotion.
 
 ### Lane 2: Core Loop Completeness
 
@@ -125,9 +126,9 @@ Next slices:
 
 ## Immediate Queue
 
-1. Add a named Ocean live gate after deterministic Ocean feel/progression remains green.
-2. Strengthen progression smoke for post-victory rewards and recipe/stats reload.
-3. Add first grimoire/readback surface for discovered recipes.
+1. Strengthen progression smoke for post-victory rewards and recipe/stats reload.
+2. Add first grimoire/readback surface for discovered recipes.
+3. Start the Lava deterministic promotion audit after Ocean stays green in the release stack.
 
 ## Done Definition
 

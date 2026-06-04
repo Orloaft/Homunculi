@@ -18,7 +18,8 @@ const isProgressionSmokeRun = process.env.HOMUNCULI_PROGRESSION_SMOKE === '1';
 const isFeelSmokeRun = process.env.HOMUNCULI_FEEL_SMOKE === '1';
 const isForestLiveSmokeRun = process.env.HOMUNCULI_FOREST_LIVE_SMOKE === '1';
 const isSwampLiveSmokeRun = process.env.HOMUNCULI_SWAMP_LIVE_SMOKE === '1';
-const isStageLiveSmokeRun = process.env.HOMUNCULI_STAGE_LIVE_SMOKE === '1' || isForestLiveSmokeRun || isSwampLiveSmokeRun;
+const isOceanLiveSmokeRun = process.env.HOMUNCULI_OCEAN_LIVE_SMOKE === '1';
+const isStageLiveSmokeRun = process.env.HOMUNCULI_STAGE_LIVE_SMOKE === '1' || isForestLiveSmokeRun || isSwampLiveSmokeRun || isOceanLiveSmokeRun;
 const isSwampBossSmokeRun = process.env.HOMUNCULI_SWAMP_BOSS_SMOKE === '1';
 const isSnowBossSmokeRun = process.env.HOMUNCULI_SNOW_BOSS_SMOKE === '1';
 const isOceanBossSmokeRun = process.env.HOMUNCULI_OCEAN_BOSS_SMOKE === '1';
@@ -90,13 +91,28 @@ function createWindow() {
                 ? 'swamp'
                 : isForestLiveSmokeRun
                   ? 'forest'
+                  : isOceanLiveSmokeRun
+                    ? 'ocean'
                   : process.env.HOMUNCULI_LIVE_SMOKE_STAGE || 'forest';
               const liveStartElement = isSwampLiveSmokeRun
                 ? 'fire'
+                : isOceanLiveSmokeRun
+                  ? 'water'
                 : process.env.HOMUNCULI_LIVE_SMOKE_ELEMENT || 'fire';
               const liveDesiredEnemyDistance = Number(process.env.HOMUNCULI_LIVE_SMOKE_ENEMY_DISTANCE || (
-                isSwampLiveSmokeRun ? 120 : isForestLiveSmokeRun ? 80 : 110
+                isSwampLiveSmokeRun ? 120 : isOceanLiveSmokeRun ? 160 : isForestLiveSmokeRun ? 80 : 110
               ));
+              const liveSmokeOptions = {
+                stage: liveStage,
+                label: `${liveStage} live`,
+                startElement: liveStartElement,
+                desiredEnemyDistance: liveDesiredEnemyDistance
+              };
+              if (isOceanLiveSmokeRun) {
+                liveSmokeOptions.requiredEnemyTypes = ['jellyfish', 'crabby', 'waterslime', 'squid', 'shark', 'crablore'];
+                liveSmokeOptions.allowedEnemyTypes = liveSmokeOptions.requiredEnemyTypes;
+                liveSmokeOptions.movementStep = 60;
+              }
               const smokeHelperName = isSwampBossSmokeRun
                 ? 'runHomunculiSwampBossSmoke'
                 : isSnowBossSmokeRun
@@ -118,7 +134,7 @@ function createWindow() {
                   if (typeof helper !== "function") {
                     throw new Error("${smokeLabel} smoke helper missing");
                   }
-                  return await helper(${isStageLiveSmokeRun ? JSON.stringify({ stage: liveStage, label: `${liveStage} live`, startElement: liveStartElement, desiredEnemyDistance: liveDesiredEnemyDistance }) : ''});
+                  return await helper(${isStageLiveSmokeRun ? JSON.stringify(liveSmokeOptions) : ''});
                 })()
               `);
               finishSmoke(result && result.ok ? 0 : 1, result && result.ok ? `${smokeLabel} verified ${JSON.stringify(result)}` : `${smokeLabel} verification failed`);
