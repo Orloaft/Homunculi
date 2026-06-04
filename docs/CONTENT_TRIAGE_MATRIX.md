@@ -2,6 +2,8 @@
 
 Phase 2 goal: stop treating the shipped content as one large pile. Keep the current authoritative runtime (`index.html` + `scripts/game.js`) stable, then decide which worlds deserve immediate polish, which should be promoted next, and which should stay parked until they have a clear gameplay identity.
 
+For the current execution order, smoke gates, and done definition, see `docs/PRODUCTION_READINESS_WORKFLOW.md`.
+
 ## Production Slice Decision
 
 Keep now:

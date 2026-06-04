@@ -2,6 +2,8 @@
 
 Scope: active runtime only. `index.html` loads `scripts/game.js?v=210`; the TypeScript `src/` path is a partial migration and is not registered in Phaser's scene list. Runtime code was not changed for this audit.
 
+Production orchestration now lives in `docs/PRODUCTION_READINESS_WORKFLOW.md`. Use that workflow as the working board for the next slices, while this audit remains the historical record of loop risks and fixes.
+
 ## Current Shipped Loop
 
 1. Boot enters `LoadingScene`, then `TitleScene`, `SaveSlotScene`/`StageSelectScene`, and finally `GameScene` (`scripts/game.js:59581`, `scripts/game.js:59645`).
