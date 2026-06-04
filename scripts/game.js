@@ -15773,7 +15773,8 @@ class GameScene extends Phaser.Scene {
         const hints = {
             forest: 'Survive the timer, collect elements, and prepare for the Obelisk.',
             cave: 'Cave focus: pick up new elements and look for Fusion Ritual at level up.',
-            sand: 'Sand focus: keep moving through the heat and prepare for Eyelor.'
+            sand: 'Sand focus: keep moving through the heat and prepare for Eyelor.',
+            swamp: 'Swamp focus: use mud and poison discoveries to control crowded wetlands.'
         };
 
         return hints[this.stage] || '';
@@ -18015,7 +18016,7 @@ class GameScene extends Phaser.Scene {
     getPrimaryElementRewardChoices(wizard = null, choiceCount = 3) {
         const primaryElements = this.primaryElements || ['fire', 'water', 'earth', 'air', 'lightning', 'arcane'];
         const choices = [];
-        const firstSliceStages = ['forest', 'cave', 'sand'];
+        const firstSliceStages = ['forest', 'cave', 'sand', 'swamp'];
         const heldElements = this.getRunElementInventory(wizard);
         const uniqueHeldElements = [...new Set(heldElements)];
 
@@ -18060,6 +18061,14 @@ class GameScene extends Phaser.Scene {
                 pickupMagnetRadius: 220,
                 pickupMagnetSpeed: 500,
                 xpDropMultiplier: 1.4,
+                earlyCatalystMilestones: { 4: 1, 8: 2 }
+            },
+            swamp: {
+                bossHealthMultiplier: 0.95,
+                waveSpawnIntervalMultiplier: 1.05,
+                pickupMagnetRadius: 210,
+                pickupMagnetSpeed: 480,
+                xpDropMultiplier: 1.3,
                 earlyCatalystMilestones: { 4: 1, 8: 2 }
             }
         };
@@ -18492,7 +18501,7 @@ class GameScene extends Phaser.Scene {
                         { type: 'mudguard', weight: 30, count: 1 }
                     ],
                     spawnInterval: 3000,
-                    maxEnemies: 20
+                    maxEnemies: 16
                 },
                 // Wave 1 (1:00-2:00) - Merchants appear
                 {
@@ -60163,12 +60172,12 @@ if (typeof window !== 'undefined') {
                 specialEvent: Boolean(wave.specialEvent)
             };
         };
-        const hasGiant = (wave) => wave.enemies.some(enemy => enemy.type.includes('giant'));
+        const hasGiant = (wave) => wave.enemies.some(enemy => enemy.type.startsWith('giant-'));
 
         await waitFor('Phaser game boot', () => typeof game !== 'undefined' && game && game.scene);
         await waitFor('GameScene availability', () => typeof GameScene !== 'undefined');
 
-        const stages = ['forest', 'cave', 'sand'];
+        const stages = ['forest', 'cave', 'sand', 'swamp'];
         const metrics = {};
 
         stages.forEach(stage => {
@@ -60228,7 +60237,7 @@ if (typeof window !== 'undefined') {
         });
 
         const openingRosterKeys = stages.map(stage => metrics[stage].openingWave.roster.slice().sort().join(','));
-        assert(new Set(openingRosterKeys).size === stages.length, 'Forest/Cave/Sand opening rosters should remain distinct');
+        assert(new Set(openingRosterKeys).size === stages.length, 'Forest/Cave/Sand/Swamp opening rosters should remain distinct');
 
         return {
             ok: true,
@@ -60327,7 +60336,8 @@ if (typeof window !== 'undefined') {
             const tuningChecks = [
                 ['forest', 0.8, { 4: 1, 8: 2 }],
                 ['cave', 0.85, { 4: 1, 8: 2 }],
-                ['sand', 0.9, { 4: 1, 8: 2 }]
+                ['sand', 0.9, { 4: 1, 8: 2 }],
+                ['swamp', 0.95, { 4: 1, 8: 2 }]
             ];
             tuningChecks.forEach(([stage, bossMultiplier, catalysts]) => {
                 const gameScene = new GameScene();

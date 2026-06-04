@@ -4,7 +4,7 @@ Track A added `npm run smoke:feel` as a low-risk automated probe for the Forest/
 
 The smoke boots the real Electron/Phaser renderer, then calls `window.runHomunculiFeelSmoke()` from `scripts/game.js`. It does not start a live match or tune content. Instead, it instantiates `GameScene` in renderer context and checks deterministic pacing data that should correlate with first-play readability:
 
-- Forest, Cave, and Sand each have a distinct opening enemy roster.
+- Forest, Cave, Sand, and Swamp each have a distinct opening enemy roster.
 - Opening waves stay readable: 3-4 enemy types, no giant enemies, no special events, normalized weights, a slow spawn interval, and a low enemy cap at normal density.
 - Waves 1 and 2 increase pressure through shorter spawn intervals and higher enemy caps.
 - The first three waves contain at least five enemy types per stage.
@@ -12,6 +12,8 @@ The smoke boots the real Electron/Phaser renderer, then calls `window.runHomuncu
 - First-slice pickup tuning keeps early XP gems reachable without talent unlocks.
 - First-slice boss health multipliers remain in the tuned confidence envelope.
 - Early primary-element rewards set up fusion instead of leaving alchemy to pure chance when the player has one element.
+
+Swamp is included as the first promoted post-slice world. Its smoke coverage keeps the opening wetland wave readable, verifies early catalyst support, and protects the first pass of mud/poison fusion setup before deeper Swamp-specific mechanics are added.
 
 This complements `npm run smoke:progression`, which verifies save progression and exact vertical-slice constants. `smoke:feel` intentionally uses ranges and invariants rather than exact values so Track B can keep tuning content without changing the test for every small balance adjustment.
 

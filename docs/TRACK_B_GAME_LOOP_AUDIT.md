@@ -124,3 +124,11 @@ Acceptance criteria:
 
 - Forest, Cave, and Sand primary-element rewards now bias one choice toward a valid fusion pair when the player has exactly one run element.
 - The feel smoke now asserts that the first-slice element reward still offers three unique choices and includes a fire-compatible fusion setup.
+
+## 2026-06-04 Swamp Promotion Scaffold
+
+- Swamp now joins the early tuning surface as the first promoted post-slice world: boss health, pickup reach, XP drops, wave spawn readability, and early catalyst milestones are all covered by the same runtime helpers as Forest/Cave/Sand.
+- Swamp primary-element rewards now also bias one choice toward a valid fusion pair when the player has exactly one run element.
+- The Swamp opener has a lower early enemy cap, preserving its bloboid/giantfly/mudguard identity without overwhelming the first minute.
+- Added a Swamp start hint that points players toward mud and poison as the wetlands control/discovery theme.
+- `smoke:feel` and `smoke:progression` now assert Swamp tuning invariants so promotion work cannot silently drift.
