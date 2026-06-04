@@ -51,7 +51,7 @@ Next slices:
 
 1. Keep the reusable live-smoke harness healthy: `smoke:live` enables the shared live harness through `HOMUNCULI_STAGE_LIVE_SMOKE=1` and can be configured with `HOMUNCULI_LIVE_SMOKE_STAGE` and `HOMUNCULI_LIVE_SMOKE_ELEMENT`.
 2. Keep `smoke:swamp-live`/`smoke:snow-live` focused on the first 30 seconds of their worlds, and keep `smoke:swamp-boss`/`smoke:snow-boss` focused on deterministic boss entry and completion.
-3. Use `docs/PROMOTED_BALANCE_SUMMARY.md` as the human-readable balance snapshot for Forest/Cave/Sand/Swamp/Snow when promoting Ocean or changing first-slice tuning.
+3. Use `docs/PROMOTED_BALANCE_SUMMARY.md` as the human-readable balance snapshot for Forest/Cave/Sand/Swamp/Snow/Ocean when promoting Lava or changing first-slice tuning.
 4. Keep `smoke:ocean-live` water-start coverage and `smoke:ocean-boss` Sea Kings coverage inside `verify:release` while Ocean remains the front edge of promotion.
 
 ### Lane 2: Core Loop Completeness
@@ -79,8 +79,9 @@ Promotion order:
 1. Swamp: poison/mud control identity, Amphibian live gate.
 2. Snow: ice/water survival pressure, Frost Guardian gate.
 3. Ocean: water/wave identity, Sea Kings multi-boss gate.
-4. Lava, Grave, Castle: later power-curve pass after the first six worlds are stable.
-5. Spire/Void: design pass before production claims because their identity is still thin.
+4. Lava: next promotion lane after Ocean.
+5. Grave, Castle: later power-curve pass after Lava is stable.
+6. Spire/Void: design pass before production claims because their identity is still thin.
 
 Promotion checklist:
 
@@ -126,9 +127,9 @@ Next slices:
 
 ## Immediate Queue
 
-1. Strengthen progression smoke for post-victory rewards and recipe/stats reload.
-2. Add first grimoire/readback surface for discovered recipes.
-3. Start the Lava deterministic promotion audit after Ocean stays green in the release stack.
+1. Promote Lava with deterministic feel/progression, named live, named Demon Slime boss, and release-stack coverage.
+2. Add first grimoire/readback surface for discovered recipes and run outcomes.
+3. Keep the Ocean release gates green while Lava enters the stack.
 
 ## Done Definition
 

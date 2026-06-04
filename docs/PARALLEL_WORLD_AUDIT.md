@@ -45,7 +45,7 @@ Promotion notes:
 
 ## Ocean
 
-Status: high-risk promotion after Snow.
+Status: promoted into deterministic feel/progression gates, now has a 30-second water-start live gate and deterministic Sea Kings multi-boss completion gate.
 
 Useful facts:
 
@@ -54,14 +54,34 @@ Useful facts:
 - Wave roster: `jellyfish`, `crabby`, `squid`, `shark`, `crablore`, `waterslime`.
 - Theme hooks exist for Water, Wave, and `ice+water -> wave`.
 - Boss path routes Ocean to `createSeaKingsBoss()`.
+- Current live command: `npm run smoke:ocean-live`.
+- Current boss command: `npm run smoke:ocean-boss`.
 
-Promotion blockers:
+Promotion notes:
 
-- Ocean is not in deterministic feel/progression coverage or early tuning.
-- An older random Ocean spawn branch may still use generic enemies instead of the aquatic roster.
-- Sea Kings use three bosses but generic boss-death handling may treat killing one king as full boss victory.
-- Sea King death animation/completion handling appears incomplete.
-- Ocean phase minions currently choose aquatic names but spawn `golem`.
+- Fixed 2026-06-04: Ocean is in deterministic feel/progression coverage, including Snow -> Ocean -> Lava unlock/reload assertions.
+- Fixed 2026-06-04: Ocean has vertical-slice tuning for readable first-minute pacing, XP/pickup support, catalysts, and boss health.
+- Fixed 2026-06-04: random Ocean spawns and Sea Kings phase minions use the aquatic roster instead of generic fallback enemies.
+- Fixed 2026-06-04: Sea Kings completion waits for all kings, drops rewards once, stops AI/music once, and calls `gameWon()` once.
+- Fixed 2026-06-04: `smoke:ocean-live` and `smoke:ocean-boss` are included in `verify:release`.
+
+## Lava
+
+Status: next promotion lane after Ocean.
+
+Useful facts:
+
+- Runtime IDs: `stage: 'lava'`, `worldId: 'lavaland'`, completion ID `lava-1`.
+- Progression: Ocean victory unlocks Lava; Lava victory unlocks Grave.
+- Runtime roster includes `fireslime`, `clubimp`, `axeimp`, `flyingdemon`, `fireworm`, `orangegolem`, `summoner`, and `giant fireslime`.
+- Boss path routes Lava to Demon Slime.
+
+Promotion needs:
+
+- Add Lava deterministic feel/progression assertions matching the promoted-world contract.
+- Add a named Lava live gate with roster/biome identity checks.
+- Add or promote the Demon Slime boss gate before Lava enters `verify:release`.
+- Record Lava first-minute balance in `docs/PROMOTED_BALANCE_SUMMARY.md` only after the gate is stable.
 
 ## Release Hardening
 
