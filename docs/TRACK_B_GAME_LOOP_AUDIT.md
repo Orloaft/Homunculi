@@ -106,3 +106,10 @@ Acceptance criteria:
 - The progression smoke creates a temporary save, verifies legacy localStorage unlocks do not leak into an active fresh save, forces Forest/Cave/Sand victories through `GameOverScene.updateSaveData()`, reloads the save, and checks Stage Select unlock visibility.
 - The smoke also asserts Forest/Cave/Sand catalyst and boss-health tuning constants so first-slice balance drift is caught automatically.
 - Fixed a Stage Select Voidkin animation crash by falling back to a static sprite when the animation is unavailable or malformed.
+
+## 2026-06-04 First-Slice Content Polish
+
+- Added short start-of-run objective hints for Forest, Cave, and Sand after gameplay begins.
+- Tightened first-slice fusion copy so the level-up card and fusion modal explain valid/matching element pairs more clearly.
+- Clarified early catalyst milestone and pickup text to match the current behavior: collected catalysts immediately grant damage boosts.
+- Replaced remaining player-facing `DESERT LAND`/`Desertland` labels in the active run intro path with `SAND LAND`/`Sand Land`.

@@ -12,6 +12,7 @@
     "compile": "tsc",
     "smoke:prod": "npm run compile && HOMUNCULI_SMOKE=1 electron --no-sandbox --disable-gpu .",
     "smoke:progression": "npm run compile && HOMUNCULI_PROGRESSION_SMOKE=1 electron --no-sandbox --disable-gpu .",
+    "smoke:feel": "npm run compile && HOMUNCULI_FEEL_SMOKE=1 electron --no-sandbox --disable-gpu .",
     "build-win": "npm run compile && electron-builder --win",
     "build-win-portable": "npm run compile && electron-builder --win portable",
     "build-portable": "npm run compile && node build-portable.js",

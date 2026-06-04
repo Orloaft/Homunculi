@@ -11628,7 +11628,7 @@ class GameScene extends Phaser.Scene {
                 { speaker: 'wizard', text: 'Fusion magic... interesting. I\'ll try it!' }
             ],
             sand: [
-                { speaker: 'witch', text: 'The scorching Desertland awaits. The heat here is unbearable!' },
+                { speaker: 'witch', text: 'The scorching Sand Land awaits. The heat here is unbearable!' },
                 { speaker: 'wizard', text: 'How do I manage my elements effectively?' },
                 { speaker: 'witch', text: 'Open the RADIAL MENU with TAB or SELECT button. You can drag elements between slots to optimize your build!' },
                 { speaker: 'wizard', text: 'That\'ll help me adapt to different situations!' }
@@ -15747,7 +15747,7 @@ class GameScene extends Phaser.Scene {
         const stageNames = {
             'forest': 'FOREST LAND',
             'cave': 'CAVE LAND',
-            'sand': 'DESERT LAND',
+            'sand': 'SAND LAND',
             'swamp': 'SWAMP LAND',
             'snow': 'SNOW LAND',
             'ocean': 'OCEAN LAND',
@@ -15758,6 +15758,44 @@ class GameScene extends Phaser.Scene {
             'void': 'THE VOID'
         };
         return stageNames[this.stage] || 'UNKNOWN LAND';
+    }
+
+    getStageStartHint() {
+        const hints = {
+            forest: 'Survive the timer, collect elements, and prepare for the Obelisk.',
+            cave: 'Cave focus: pick up new elements and look for Fusion Ritual at level up.',
+            sand: 'Sand focus: keep moving through the heat and prepare for Eyelor.'
+        };
+
+        return hints[this.stage] || '';
+    }
+
+    showStageStartHint() {
+        const hint = this.getStageStartHint();
+        if (!hint) return;
+
+        const hintText = this.add.text(400, 54, hint, {
+            fontSize: '16px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: 640 },
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        hintText.setOrigin(0.5);
+        hintText.setScrollFactor(0);
+        hintText.setDepth(561);
+
+        this.tweens.add({
+            targets: hintText,
+            alpha: 0,
+            y: 38,
+            delay: 4200,
+            duration: 800,
+            ease: 'Power2',
+            onComplete: () => hintText.destroy()
+        });
     }
     showElementSelection() {
         try {
@@ -17869,12 +17907,14 @@ class GameScene extends Phaser.Scene {
                     // Start game after tutorial
                     this.gameStarted = true;
                     this.updateChargeUI();
+                    this.showStageStartHint();
                 }
             });
         } else {
             // Skip tutorial for non-forest stages or special modes
             this.gameStarted = true;
             this.updateChargeUI();
+            this.showStageStartHint();
         }
 
         // NOTE: gameStarted is now set either after dialogue closes or immediately above
@@ -35032,10 +35072,11 @@ class GameScene extends Phaser.Scene {
                     }
 
                     const catalystText = this.add.text(milestonePlayer.x, milestonePlayer.y - 90,
-                        earlyCatalystCount === 1 ? 'CATALYST FOUND!' : `${earlyCatalystCount} CATALYSTS FOUND!`, {
+                        earlyCatalystCount === 1 ? 'CATALYST FOUND!\nCOLLECT FOR +5% DAMAGE' : `${earlyCatalystCount} CATALYSTS FOUND!\nCOLLECT FOR DAMAGE BOOSTS`, {
                         fontSize: '24px',
                         color: '#ffaa00',
                         fontStyle: 'bold',
+                        align: 'center',
                         stroke: '#000000',
                         strokeThickness: 4
                     });
@@ -35461,7 +35502,7 @@ class GameScene extends Phaser.Scene {
         });
 
         // Show collection text with damage boost info
-        const displayText = `+5% DAMAGE!\n(Total: +${damagePercent}%)`;
+        const displayText = `CATALYST ABSORBED\n+5% DAMAGE (Total: +${damagePercent}%)`;
         const collectionText = this.add.text(catalyst.x, catalyst.y - 40, displayText, {
             fontSize: '20px',
             color: '#ff6600',
@@ -49148,7 +49189,7 @@ class GameScene extends Phaser.Scene {
                     title: 'FUSION RITUAL',
                     icon: '🔮',
                     iconImage: 'fusion-icon',
-                    description: 'Combine 2 elements into a new one',
+                    description: 'Fuse a valid pair into a new spell',
                     color: 0xff44ff
                 };
             } else if (hasAnyElements) {
@@ -50004,7 +50045,7 @@ class GameScene extends Phaser.Scene {
         title.setOrigin(0.5);
         title.setScrollFactor(0);
         title.setDepth(921);
-        const instruction = this.add.text(400, 140, 'Select two elements to combine', {
+        const instruction = this.add.text(400, 140, 'Select two matching or compatible elements', {
             fontSize: '16px',
             color: '#ffffff'
         });
@@ -59761,6 +59802,95 @@ const config = {
 };
 
 if (typeof window !== 'undefined') {
+    window.runHomunculiFeelSmoke = async function runHomunculiFeelSmoke() {
+        const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        const waitFor = async (label, predicate, timeoutMs = 8000) => {
+            const start = Date.now();
+            while (Date.now() - start < timeoutMs) {
+                if (predicate()) return;
+                await wait(100);
+            }
+            const activeScenes = typeof game !== 'undefined' && game && game.scene
+                ? game.scene.getScenes(true).map(scene => scene.scene.key).join(', ')
+                : 'none';
+            throw new Error(`Timed out waiting for ${label}; active scenes: ${activeScenes}`);
+        };
+        const assert = (condition, message) => {
+            if (!condition) throw new Error(message);
+        };
+        const summarizeWave = (wave) => {
+            const roster = wave.enemies.map(enemy => enemy.type);
+            const totalWeight = wave.enemies.reduce((sum, enemy) => sum + enemy.weight, 0);
+            const totalSpawnCount = wave.enemies.reduce((sum, enemy) => sum + enemy.count, 0);
+            return {
+                roster,
+                totalWeight,
+                totalSpawnCount,
+                spawnInterval: wave.spawnInterval,
+                maxEnemies: wave.maxEnemies,
+                specialEvent: Boolean(wave.specialEvent)
+            };
+        };
+        const hasGiant = (wave) => wave.enemies.some(enemy => enemy.type.includes('giant'));
+
+        await waitFor('Phaser game boot', () => typeof game !== 'undefined' && game && game.scene);
+        await waitFor('GameScene availability', () => typeof GameScene !== 'undefined');
+
+        const stages = ['forest', 'cave', 'sand'];
+        const metrics = {};
+
+        stages.forEach(stage => {
+            const gameScene = new GameScene();
+            gameScene.stage = stage;
+            gameScene.enemyDensityMultiplier = 0.5;
+
+            const waves = [0, 1, 2].map(waveNumber => gameScene.getWaveDefinition(waveNumber));
+            const firstWave = waves[0];
+            const firstWaveSummary = summarizeWave(firstWave);
+            const secondWaveSummary = summarizeWave(waves[1]);
+            const thirdWaveSummary = summarizeWave(waves[2]);
+            const catalystMilestones = {
+                4: gameScene.getEarlyCatalystMilestone(4),
+                8: gameScene.getEarlyCatalystMilestone(8)
+            };
+            const bossHealthMultiplier = gameScene.getBossHealthTuningMultiplier();
+
+            assert(firstWaveSummary.roster.length >= 3, `${stage} opening roster is too narrow`);
+            assert(firstWaveSummary.roster.length <= 4, `${stage} opening roster is too noisy`);
+            assert(new Set(firstWaveSummary.roster).size === firstWaveSummary.roster.length, `${stage} opening roster has duplicate enemy types`);
+            assert(!hasGiant(firstWave), `${stage} opening wave starts with a giant enemy`);
+            assert(!firstWave.specialEvent, `${stage} opening wave should not have a special event`);
+            assert(firstWave.spawnInterval >= 6000 && firstWave.spawnInterval <= 6700, `${stage} opening spawn interval drifted out of readable range`);
+            assert(firstWave.maxEnemies >= 7 && firstWave.maxEnemies <= 8, `${stage} opening max enemy count drifted out of readable range`);
+            assert(firstWave.enemies.every(enemy => enemy.count <= 2), `${stage} opening wave can spawn too many of one enemy at once`);
+            assert(firstWaveSummary.totalWeight >= 90 && firstWaveSummary.totalWeight <= 110, `${stage} opening wave weights should stay normalized`);
+            assert(waves[1].spawnInterval < firstWave.spawnInterval, `${stage} second wave should increase pressure`);
+            assert(waves[2].spawnInterval < waves[1].spawnInterval, `${stage} third wave should keep increasing pressure`);
+            assert(waves[1].maxEnemies > firstWave.maxEnemies, `${stage} second wave should raise enemy cap`);
+            assert(waves[2].maxEnemies > waves[1].maxEnemies, `${stage} third wave should raise enemy cap`);
+            assert(new Set(waves.flatMap(wave => wave.enemies.map(enemy => enemy.type))).size >= 5, `${stage} first three waves need enough variety`);
+            assert(catalystMilestones[4] >= 1, `${stage} level 4 catalyst support missing`);
+            assert(catalystMilestones[8] >= 2, `${stage} level 8 catalyst support missing`);
+            assert(bossHealthMultiplier >= 0.75 && bossHealthMultiplier <= 0.95, `${stage} boss first-slice multiplier drifted`);
+
+            metrics[stage] = {
+                openingWave: firstWaveSummary,
+                secondWave: secondWaveSummary,
+                thirdWave: thirdWaveSummary,
+                catalystMilestones,
+                bossHealthMultiplier
+            };
+        });
+
+        const openingRosterKeys = stages.map(stage => metrics[stage].openingWave.roster.slice().sort().join(','));
+        assert(new Set(openingRosterKeys).size === stages.length, 'Forest/Cave/Sand opening rosters should remain distinct');
+
+        return {
+            ok: true,
+            stages: metrics
+        };
+    };
+
     window.runHomunculiProgressionSmoke = async function runHomunculiProgressionSmoke() {
         const originalStorage = {};
         for (let i = 0; i < localStorage.length; i++) {

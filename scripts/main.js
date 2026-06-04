@@ -15,10 +15,11 @@ app.commandLine.appendSwitch('disable-gpu-vsync');
 let mainWindow;
 const isSmokeRun = process.env.HOMUNCULI_SMOKE === '1';
 const isProgressionSmokeRun = process.env.HOMUNCULI_PROGRESSION_SMOKE === '1';
+const isFeelSmokeRun = process.env.HOMUNCULI_FEEL_SMOKE === '1';
 let smokeFailed = false;
 
 function finishSmoke(exitCode, reason) {
-  if ((!isSmokeRun && !isProgressionSmokeRun) || app.isQuitting) return;
+  if ((!isSmokeRun && !isProgressionSmokeRun && !isFeelSmokeRun) || app.isQuitting) return;
   app.isQuitting = true;
   console.log(`[smoke] ${reason}`);
   app.exit(exitCode);
@@ -51,7 +52,7 @@ function createWindow() {
   // Load the game
   mainWindow.loadFile(path.join(__dirname, '..', 'index.html'));
 
-  if (isSmokeRun || isProgressionSmokeRun) {
+  if (isSmokeRun || isProgressionSmokeRun || isFeelSmokeRun) {
     mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
       smokeFailed = true;
       finishSmoke(1, `load failed ${errorCode}: ${errorDescription} (${validatedURL})`);
@@ -77,23 +78,25 @@ function createWindow() {
     mainWindow.webContents.once('did-finish-load', () => {
       setTimeout(async () => {
         if (!smokeFailed) {
-          if (isProgressionSmokeRun) {
+          if (isProgressionSmokeRun || isFeelSmokeRun) {
             try {
+              const smokeHelperName = isFeelSmokeRun ? 'runHomunculiFeelSmoke' : 'runHomunculiProgressionSmoke';
+              const smokeLabel = isFeelSmokeRun ? 'feel' : 'progression';
               const result = await mainWindow.webContents.executeJavaScript(`
                 (async () => {
                   if (!document.querySelector("canvas")) {
                     throw new Error("Phaser canvas missing");
                   }
-                  if (typeof window.runHomunculiProgressionSmoke !== "function") {
-                    throw new Error("progression smoke helper missing");
+                  if (typeof window.${smokeHelperName} !== "function") {
+                    throw new Error("${smokeLabel} smoke helper missing");
                   }
-                  return await window.runHomunculiProgressionSmoke();
+                  return await window.${smokeHelperName}();
                 })()
               `);
-              finishSmoke(result && result.ok ? 0 : 1, result && result.ok ? `progression verified ${JSON.stringify(result)}` : 'progression verification failed');
+              finishSmoke(result && result.ok ? 0 : 1, result && result.ok ? `${smokeLabel} verified ${JSON.stringify(result)}` : `${smokeLabel} verification failed`);
             } catch (error) {
               smokeFailed = true;
-              finishSmoke(1, `progression verification error: ${error && error.message ? error.message : error}`);
+              finishSmoke(1, `${isFeelSmokeRun ? 'feel' : 'progression'} verification error: ${error && error.message ? error.message : error}`);
             }
           } else {
             const hasCanvas = await mainWindow.webContents.executeJavaScript(
