@@ -15730,6 +15730,15 @@ class GameScene extends Phaser.Scene {
                         // Re-enable input
                         this.input.keyboard.enabled = true;
 
+                        if (this.startElement && this.startElement !== 'none') {
+                            this.chargeSlots[0] = this.startElement;
+                            this.charges = [this.startElement];
+                            this.discoveredElements.add(this.startElement);
+                            this.updateChargeUI();
+                            this.startGame();
+                            return;
+                        }
+
                         // Show WHEEL OF FORTUNE to grant starting element!
                         // In multiplayer, spin for each player sequentially
                         if (this.multiplayerEnabled) {
@@ -59877,6 +59886,7 @@ if (typeof window !== 'undefined') {
             if (typeof game === 'undefined' || !game || !game.scene) return null;
             return game.scene.getScene('GameScene');
         };
+        let liveAimTimer = null;
         const closeDialogueIfOpen = (scene) => {
             if (scene && scene.dialogueManager && scene.dialogueManager.active) {
                 scene.dialogueManager.close(true);
@@ -59898,7 +59908,8 @@ if (typeof window !== 'undefined') {
                 stage: 'forest',
                 p1Character: 'wizard',
                 multiplayerEnabled: false,
-                arcadeMode: false
+                arcadeMode: false,
+                startElement: 'fire'
             });
 
             await waitFor('Forest GameScene create', () => {
@@ -59910,16 +59921,29 @@ if (typeof window !== 'undefined') {
             if (scene.scene && scene.scene.resume) {
                 scene.scene.resume();
             }
-            if (!scene.gameStarted) {
-                scene.chargeSlots = scene.chargeSlots || new Array(scene.initialMaxCharges || 3).fill(null);
-                scene.chargeSlots[0] = 'fire';
+            const forceLiveSmokeStartingElement = () => {
+                const slots = scene.wizard.chargeSlots || scene.chargeSlots || new Array(scene.initialMaxCharges || 3).fill(null);
+                scene.wizard.chargeSlots = slots;
+                scene.chargeSlots = slots;
+                scene.wizard.charges = ['fire'];
                 scene.charges = ['fire'];
+                slots.fill(null);
+                slots[0] = 'fire';
+                if (scene.wizard.elementTiers && scene.wizard.elementTiers.set) {
+                    scene.wizard.elementTiers.set('fire_0', 1);
+                }
+                if (scene.elementTiers && scene.elementTiers.set) {
+                    scene.elementTiers.set('fire_0', 1);
+                }
                 if (scene.discoveredElements && scene.discoveredElements.add) {
                     scene.discoveredElements.add('fire');
                 }
                 if (scene.updateChargeUI) {
                     scene.updateChargeUI();
                 }
+            };
+            forceLiveSmokeStartingElement();
+            if (!scene.gameStarted) {
                 scene.gamePaused = false;
                 scene.pauseSource = null;
                 scene.time.timeScale = 1;
@@ -59947,10 +59971,46 @@ if (typeof window !== 'undefined') {
             closeDialogueIfOpen(scene);
 
             await waitFor('Forest live gameplay start', () => scene.gameStarted === true, 8000);
+            forceLiveSmokeStartingElement();
             assert(scene.stage === 'forest', 'Live smoke is not running Forest');
             assert(scene.wizard && scene.wizard.active, 'Wizard missing after Forest start');
             assert(scene.enemies && scene.enemies.children, 'Enemy group missing after Forest start');
             assertNoRendererErrors('Forest start');
+
+            liveAimTimer = setInterval(() => {
+                const enemies = scene.enemies && scene.enemies.children
+                    ? scene.enemies.children.entries.filter(enemy => enemy && enemy.active && !enemy.isDying)
+                    : [];
+                if (!scene.wizard || enemies.length === 0) return;
+                let nearestEnemy = null;
+                let nearestDistance = Infinity;
+                enemies.forEach(enemy => {
+                    const distance = Phaser.Math.Distance.Between(scene.wizard.x, scene.wizard.y, enemy.x, enemy.y);
+                    if (distance < nearestDistance) {
+                        nearestDistance = distance;
+                        nearestEnemy = enemy;
+                    }
+                });
+                if (!nearestEnemy) return;
+                const angle = Phaser.Math.Angle.Between(scene.wizard.x, scene.wizard.y, nearestEnemy.x, nearestEnemy.y);
+                const octant = Math.round(8 * angle / (2 * Math.PI) + 8) % 8;
+                const directions = ['right', 'down-right', 'down', 'down-left', 'left', 'up-left', 'up', 'up-right'];
+                const direction = directions[octant] || 'down';
+                scene.wizard.lastDirection = direction;
+                scene.wizard.lastStableDirection = direction;
+                if (nearestDistance > 140) {
+                    const step = Math.min(18, nearestDistance - 140);
+                    scene.wizard.x += Math.cos(angle) * step;
+                    scene.wizard.y += Math.sin(angle) * step;
+                    if (scene.wizard.body) {
+                        scene.wizard.body.updateFromGameObject();
+                    }
+                    if (scene.wizard.shadow) {
+                        scene.wizard.shadow.x = scene.wizard.x;
+                        scene.wizard.shadow.y = scene.wizard.y + 20;
+                    }
+                }
+            }, 250);
 
             const startSurvivalTime = scene.survivalTime || 0;
             await wait(30000);
@@ -59964,6 +60024,7 @@ if (typeof window !== 'undefined') {
             const totalEnemyActivity = activeEnemies + (scene.enemiesKilled || 0);
             assert((scene.survivalTime || 0) > startSurvivalTime, 'Survival timer did not advance');
             assert(totalEnemyActivity > 0, 'Forest live smoke did not observe enemy activity');
+            assert((scene.enemiesKilled || 0) > 0, 'Forest live smoke did not confirm any enemy kills');
 
             return {
                 ok: true,
@@ -59973,9 +60034,13 @@ if (typeof window !== 'undefined') {
                 activeEnemies,
                 enemiesKilled: scene.enemiesKilled || 0,
                 level: scene.playerLevel,
+                xp: scene.playerXP,
                 charges: scene.charges
             };
         } finally {
+            if (liveAimTimer) {
+                clearInterval(liveAimTimer);
+            }
             window.removeEventListener('error', captureRendererError);
             localStorage.clear();
             Object.entries(originalStorage).forEach(([key, value]) => localStorage.setItem(key, value));
