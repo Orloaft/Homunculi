@@ -114,3 +114,8 @@ Acceptance criteria:
 - Tightened first-slice fusion copy so the level-up card and fusion modal explain valid/matching element pairs more clearly.
 - Clarified early catalyst milestone and pickup text to match the current behavior: collected catalysts immediately grant damage boosts.
 - Replaced remaining player-facing `DESERT LAND`/`Desertland` labels in the active run intro path with `SAND LAND`/`Sand Land`.
+
+## 2026-06-04 First-Level Pacing Gate
+
+- Forest, Cave, and Sand now have first-slice XP and pickup-magnet tuning so early gems are easier to collect before talent unlocks.
+- Forest live smoke now follows visible XP after combat, auto-dismisses the first level-up reward with a passive pick, and fails unless it collects XP and reaches level 1 while sustaining live gameplay.

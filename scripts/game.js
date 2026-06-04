@@ -18000,16 +18000,25 @@ class GameScene extends Phaser.Scene {
             forest: {
                 bossHealthMultiplier: 0.8,
                 waveSpawnIntervalMultiplier: 1.1,
+                pickupMagnetRadius: 240,
+                pickupMagnetSpeed: 520,
+                xpDropMultiplier: 2.0,
                 earlyCatalystMilestones: { 4: 1, 8: 2 }
             },
             cave: {
                 bossHealthMultiplier: 0.85,
                 waveSpawnIntervalMultiplier: 1.05,
+                pickupMagnetRadius: 220,
+                pickupMagnetSpeed: 500,
+                xpDropMultiplier: 1.6,
                 earlyCatalystMilestones: { 4: 1, 8: 2 }
             },
             sand: {
                 bossHealthMultiplier: 0.9,
                 waveSpawnIntervalMultiplier: 1.0,
+                pickupMagnetRadius: 220,
+                pickupMagnetSpeed: 500,
+                xpDropMultiplier: 1.4,
                 earlyCatalystMilestones: { 4: 1, 8: 2 }
             }
         };
@@ -18024,6 +18033,18 @@ class GameScene extends Phaser.Scene {
     getEarlyCatalystMilestone(level) {
         const milestones = this.getVerticalSliceTuning().earlyCatalystMilestones || {};
         return milestones[level] || 0;
+    }
+
+    getPickupMagnetRadius() {
+        return this.getVerticalSliceTuning().pickupMagnetRadius || 120;
+    }
+
+    getPickupMagnetSpeed() {
+        return this.getVerticalSliceTuning().pickupMagnetSpeed || 400;
+    }
+
+    getXpDropMultiplier() {
+        return this.getVerticalSliceTuning().xpDropMultiplier || 1;
     }
 
     getWaveDefinition(waveNumber) {
@@ -21823,10 +21844,11 @@ class GameScene extends Phaser.Scene {
             }
             // Jewels now persist indefinitely - no timeout
             // (Removed 30-second timeout to prevent jewels from disappearing during intense combat)
-            if (closerDistance < 120) { // Doubled from 60 to 120 for stronger magnet range
+            const pickupMagnetRadius = this.getPickupMagnetRadius();
+            if (closerDistance < pickupMagnetRadius) {
                 // Attract jewel to the closer wizard
                 const angle = Phaser.Math.Angle.Between(jewel.x, jewel.y, targetWizard.x, targetWizard.y);
-                const speed = 400; // Doubled from 200 to 400 for faster attraction
+                const speed = this.getPickupMagnetSpeed();
                 jewel.body.setVelocity(
                     Math.cos(angle) * speed,
                     Math.sin(angle) * speed
@@ -26187,7 +26209,7 @@ class GameScene extends Phaser.Scene {
 
         // Scale XP drops based on enemy health (stronger enemies = more XP)
         const healthMultiplier = Math.max(1, Math.floor(enemyMaxHealth / 15));
-        xpValue = Math.floor(xpValue * healthMultiplier * 1.25); // +25% XP boost
+        xpValue = Math.floor(xpValue * healthMultiplier * 1.25 * this.getXpDropMultiplier());
 
         // Calculate jewel count based on XP value
         const jewelCount = Math.min(8, Math.max(1, Math.floor(xpValue / 15)));
@@ -59977,11 +59999,32 @@ if (typeof window !== 'undefined') {
             assert(scene.enemies && scene.enemies.children, 'Enemy group missing after Forest start');
             assertNoRendererErrors('Forest start');
 
+            let firstLevelAt = null;
             liveAimTimer = setInterval(() => {
+                if (firstLevelAt === null && (scene.playerLevel || 0) >= 1) {
+                    firstLevelAt = scene.survivalTime || 0;
+                }
+                if (scene.chestSelectionActive && scene.chestUI && scene.chestUI.mainMenu && scene.chestUI.buttons && scene.chestUI.buttons.length > 0) {
+                    const reward = scene.chestUI.buttons[0];
+                    scene.selectChestReward(reward.type, scene.chestUI.chest, reward.passiveKey);
+                }
+                if (scene.chestSelectionActive || scene.chestOpening || scene.gamePaused) return;
+                const jewels = scene.jewels && scene.jewels.children
+                    ? scene.jewels.children.entries.filter(jewel => jewel && jewel.active && jewel.visible && !jewel.isDestroying)
+                    : [];
                 const enemies = scene.enemies && scene.enemies.children
                     ? scene.enemies.children.entries.filter(enemy => enemy && enemy.active && !enemy.isDying)
                     : [];
-                if (!scene.wizard || enemies.length === 0) return;
+                if (!scene.wizard || (jewels.length === 0 && enemies.length === 0)) return;
+                let nearestPickup = null;
+                let nearestPickupDistance = Infinity;
+                jewels.forEach(jewel => {
+                    const distance = Phaser.Math.Distance.Between(scene.wizard.x, scene.wizard.y, jewel.x, jewel.y);
+                    if (distance < nearestPickupDistance) {
+                        nearestPickupDistance = distance;
+                        nearestPickup = jewel;
+                    }
+                });
                 let nearestEnemy = null;
                 let nearestDistance = Infinity;
                 enemies.forEach(enemy => {
@@ -59991,15 +60034,18 @@ if (typeof window !== 'undefined') {
                         nearestEnemy = enemy;
                     }
                 });
-                if (!nearestEnemy) return;
-                const angle = Phaser.Math.Angle.Between(scene.wizard.x, scene.wizard.y, nearestEnemy.x, nearestEnemy.y);
+                const target = nearestPickup && nearestPickupDistance < 420 ? nearestPickup : nearestEnemy;
+                if (!target) return;
+                const targetDistance = nearestPickup && target === nearestPickup ? nearestPickupDistance : nearestDistance;
+                const angle = Phaser.Math.Angle.Between(scene.wizard.x, scene.wizard.y, target.x, target.y);
                 const octant = Math.round(8 * angle / (2 * Math.PI) + 8) % 8;
                 const directions = ['right', 'down-right', 'down', 'down-left', 'left', 'up-left', 'up', 'up-right'];
                 const direction = directions[octant] || 'down';
                 scene.wizard.lastDirection = direction;
                 scene.wizard.lastStableDirection = direction;
-                if (nearestDistance > 140) {
-                    const step = Math.min(18, nearestDistance - 140);
+                const desiredDistance = target === nearestPickup ? 16 : 140;
+                if (targetDistance > desiredDistance) {
+                    const step = Math.min(18, targetDistance - desiredDistance);
                     scene.wizard.x += Math.cos(angle) * step;
                     scene.wizard.y += Math.sin(angle) * step;
                     if (scene.wizard.body) {
@@ -60023,8 +60069,11 @@ if (typeof window !== 'undefined') {
             const activeEnemies = scene.enemies.children.entries.filter(enemy => enemy && enemy.active).length;
             const totalEnemyActivity = activeEnemies + (scene.enemiesKilled || 0);
             assert((scene.survivalTime || 0) > startSurvivalTime, 'Survival timer did not advance');
+            assert(((scene.survivalTime || 0) - startSurvivalTime) >= 25000, 'Forest live smoke did not sustain at least 25 seconds of live gameplay');
             assert(totalEnemyActivity > 0, 'Forest live smoke did not observe enemy activity');
             assert((scene.enemiesKilled || 0) > 0, 'Forest live smoke did not confirm any enemy kills');
+            assert((scene.itemsCollected || 0) > 0, 'Forest live smoke did not collect any XP gems');
+            assert((scene.playerLevel || 0) >= 1, 'Forest live smoke did not reach the first level-up timing target');
 
             return {
                 ok: true,
@@ -60033,8 +60082,11 @@ if (typeof window !== 'undefined') {
                 playerHealth: scene.playerHealth,
                 activeEnemies,
                 enemiesKilled: scene.enemiesKilled || 0,
+                itemsCollected: scene.itemsCollected || 0,
                 level: scene.playerLevel,
+                firstLevelAt,
                 xp: scene.playerXP,
+                xpToNextLevel: scene.xpToNextLevel,
                 charges: scene.charges
             };
         } finally {
