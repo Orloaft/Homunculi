@@ -18016,7 +18016,7 @@ class GameScene extends Phaser.Scene {
     getPrimaryElementRewardChoices(wizard = null, choiceCount = 3) {
         const primaryElements = this.primaryElements || ['fire', 'water', 'earth', 'air', 'lightning', 'arcane'];
         const choices = [];
-        const firstSliceStages = ['forest', 'cave', 'sand', 'swamp'];
+        const firstSliceStages = ['forest', 'cave', 'sand', 'swamp', 'snow'];
         const heldElements = this.getRunElementInventory(wizard);
         const uniqueHeldElements = [...new Set(heldElements)];
 
@@ -18069,6 +18069,14 @@ class GameScene extends Phaser.Scene {
                 pickupMagnetRadius: 210,
                 pickupMagnetSpeed: 480,
                 xpDropMultiplier: 1.3,
+                earlyCatalystMilestones: { 4: 1, 8: 2 }
+            },
+            snow: {
+                bossHealthMultiplier: 1.0,
+                waveSpawnIntervalMultiplier: 1.15,
+                pickupMagnetRadius: 200,
+                pickupMagnetSpeed: 470,
+                xpDropMultiplier: 1.2,
                 earlyCatalystMilestones: { 4: 1, 8: 2 }
             }
         };
@@ -18658,36 +18666,39 @@ class GameScene extends Phaser.Scene {
         } else if (this.stage === 'snow') {
             // Snow stage waves: snowy, elkman, frost-golem, spiked-slime, northerner
             baseWaves = [
-                // Wave 0 (0:00-1:00) - Introduction - Easy start with snowy and northerner
+                // Wave 0 (0:00-1:00) - Introduction - readable Snow identity mix
                 {
                     enemies: [
-                        { type: 'snowy', weight: 60, count: 2 },
-                        { type: 'northerner', weight: 40, count: 1 }
+                        { type: 'snowy', weight: 40, count: 2 },
+                        { type: 'northerner', weight: 35, count: 1 },
+                        { type: 'spiked-slime', weight: 25, count: 1 }
                     ],
-                    spawnInterval: 3000,  // Slower spawn rate
+                    spawnInterval: 2800,  // Tuned to ~6.4s under normal-density feel smoke
                     maxEnemies: 15  // Fewer total enemies
                 },
-                // Wave 1 (1:00-2:00) - Add spiked slimes
+                // Wave 1 (1:00-2:00) - Add elkman pressure
                 {
                     enemies: [
                         { type: 'snowy', weight: 35, count: 2 },
-                        { type: 'northerner', weight: 30, count: 2 },
-                        { type: 'spiked-slime', weight: 35, count: 2 }
+                        { type: 'northerner', weight: 25, count: 2 },
+                        { type: 'spiked-slime', weight: 25, count: 2 },
+                        { type: 'elkman', weight: 15, count: 1 }
                     ],
-                    spawnInterval: 2000,
-                    maxEnemies: 35
+                    spawnInterval: 2100,
+                    maxEnemies: 30
                 },
-                // Wave 2 (2:00-3:00) - Add elkman warriors
+                // Wave 2 (2:00-3:00) - Add frost golems and lightning source
                 {
                     enemies: [
-                        { type: 'snowy', weight: 25, count: 3 },
+                        { type: 'snowy', weight: 20, count: 2 },
                         { type: 'northerner', weight: 25, count: 2 },
-                        { type: 'spiked-slime', weight: 25, count: 3 },
-                        { type: 'elkman', weight: 25, count: 2 }
+                        { type: 'spiked-slime', weight: 20, count: 2 },
+                        { type: 'elkman', weight: 25, count: 2 },
+                        { type: 'frost-golem', weight: 8, count: 1 },
+                        { type: 'lightningslime', weight: 2, count: 1 }
                     ],
-                    spawnInterval: 1200,
-                    maxEnemies: 45,
-                    specialEvent: { time: 30, type: 'swarm', enemy: 'spiked-slime', count: 8 }
+                    spawnInterval: 1500,
+                    maxEnemies: 42
                 },
                 // Wave 3 (3:00-4:00) - Add frost golems
                 {
@@ -54624,15 +54635,7 @@ class GameScene extends Phaser.Scene {
         boss.attackRange = 200;
         boss.slamDamage = 80;
         boss.slamRadius = 250;
-        // Apply hitbox configuration
-        console.log(`[FROST GUARDIAN] About to apply hitbox config for ${boss.enemyType}`);
-        console.log(`[FROST GUARDIAN] hitboxConfig loaded: ${typeof hitboxConfig !== 'undefined' ? hitboxConfig.loaded : 'undefined'}`);
-        if (typeof hitboxConfig !== 'undefined' && hitboxConfig.hitboxes) {
-            console.log(`[FROST GUARDIAN] Available hitbox configs:`, Object.keys(hitboxConfig.hitboxes));
-            console.log(`[FROST GUARDIAN] frost-guardian-boss config:`, hitboxConfig.hitboxes['frost-guardian-boss']);
-        }
         this.applyHitboxConfig(boss, boss.enemyType);
-        console.log(`[FROST GUARDIAN] After hitbox config - Size: ${boss.body.width}x${boss.body.height}, Offset: (${boss.body.offset.x}, ${boss.body.offset.y})`);
         // Boss properties
         boss.attackCooldown = 0;
         boss.slamCooldown = 0;
@@ -54723,7 +54726,7 @@ class GameScene extends Phaser.Scene {
         }
         // Update cooldowns
         if (this.boss.attackCooldown > 0) {
-            this.boss.attackCooldown -= 16; // 60fps approximation
+            this.boss.attackCooldown -= 1800 / this.speedMultiplier;
         }
     }
     frostGuardianAttack() {
@@ -54748,6 +54751,7 @@ class GameScene extends Phaser.Scene {
     createIceSlamWarning() {
         // Create warning circle for slam attack
         const warning = this.add.graphics();
+        this.frostGuardianLastSlamWarning = warning;
         warning.lineStyle(6, 0xff4400, 0.8);
         warning.fillStyle(0xff0000, 0.1);
         warning.fillCircle(0, 0, this.boss.slamRadius);
@@ -54776,6 +54780,9 @@ class GameScene extends Phaser.Scene {
             onComplete: () => {
                 warning.destroy();
                 warningText.destroy();
+                if (this.frostGuardianLastSlamWarning === warning) {
+                    this.frostGuardianLastSlamWarning = null;
+                }
             }
         });
     }
@@ -54824,7 +54831,7 @@ class GameScene extends Phaser.Scene {
             const y = this.boss.y + Math.sin(angle) * distance;
             // Spawn closest available ice enemies
             if (this.spawnSpecificEnemy) {
-                this.spawnSpecificEnemy('golem-blue', x, y);
+                this.spawnSpecificEnemy('frost-golem', x, y);
             }
         }
     }
@@ -57845,6 +57852,15 @@ class GameScene extends Phaser.Scene {
             boss.isAttacking = false;
             boss.anims.stop();
             boss.play('amphibian-heal');
+        } else if (boss.isFrostGuardian || boss.enemyType === 'frost-guardian-boss') {
+            if (this.bossAITimer) {
+                this.bossAITimer.destroy();
+                this.bossAITimer = null;
+            }
+            boss.isDead = true;
+            boss.isAttacking = false;
+            boss.anims.stop();
+            boss.play('frost-guardian-death');
         } else {
             boss.play('obelisk-death');
         }
@@ -57880,44 +57896,76 @@ class GameScene extends Phaser.Scene {
             }, 2000);
             return;
         }
+        let bossDeathComplete = false;
+        const completeBossDeath = () => {
+            if (bossDeathComplete) return;
+            bossDeathComplete = true;
+            try {
+                // Drop massive rewards
+                for (let i = 0; i < 10; i++) {
+                    const angle = (Math.PI * 2 * i) / 10;
+                    const distance = 100;
+                    const dropX = boss.x + Math.cos(angle) * distance;
+                    const dropY = boss.y + Math.sin(angle) * distance;
+                    this.dropJewel(dropX, dropY, 20, 0.15); // Large jewels
+                }
+
+                // PROGRESSION IMPROVEMENT: Drop 3-5 catalysts from boss
+                const catalystCount = 3 + Math.floor(Math.random() * 3); // 3-5 catalysts
+                console.log(`💎 BOSS DEFEATED: Dropping ${catalystCount} catalysts!`);
+                for (let i = 0; i < catalystCount; i++) {
+                    const angle = (Math.PI * 2 * i) / catalystCount + Math.PI / 6; // Offset from jewels
+                    const distance = 80;
+                    const dropX = boss.x + Math.cos(angle) * distance;
+                    const dropY = boss.y + Math.sin(angle) * distance;
+                    this.dropCatalyst(dropX, dropY);
+                }
+
+                // Drop special chest
+                this.dropChest(boss.x, boss.y);
+            } catch (error) {
+                console.warn('Boss reward drop failed during death cleanup:', error);
+            }
+            // Destroy boss
+            if (boss.active) {
+                boss.destroy();
+            }
+            if (this.boss === boss) {
+                this.boss = null;
+            }
+            // Trigger actual victory after delay
+            const triggerVictory = () => {
+                this.gameWon();
+            };
+            if (boss.isFrostGuardian || boss.enemyType === 'frost-guardian-boss') {
+                setTimeout(triggerVictory, 2000);
+            } else {
+                this.time.delayedCall(2000, triggerVictory);
+            }
+        };
         // Wait for death animation
         boss.once('animationcomplete', (animation, frame) => {
             // Only proceed if this was the death animation
             if (animation.key !== 'nekros-death' && animation.key !== 'archer-boss-death' &&
                 animation.key !== 'obelisk-death' && animation.key !== 'eyelor-death' &&
-                animation.key !== 'amphibian-heal') {
+                animation.key !== 'amphibian-heal' && animation.key !== 'frost-guardian-death') {
                 return;
             }
-            // Drop massive rewards
-            for (let i = 0; i < 10; i++) {
-                const angle = (Math.PI * 2 * i) / 10;
-                const distance = 100;
-                const dropX = boss.x + Math.cos(angle) * distance;
-                const dropY = boss.y + Math.sin(angle) * distance;
-                this.dropJewel(dropX, dropY, 20, 0.15); // Large jewels
-            }
-
-            // PROGRESSION IMPROVEMENT: Drop 3-5 catalysts from boss
-            const catalystCount = 3 + Math.floor(Math.random() * 3); // 3-5 catalysts
-            console.log(`💎 BOSS DEFEATED: Dropping ${catalystCount} catalysts!`);
-            for (let i = 0; i < catalystCount; i++) {
-                const angle = (Math.PI * 2 * i) / catalystCount + Math.PI / 6; // Offset from jewels
-                const distance = 80;
-                const dropX = boss.x + Math.cos(angle) * distance;
-                const dropY = boss.y + Math.sin(angle) * distance;
-                this.dropCatalyst(dropX, dropY);
-            }
-
-            // Drop special chest
-            this.dropChest(boss.x, boss.y);
-            // Destroy boss
-            boss.destroy();
-            this.boss = null;
-            // Trigger actual victory after delay
-            this.time.delayedCall(2000, () => {
-                this.gameWon();
-            });
+            completeBossDeath();
         });
+        if (boss.isFrostGuardian || boss.enemyType === 'frost-guardian-boss') {
+            setTimeout(() => {
+                if (bossDeathComplete) return;
+                bossDeathComplete = true;
+                if (boss.active) {
+                    boss.destroy();
+                }
+                if (this.boss === boss) {
+                    this.boss = null;
+                }
+                this.gameWon();
+            }, 3500);
+        }
     }
     gameWon() {
         // Prevent multiple calls
@@ -60294,6 +60342,135 @@ if (typeof window !== 'undefined') {
         }
     };
 
+    window.runHomunculiSnowBossSmoke = async function runHomunculiSnowBossSmoke() {
+        const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        const waitFor = async (label, predicate, timeoutMs = 10000) => {
+            const start = Date.now();
+            while (Date.now() - start < timeoutMs) {
+                if (predicate()) return;
+                await wait(100);
+            }
+            const activeScenes = typeof game !== 'undefined' && game && game.scene
+                ? game.scene.getScenes(true).map(scene => scene.scene.key).join(', ')
+                : 'none';
+            throw new Error(`Timed out waiting for ${label}; active scenes: ${activeScenes}`);
+        };
+        const assert = (condition, message) => {
+            if (!condition) throw new Error(message);
+        };
+
+        const rendererErrors = [];
+        const captureRendererError = (event) => {
+            rendererErrors.push({
+                message: event.message,
+                stack: event.error && event.error.stack
+            });
+        };
+        const assertNoRendererErrors = (label) => {
+            if (rendererErrors.length > 0) {
+                const latestError = rendererErrors[rendererErrors.length - 1];
+                throw new Error(`${label}: ${latestError.message}${latestError.stack ? `\n${latestError.stack}` : ''}`);
+            }
+        };
+
+        const originalStorage = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            originalStorage[key] = localStorage.getItem(key);
+        }
+
+        try {
+            window.addEventListener('error', captureRendererError);
+            localStorage.clear();
+            localStorage.setItem('enemyDensity', 'normal');
+
+            await waitFor('Phaser game boot', () => typeof game !== 'undefined' && game && game.scene);
+            await waitFor('title scene and Frost Guardian assets', () => {
+                const titleScene = game.scene.getScene('TitleScene');
+                return titleScene && titleScene.scene && titleScene.scene.isActive() && titleScene.textures && titleScene.textures.exists('frost-guardian-idle-1');
+            });
+            game.scene.stop('TitleScene');
+            game.scene.start('GameScene', {
+                stage: 'snow',
+                p1Character: 'wizard',
+                multiplayerEnabled: false,
+                arcadeMode: false,
+                startElement: 'fire'
+            });
+
+            await waitFor('Snow GameScene create', () => {
+                const scene = game.scene.getScene('GameScene');
+                return scene && scene.scene && scene.scene.isActive() && scene.stage === 'snow' && scene.wizard;
+            });
+
+            const scene = game.scene.getScene('GameScene');
+            if (scene.dialogueManager && scene.dialogueManager.active) {
+                scene.dialogueManager.close(true);
+            }
+            scene.gamePaused = false;
+            scene.pauseSource = null;
+            scene.gameStarted = true;
+            if (scene.physics && scene.physics.world) {
+                scene.physics.resume();
+            }
+            if (scene.time) {
+                scene.time.timeScale = 1;
+            }
+
+            scene.createFrostGuardianBoss();
+            await waitFor('Frost Guardian boss entry', () => scene.boss && scene.boss.active && scene.boss.enemyType === 'frost-guardian-boss');
+
+            const boss = scene.boss;
+            const expectedMaxHealth = Math.floor(7200 * 0.5 * scene.getBossHealthTuningMultiplier());
+            assert(boss.isFrostGuardian === true, 'Frost Guardian boss flag missing');
+            assert(boss.maxHealth === expectedMaxHealth, `Frost Guardian health tuning drifted: expected ${expectedMaxHealth}, got ${boss.maxHealth}`);
+            assert(scene.bossHealthBar && scene.bossHealthBar.active, 'Frost Guardian health bar missing');
+            assert(scene.bossHealthBarBg && scene.bossHealthBarBg.active, 'Frost Guardian health bar background missing');
+            assert(scene.bossNameText && scene.bossNameText.text === 'FROST GUARDIAN', 'Frost Guardian health label missing');
+            assert(scene.bossAITimer && !scene.bossAITimer.paused, 'Frost Guardian AI timer missing');
+            assertNoRendererErrors('Frost Guardian boss entry');
+
+            scene.wizard.x = boss.x;
+            scene.wizard.y = boss.y + 100;
+            if (scene.wizard.body) {
+                scene.wizard.body.updateFromGameObject();
+            }
+
+            await waitFor('Frost Guardian attack start', () => boss.isAttacking === true || Boolean(scene.frostGuardianLastSlamWarning), 8000);
+            assert(boss.attackCooldown <= 3000, 'Frost Guardian cooldown should be tracked in boss-timer time');
+            await waitFor('Frost Guardian attack cleanup', () => boss.isAttacking === false, 6000);
+            assertNoRendererErrors('Frost Guardian attack');
+
+            scene.createIceWave();
+            await waitFor('Frost Guardian Snow add spawn', () => {
+                return scene.enemies.children.entries.some(enemy => enemy && enemy.active && enemy.enemyType === 'frost-golem');
+            }, 3000);
+            assert(!scene.enemies.children.entries.some(enemy => enemy && enemy.active && enemy.enemyType === 'golem-blue'), 'Frost Guardian spawned non-Snow phase adds');
+
+            scene.handleBossDeath(boss);
+            try {
+                await waitFor('Frost Guardian death cleanup', () => scene.gameWonCalled === true && scene.boss === null && (!scene.bossAITimer || scene.bossAITimer.hasDispatched), 8000);
+            } catch (error) {
+                throw new Error(`${error.message}; gameWonCalled=${scene.gameWonCalled === true}; gameEnded=${scene.gameEnded === true}; sceneBoss=${scene.boss && scene.boss.enemyType}; bossActive=${boss.active}; bossAnim=${boss.anims && boss.anims.currentAnim && boss.anims.currentAnim.key}`);
+            }
+            assert(scene.gameEnded === true, 'Frost Guardian boss death did not end the run');
+            assertNoRendererErrors('Frost Guardian boss death');
+
+            return {
+                ok: true,
+                stage: scene.stage,
+                bossType: boss.enemyType,
+                maxHealth: expectedMaxHealth,
+                attackCooldown: boss.attackCooldown,
+                gameWonCalled: scene.gameWonCalled === true
+            };
+        } finally {
+            window.removeEventListener('error', captureRendererError);
+            localStorage.clear();
+            Object.entries(originalStorage).forEach(([key, value]) => localStorage.setItem(key, value));
+        }
+    };
+
     window.runHomunculiFeelSmoke = async function runHomunculiFeelSmoke() {
         const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
         const waitFor = async (label, predicate, timeoutMs = 8000) => {
@@ -60328,7 +60505,14 @@ if (typeof window !== 'undefined') {
         await waitFor('Phaser game boot', () => typeof game !== 'undefined' && game && game.scene);
         await waitFor('GameScene availability', () => typeof GameScene !== 'undefined');
 
-        const stages = ['forest', 'cave', 'sand', 'swamp'];
+        const stages = ['forest', 'cave', 'sand', 'swamp', 'snow'];
+        const stageExpectations = {
+            snow: {
+                requiredOpeningEnemies: ['snowy', 'northerner', 'spiked-slime'],
+                requiredEarlyEnemies: ['snowy', 'northerner', 'spiked-slime', 'elkman', 'frost-golem'],
+                maxBossHealthMultiplier: 1.0
+            }
+        };
         const metrics = {};
 
         stages.forEach(stage => {
@@ -60355,10 +60539,15 @@ if (typeof window !== 'undefined') {
             const earlyElementChoices = gameScene.getPrimaryElementRewardChoices(testWizard, 3);
             const fireCompatibleChoices = gameScene.getCompatiblePrimaryElementsFor('fire');
             const hasFusionSetupChoice = earlyElementChoices.some(element => fireCompatibleChoices.includes(element));
+            const expectations = stageExpectations[stage] || {};
+            const firstThreeRoster = new Set(waves.flatMap(wave => wave.enemies.map(enemy => enemy.type)));
 
             assert(firstWaveSummary.roster.length >= 3, `${stage} opening roster is too narrow`);
             assert(firstWaveSummary.roster.length <= 4, `${stage} opening roster is too noisy`);
             assert(new Set(firstWaveSummary.roster).size === firstWaveSummary.roster.length, `${stage} opening roster has duplicate enemy types`);
+            (expectations.requiredOpeningEnemies || []).forEach(enemyType => {
+                assert(firstWaveSummary.roster.includes(enemyType), `${stage} opening roster is missing ${enemyType}`);
+            });
             assert(!hasGiant(firstWave), `${stage} opening wave starts with a giant enemy`);
             assert(!firstWave.specialEvent, `${stage} opening wave should not have a special event`);
             assert(firstWave.spawnInterval >= 6000 && firstWave.spawnInterval <= 6700, `${stage} opening spawn interval drifted out of readable range`);
@@ -60369,10 +60558,13 @@ if (typeof window !== 'undefined') {
             assert(waves[2].spawnInterval < waves[1].spawnInterval, `${stage} third wave should keep increasing pressure`);
             assert(waves[1].maxEnemies > firstWave.maxEnemies, `${stage} second wave should raise enemy cap`);
             assert(waves[2].maxEnemies > waves[1].maxEnemies, `${stage} third wave should raise enemy cap`);
-            assert(new Set(waves.flatMap(wave => wave.enemies.map(enemy => enemy.type))).size >= 5, `${stage} first three waves need enough variety`);
+            assert(firstThreeRoster.size >= 5, `${stage} first three waves need enough variety`);
+            (expectations.requiredEarlyEnemies || []).forEach(enemyType => {
+                assert(firstThreeRoster.has(enemyType), `${stage} first three waves are missing ${enemyType}`);
+            });
             assert(catalystMilestones[4] >= 1, `${stage} level 4 catalyst support missing`);
             assert(catalystMilestones[8] >= 2, `${stage} level 8 catalyst support missing`);
-            assert(bossHealthMultiplier >= 0.75 && bossHealthMultiplier <= 0.95, `${stage} boss first-slice multiplier drifted`);
+            assert(bossHealthMultiplier >= 0.75 && bossHealthMultiplier <= (expectations.maxBossHealthMultiplier || 0.95), `${stage} boss first-slice multiplier drifted`);
             assert(earlyElementChoices.length === 3, `${stage} early element reward should offer three choices`);
             assert(new Set(earlyElementChoices).size === earlyElementChoices.length, `${stage} early element reward should not duplicate choices`);
             assert(hasFusionSetupChoice, `${stage} early element reward should include a fire-compatible fusion setup`);
@@ -60388,7 +60580,7 @@ if (typeof window !== 'undefined') {
         });
 
         const openingRosterKeys = stages.map(stage => metrics[stage].openingWave.roster.slice().sort().join(','));
-        assert(new Set(openingRosterKeys).size === stages.length, 'Forest/Cave/Sand/Swamp opening rosters should remain distinct');
+        assert(new Set(openingRosterKeys).size === stages.length, 'Promoted opening rosters should remain distinct');
 
         return {
             ok: true,
@@ -60488,7 +60680,8 @@ if (typeof window !== 'undefined') {
                 ['forest', 0.8, { 4: 1, 8: 2 }],
                 ['cave', 0.85, { 4: 1, 8: 2 }],
                 ['sand', 0.9, { 4: 1, 8: 2 }],
-                ['swamp', 0.95, { 4: 1, 8: 2 }]
+                ['swamp', 0.95, { 4: 1, 8: 2 }],
+                ['snow', 1.0, { 4: 1, 8: 2 }]
             ];
             tuningChecks.forEach(([stage, bossMultiplier, catalysts]) => {
                 const gameScene = new GameScene();
@@ -60546,12 +60739,43 @@ if (typeof window !== 'undefined') {
             assert(saveData.stages.unlockedWorlds.includes('swampland'), 'Sand victory did not unlock the next world');
             assert(saveData.characters.unlocked.includes('blip'), 'Sand victory did not unlock Blip');
 
+            let reloadAfterSand = new SaveManager();
+            window.saveManager = reloadAfterSand;
+            assert(reloadAfterSand.loadAndSetCurrent(0), 'Reload after Sand victory failed');
+            stages = await startStageSelectAndGetStages(reloadAfterSand);
+            assertNoRendererErrors('StageSelect Sand reload check failed');
+            assert(getStage(stages, 'Sand Land').unlocked === true, 'Stage select did not show Sand unlocked from save');
+            assert(getStage(stages, 'Swamp Land').unlocked === true, 'Stage select did not show Swamp unlocked from save');
+            assert(getStage(stages, 'Snow Land').unlocked === false, 'Stage select unlocked Snow too early');
+
+            saveData = simulateVictory(reloadAfterSand, 'swamp', 780000);
+            assert(saveData.stages.completedStages.includes('swamp-1'), 'Swamp completion was not recorded');
+            assert(saveData.stages.unlockedWorlds.includes('snowland'), 'Swamp victory did not unlock Snow');
+
+            const reloadAfterSwamp = new SaveManager();
+            window.saveManager = reloadAfterSwamp;
+            assert(reloadAfterSwamp.loadAndSetCurrent(0), 'Reload after Swamp victory failed');
+            stages = await startStageSelectAndGetStages(reloadAfterSwamp);
+            assertNoRendererErrors('StageSelect Swamp reload check failed');
+            assert(getStage(stages, 'Snow Land').unlocked === true, 'Stage select did not show Snow unlocked from save');
+            assert(getStage(stages, 'Ocean Land').unlocked === false, 'Stage select unlocked Ocean too early');
+
+            const essenceBeforeSnow = reloadAfterSwamp.currentSaveData.talents.essence;
+            const charactersBeforeSnow = reloadAfterSwamp.currentSaveData.characters.unlocked.slice().sort().join(',');
+            saveData = simulateVictory(reloadAfterSwamp, 'snow', 840000);
+            assert(saveData.stages.completedStages.includes('snow-1'), 'Snow completion was not recorded');
+            assert(saveData.stages.unlockedWorlds.includes('oceanland'), 'Snow victory did not unlock Ocean');
+            assert(saveData.talents.essence > essenceBeforeSnow, 'Snow victory did not award essence');
+            assert(saveData.characters.unlocked.slice().sort().join(',') === charactersBeforeSnow, 'Snow victory should not unlock a character');
+            assert(saveData.stages.stageStats['snow-1'].attempts >= 1, 'Snow stage stats attempts were not recorded');
+            assert(saveData.stages.stageStats['snow-1'].bestTime === 840000, 'Snow stage stats best time was not recorded');
+
             const finalReload = new SaveManager();
             window.saveManager = finalReload;
             assert(finalReload.loadAndSetCurrent(0), 'Final save reload failed');
             stages = await startStageSelectAndGetStages(finalReload);
             assertNoRendererErrors('StageSelect final reload check failed');
-            assert(getStage(stages, 'Sand Land').unlocked === true, 'Stage select did not show Sand unlocked from save');
+            assert(getStage(stages, 'Ocean Land').unlocked === true, 'Stage select did not show Ocean unlocked from save');
 
             return {
                 ok: true,

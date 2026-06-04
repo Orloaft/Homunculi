@@ -123,6 +123,9 @@ Current green release gates should still run before widening the production slic
 - `npm run smoke:live`
 - `npm run smoke:forest-live`
 - `npm run smoke:swamp-live`
+- `npm run smoke:snow-live`
+- `npm run smoke:swamp-boss`
+- `npm run smoke:snow-boss`
 
 ## Recommended Start Config
 

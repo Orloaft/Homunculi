@@ -24,7 +24,7 @@ Risks to fix next:
 
 ## Snow
 
-Status: next promotion candidate after Swamp boss-entry coverage.
+Status: promoted into deterministic feel/progression gates, now has a 30-second live gate and deterministic Frost Guardian boss-entry/attack/death gate.
 
 Useful facts:
 
@@ -33,13 +33,15 @@ Useful facts:
 - Roster: `snowy`, `northerner`, `spiked-slime`, `elkman`, `frost-golem`, `lightningslime`.
 - Theme hooks already exist for Ice, Water, Lightning, `snowland-bgm`, `snowland-title`, and `snow-tile`.
 - Boss path routes Snow to `createFrostGuardianBoss()`.
+- Current live command: `npm run smoke:snow-live`.
+- Current boss command: `npm run smoke:snow-boss`.
 
-Promotion blockers:
+Promotion notes:
 
-- Snow is not in deterministic feel/progression coverage.
-- Snow is not in early fusion reward bias or vertical-slice tuning, so it lacks catalyst milestones, pickup tuning, XP tuning, and boss tuning multiplier.
-- Frost Guardian cooldown timing appears wrong: the cooldown is set in milliseconds but decremented by a tiny fixed amount per slow AI timer tick.
-- Frost Guardian still has debug logs and spawns non-Snow phase adds.
+- Fixed 2026-06-04: Snow is in deterministic feel/progression coverage, including Swamp -> Snow -> Ocean unlock/reload assertions.
+- Fixed 2026-06-04: Snow has early fusion reward bias and vertical-slice tuning for catalyst milestones, pickup tuning, XP tuning, and boss tuning.
+- Fixed 2026-06-04: Frost Guardian cooldown now decrements in boss-timer time and is covered by `smoke:snow-boss`.
+- Fixed 2026-06-04: Frost Guardian death uses its dedicated death path, raw hitbox logs were removed, and phase adds now use Snow-native `frost-golem`.
 
 ## Ocean
 
@@ -73,7 +75,7 @@ Findings:
 - Fixed 2026-06-04: release docs now match the package Node range, Phaser version, Windows portable target, smoke commands, and icon state.
 - Verified 2026-06-04: `npm run build-win-portable` produced `dist/WizBiz 1.0.1.exe` at 263M after freeing workspace image space.
 - Only `icon.png` exists; Windows/macOS icon coverage may warn or fall back.
-- `npm run smoke:swamp-boss` is now release-green and included in `verify:release`.
+- `npm run smoke:swamp-boss` and `npm run smoke:snow-boss` are release-green and included in `verify:release`.
 
 Recommended release checklist:
 

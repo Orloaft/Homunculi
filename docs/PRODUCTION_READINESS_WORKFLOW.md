@@ -25,7 +25,9 @@ Parallel world/release audit notes live in `docs/PARALLEL_WORLD_AUDIT.md`.
 - `npm run smoke:live`
 - `npm run smoke:forest-live`
 - `npm run smoke:swamp-live`
+- `npm run smoke:snow-live`
 - `npm run smoke:swamp-boss`
+- `npm run smoke:snow-boss`
 - `npm run verify:release`
 
 Run the full gate stack before releases and before widening the production slice. For narrow content tuning, run syntax, compile, the touched smoke, and one live sanity gate.
@@ -40,12 +42,13 @@ Current status:
 
 - Forest/Cave/Sand have progression, first-pass feel tuning, early fusion support, recipe persistence, and Forest live coverage.
 - Swamp is promoted into deterministic feel/progression gates, 30-second live coverage, and deterministic Amphibian boss-entry/death coverage.
+- Snow is promoted into deterministic feel/progression gates, 30-second live coverage, and deterministic Frost Guardian boss-entry/attack/death coverage.
 
 Next slices:
 
 1. Keep the reusable live-smoke harness healthy: `smoke:live` enables the shared live harness through `HOMUNCULI_STAGE_LIVE_SMOKE=1` and can be configured with `HOMUNCULI_LIVE_SMOKE_STAGE` and `HOMUNCULI_LIVE_SMOKE_ELEMENT`.
-2. Keep `smoke:swamp-live` focused on the first 30 seconds of Swamp, and keep `smoke:swamp-boss` focused on deterministic Amphibian entry and completion.
-3. Add a human-readable balance summary for Forest/Cave/Sand/Swamp: opener roster, first level timing, fusion setup, catalyst levels, boss health, and unlock reward.
+2. Keep `smoke:swamp-live`/`smoke:snow-live` focused on the first 30 seconds of their worlds, and keep `smoke:swamp-boss`/`smoke:snow-boss` focused on deterministic boss entry and completion.
+3. Add a human-readable balance summary for Forest/Cave/Sand/Swamp/Snow: opener roster, first level timing, fusion setup, catalyst levels, boss health, and unlock reward.
 
 ### Lane 2: Core Loop Completeness
 
@@ -119,9 +122,9 @@ Next slices:
 
 ## Immediate Queue
 
-1. Add Swamp boss-entry assertions to the live harness once the Amphibian audit identifies the safest signal.
-2. Add a balance summary doc for Forest/Cave/Sand/Swamp.
-3. Promote Snow into deterministic feel/progression coverage after the parallel Snow audit lands.
+1. Add a balance summary doc for Forest/Cave/Sand/Swamp/Snow.
+2. Harden Ocean/Sea Kings enough for deterministic promotion coverage.
+3. Add Ocean deterministic feel/progression coverage after Snow remains green.
 4. Strengthen progression smoke for post-victory rewards and recipe/stats reload.
 5. Add first grimoire/readback surface for discovered recipes.
 
