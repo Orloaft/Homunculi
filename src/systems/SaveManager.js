@@ -53,6 +53,12 @@ class SaveManager {
                 }
             },
 
+            // Alchemy grimoire
+            alchemy: {
+                knownElements: ['fire'],
+                discoveredRecipes: [] // { inputs: ['fire', 'earth'], result: 'lava', discoveredAt: 1700000000000 }
+            },
+
             // Character unlocks
             characters: {
                 unlocked: ['wizard'] // Only wizard (Veiled Custodian/Alchemist) unlocked by default
@@ -255,6 +261,39 @@ class SaveManager {
     }
 
     /**
+     * Permanently record an alchemy recipe on the active save.
+     */
+    recordAlchemyRecipe(inputA, inputB, result) {
+        if (!this.currentSaveData || !inputA || !inputB || !result) {
+            return false;
+        }
+
+        this.migrateSaveData(this.currentSaveData);
+        const inputs = [inputA, inputB].sort();
+        const recipeKey = `${inputs.join('+')}=${result}`;
+        const recipes = this.currentSaveData.alchemy.discoveredRecipes;
+
+        if (recipes.some(recipe => recipe.key === recipeKey)) {
+            return false;
+        }
+
+        this.currentSaveData.alchemy.knownElements = Array.from(new Set([
+            ...this.currentSaveData.alchemy.knownElements,
+            inputA,
+            inputB,
+            result
+        ])).sort();
+        recipes.push({
+            key: recipeKey,
+            inputs,
+            result,
+            discoveredAt: Date.now()
+        });
+
+        return true;
+    }
+
+    /**
      * Update current save data
      * @param {Object} updates - Partial save data to merge
      */
@@ -291,6 +330,16 @@ class SaveManager {
             // Very old save, migrate to v1.0.0
             saveData.version = '1.0.0';
             // Add any missing fields
+        }
+
+        if (!saveData.alchemy) {
+            saveData.alchemy = {};
+        }
+        if (!Array.isArray(saveData.alchemy.knownElements)) {
+            saveData.alchemy.knownElements = ['fire'];
+        }
+        if (!Array.isArray(saveData.alchemy.discoveredRecipes)) {
+            saveData.alchemy.discoveredRecipes = [];
         }
 
         // Add more migration logic as game evolves

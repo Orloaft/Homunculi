@@ -10061,8 +10061,11 @@ class RadialChargeMenu {
 
                     // Show fusion success feedback
                     const config = this.scene.elementConfig[fusionResult];
+                    const wasNewRecipe = this.scene.recordAlchemyRecipe
+                        ? this.scene.recordAlchemyRecipe(element1, element2, fusionResult)
+                        : false;
                     const fusionText = this.scene.add.text(this.player.x, this.player.y - 50,
-                        `${config.name.toUpperCase()}!`, {
+                        `${config.name.toUpperCase()}${wasNewRecipe ? ' DISCOVERED' : ''}!`, {
                         fontSize: '24px',
                         color: `#${config.color.toString(16).padStart(6, '0')}`,
                         fontStyle: 'bold',
@@ -12327,6 +12330,29 @@ class GameScene extends Phaser.Scene {
             }
 
             return null; // No fusion exists
+        };
+
+        this.recordAlchemyRecipe = function(element1, element2, result) {
+            const activeSaveManager = window.saveManager || this.saveManager || this.registry?.get?.('saveManager');
+            if (!activeSaveManager || typeof activeSaveManager.recordAlchemyRecipe !== 'function') {
+                return false;
+            }
+
+            const wasNewDiscovery = activeSaveManager.recordAlchemyRecipe(element1, element2, result);
+            if (wasNewDiscovery) {
+                activeSaveManager.autoSave();
+            }
+            return wasNewDiscovery;
+        };
+
+        this.getKnownAlchemyRecipeKeys = function() {
+            const activeSave = window.saveManager && window.saveManager.currentSaveData
+                ? window.saveManager.currentSaveData
+                : null;
+            const recipes = activeSave && activeSave.alchemy && Array.isArray(activeSave.alchemy.discoveredRecipes)
+                ? activeSave.alchemy.discoveredRecipes
+                : [];
+            return new Set(recipes.map(recipe => recipe.key));
         };
 
         // Helper function to check if player has any fusable element pairs
@@ -22148,8 +22174,9 @@ class GameScene extends Phaser.Scene {
         this.elementCards.push(headerCard);
         yOffset += 100; // Increased spacing after header
         // Create fusion recipe cards in single column (since they're bigger now)
+        const knownRecipeKeys = this.getKnownAlchemyRecipeKeys ? this.getKnownAlchemyRecipeKeys() : new Set();
         Object.entries(fusionRecipes).forEach(([result, recipe]) => {
-            const card = this.createFusionCard(0, yOffset, result, recipe, fusionRecipes);
+            const card = this.createFusionCard(0, yOffset, result, recipe, fusionRecipes, knownRecipeKeys);
             this.elementCardsContainer.add(card);
             this.elementCards.push(card);
             yOffset += cardHeight + spacing;
@@ -22162,11 +22189,12 @@ class GameScene extends Phaser.Scene {
         this.spellScrollY = 0;
         this.elementCardsContainer.y = 0;
     }
-    createFusionCard(x, y, resultElement, recipe, allRecipes) {
+    createFusionCard(x, y, resultElement, recipe, allRecipes, knownRecipeKeys = new Set()) {
         const card = this.add.container(x, y);
         // Card background
         const showAllRecipes = localStorage.getItem('showAllRecipes') === 'true';
-        const isDiscovered = showAllRecipes || this.discoveredElements.has(resultElement);
+        const recipeKey = `${recipe.elements.slice().sort().join('+')}=${resultElement}`;
+        const isDiscovered = showAllRecipes || this.discoveredElements.has(resultElement) || knownRecipeKeys.has(recipeKey);
         const hasIngredients = showAllRecipes || recipe.elements.every(e => this.discoveredElements.has(e));
         let bgColor = 0x2a2a2a; // Lighter base color
         if (isDiscovered) {
@@ -22872,7 +22900,11 @@ class GameScene extends Phaser.Scene {
 
         // Show fusion effect
         const resultConfig = this.elementConfig[fusionResult];
+        const wasNewRecipe = this.recordAlchemyRecipe(element1, element2, fusionResult);
         this.showFloatingText(400, 200, `Created ${resultConfig.name}!`, `#${resultConfig.color.toString(16).padStart(6, '0')}`, 24);
+        if (wasNewRecipe) {
+            this.showFloatingText(400, 235, 'Recipe added to grimoire', '#ffdd44', 18);
+        }
 
         // Update UI
         this.updateChargeUI();
@@ -23021,6 +23053,7 @@ class GameScene extends Phaser.Scene {
             this.discoveredElements.add(newElement);
             localStorage.setItem('discoveredElements', JSON.stringify(Array.from(this.discoveredElements)));
         }
+        this.recordAlchemyRecipe(sourceElement, targetElement, newElement);
 
         // Show fusion success animation
         this.showFusionSuccess(targetIndex, newElement, newTier, fusionCost);
@@ -60143,6 +60176,16 @@ if (typeof window !== 'undefined') {
             const saveManager = new SaveManager();
             window.saveManager = saveManager;
             saveManager.createNewSave(0);
+
+            assert(saveManager.recordAlchemyRecipe('fire', 'earth', 'lava') === true, 'New lava recipe was not recorded');
+            assert(saveManager.recordAlchemyRecipe('earth', 'fire', 'lava') === false, 'Duplicate lava recipe should not be recorded twice');
+            assert(saveManager.autoSave(), 'Auto-save failed after alchemy discovery');
+            const alchemyReload = new SaveManager();
+            assert(alchemyReload.loadAndSetCurrent(0), 'Reload after alchemy discovery failed');
+            assert(alchemyReload.currentSaveData.alchemy.discoveredRecipes.length === 1, 'Alchemy recipe did not persist after reload');
+            assert(alchemyReload.currentSaveData.alchemy.discoveredRecipes[0].key === 'earth+fire=lava', 'Alchemy recipe key changed unexpectedly');
+            assert(alchemyReload.currentSaveData.alchemy.knownElements.includes('lava'), 'Fused element was not added to known alchemy elements');
+            window.saveManager = saveManager;
 
             // Legacy pollution should not unlock worlds when an active save slot has explicit progression.
             localStorage.setItem('caveLandUnlocked', 'true');

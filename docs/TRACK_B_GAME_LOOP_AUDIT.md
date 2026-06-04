@@ -105,6 +105,7 @@ Acceptance criteria:
 - Added `npm run smoke:progression` for a deeper automated slice check.
 - The progression smoke creates a temporary save, verifies legacy localStorage unlocks do not leak into an active fresh save, forces Forest/Cave/Sand victories through `GameOverScene.updateSaveData()`, reloads the save, and checks Stage Select unlock visibility.
 - The smoke also asserts Forest/Cave/Sand catalyst and boss-health tuning constants so first-slice balance drift is caught automatically.
+- Alchemy discovery now has a per-save foothold: successful fusions can record a canonical recipe in `saveData.alchemy.discoveredRecipes`, migrate older saves with an empty grimoire shape, and auto-save new recipe discoveries. The progression smoke verifies that `fire + earth = lava` records once, deduplicates reversed inputs, persists after reload, and adds the result to known elements.
 - Fixed a Stage Select Voidkin animation crash by falling back to a static sprite when the animation is unavailable or malformed.
 
 ## 2026-06-04 First-Slice Content Polish
