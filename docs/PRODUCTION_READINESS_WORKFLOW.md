@@ -17,6 +17,7 @@ Parallel world/release audit notes live in `docs/PARALLEL_WORLD_AUDIT.md`.
 ## Current Green Gates
 
 - `node --check scripts/game.js`
+- `npm run typecheck`
 - `npm run compile`
 - `npm run smoke:prod`
 - `npm run smoke:feel`
@@ -24,6 +25,8 @@ Parallel world/release audit notes live in `docs/PARALLEL_WORLD_AUDIT.md`.
 - `npm run smoke:live`
 - `npm run smoke:forest-live`
 - `npm run smoke:swamp-live`
+- `npm run smoke:swamp-boss`
+- `npm run verify:release`
 
 Run the full gate stack before releases and before widening the production slice. For narrow content tuning, run syntax, compile, the touched smoke, and one live sanity gate.
 
@@ -36,12 +39,12 @@ Purpose: make Forest -> Cave -> Sand -> Swamp feel like a coherent first product
 Current status:
 
 - Forest/Cave/Sand have progression, first-pass feel tuning, early fusion support, recipe persistence, and Forest live coverage.
-- Swamp is promoted into deterministic feel/progression gates, but its boss and live loop are not independently covered.
+- Swamp is promoted into deterministic feel/progression gates, 30-second live coverage, and deterministic Amphibian boss-entry/death coverage.
 
 Next slices:
 
-1. Keep the reusable live-smoke harness healthy: `smoke:live` runs a configurable stage through `HOMUNCULI_LIVE_SMOKE_STAGE` and `HOMUNCULI_LIVE_SMOKE_ELEMENT`.
-2. Keep `smoke:swamp-live` focused on the first 30 seconds of Swamp until Amphibian reachability/entry safety gets its own boss-phase assertion.
+1. Keep the reusable live-smoke harness healthy: `smoke:live` enables the shared live harness through `HOMUNCULI_STAGE_LIVE_SMOKE=1` and can be configured with `HOMUNCULI_LIVE_SMOKE_STAGE` and `HOMUNCULI_LIVE_SMOKE_ELEMENT`.
+2. Keep `smoke:swamp-live` focused on the first 30 seconds of Swamp, and keep `smoke:swamp-boss` focused on deterministic Amphibian entry and completion.
 3. Add a human-readable balance summary for Forest/Cave/Sand/Swamp: opener roster, first level timing, fusion setup, catalyst levels, boss health, and unlock reward.
 
 ### Lane 2: Core Loop Completeness
@@ -92,6 +95,13 @@ Next slices:
 2. Audit `electron-builder` output for package size, included source noise, and missing assets.
 3. Add a clean-save/manual-release checklist covering new save, first run, first victory, reload, options, and quit/relaunch.
 4. Decide release targets: Windows portable first, then Linux AppImage/macOS only after the Windows loop is stable.
+
+Release checklist:
+
+1. `npm run verify:release`
+2. `npm run build-win-portable`
+3. Inspect `dist/` for package size, missing assets, source maps, docs/editor tools, backup files, and other source noise.
+4. Launch the packaged app offline and test a fresh save, first run, first victory, reload, options, and quit/relaunch.
 
 ### Lane 5: Architecture Containment
 

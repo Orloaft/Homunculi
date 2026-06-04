@@ -6,20 +6,21 @@ These findings came from parallel read-only agents. Use this as the handoff queu
 
 ## Swamp
 
-Status: promoted into deterministic feel/progression gates, now has a 30-second live gate.
+Status: promoted into deterministic feel/progression gates, now has a 30-second live gate and deterministic Amphibian boss-entry/death gate.
 
 Useful facts:
 
 - Runtime IDs: `stage: 'swamp'`, `worldId: 'swampland'`, completion ID `swamp-1`.
 - Opening roster: `bloboid`, `giantfly`, `mudguard`; tuned normal-density opener is about `6300ms` spawn interval and `8` max enemies.
 - Current live command: `npm run smoke:swamp-live`.
+- Current boss command: `npm run smoke:swamp-boss`.
 - The live gate uses a stable fire-start pilot. Swamp theme identity remains covered by deterministic water/poison/mud reward and tuning assertions.
 
 Risks to fix next:
 
-- Amphibian health does not yet apply the same boss tuning multiplier path as default bosses.
-- Amphibian boss death appears to fall through to generic Obelisk death handling instead of a dedicated Swamp completion path.
-- Future Swamp live work should fast-forward into Amphibian entry and assert `boss.enemyType === 'amphibian-boss'`, `boss.isAmphibian === true`, health UI, AI timer, boss music, and at least one safe spit/tongue action.
+- Fixed 2026-06-04: Amphibian health now applies the Swamp boss tuning multiplier and is covered by `smoke:swamp-boss`.
+- Fixed 2026-06-04: Amphibian boss death now has a dedicated completion path instead of depending on the generic Obelisk death animation.
+- Future Swamp boss work should add a safe spit/tongue action assertion once the live pilot can fast-forward into boss range without making the gate flaky.
 
 ## Snow
 
@@ -66,17 +67,16 @@ Status: parallel lane, not on the world-promotion critical path.
 
 Findings:
 
-- `npm run build-portable` calls missing `build-portable.js`; `build-win-portable` is the valid Windows portable path today.
-- Electron packaging is too broad and likely ships docs, editor tools, backups, tests, `.old`, `.bak`, and `.map` files.
+- Fixed 2026-06-04: `npm run build-portable` now aliases the valid Windows portable build path.
+- Fixed 2026-06-04: Electron packaging now uses explicit runtime includes plus source-noise exclusions instead of root-wide `**/*`; source `.ase`/`.aseprite` art files are excluded from packaged builds.
 - `index.html` depends on CDN Three.js/OBJLoader before fallback, so offline first-run polish is risky.
-- Release docs are stale: Node range, Phaser version, Windows target language, and icon requirements do not match `package.json`.
+- Fixed 2026-06-04: release docs now match the package Node range, Phaser version, Windows portable target, smoke commands, and icon state.
 - Only `icon.png` exists; Windows/macOS icon coverage may warn or fall back.
+- `npm run smoke:swamp-boss` is now release-green and included in `verify:release`.
 
 Recommended release checklist:
 
-1. `npx tsc --noEmit`, then `npm run compile`.
-2. Run `smoke:prod`, `smoke:feel`, `smoke:progression`, `smoke:forest-live`, and `smoke:swamp-live`.
-3. Build Windows portable first with `npm run build-win-portable`.
-4. Inspect packaged contents for missing assets, source noise, tools/docs, and total size.
-5. Launch the packaged app offline: fresh save, first run, first victory, reload, options, quit/relaunch.
-6. Update release docs to match actual Node range, targets, icons, and build commands.
+1. Run `npm run verify:release`.
+2. Build Windows portable first with `npm run build-win-portable`.
+3. Inspect packaged contents for missing assets, source noise, tools/docs, and total size.
+4. Launch the packaged app offline: fresh save, first run, first victory, reload, options, quit/relaunch.

@@ -54842,6 +54842,9 @@ class GameScene extends Phaser.Scene {
                     if (this.bgMusic) {
                         this.bgMusic.stop();
                     }
+                    if (!this.boss || this.boss.isDead || this.boss.isDying) {
+                        return;
+                    }
                     // Start Amphibian boss music (use boss1 music for swampland boss)
                     this.bossMusic = this.sound.add('boss1-bgm', {
                         loop: true,
@@ -54888,7 +54891,7 @@ class GameScene extends Phaser.Scene {
         };
         const enemyDensity = localStorage.getItem('enemyDensity') || 'normal';
         const healthMultiplier = densityMultipliers[enemyDensity] || 0.5;
-        boss.health = Math.floor(baseHealth * healthMultiplier);
+        boss.health = Math.floor(baseHealth * healthMultiplier * this.getBossHealthTuningMultiplier());
         boss.maxHealth = boss.health;
         boss.isBoss = true;
         boss.knockbackResistance = 0.1; // Bosses resist 90% of knockback
@@ -57784,7 +57787,7 @@ class GameScene extends Phaser.Scene {
             this.bossIntroMusic = null;
         }
         // Restart stage music after boss death
-        if (this.bgMusic && !this.bgMusic.isPlaying) {
+        if (this.bgMusic && !this.bgMusic.isPlaying && !(boss.isAmphibian || boss.enemyType === 'amphibian-boss')) {
             this.time.delayedCall(2000, () => {
                 if (this.bgMusic && !this.gameEnded) {
                     this.bgMusic.play();
@@ -57833,6 +57836,15 @@ class GameScene extends Phaser.Scene {
             boss.isDead = true;
             boss.anims.stop();
             boss.play('demon-slime-death');
+        } else if (boss.isAmphibian || boss.enemyType === 'amphibian-boss') {
+            if (this.bossAITimer) {
+                this.bossAITimer.destroy();
+                this.bossAITimer = null;
+            }
+            boss.isDead = true;
+            boss.isAttacking = false;
+            boss.anims.stop();
+            boss.play('amphibian-heal');
         } else {
             boss.play('obelisk-death');
         }
@@ -57859,11 +57871,21 @@ class GameScene extends Phaser.Scene {
         });
         // Screen shake
         this.cameras.main.shake(1000, 0.02);
+        if (boss.isAmphibian || boss.enemyType === 'amphibian-boss') {
+            this.dropChest(boss.x, boss.y);
+            boss.destroy();
+            this.boss = null;
+            setTimeout(() => {
+                this.gameWon();
+            }, 2000);
+            return;
+        }
         // Wait for death animation
         boss.once('animationcomplete', (animation, frame) => {
             // Only proceed if this was the death animation
-            if (animation.key !== 'nekros-death' && animation.key !== 'archer-boss-death' && 
-                animation.key !== 'obelisk-death' && animation.key !== 'eyelor-death') {
+            if (animation.key !== 'nekros-death' && animation.key !== 'archer-boss-death' &&
+                animation.key !== 'obelisk-death' && animation.key !== 'eyelor-death' &&
+                animation.key !== 'amphibian-heal') {
                 return;
             }
             // Drop massive rewards
@@ -60164,6 +60186,112 @@ if (typeof window !== 'undefined') {
             startElement: 'fire',
             desiredEnemyDistance: 120
         });
+    };
+
+    window.runHomunculiSwampBossSmoke = async function runHomunculiSwampBossSmoke() {
+        const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        const waitFor = async (label, predicate, timeoutMs = 10000) => {
+            const start = Date.now();
+            while (Date.now() - start < timeoutMs) {
+                if (predicate()) return;
+                await wait(100);
+            }
+            const activeScenes = typeof game !== 'undefined' && game && game.scene
+                ? game.scene.getScenes(true).map(scene => scene.scene.key).join(', ')
+                : 'none';
+            throw new Error(`Timed out waiting for ${label}; active scenes: ${activeScenes}`);
+        };
+        const assert = (condition, message) => {
+            if (!condition) throw new Error(message);
+        };
+
+        const rendererErrors = [];
+        const captureRendererError = (event) => {
+            rendererErrors.push({
+                message: event.message,
+                stack: event.error && event.error.stack
+            });
+        };
+        const assertNoRendererErrors = (label) => {
+            if (rendererErrors.length > 0) {
+                const latestError = rendererErrors[rendererErrors.length - 1];
+                throw new Error(`${label}: ${latestError.message}${latestError.stack ? `\n${latestError.stack}` : ''}`);
+            }
+        };
+
+        const originalStorage = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            originalStorage[key] = localStorage.getItem(key);
+        }
+
+        try {
+            window.addEventListener('error', captureRendererError);
+            localStorage.clear();
+            localStorage.setItem('enemyDensity', 'normal');
+
+            await waitFor('Phaser game boot', () => typeof game !== 'undefined' && game && game.scene);
+            await waitFor('title scene and core assets', () => {
+                const titleScene = game.scene.getScene('TitleScene');
+                return titleScene && titleScene.scene && titleScene.scene.isActive() && titleScene.textures && titleScene.textures.exists('amphibian-idle');
+            });
+            game.scene.stop('TitleScene');
+            game.scene.start('GameScene', {
+                stage: 'swamp',
+                p1Character: 'wizard',
+                multiplayerEnabled: false,
+                arcadeMode: false,
+                startElement: 'fire'
+            });
+
+            await waitFor('Swamp GameScene create', () => {
+                const scene = game.scene.getScene('GameScene');
+                return scene && scene.scene && scene.scene.isActive() && scene.stage === 'swamp' && scene.wizard;
+            });
+
+            const scene = game.scene.getScene('GameScene');
+            if (scene.dialogueManager && scene.dialogueManager.active) {
+                scene.dialogueManager.close(true);
+            }
+            scene.gamePaused = false;
+            scene.pauseSource = null;
+            scene.gameStarted = true;
+            if (scene.physics && scene.physics.world) {
+                scene.physics.resume();
+            }
+            if (scene.time) {
+                scene.time.timeScale = 1;
+            }
+
+            const expectedMaxHealth = Math.floor(6000 * 0.5 * scene.getBossHealthTuningMultiplier());
+            scene.createAmphibianBoss();
+            await waitFor('Amphibian boss entry', () => scene.boss && scene.boss.active && scene.boss.enemyType === 'amphibian-boss');
+
+            const boss = scene.boss;
+            assert(boss.isAmphibian === true, 'Amphibian boss flag missing');
+            assert(boss.maxHealth === expectedMaxHealth, `Amphibian health tuning drifted: expected ${expectedMaxHealth}, got ${boss.maxHealth}`);
+            assert(scene.bossHealthBar && scene.bossHealthBar.active, 'Amphibian health bar missing');
+            assert(scene.bossNameText && scene.bossNameText.text === 'AMPHIBIAN', 'Amphibian health label missing');
+            assert(scene.bossAITimer && !scene.bossAITimer.paused, 'Amphibian AI timer missing');
+            assertNoRendererErrors('Swamp boss entry');
+
+            scene.handleBossDeath(boss);
+            await waitFor('Amphibian death cleanup', () => scene.gameWonCalled === true && scene.boss === null && (!scene.bossAITimer || scene.bossAITimer.hasDispatched), 7000);
+            assert(scene.gameEnded === true, 'Swamp boss death did not end the run');
+            assertNoRendererErrors('Swamp boss death');
+
+            return {
+                ok: true,
+                stage: scene.stage,
+                bossType: boss.enemyType,
+                maxHealth: expectedMaxHealth,
+                gameWonCalled: scene.gameWonCalled === true
+            };
+        } finally {
+            window.removeEventListener('error', captureRendererError);
+            localStorage.clear();
+            Object.entries(originalStorage).forEach(([key, value]) => localStorage.setItem(key, value));
+        }
     };
 
     window.runHomunculiFeelSmoke = async function runHomunculiFeelSmoke() {

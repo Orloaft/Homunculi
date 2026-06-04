@@ -53,17 +53,28 @@ Requires Node.js 20-25. Node 26 is currently blocked because it can leave Electr
    npm run compile
    ```
 
-4. **Build for Windows:**
+4. **Run smoke checks:**
    ```bash
-   npm run build-win
+   npm run verify:smoke
    ```
 
-5. **Sprite Editor:**
+5. **Build the Windows portable package:**
+   ```bash
+   npm run build-win-portable
+   ```
+   `npm run build-portable` is kept as an alias for the Windows portable target.
+
+6. **Run the full release gate before packaging for distribution:**
+   ```bash
+   npm run verify:release
+   ```
+
+7. **Sprite Editor:**
    ```bash
    run-sprite-editor.bat
    ```
 
-6. **Sprite Importer:**
+8. **Sprite Importer:**
    ```bash
    run-sprite-importer.bat
    ```
@@ -118,9 +129,9 @@ See the `docs/` folder for detailed documentation:
 
 ## 📦 Dependencies
 
-- Phaser 3.60.0 - Game framework
+- Phaser 3.90.0 - Game framework
 - Electron - Desktop application wrapper
-- Node.js - Build tools and scripts
+- Node.js 20-25 - Build tools and scripts
 
 ## 🔧 Configuration
 
