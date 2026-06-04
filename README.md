@@ -35,30 +35,59 @@ wizbiz/
 
 ## 🚀 Quick Start
 
-1. **Run the game locally:**
+Requires Node.js 20-25. Node 26 is currently blocked because it can leave Electron's binary install incomplete.
+
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Run the game locally:**
    ```bash
    npm start
    ```
-   Or open `index.html` in a browser
+   `npm start` compiles the TypeScript systems first, because `index.html` loads generated files from `build/`. The local Electron command also uses development-safe Linux flags so a fresh install can launch without root-owned Electron sandbox files or GPU process support.
 
-2. **Build for Windows:**
+3. **Compile without starting Electron:**
+   ```bash
+   npm run compile
+   ```
+
+4. **Build for Windows:**
    ```bash
    npm run build-win
    ```
 
-3. **Sprite Editor:**
+5. **Sprite Editor:**
    ```bash
    run-sprite-editor.bat
    ```
 
-4. **Sprite Importer:**
+6. **Sprite Importer:**
    ```bash
    run-sprite-importer.bat
    ```
 
+### Start Troubleshooting
+
+If `npm start` fails with `Electron failed to install correctly`, check the active Node version:
+
+```bash
+node -v
+```
+
+Use Node.js 20-25, then refresh Electron's local binary install:
+
+```bash
+trash node_modules/electron
+npm install
+```
+
+If `trash` is unavailable, move `node_modules/electron` aside or delete only that folder, then rerun `npm install`.
+
 ## 🎮 Game Features
 
-- **10 Unique Worlds**: Forest, Cave, Desert, Swamp, Snow, Ocean, Lava, Grave, Castle, and Spire
+- **11 Unique Worlds**: Forest, Cave, Sand, Swamp, Snow, Ocean, Lava, Grave, Castle, Spire, and Void
 - **Element Fusion System**: Combine elements to create powerful spells
 - **Co-op Mode**: Play with a friend
 - **Boss Battles**: Epic boss fights with unique mechanics

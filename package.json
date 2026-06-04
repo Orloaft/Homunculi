@@ -3,9 +3,14 @@
   "version": "1.0.1",
   "description": "A magical wizard adventure game",
   "main": "scripts/main.js",
+  "engines": {
+    "node": ">=20 <26"
+  },
   "scripts": {
-    "start": "electron .",
-    "compile": "tsc || exit 0",
+    "prestart": "npm run compile",
+    "start": "electron --no-sandbox --disable-gpu .",
+    "compile": "tsc",
+    "smoke:prod": "npm run compile && HOMUNCULI_SMOKE=1 electron --no-sandbox --disable-gpu .",
     "build-win": "npm run compile && electron-builder --win",
     "build-win-portable": "npm run compile && electron-builder --win portable",
     "build-portable": "npm run compile && node build-portable.js",
@@ -22,9 +27,11 @@
   "author": "Alex",
   "license": "ISC",
   "devDependencies": {
+    "@types/node": "^20.19.41",
     "electron": "^27.0.0",
     "electron-builder": "^24.6.4",
-    "phaser": "^3.90.0"
+    "phaser": "^3.90.0",
+    "typescript": "^5.9.3"
   },
   "build": {
     "appId": "com.alex.wizbiz",

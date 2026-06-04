@@ -13,6 +13,15 @@ app.commandLine.appendSwitch('disable-gpu-vsync');
 // app.commandLine.appendSwitch('disable-frame-rate-limit');
 
 let mainWindow;
+const isSmokeRun = process.env.HOMUNCULI_SMOKE === '1';
+let smokeFailed = false;
+
+function finishSmoke(exitCode, reason) {
+  if (!isSmokeRun || app.isQuitting) return;
+  app.isQuitting = true;
+  console.log(`[smoke] ${reason}`);
+  app.exit(exitCode);
+}
 
 function createWindow() {
   // Create the browser window
@@ -40,6 +49,36 @@ function createWindow() {
 
   // Load the game
   mainWindow.loadFile(path.join(__dirname, '..', 'index.html'));
+
+  if (isSmokeRun) {
+    mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+      smokeFailed = true;
+      finishSmoke(1, `load failed ${errorCode}: ${errorDescription} (${validatedURL})`);
+    });
+
+    mainWindow.webContents.on('render-process-gone', (_event, details) => {
+      smokeFailed = true;
+      finishSmoke(1, `renderer exited: ${details.reason}`);
+    });
+
+    mainWindow.webContents.on('console-message', (_event, _level, message) => {
+      if (/Uncaught|Failed to initialize Phaser|Script error/i.test(message)) {
+        smokeFailed = true;
+        finishSmoke(1, `renderer console error: ${message}`);
+      }
+    });
+
+    mainWindow.webContents.once('did-finish-load', () => {
+      setTimeout(async () => {
+        if (!smokeFailed) {
+          const hasCanvas = await mainWindow.webContents.executeJavaScript(
+            'Boolean(document.querySelector("canvas"))'
+          );
+          finishSmoke(hasCanvas ? 0 : 1, hasCanvas ? 'renderer loaded with Phaser canvas' : 'renderer loaded without Phaser canvas');
+        }
+      }, Number(process.env.HOMUNCULI_SMOKE_HOLD_MS || 5000));
+    });
+  }
 
   // Show window when ready
   mainWindow.once('ready-to-show', () => {

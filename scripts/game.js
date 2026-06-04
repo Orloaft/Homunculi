@@ -25,6 +25,65 @@ function setupFullscreenKey(scene) {
         }
     });
 }
+
+const STAGE_PROGRESSION = [
+    { stage: 'forest', worldId: 'forestland', name: 'Forest Land', legacyUnlockKeys: ['forestLandUnlocked', 'forestlandLandUnlocked'] },
+    { stage: 'cave', worldId: 'caveland', name: 'Cave Land', legacyUnlockKeys: ['caveLandUnlocked', 'cavelandLandUnlocked'] },
+    { stage: 'sand', worldId: 'sandland', name: 'Sand Land', legacyUnlockKeys: ['sandLandUnlocked', 'desertLandUnlocked', 'sandlandLandUnlocked'] },
+    { stage: 'swamp', worldId: 'swampland', name: 'Swamp Land', legacyUnlockKeys: ['swampLandUnlocked', 'swamplandLandUnlocked'] },
+    { stage: 'snow', worldId: 'snowland', name: 'Snow Land', legacyUnlockKeys: ['snowLandUnlocked', 'snowlandLandUnlocked'] },
+    { stage: 'ocean', worldId: 'oceanland', name: 'Ocean Land', legacyUnlockKeys: ['oceanLandUnlocked', 'oceanlandLandUnlocked'] },
+    { stage: 'lava', worldId: 'lavaland', name: 'Lava Land', legacyUnlockKeys: ['lavaLandUnlocked', 'lavalandLandUnlocked'] },
+    { stage: 'grave', worldId: 'graveland', name: 'Grave Land', legacyUnlockKeys: ['graveLandUnlocked', 'gravelandLandUnlocked'] },
+    { stage: 'castle', worldId: 'castleland', name: 'Castle Land', legacyUnlockKeys: ['castleLandUnlocked', 'castlelandLandUnlocked'] },
+    { stage: 'spire', worldId: 'spireland', name: 'Spire Land', legacyUnlockKeys: ['spireLandUnlocked', 'spirelandLandUnlocked'] },
+    { stage: 'void', worldId: 'voidland', name: 'The Void', legacyUnlockKeys: ['voidLandUnlocked', 'voidlandLandUnlocked'] }
+];
+
+function getStageProgressionEntry(stage) {
+    return STAGE_PROGRESSION.find(entry => entry.stage === stage);
+}
+
+function getStageProgressionEntryByWorldId(worldId) {
+    return STAGE_PROGRESSION.find(entry => entry.worldId === worldId);
+}
+
+function getNextStageProgressionEntry(stage) {
+    const currentIndex = STAGE_PROGRESSION.findIndex(entry => entry.stage === stage);
+    if (currentIndex === -1 || currentIndex >= STAGE_PROGRESSION.length - 1) {
+        return null;
+    }
+    return STAGE_PROGRESSION[currentIndex + 1];
+}
+
+function getStageIdForProgressionEntry(entry) {
+    return entry ? `${entry.stage}-1` : null;
+}
+
+function mirrorLegacyStageUnlock(entry) {
+    if (!entry) return;
+    entry.legacyUnlockKeys.forEach(key => localStorage.setItem(key, 'true'));
+}
+
+function getLegacyStageProgressionKeys() {
+    const keys = new Set(['arcadeLandUnlocked', 'arcadeLandCompleted']);
+
+    STAGE_PROGRESSION.forEach(entry => {
+        entry.legacyUnlockKeys.forEach(key => {
+            keys.add(key);
+            keys.add(key.replace('Unlocked', 'Completed'));
+            keys.add(key.replace('Unlocked', 'JustUnlocked'));
+        });
+        keys.add(`${entry.stage}LandJustUnlocked`);
+    });
+
+    return Array.from(keys);
+}
+
+function clearLegacyStageProgression() {
+    getLegacyStageProgressionKeys().forEach(key => localStorage.removeItem(key));
+}
+
 class LoadingScene extends Phaser.Scene {
     constructor() {
         super({ key: 'LoadingScene' });
@@ -1864,8 +1923,8 @@ class TitleScene extends Phaser.Scene {
             this.startControllerDetection();
         });
 
-        // Options button - bottom right corner
-        const optionsButton = this.add.text(750, 560, 'OPTIONS', {
+        // Options button - stacked above player toggle in bottom right corner
+        const optionsButton = this.add.text(750, 530, 'OPTIONS', {
             fontSize: '20px',
             color: '#ffffff',
             backgroundColor: '#000000',
@@ -2479,30 +2538,10 @@ class TitleScene extends Phaser.Scene {
         // Clear all game progress data
         // Reset talents and essence
         localStorage.removeItem('talentPoints');
-        // Reset all stage unlocks except nexus
-        localStorage.removeItem('forestLandUnlocked');
-        localStorage.removeItem('caveLandUnlocked');
-        localStorage.removeItem('desertLandUnlocked');
-        localStorage.removeItem('lavaLandUnlocked');
-        localStorage.removeItem('graveLandUnlocked');
-        localStorage.removeItem('castleLandUnlocked');
-        localStorage.removeItem('spireLandUnlocked');
-        localStorage.removeItem('voidLandUnlocked');
-        localStorage.removeItem('arcadeLandUnlocked');
-        localStorage.removeItem('snowLandUnlocked');
+        // Reset all legacy stage progression flags except nexus.
+        clearLegacyStageProgression();
         // Keep nexus visited
         localStorage.setItem('nexusVisited', 'true');
-        // Reset any stage completion flags
-        localStorage.removeItem('forestLandCompleted');
-        localStorage.removeItem('caveLandCompleted');
-        localStorage.removeItem('desertLandCompleted');
-        localStorage.removeItem('lavaLandCompleted');
-        localStorage.removeItem('graveLandCompleted');
-        localStorage.removeItem('castleLandCompleted');
-        localStorage.removeItem('spireLandCompleted');
-        localStorage.removeItem('voidLandCompleted');
-        localStorage.removeItem('arcadeLandCompleted');
-        localStorage.removeItem('snowLandCompleted');
         // Reset high scores
         localStorage.removeItem('highScore');
         // Reset any unlock all stages cheat
@@ -3343,17 +3382,19 @@ class StageSelectScene extends Phaser.Scene {
         }
         // Initialize stages in create - check SaveManager for unlocked worlds
         const saveData = window.saveManager ? window.saveManager.getCurrentSave() : null;
-        const unlockedWorlds = saveData && saveData.stages && saveData.stages.unlockedWorlds ?
-            saveData.stages.unlockedWorlds : ['forestland'];
+        const hasSaveProgression = !!(saveData && saveData.stages && Array.isArray(saveData.stages.unlockedWorlds));
+        const unlockedWorlds = hasSaveProgression ? saveData.stages.unlockedWorlds : ['forestland'];
 
         // Helper function to check if a world is unlocked
         const isWorldUnlocked = (worldId) => {
             // Check save data first
             if (unlockedWorlds.includes(worldId)) return true;
 
-            // Fallback to localStorage for backwards compatibility (individual stage unlocks)
-            const legacyKey = `${worldId}LandUnlocked`;
-            if (localStorage.getItem(legacyKey) === 'true') return true;
+            // Fallback to localStorage only when no active save progression exists.
+            const progressionEntry = !hasSaveProgression ? getStageProgressionEntryByWorldId(worldId) : null;
+            if (progressionEntry && progressionEntry.legacyUnlockKeys.some(key => localStorage.getItem(key) === 'true')) {
+                return true;
+            }
 
             // Debug mode - unlock all stages
             const unlockAllStages = localStorage.getItem('unlockAllStages') === 'true';
@@ -3364,9 +3405,14 @@ class StageSelectScene extends Phaser.Scene {
 
         // Check if all main stages are completed (for arcade unlock)
         const allStagesCompleted = () => {
-            const mainStages = ['forestland', 'caveland', 'desertland', 'swampland', 'snowland',
-                                'oceanland', 'lavaland', 'graveland', 'castleland', 'spireland', 'voidland'];
-            return mainStages.every(worldId => isWorldUnlocked(worldId));
+            if (!saveData || !saveData.stages || !Array.isArray(saveData.stages.completedStages)) {
+                return false;
+            }
+
+            return STAGE_PROGRESSION.every(entry => {
+                const stageId = getStageIdForProgressionEntry(entry);
+                return saveData.stages.completedStages.includes(stageId);
+            });
         };
 
         this.stages = [
@@ -3575,12 +3621,10 @@ class StageSelectScene extends Phaser.Scene {
                     });
                 }
                 // Check for any stages that were just unlocked (e.g., from victory)
-                const stageKeys = ['forest', 'cave', 'sand', 'lava', 'grave', 'castle', 'spire', 'void'];
-                stageKeys.forEach((key, index) => {
-                    const unlockKey = `${key}LandUnlocked`;
-                    const justUnlockedKey = `${key}LandJustUnlocked`;
+                STAGE_PROGRESSION.forEach((entry, index) => {
+                    const justUnlockedKey = `${entry.stage}LandJustUnlocked`;
                     // If stage is unlocked but we haven't shown the animation yet
-                    if (localStorage.getItem(unlockKey) === 'true' && 
+                    if (entry.legacyUnlockKeys.some(key => localStorage.getItem(key) === 'true') &&
                         localStorage.getItem(justUnlockedKey) !== 'true' &&
                         this.stages[index].unlocked) {
                         // Mark that we've shown the animation
@@ -5069,12 +5113,8 @@ class StageSelectScene extends Phaser.Scene {
             return { bestTime: null, attempts: 0 };
         }
 
-        // Convert worldId to stageId format (e.g., 'forestland' -> 'forest-1')
-        // Extract the base name and append '-1'
-        let stageId = worldId;
-        if (worldId.endsWith('land')) {
-            stageId = worldId.replace('land', '') + '-1';
-        }
+        const progressionEntry = getStageProgressionEntryByWorldId(worldId);
+        const stageId = getStageIdForProgressionEntry(progressionEntry) || worldId;
 
         const stats = saveData.stages.stageStats[stageId];
         if (!stats) {
@@ -8396,40 +8436,11 @@ class GameOverScene extends Phaser.Scene {
     }
     unlockNextStage() {
         console.log('🔓 unlockNextStage called! Current stage:', this.stage);
-        // Define stage progression order - use worldId format to match StageSelectScene
-        const stageOrder = ['forest', 'cave', 'sand', 'lava', 'grave', 'castle', 'spire', 'void'];
-        const stageToWorldId = {
-            'forest': 'forestland',
-            'cave': 'caveland',
-            'sand': 'sandland',
-            'lava': 'lavaland',
-            'grave': 'graveland',
-            'castle': 'castleland',
-            'spire': 'spireland',
-            'void': 'voidland'
-        };
-        const stageNames = {
-            'forest': 'Forest Land',
-            'cave': 'Cave Land',
-            'sand': 'Sand Land',
-            'lava': 'Lava Land',
-            'grave': 'Grave Land',
-            'castle': 'Castle Land',
-            'spire': 'Spire Land',
-            'void': 'The Void'
-        };
-        // Find current stage index
-        const currentIndex = stageOrder.indexOf(this.stage);
-        console.log('   Current stage index:', currentIndex);
-        // If we found the stage and it's not the last one
-        if (currentIndex !== -1 && currentIndex < stageOrder.length - 1) {
-            const nextStage = stageOrder[currentIndex + 1];
-            const nextWorldId = stageToWorldId[nextStage];
-            const nextStageName = stageNames[nextStage];
-            console.log('   Unlocking next stage:', nextStage, '('+nextStageName+')');
-            // Unlock the next stage using worldId format (e.g., 'cavelandLandUnlocked')
-            localStorage.setItem(`${nextWorldId}LandUnlocked`, 'true');
-            console.log('   ✅ Stage unlocked! localStorage key:', `${nextWorldId}LandUnlocked`);
+        const nextEntry = getNextStageProgressionEntry(this.stage);
+        if (nextEntry) {
+            console.log('   Unlocking next stage:', nextEntry.stage, '(' + nextEntry.name + ')');
+            mirrorLegacyStageUnlock(nextEntry);
+            console.log('   ✅ Stage unlocked! localStorage keys:', nextEntry.legacyUnlockKeys.join(', '));
         } else {
             console.log('   ⚠️  Cannot unlock - either stage not found or already at last stage');
         }
@@ -8466,7 +8477,24 @@ class GameOverScene extends Phaser.Scene {
         }
 
         const saveData = this.saveManager.currentSaveData;
-        const stageId = `${this.stage}-1`; // e.g., 'forest-1'
+        const stageId = getStageIdForProgressionEntry(getStageProgressionEntry(this.stage)) || `${this.stage}-1`;
+
+        if (!saveData.stages) {
+            saveData.stages = {
+                completedStages: [],
+                unlockedWorlds: ['forestland'],
+                stageStats: {}
+            };
+        }
+        if (!Array.isArray(saveData.stages.completedStages)) {
+            saveData.stages.completedStages = [];
+        }
+        if (!Array.isArray(saveData.stages.unlockedWorlds)) {
+            saveData.stages.unlockedWorlds = ['forestland'];
+        }
+        if (!saveData.stages.stageStats) {
+            saveData.stages.stageStats = {};
+        }
 
         // Check if this is first completion (before adding to completed list)
         const isFirstCompletion = !saveData.stages.completedStages.includes(stageId);
@@ -8474,6 +8502,20 @@ class GameOverScene extends Phaser.Scene {
         // Add completed stage if not already in list (only on victory)
         if (this.won && isFirstCompletion) {
             saveData.stages.completedStages.push(stageId);
+        }
+
+        if (this.won) {
+            const currentEntry = getStageProgressionEntry(this.stage);
+            const nextEntry = getNextStageProgressionEntry(this.stage);
+
+            if (currentEntry && !saveData.stages.unlockedWorlds.includes(currentEntry.worldId)) {
+                saveData.stages.unlockedWorlds.push(currentEntry.worldId);
+            }
+            if (nextEntry && !saveData.stages.unlockedWorlds.includes(nextEntry.worldId)) {
+                saveData.stages.unlockedWorlds.push(nextEntry.worldId);
+                mirrorLegacyStageUnlock(nextEntry);
+                this.unlockedWorld = nextEntry.worldId;
+            }
         }
 
         // Update stage stats
@@ -8540,14 +8582,15 @@ class GameOverScene extends Phaser.Scene {
             const stageUnlockMap = {
                 'forest': 'orb',      // Complete Forest Land -> Unlock Orb
                 'cave': 'grim',       // Complete Cave Land -> Unlock Grim
-                'desert': 'blip',     // Complete Sand Land -> Unlock Blip
+                'sand': 'blip',       // Complete Sand Land -> Unlock Blip
                 'swamp': null,        // No unlock
                 'snow': null,         // No unlock
                 'ocean': null,        // No unlock
                 'lava': null,         // No unlock
-                'graveyard': null,    // No unlock
+                'grave': null,        // No unlock
                 'castle': null,       // No unlock
                 'spire': null,        // No unlock
+                'void': null,         // No unlock
                 'nexus': null         // No unlock
             };
 
@@ -11577,7 +11620,7 @@ class GameScene extends Phaser.Scene {
                 { speaker: 'witch', text: 'Good! Remember, you can use FUSION RITUAL at level up to combine two elements into something more powerful!' },
                 { speaker: 'wizard', text: 'Fusion magic... interesting. I\'ll try it!' }
             ],
-            desert: [
+            sand: [
                 { speaker: 'witch', text: 'The scorching Desertland awaits. The heat here is unbearable!' },
                 { speaker: 'wizard', text: 'How do I manage my elements effectively?' },
                 { speaker: 'witch', text: 'Open the RADIAL MENU with TAB or SELECT button. You can drag elements between slots to optimize your build!' },
@@ -17870,6 +17913,37 @@ class GameScene extends Phaser.Scene {
         });
     }
 
+    getVerticalSliceTuning() {
+        const tuning = {
+            forest: {
+                bossHealthMultiplier: 0.8,
+                waveSpawnIntervalMultiplier: 1.1,
+                earlyCatalystMilestones: { 4: 1, 8: 2 }
+            },
+            cave: {
+                bossHealthMultiplier: 0.85,
+                waveSpawnIntervalMultiplier: 1.05,
+                earlyCatalystMilestones: { 4: 1, 8: 2 }
+            },
+            sand: {
+                bossHealthMultiplier: 0.9,
+                waveSpawnIntervalMultiplier: 1.0,
+                earlyCatalystMilestones: { 4: 1, 8: 2 }
+            }
+        };
+
+        return tuning[this.stage] || {};
+    }
+
+    getBossHealthTuningMultiplier() {
+        return this.getVerticalSliceTuning().bossHealthMultiplier || 1;
+    }
+
+    getEarlyCatalystMilestone(level) {
+        const milestones = this.getVerticalSliceTuning().earlyCatalystMilestones || {};
+        return milestones[level] || 0;
+    }
+
     getWaveDefinition(waveNumber) {
         // Wave definitions inspired by Vampire Survivors
         // Each wave lasts 60 seconds, with specific enemy types and spawn patterns
@@ -18622,6 +18696,12 @@ class GameScene extends Phaser.Scene {
         } else if (this.enemyDensityMultiplier < 1) {
             wave.spawnInterval = wave.spawnInterval / this.enemyDensityMultiplier;
         }
+
+        const stageTuning = this.getVerticalSliceTuning();
+        if (stageTuning.waveSpawnIntervalMultiplier) {
+            wave.spawnInterval = Math.floor(wave.spawnInterval * stageTuning.waveSpawnIntervalMultiplier);
+        }
+
         return wave;
     }
     startNewWave() {
@@ -19496,10 +19576,8 @@ class GameScene extends Phaser.Scene {
             this.startVictoryCountdown(secondsRemaining);
         }
 
-        // Check if boss fights are enabled via talent unlock (or disabled if in arcade mode)
-        const saveData = window.saveManager ? window.saveManager.getCurrentSave() : null;
-        const unlockedTalents = (saveData && saveData.talents && saveData.talents.unlockedTalents) ? saveData.talents.unlockedTalents : [];
-        const bossEnabled = unlockedTalents.includes('boss_fights') && !this.arcadeMode;
+        // Boss fights are part of normal stage completions; arcade keeps fast stage rotation.
+        const bossEnabled = !this.arcadeMode;
 
         if (minutes >= winMinutes && !this.bossSpawned && bossEnabled) {
             this.spawnBoss();
@@ -28587,7 +28665,7 @@ class GameScene extends Phaser.Scene {
         const stageDifficulty = {
             'forest': 0.6,      // 40% easier starting health
             'cave': 0.7,        // 30% easier starting health
-            'desert': 0.8,      // 20% easier starting health
+            'sand': 0.8,        // 20% easier starting health
             'lava': 1.0,        // Normal starting health
             'grave': 1.1,       // 10% harder starting health
             'castle': 1.2,      // 20% harder starting health
@@ -34935,6 +35013,36 @@ class GameScene extends Phaser.Scene {
                                    (this.wizard4 && this.wizard4.health > 0) ? this.wizard4 : null;
 
             if (milestonePlayer) {
+                const earlyCatalystCount = this.getEarlyCatalystMilestone(this.playerLevel);
+                if (earlyCatalystCount > 0) {
+                    for (let i = 0; i < earlyCatalystCount; i++) {
+                        const angle = (Math.PI * 2 * i) / earlyCatalystCount;
+                        const distance = 36;
+                        this.dropCatalyst(
+                            milestonePlayer.x + Math.cos(angle) * distance,
+                            milestonePlayer.y + Math.sin(angle) * distance
+                        );
+                    }
+
+                    const catalystText = this.add.text(milestonePlayer.x, milestonePlayer.y - 90,
+                        earlyCatalystCount === 1 ? 'CATALYST FOUND!' : `${earlyCatalystCount} CATALYSTS FOUND!`, {
+                        fontSize: '24px',
+                        color: '#ffaa00',
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 4
+                    });
+                    catalystText.setOrigin(0.5);
+                    catalystText.setDepth(150);
+                    this.tweens.add({
+                        targets: catalystText,
+                        y: milestonePlayer.y - 130,
+                        alpha: 0,
+                        duration: 2200,
+                        onComplete: () => catalystText.destroy()
+                    });
+                }
+
                 if (this.playerLevel === 5) {
                     // Level 5: Free chest reward
                     this.dropChest(milestonePlayer.x, milestonePlayer.y - 30);
@@ -53338,7 +53446,7 @@ class GameScene extends Phaser.Scene {
         };
         const enemyDensity = localStorage.getItem('enemyDensity') || 'normal';
         const healthMultiplier = densityMultipliers[enemyDensity] || 0.5;
-        boss.health = Math.floor(baseHealth * healthMultiplier);
+        boss.health = Math.floor(baseHealth * healthMultiplier * this.getBossHealthTuningMultiplier());
         boss.maxHealth = boss.health;
         boss.isBoss = true;
         boss.knockbackResistance = 0.1; // Bosses resist 90% of knockback
@@ -53439,7 +53547,7 @@ class GameScene extends Phaser.Scene {
         };
         const enemyDensity = localStorage.getItem('enemyDensity') || 'normal';
         const healthMultiplier = densityMultipliers[enemyDensity] || 0.5;
-        boss.health = Math.floor(baseHealth * healthMultiplier);
+        boss.health = Math.floor(baseHealth * healthMultiplier * this.getBossHealthTuningMultiplier());
         boss.maxHealth = boss.health;
         boss.isBoss = true;
         boss.knockbackResistance = 0.1; // Bosses resist 90% of knockback
@@ -53568,7 +53676,7 @@ class GameScene extends Phaser.Scene {
         };
         const enemyDensity = localStorage.getItem('enemyDensity') || 'normal';
         const healthMultiplier = densityMultipliers[enemyDensity] || 0.5;
-        boss.health = Math.floor(baseHealth * healthMultiplier);
+        boss.health = Math.floor(baseHealth * healthMultiplier * this.getBossHealthTuningMultiplier());
         boss.maxHealth = boss.health;
         boss.isBoss = true;
         boss.knockbackResistance = 0.1; // Bosses resist 90% of knockback
