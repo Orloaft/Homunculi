@@ -12357,19 +12357,7 @@ class GameScene extends Phaser.Scene {
 
         // Helper function to check if player has any fusable element pairs
         this.hasAnyFusablePairs = function(wizard = null) {
-            const targetWizard = wizard || this.wizard;
-            if (!targetWizard) return false;
-
-            // Get all elements from charge slots and pouch
-            const chargeSlots = targetWizard.chargeSlots || this.chargeSlots || [];
-            const pouchSlots = targetWizard.elementPouch || this.elementPouch || [];
-            const allSlots = [...chargeSlots, ...pouchSlots];
-
-            // Filter out null, catalyst, and passive orbs (chess pieces, etc.)
-            const passiveOrbs = ['rook', 'bishop', 'knight', 'queen', 'king', 'pawn', 'joker', 'saturn', 'spiral',
-                                'wizardOrb', 'summonOrb', 'saturnOrb', 'knightOrb', 'kingOrb', 'rookOrb',
-                                'flameOrb', 'healOrb', 'dashOrb', 'catalyst', 'mind'];
-            const elements = allSlots.filter(elem => elem && !passiveOrbs.includes(elem));
+            const elements = this.getRunElementInventory(wizard);
 
             // Need at least 2 elements to fuse
             if (elements.length < 2) return false;
@@ -12397,22 +12385,8 @@ class GameScene extends Phaser.Scene {
         };
 
         this.hasAnyElements = function(wizard = null) {
-            const targetWizard = wizard || this.wizard;
-            if (!targetWizard) return false;
-
-            // Get all elements from charge slots and pouch
-            const chargeSlots = targetWizard.chargeSlots || this.chargeSlots || [];
-            const pouchSlots = targetWizard.elementPouch || this.elementPouch || [];
-            const allSlots = [...chargeSlots, ...pouchSlots];
-
-            // Filter out null, catalyst, and passive orbs (chess pieces, etc.)
-            const passiveOrbs = ['rook', 'bishop', 'knight', 'queen', 'king', 'pawn', 'joker', 'saturn', 'spiral',
-                                'wizardOrb', 'summonOrb', 'saturnOrb', 'knightOrb', 'kingOrb', 'rookOrb',
-                                'flameOrb', 'healOrb', 'dashOrb', 'catalyst', 'mind'];
-            const elements = allSlots.filter(elem => elem && elem !== 'none' && !passiveOrbs.includes(elem));
-
             // Return true if player has at least one element
-            return elements.length > 0;
+            return this.getRunElementInventory(wizard).length > 0;
         };
 
         // Element descriptions for the discovery menu
@@ -17993,6 +17967,73 @@ class GameScene extends Phaser.Scene {
                 this.shouldAutoActivatePhilosopherStone = false;
             }
         });
+    }
+
+    getRunElementInventory(wizard = null) {
+        const targetWizard = wizard || this.wizard;
+        if (!targetWizard) return [];
+
+        const chargeSlots = targetWizard.chargeSlots || this.chargeSlots || [];
+        const pouchSlots = targetWizard.elementPouch || this.elementPouch || [];
+        const passiveOrbs = ['rook', 'bishop', 'knight', 'queen', 'king', 'pawn', 'joker', 'saturn', 'spiral',
+                            'wizardOrb', 'summonOrb', 'saturnOrb', 'knightOrb', 'kingOrb', 'rookOrb',
+                            'flameOrb', 'healOrb', 'dashOrb', 'catalyst', 'mind'];
+
+        return [...chargeSlots, ...pouchSlots].filter(elem => elem && elem !== 'none' && !passiveOrbs.includes(elem));
+    }
+
+    getCompatiblePrimaryElementsFor(element) {
+        const primaryElements = this.primaryElements || ['fire', 'water', 'earth', 'air', 'lightning', 'arcane'];
+        const fallbackFusions = {
+            'earth+fire': 'lava',
+            'fire+water': 'steam',
+            'earth+water': 'mud',
+            'air+earth': 'sand',
+            'air+water': 'ice',
+            'air+fire': 'blast',
+            'air+lightning': 'thunder',
+            'lightning+water': 'storm',
+            'earth+lightning': 'gravity',
+            'fire+lightning': 'laser',
+            'arcane+earth': 'gravity',
+            'arcane+water': 'poison',
+            'air+arcane': 'illusion',
+            'arcane+fire': 'hex',
+            'arcane+lightning': 'holy'
+        };
+        const fusions = this.elementFusions || fallbackFusions;
+
+        return primaryElements.filter(candidate => {
+            if (!candidate || candidate === element) return false;
+            if (typeof this.getFusionResult === 'function' && this.elementFusions) {
+                return Boolean(this.getFusionResult(element, candidate));
+            }
+            return Boolean(fusions[[element, candidate].sort().join('+')]);
+        });
+    }
+
+    getPrimaryElementRewardChoices(wizard = null, choiceCount = 3) {
+        const primaryElements = this.primaryElements || ['fire', 'water', 'earth', 'air', 'lightning', 'arcane'];
+        const choices = [];
+        const firstSliceStages = ['forest', 'cave', 'sand'];
+        const heldElements = this.getRunElementInventory(wizard);
+        const uniqueHeldElements = [...new Set(heldElements)];
+
+        if (firstSliceStages.includes(this.stage) && uniqueHeldElements.length === 1) {
+            const compatibleChoices = this.getCompatiblePrimaryElementsFor(uniqueHeldElements[0])
+                .filter(element => !choices.includes(element));
+            if (compatibleChoices.length > 0) {
+                choices.push(compatibleChoices[Math.floor(Math.random() * compatibleChoices.length)]);
+            }
+        }
+
+        const availableElements = primaryElements.filter(element => !choices.includes(element));
+        while (choices.length < choiceCount && availableElements.length > 0) {
+            const index = Math.floor(Math.random() * availableElements.length);
+            choices.push(availableElements.splice(index, 1)[0]);
+        }
+
+        return choices;
     }
 
     getVerticalSliceTuning() {
@@ -50002,14 +50043,8 @@ class GameScene extends Phaser.Scene {
         // Create new UI for element selection - no background
         const selectionBg = null; // No background
         const title = null; // Remove title completely
-        // Generate 3 random primary elements
-        const choices = [];
-        while (choices.length < 3) {
-            const element = this.primaryElements[Math.floor(Math.random() * this.primaryElements.length)];
-            if (!choices.includes(element)) {
-                choices.push(element);
-            }
-        }
+        const rewardWizard = (this.menuControllingPlayer === 2 && this.multiplayerEnabled && this.wizard2) ? this.wizard2 : this.wizard;
+        const choices = this.getPrimaryElementRewardChoices(rewardWizard, 3);
         debugLog('Element choices:', choices);
         // Reset ALL input states to prevent input carry-over
         this.prevChestConfirmPressed = true; // Prevent immediate selection
@@ -60151,6 +60186,15 @@ if (typeof window !== 'undefined') {
                 8: gameScene.getEarlyCatalystMilestone(8)
             };
             const bossHealthMultiplier = gameScene.getBossHealthTuningMultiplier();
+            const testWizard = {
+                chargeSlots: ['fire', null, null, null],
+                elementPouch: []
+            };
+            gameScene.wizard = testWizard;
+            gameScene.chargeSlots = testWizard.chargeSlots;
+            const earlyElementChoices = gameScene.getPrimaryElementRewardChoices(testWizard, 3);
+            const fireCompatibleChoices = gameScene.getCompatiblePrimaryElementsFor('fire');
+            const hasFusionSetupChoice = earlyElementChoices.some(element => fireCompatibleChoices.includes(element));
 
             assert(firstWaveSummary.roster.length >= 3, `${stage} opening roster is too narrow`);
             assert(firstWaveSummary.roster.length <= 4, `${stage} opening roster is too noisy`);
@@ -60169,13 +60213,17 @@ if (typeof window !== 'undefined') {
             assert(catalystMilestones[4] >= 1, `${stage} level 4 catalyst support missing`);
             assert(catalystMilestones[8] >= 2, `${stage} level 8 catalyst support missing`);
             assert(bossHealthMultiplier >= 0.75 && bossHealthMultiplier <= 0.95, `${stage} boss first-slice multiplier drifted`);
+            assert(earlyElementChoices.length === 3, `${stage} early element reward should offer three choices`);
+            assert(new Set(earlyElementChoices).size === earlyElementChoices.length, `${stage} early element reward should not duplicate choices`);
+            assert(hasFusionSetupChoice, `${stage} early element reward should include a fire-compatible fusion setup`);
 
             metrics[stage] = {
                 openingWave: firstWaveSummary,
                 secondWave: secondWaveSummary,
                 thirdWave: thirdWaveSummary,
                 catalystMilestones,
-                bossHealthMultiplier
+                bossHealthMultiplier,
+                earlyElementChoices
             };
         });
 

@@ -11,6 +11,7 @@ The smoke boots the real Electron/Phaser renderer, then calls `window.runHomuncu
 - Early catalyst milestones remain present at levels 4 and 8.
 - First-slice pickup tuning keeps early XP gems reachable without talent unlocks.
 - First-slice boss health multipliers remain in the tuned confidence envelope.
+- Early primary-element rewards set up fusion instead of leaving alchemy to pure chance when the player has one element.
 
 This complements `npm run smoke:progression`, which verifies save progression and exact vertical-slice constants. `smoke:feel` intentionally uses ranges and invariants rather than exact values so Track B can keep tuning content without changing the test for every small balance adjustment.
 

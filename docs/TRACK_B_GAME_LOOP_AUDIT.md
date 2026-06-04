@@ -119,3 +119,8 @@ Acceptance criteria:
 
 - Forest, Cave, and Sand now have first-slice XP and pickup-magnet tuning so early gems are easier to collect before talent unlocks.
 - Forest live smoke now follows visible XP after combat, auto-dismisses the first level-up reward with a passive pick, and fails unless it collects XP and reaches level 1 while sustaining live gameplay.
+
+## 2026-06-04 Early Fusion Setup
+
+- Forest, Cave, and Sand primary-element rewards now bias one choice toward a valid fusion pair when the player has exactly one run element.
+- The feel smoke now asserts that the first-slice element reward still offers three unique choices and includes a fire-compatible fusion setup.
