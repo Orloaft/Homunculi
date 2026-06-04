@@ -71,6 +71,7 @@ Findings:
 - Fixed 2026-06-04: Electron packaging now uses explicit runtime includes plus source-noise exclusions instead of root-wide `**/*`; source `.ase`/`.aseprite` art files are excluded from packaged builds.
 - `index.html` depends on CDN Three.js/OBJLoader before fallback, so offline first-run polish is risky.
 - Fixed 2026-06-04: release docs now match the package Node range, Phaser version, Windows portable target, smoke commands, and icon state.
+- Verified 2026-06-04: `npm run build-win-portable` produced `dist/WizBiz 1.0.1.exe` at 263M after freeing workspace image space.
 - Only `icon.png` exists; Windows/macOS icon coverage may warn or fall back.
 - `npm run smoke:swamp-boss` is now release-green and included in `verify:release`.
 

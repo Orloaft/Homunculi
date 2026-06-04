@@ -103,6 +103,10 @@ Release checklist:
 3. Inspect `dist/` for package size, missing assets, source maps, docs/editor tools, backup files, and other source noise.
 4. Launch the packaged app offline and test a fresh save, first run, first victory, reload, options, and quit/relaunch.
 
+Latest packaging proof:
+
+- 2026-06-04: `npm run build-win-portable` produced `dist/WizBiz 1.0.1.exe` at 263M.
+
 ### Lane 5: Architecture Containment
 
 Purpose: reduce risk in the 59k-line runtime without restarting the migration.
