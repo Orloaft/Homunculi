@@ -4,6 +4,8 @@ Goal: turn Homunculi into a production-ready game by protecting one playable sli
 
 Authoritative runtime: `index.html` + `scripts/game.js`. The TypeScript `src/` tree is useful architecture reference, but it is not the shipped Phaser scene path yet.
 
+Parallel world/release audit notes live in `docs/PARALLEL_WORLD_AUDIT.md`.
+
 ## Operating Rules
 
 1. Keep `overhaul` green and shippable after every slice.
@@ -19,7 +21,9 @@ Authoritative runtime: `index.html` + `scripts/game.js`. The TypeScript `src/` t
 - `npm run smoke:prod`
 - `npm run smoke:feel`
 - `npm run smoke:progression`
+- `npm run smoke:live`
 - `npm run smoke:forest-live`
+- `npm run smoke:swamp-live`
 
 Run the full gate stack before releases and before widening the production slice. For narrow content tuning, run syntax, compile, the touched smoke, and one live sanity gate.
 
@@ -36,8 +40,8 @@ Current status:
 
 Next slices:
 
-1. Add a reusable live-smoke harness that can start any stage, then convert `smoke:forest-live` into a parameterized Forest case.
-2. Add `smoke:swamp-live` focused on first 30 seconds of Swamp and Amphibian reachability/entry safety.
+1. Keep the reusable live-smoke harness healthy: `smoke:live` runs a configurable stage through `HOMUNCULI_LIVE_SMOKE_STAGE` and `HOMUNCULI_LIVE_SMOKE_ELEMENT`.
+2. Keep `smoke:swamp-live` focused on the first 30 seconds of Swamp until Amphibian reachability/entry safety gets its own boss-phase assertion.
 3. Add a human-readable balance summary for Forest/Cave/Sand/Swamp: opener roster, first level timing, fusion setup, catalyst levels, boss health, and unlock reward.
 
 ### Lane 2: Core Loop Completeness
@@ -101,9 +105,9 @@ Next slices:
 
 ## Immediate Queue
 
-1. Parameterize the live smoke harness so future worlds can get live gates without copy-paste.
-2. Add Swamp live coverage.
-3. Add a balance summary doc for Forest/Cave/Sand/Swamp.
+1. Add Swamp boss-entry assertions to the live harness once the Amphibian audit identifies the safest signal.
+2. Add a balance summary doc for Forest/Cave/Sand/Swamp.
+3. Promote Snow into deterministic feel/progression coverage after the parallel Snow audit lands.
 4. Strengthen progression smoke for post-victory rewards and recipe/stats reload.
 5. Add first grimoire/readback surface for discovered recipes.
 

@@ -59910,7 +59910,11 @@ const config = {
 };
 
 if (typeof window !== 'undefined') {
-    window.runHomunculiForestLiveSmoke = async function runHomunculiForestLiveSmoke() {
+    window.runHomunculiStageLiveSmoke = async function runHomunculiStageLiveSmoke(options = {}) {
+        const smokeStage = options.stage || 'forest';
+        const smokeStageLabel = options.label || `${smokeStage} live`;
+        const startElement = options.startElement || 'fire';
+        const desiredEnemyDistance = options.desiredEnemyDistance || 110;
         const originalStorage = {};
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
@@ -59948,7 +59952,7 @@ if (typeof window !== 'undefined') {
                 throw new Error(`${label}: ${latestError.message}${latestError.stack ? `\n${latestError.stack}` : ''}`);
             }
         };
-        const getForestScene = () => {
+        const getLiveSmokeScene = () => {
             if (typeof game === 'undefined' || !game || !game.scene) return null;
             return game.scene.getScene('GameScene');
         };
@@ -59971,19 +59975,19 @@ if (typeof window !== 'undefined') {
             });
             game.scene.stop('TitleScene');
             game.scene.start('GameScene', {
-                stage: 'forest',
+                stage: smokeStage,
                 p1Character: 'wizard',
                 multiplayerEnabled: false,
                 arcadeMode: false,
-                startElement: 'fire'
+                startElement
             });
 
-            await waitFor('Forest GameScene create', () => {
-                const scene = getForestScene();
-                return scene && scene.scene && scene.scene.isActive() && scene.stage === 'forest' && scene.wizard;
+            await waitFor(`${smokeStageLabel} GameScene create`, () => {
+                const scene = getLiveSmokeScene();
+                return scene && scene.scene && scene.scene.isActive() && scene.stage === smokeStage && scene.wizard;
             });
 
-            const scene = getForestScene();
+            const scene = getLiveSmokeScene();
             if (scene.scene && scene.scene.resume) {
                 scene.scene.resume();
             }
@@ -59991,18 +59995,18 @@ if (typeof window !== 'undefined') {
                 const slots = scene.wizard.chargeSlots || scene.chargeSlots || new Array(scene.initialMaxCharges || 3).fill(null);
                 scene.wizard.chargeSlots = slots;
                 scene.chargeSlots = slots;
-                scene.wizard.charges = ['fire'];
-                scene.charges = ['fire'];
+                scene.wizard.charges = [startElement];
+                scene.charges = [startElement];
                 slots.fill(null);
-                slots[0] = 'fire';
+                slots[0] = startElement;
                 if (scene.wizard.elementTiers && scene.wizard.elementTiers.set) {
-                    scene.wizard.elementTiers.set('fire_0', 1);
+                    scene.wizard.elementTiers.set(`${startElement}_0`, 1);
                 }
                 if (scene.elementTiers && scene.elementTiers.set) {
-                    scene.elementTiers.set('fire_0', 1);
+                    scene.elementTiers.set(`${startElement}_0`, 1);
                 }
                 if (scene.discoveredElements && scene.discoveredElements.add) {
-                    scene.discoveredElements.add('fire');
+                    scene.discoveredElements.add(startElement);
                 }
                 if (scene.updateChargeUI) {
                     scene.updateChargeUI();
@@ -60033,15 +60037,15 @@ if (typeof window !== 'undefined') {
                 scene.animationsReady = true;
             }
 
-            await waitFor('forest tutorial dialogue or live game', () => scene.gameStarted || (scene.dialogueManager && scene.dialogueManager.active), 8000);
+            await waitFor(`${smokeStageLabel} tutorial dialogue or live game`, () => scene.gameStarted || (scene.dialogueManager && scene.dialogueManager.active), 8000);
             closeDialogueIfOpen(scene);
 
-            await waitFor('Forest live gameplay start', () => scene.gameStarted === true, 8000);
+            await waitFor(`${smokeStageLabel} gameplay start`, () => scene.gameStarted === true, 8000);
             forceLiveSmokeStartingElement();
-            assert(scene.stage === 'forest', 'Live smoke is not running Forest');
-            assert(scene.wizard && scene.wizard.active, 'Wizard missing after Forest start');
-            assert(scene.enemies && scene.enemies.children, 'Enemy group missing after Forest start');
-            assertNoRendererErrors('Forest start');
+            assert(scene.stage === smokeStage, `Live smoke is not running ${smokeStage}`);
+            assert(scene.wizard && scene.wizard.active, `Wizard missing after ${smokeStageLabel} start`);
+            assert(scene.enemies && scene.enemies.children, `Enemy group missing after ${smokeStageLabel} start`);
+            assertNoRendererErrors(`${smokeStageLabel} start`);
 
             let firstLevelAt = null;
             liveAimTimer = setInterval(() => {
@@ -60087,7 +60091,7 @@ if (typeof window !== 'undefined') {
                 const direction = directions[octant] || 'down';
                 scene.wizard.lastDirection = direction;
                 scene.wizard.lastStableDirection = direction;
-                const desiredDistance = target === nearestPickup ? 16 : 140;
+                const desiredDistance = target === nearestPickup ? 16 : desiredEnemyDistance;
                 if (targetDistance > desiredDistance) {
                     const step = Math.min(18, targetDistance - desiredDistance);
                     scene.wizard.x += Math.cos(angle) * step;
@@ -60104,24 +60108,25 @@ if (typeof window !== 'undefined') {
 
             const startSurvivalTime = scene.survivalTime || 0;
             await wait(30000);
-            assertNoRendererErrors('Forest live window');
-            assert(scene.scene && scene.scene.isActive(), 'GameScene stopped during Forest live smoke');
-            assert(!scene.gameEnded, 'Forest live smoke ended the run early');
-            assert(scene.wizard && scene.wizard.active, 'Wizard was destroyed during Forest live smoke');
-            assert(scene.playerHealth > 0, 'Wizard died during Forest live smoke');
+            assertNoRendererErrors(`${smokeStageLabel} window`);
+            assert(scene.scene && scene.scene.isActive(), `GameScene stopped during ${smokeStageLabel} smoke`);
+            assert(!scene.gameEnded, `${smokeStageLabel} smoke ended the run early`);
+            assert(scene.wizard && scene.wizard.active, `Wizard was destroyed during ${smokeStageLabel} smoke`);
+            assert(scene.playerHealth > 0, `Wizard died during ${smokeStageLabel} smoke`);
 
             const activeEnemies = scene.enemies.children.entries.filter(enemy => enemy && enemy.active).length;
             const totalEnemyActivity = activeEnemies + (scene.enemiesKilled || 0);
             assert((scene.survivalTime || 0) > startSurvivalTime, 'Survival timer did not advance');
-            assert(((scene.survivalTime || 0) - startSurvivalTime) >= 25000, 'Forest live smoke did not sustain at least 25 seconds of live gameplay');
-            assert(totalEnemyActivity > 0, 'Forest live smoke did not observe enemy activity');
-            assert((scene.enemiesKilled || 0) > 0, 'Forest live smoke did not confirm any enemy kills');
-            assert((scene.itemsCollected || 0) > 0, 'Forest live smoke did not collect any XP gems');
-            assert((scene.playerLevel || 0) >= 1, 'Forest live smoke did not reach the first level-up timing target');
+            assert(((scene.survivalTime || 0) - startSurvivalTime) >= 25000, `${smokeStageLabel} smoke did not sustain at least 25 seconds of live gameplay`);
+            assert(totalEnemyActivity > 0, `${smokeStageLabel} smoke did not observe enemy activity`);
+            assert((scene.enemiesKilled || 0) > 0, `${smokeStageLabel} smoke did not confirm any enemy kills`);
+            assert((scene.itemsCollected || 0) > 0, `${smokeStageLabel} smoke did not collect any XP gems`);
+            assert((scene.playerLevel || 0) >= 1, `${smokeStageLabel} smoke did not reach the first level-up timing target`);
 
             return {
                 ok: true,
                 stage: scene.stage,
+                label: smokeStageLabel,
                 survivalTime: scene.survivalTime,
                 playerHealth: scene.playerHealth,
                 activeEnemies,
@@ -60141,6 +60146,24 @@ if (typeof window !== 'undefined') {
             localStorage.clear();
             Object.entries(originalStorage).forEach(([key, value]) => localStorage.setItem(key, value));
         }
+    };
+
+    window.runHomunculiForestLiveSmoke = async function runHomunculiForestLiveSmoke() {
+        return window.runHomunculiStageLiveSmoke({
+            stage: 'forest',
+            label: 'Forest live',
+            startElement: 'fire',
+            desiredEnemyDistance: 80
+        });
+    };
+
+    window.runHomunculiSwampLiveSmoke = async function runHomunculiSwampLiveSmoke() {
+        return window.runHomunculiStageLiveSmoke({
+            stage: 'swamp',
+            label: 'Swamp live',
+            startElement: 'fire',
+            desiredEnemyDistance: 120
+        });
     };
 
     window.runHomunculiFeelSmoke = async function runHomunculiFeelSmoke() {

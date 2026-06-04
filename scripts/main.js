@@ -17,10 +17,12 @@ const isSmokeRun = process.env.HOMUNCULI_SMOKE === '1';
 const isProgressionSmokeRun = process.env.HOMUNCULI_PROGRESSION_SMOKE === '1';
 const isFeelSmokeRun = process.env.HOMUNCULI_FEEL_SMOKE === '1';
 const isForestLiveSmokeRun = process.env.HOMUNCULI_FOREST_LIVE_SMOKE === '1';
+const isSwampLiveSmokeRun = process.env.HOMUNCULI_SWAMP_LIVE_SMOKE === '1';
+const isStageLiveSmokeRun = process.env.HOMUNCULI_STAGE_LIVE_SMOKE === '1' || isForestLiveSmokeRun || isSwampLiveSmokeRun;
 let smokeFailed = false;
 
 function finishSmoke(exitCode, reason) {
-  if ((!isSmokeRun && !isProgressionSmokeRun && !isFeelSmokeRun && !isForestLiveSmokeRun) || app.isQuitting) return;
+  if ((!isSmokeRun && !isProgressionSmokeRun && !isFeelSmokeRun && !isStageLiveSmokeRun) || app.isQuitting) return;
   app.isQuitting = true;
   console.log(`[smoke] ${reason}`);
   app.exit(exitCode);
@@ -53,7 +55,7 @@ function createWindow() {
   // Load the game
   mainWindow.loadFile(path.join(__dirname, '..', 'index.html'));
 
-  if (isSmokeRun || isProgressionSmokeRun || isFeelSmokeRun || isForestLiveSmokeRun) {
+  if (isSmokeRun || isProgressionSmokeRun || isFeelSmokeRun || isStageLiveSmokeRun) {
     mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
       smokeFailed = true;
       finishSmoke(1, `load failed ${errorCode}: ${errorDescription} (${validatedURL})`);
@@ -79,30 +81,42 @@ function createWindow() {
     mainWindow.webContents.once('did-finish-load', () => {
       setTimeout(async () => {
         if (!smokeFailed) {
-          if (isProgressionSmokeRun || isFeelSmokeRun || isForestLiveSmokeRun) {
+          if (isProgressionSmokeRun || isFeelSmokeRun || isStageLiveSmokeRun) {
             try {
-              const smokeHelperName = isForestLiveSmokeRun
+              const liveStage = isSwampLiveSmokeRun
+                ? 'swamp'
+                : isForestLiveSmokeRun
+                  ? 'forest'
+                  : process.env.HOMUNCULI_LIVE_SMOKE_STAGE || 'forest';
+              const liveStartElement = isSwampLiveSmokeRun
+                ? 'fire'
+                : process.env.HOMUNCULI_LIVE_SMOKE_ELEMENT || 'fire';
+              const liveDesiredEnemyDistance = Number(process.env.HOMUNCULI_LIVE_SMOKE_ENEMY_DISTANCE || (
+                isSwampLiveSmokeRun ? 120 : isForestLiveSmokeRun ? 80 : 110
+              ));
+              const smokeHelperName = isStageLiveSmokeRun
                 ? 'runHomunculiForestLiveSmoke'
                 : isFeelSmokeRun
                   ? 'runHomunculiFeelSmoke'
                   : 'runHomunculiProgressionSmoke';
-              const smokeLabel = isForestLiveSmokeRun ? 'forest live' : isFeelSmokeRun ? 'feel' : 'progression';
+              const smokeLabel = isStageLiveSmokeRun ? `${liveStage} live` : isFeelSmokeRun ? 'feel' : 'progression';
               const result = await mainWindow.webContents.executeJavaScript(`
                 (async () => {
                   if (!document.querySelector("canvas")) {
                     throw new Error("Phaser canvas missing");
                   }
-                  if (typeof window.${smokeHelperName} !== "function") {
+                  const helper = ${isStageLiveSmokeRun ? 'window.runHomunculiStageLiveSmoke' : `window.${smokeHelperName}`};
+                  if (typeof helper !== "function") {
                     throw new Error("${smokeLabel} smoke helper missing");
                   }
-                  return await window.${smokeHelperName}();
+                  return await helper(${isStageLiveSmokeRun ? JSON.stringify({ stage: liveStage, label: `${liveStage} live`, startElement: liveStartElement, desiredEnemyDistance: liveDesiredEnemyDistance }) : ''});
                 })()
               `);
               finishSmoke(result && result.ok ? 0 : 1, result && result.ok ? `${smokeLabel} verified ${JSON.stringify(result)}` : `${smokeLabel} verification failed`);
             } catch (error) {
               smokeFailed = true;
               const errorDetails = error && error.stack ? error.stack : error && error.message ? error.message : error;
-              finishSmoke(1, `${isForestLiveSmokeRun ? 'forest live' : isFeelSmokeRun ? 'feel' : 'progression'} verification error: ${errorDetails}`);
+              finishSmoke(1, `${isStageLiveSmokeRun ? 'stage live' : isFeelSmokeRun ? 'feel' : 'progression'} verification error: ${errorDetails}`);
             }
           } else {
             const hasCanvas = await mainWindow.webContents.executeJavaScript(
