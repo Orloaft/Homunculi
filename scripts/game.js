@@ -55601,7 +55601,7 @@ class GameScene extends Phaser.Scene {
 
     spawnOceanMinions() {
         // Spawn ocean-themed enemies during phase changes
-        const oceanEnemies = ['crab', 'jellyfish', 'seahorse']; // Placeholder names
+        const oceanEnemies = ['crabby', 'jellyfish', 'squid', 'shark', 'crablore', 'waterslime'];
 
         // Find alive kings to spawn near
         const aliveKings = this.seaKings.filter(k => k && k.active && !k.isDead && k.health > 0);
@@ -55617,12 +55617,142 @@ class GameScene extends Phaser.Scene {
             const x = spawnKing.x + Math.cos(angle) * distance;
             const y = spawnKing.y + Math.sin(angle) * distance;
 
-            // Spawn ocean enemy (will use generic enemies if ocean enemies don't exist)
             const enemyType = oceanEnemies[Math.floor(Math.random() * oceanEnemies.length)];
             if (this.spawnSpecificEnemy) {
-                this.spawnSpecificEnemy('golem', x, y); // Use golem as placeholder
+                this.spawnSpecificEnemy(enemyType, x, y);
             }
         }
+    }
+
+    handleSeaKingDeath(king) {
+        if (!king || king.seaKingDeathHandled) return;
+        king.seaKingDeathHandled = true;
+        king.isDead = true;
+        king.isDying = true;
+        king.isAttacking = false;
+        king.health = 0;
+        king.setVelocity(0, 0);
+        if (king.body) {
+            king.body.enable = false;
+        }
+
+        const deathDirection = king.currentDirection || 'down';
+        const deathAnim = `seaking${king.kingNumber}-death-${deathDirection}`;
+        if (king.anims) {
+            king.anims.stop();
+        }
+        if (this.anims && this.anims.exists(deathAnim)) {
+            try {
+                king.play(deathAnim);
+                king.once('animationcomplete', () => {
+                    if (king.active) {
+                        king.destroy();
+                    }
+                });
+            } catch (error) {
+                console.warn(`Sea King death animation failed for ${deathAnim}; using safe destroy fallback`, error);
+                if (king.active) {
+                    king.destroy();
+                }
+            }
+        } else if (king.active) {
+            king.destroy();
+        }
+
+        this.updateSeaKingsHealthState();
+
+        const nextLivingKing = (this.seaKings || []).find(candidate => {
+            return candidate && candidate.active && !candidate.isDead && candidate.health > 0;
+        });
+        this.boss = nextLivingKing || null;
+        if (this.boss) {
+            this.boss.isMultiBoss = true;
+            this.boss.seaKingsGroup = this.seaKings;
+        }
+
+        if (!nextLivingKing) {
+            this.completeSeaKingsBossDeath(king);
+        }
+    }
+
+    updateSeaKingsHealthState() {
+        if (!Array.isArray(this.seaKings)) return { totalHealth: 0, aliveKings: 0 };
+
+        let totalHealth = 0;
+        let aliveKings = 0;
+        this.seaKings.forEach(king => {
+            if (king && king.active && !king.isDead && king.health > 0) {
+                totalHealth += king.health;
+                aliveKings++;
+            }
+        });
+
+        this.seaKingsTotalHealth = totalHealth;
+        if (this.bossHealthBar && this.seaKingsTotalMaxHealth) {
+            const healthPercent = Math.max(0, totalHealth / this.seaKingsTotalMaxHealth);
+            this.bossHealthBar.width = (600 - 6) * healthPercent;
+        }
+
+        return { totalHealth, aliveKings };
+    }
+
+    completeSeaKingsBossDeath(lastKing) {
+        if (this.seaKingsCompletionStarted) return;
+        this.seaKingsCompletionStarted = true;
+
+        if (this.bossAITimer) {
+            this.bossAITimer.destroy();
+            this.bossAITimer = null;
+        }
+
+        if (this.bossMusic && this.bossMusic.isPlaying) {
+            this.tweens.add({
+                targets: this.bossMusic,
+                volume: 0,
+                duration: 1000,
+                ease: 'Power2',
+                onComplete: () => {
+                    if (this.bossMusic) {
+                        this.bossMusic.stop();
+                        this.bossMusic.destroy();
+                        this.bossMusic = null;
+                    }
+                }
+            });
+        }
+
+        if (this.bossHealthBar) {
+            this.bossHealthBar.destroy();
+            this.bossHealthBar = null;
+        }
+        if (this.bossHealthBarBg) {
+            this.bossHealthBarBg.destroy();
+            this.bossHealthBarBg = null;
+        }
+        if (this.bossNameText) {
+            this.bossNameText.destroy();
+            this.bossNameText = null;
+        }
+
+        const rewardOrigin = lastKing || this.wizard || { x: 400, y: 300 };
+        try {
+            for (let i = 0; i < 10; i++) {
+                const angle = (Math.PI * 2 * i) / 10;
+                const distance = 100;
+                this.dropJewel(rewardOrigin.x + Math.cos(angle) * distance, rewardOrigin.y + Math.sin(angle) * distance, 20, 0.15);
+            }
+            const catalystCount = 3 + Math.floor(Math.random() * 3);
+            for (let i = 0; i < catalystCount; i++) {
+                const angle = (Math.PI * 2 * i) / catalystCount + Math.PI / 6;
+                const distance = 80;
+                this.dropCatalyst(rewardOrigin.x + Math.cos(angle) * distance, rewardOrigin.y + Math.sin(angle) * distance);
+            }
+            this.dropChest(rewardOrigin.x, rewardOrigin.y);
+        } catch (error) {
+            console.warn('Sea Kings reward drop failed during death cleanup:', error);
+        }
+
+        setTimeout(() => this.gameWon(), 2000);
     }
     // ===== END SEA KINGS BOSS =====
 
@@ -57749,6 +57879,11 @@ class GameScene extends Phaser.Scene {
         this.boss.setTint(0xff88ff);
     }
     handleBossDeath(boss) {
+        if (boss && boss.isSeaKing) {
+            this.handleSeaKingDeath(boss);
+            return;
+        }
+
         // Play boss death sound
         if (this.cache.audio.exists('boss-death')) {
             this.sound.play('boss-death', { volume: 0.8 });
@@ -60462,6 +60597,139 @@ if (typeof window !== 'undefined') {
                 bossType: boss.enemyType,
                 maxHealth: expectedMaxHealth,
                 attackCooldown: boss.attackCooldown,
+                gameWonCalled: scene.gameWonCalled === true
+            };
+        } finally {
+            window.removeEventListener('error', captureRendererError);
+            localStorage.clear();
+            Object.entries(originalStorage).forEach(([key, value]) => localStorage.setItem(key, value));
+        }
+    };
+
+    window.runHomunculiOceanBossSmoke = async function runHomunculiOceanBossSmoke() {
+        const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        const waitFor = async (label, predicate, timeoutMs = 8000) => {
+            const start = Date.now();
+            while (Date.now() - start < timeoutMs) {
+                if (predicate()) return;
+                await wait(100);
+            }
+            const activeScenes = typeof game !== 'undefined' && game && game.scene
+                ? game.scene.getScenes(true).map(scene => scene.scene.key).join(', ')
+                : 'none';
+            throw new Error(`Timed out waiting for ${label}; active scenes: ${activeScenes}`);
+        };
+        const assert = (condition, message) => {
+            if (!condition) throw new Error(message);
+        };
+
+        const rendererErrors = [];
+        const captureRendererError = (event) => {
+            rendererErrors.push({
+                message: event.message,
+                stack: event.error && event.error.stack
+            });
+        };
+        const assertNoRendererErrors = (label) => {
+            if (rendererErrors.length > 0) {
+                const latestError = rendererErrors[rendererErrors.length - 1];
+                throw new Error(`${label}: ${latestError.message}${latestError.stack ? `\n${latestError.stack}` : ''}`);
+            }
+        };
+
+        const originalStorage = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            originalStorage[key] = localStorage.getItem(key);
+        }
+
+        try {
+            window.addEventListener('error', captureRendererError);
+            localStorage.clear();
+            localStorage.setItem('enemyDensity', 'normal');
+
+            await waitFor('Phaser game boot', () => typeof game !== 'undefined' && game && game.scene);
+            await waitFor('title scene and Sea Kings assets', () => {
+                const titleScene = game.scene.getScene('TitleScene');
+                return titleScene && titleScene.scene && titleScene.scene.isActive() && titleScene.textures && titleScene.textures.exists('seaking1-walk');
+            });
+            game.scene.stop('TitleScene');
+            game.scene.start('GameScene', {
+                stage: 'ocean',
+                p1Character: 'wizard',
+                multiplayerEnabled: false,
+                arcadeMode: false,
+                startElement: 'water'
+            });
+
+            await waitFor('Ocean GameScene create', () => {
+                const scene = game.scene.getScene('GameScene');
+                return scene && scene.scene && scene.scene.isActive() && scene.stage === 'ocean' && scene.wizard;
+            });
+
+            const scene = game.scene.getScene('GameScene');
+            if (scene.dialogueManager && scene.dialogueManager.active) {
+                scene.dialogueManager.close(true);
+            }
+            scene.gamePaused = false;
+            scene.pauseSource = null;
+            scene.gameStarted = true;
+            if (scene.physics && scene.physics.world) {
+                scene.physics.resume();
+            }
+            if (scene.time) {
+                scene.time.timeScale = 1;
+            }
+
+            scene.createSeaKingsBoss();
+            await waitFor('Sea Kings boss entry', () => Array.isArray(scene.seaKings) && scene.seaKings.length === 3 && scene.seaKings.every(king => king && king.active && king.isSeaKing));
+
+            const kings = scene.seaKings.slice();
+            const expectedHealthPerKing = Math.floor(2000 * 0.5);
+            assert(scene.boss === kings[0], 'Sea Kings legacy boss reference should start on king 1');
+            assert(scene.seaKingsTotalMaxHealth === expectedHealthPerKing * 3, 'Sea Kings total health tuning drifted');
+            kings.forEach((king, index) => {
+                assert(king.enemyType === `seaking${index + 1}`, `Sea King ${index + 1} enemy type drifted`);
+                assert(king.maxHealth === expectedHealthPerKing, `Sea King ${index + 1} health tuning drifted`);
+                assert(king.isBoss === true, `Sea King ${index + 1} boss flag missing`);
+                assert(king.isSeaKing === true, `Sea King ${index + 1} Sea King flag missing`);
+            });
+            assert(scene.bossHealthBar && scene.bossHealthBar.active, 'Sea Kings shared health bar missing');
+            assert(scene.bossHealthBarBg && scene.bossHealthBarBg.active, 'Sea Kings health bar background missing');
+            assert(scene.bossNameText && scene.bossNameText.text === 'SEA KINGS', 'Sea Kings health label missing');
+            assert(scene.bossAITimer && !scene.bossAITimer.paused, 'Sea Kings AI timer missing');
+            assertNoRendererErrors('Sea Kings boss entry');
+
+            scene.spawnOceanMinions();
+            await waitFor('Ocean phase add spawn', () => {
+                return scene.enemies.children.entries.some(enemy => enemy && enemy.active && ['crabby', 'jellyfish', 'squid', 'shark', 'crablore', 'waterslime'].includes(enemy.enemyType));
+            }, 3000);
+            assert(!scene.enemies.children.entries.some(enemy => enemy && enemy.active && enemy.enemyType === 'golem'), 'Sea Kings spawned generic golem phase adds');
+
+            scene.handleBossDeath(kings[0]);
+            await waitFor('single Sea King death handling', () => kings[0].isDead === true && scene.boss && scene.boss !== kings[0], 3000);
+            await wait(500);
+            assert(scene.gameWonCalled !== true, 'Killing one Sea King should not end the run');
+            assert(scene.bossHealthBar && scene.bossHealthBar.active, 'Sea Kings health bar should remain after one king death');
+            assert(scene.seaKingsTotalHealth === expectedHealthPerKing * 2, 'Sea Kings combined health did not update after one king death');
+            assertNoRendererErrors('Single Sea King death');
+
+            scene.handleBossDeath(kings[1]);
+            scene.handleBossDeath(kings[2]);
+            try {
+                await waitFor('all Sea Kings death cleanup', () => scene.gameWonCalled === true && scene.gameEnded === true && scene.boss === null, 8000);
+            } catch (error) {
+                throw new Error(`${error.message}; gameWonCalled=${scene.gameWonCalled === true}; gameEnded=${scene.gameEnded === true}; aliveKings=${scene.seaKings.filter(king => king && king.active && !king.isDead && king.health > 0).length}; sceneBoss=${scene.boss && scene.boss.enemyType}`);
+            }
+            assert(scene.bossHealthBar === null || !scene.bossHealthBar.active, 'Sea Kings health bar should be removed after all kings die');
+            assertNoRendererErrors('Sea Kings boss death');
+
+            return {
+                ok: true,
+                stage: scene.stage,
+                kings: kings.map(king => king.enemyType),
+                maxHealthPerKing: expectedHealthPerKing,
+                totalMaxHealth: expectedHealthPerKing * 3,
                 gameWonCalled: scene.gameWonCalled === true
             };
         } finally {

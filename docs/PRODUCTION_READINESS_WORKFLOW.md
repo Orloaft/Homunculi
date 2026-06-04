@@ -28,6 +28,7 @@ Parallel world/release audit notes live in `docs/PARALLEL_WORLD_AUDIT.md`.
 - `npm run smoke:snow-live`
 - `npm run smoke:swamp-boss`
 - `npm run smoke:snow-boss`
+- `npm run smoke:ocean-boss`
 - `npm run verify:release`
 
 Run the full gate stack before releases and before widening the production slice. For narrow content tuning, run syntax, compile, the touched smoke, and one live sanity gate.
@@ -48,7 +49,8 @@ Next slices:
 
 1. Keep the reusable live-smoke harness healthy: `smoke:live` enables the shared live harness through `HOMUNCULI_STAGE_LIVE_SMOKE=1` and can be configured with `HOMUNCULI_LIVE_SMOKE_STAGE` and `HOMUNCULI_LIVE_SMOKE_ELEMENT`.
 2. Keep `smoke:swamp-live`/`smoke:snow-live` focused on the first 30 seconds of their worlds, and keep `smoke:swamp-boss`/`smoke:snow-boss` focused on deterministic boss entry and completion.
-3. Add a human-readable balance summary for Forest/Cave/Sand/Swamp/Snow: opener roster, first level timing, fusion setup, catalyst levels, boss health, and unlock reward.
+3. Use `docs/PROMOTED_BALANCE_SUMMARY.md` as the human-readable balance snapshot for Forest/Cave/Sand/Swamp/Snow when promoting Ocean or changing first-slice tuning.
+4. Keep `smoke:ocean-boss` outside `verify:release` until Ocean has deterministic feel/progression coverage and a named live gate.
 
 ### Lane 2: Core Loop Completeness
 
@@ -122,11 +124,9 @@ Next slices:
 
 ## Immediate Queue
 
-1. Add a balance summary doc for Forest/Cave/Sand/Swamp/Snow.
-2. Harden Ocean/Sea Kings enough for deterministic promotion coverage.
-3. Add Ocean deterministic feel/progression coverage after Snow remains green.
-4. Strengthen progression smoke for post-victory rewards and recipe/stats reload.
-5. Add first grimoire/readback surface for discovered recipes.
+1. Add Ocean deterministic feel/progression coverage after Snow remains green.
+2. Strengthen progression smoke for post-victory rewards and recipe/stats reload.
+3. Add first grimoire/readback surface for discovered recipes.
 
 ## Done Definition
 

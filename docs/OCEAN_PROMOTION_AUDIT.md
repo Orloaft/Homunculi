@@ -6,13 +6,13 @@ Scope: docs-only audit for the Ocean/Sea Kings promotion lane. Runtime evidence 
 
 ## Status
 
-Ocean is not ready for promotion. It has a clear aquatic content shell and a dedicated Sea Kings boss entry, but it is behind Snow in the production promotion order and still has runtime blockers that can make the boss gate report victory too early or fail to report victory at all.
+Ocean is not ready for promotion. It has a clear aquatic content shell and a dedicated Sea Kings boss entry, and the first Sea Kings boss-hardening pass is now covered by `npm run smoke:ocean-boss`. Ocean still needs deterministic feel/progression coverage and a stable live gate before it should be promoted.
 
 Promotion should wait until:
 
 - Snow is promoted with deterministic and live gates.
 - Ocean has deterministic feel/progression coverage.
-- Sea Kings have explicit multi-boss death/completion handling.
+- Sea Kings have explicit multi-boss death/completion handling. Fixed 2026-06-04 and covered by `smoke:ocean-boss`.
 - Ocean has one named live smoke that would fail on roster drift, boss entry drift, and completion drift.
 
 ## Current World Content
@@ -76,12 +76,11 @@ Boss content:
 
 ## Boss And Sea Kings Blockers
 
-- Generic boss death handling treats any `enemy.isBoss` death as a full boss death. Because each Sea King is individually marked `isBoss`, killing one king can call `handleBossDeath()` instead of waiting for all three kings.
-- `handleBossDeath()` has no Sea Kings branch. A Sea King falls through to `obelisk-death`, even though Sea King death animations are loaded.
-- The `handleBossDeath()` completion listener only proceeds for `nekros-death`, `archer-boss-death`, `obelisk-death`, and `eyelor-death`. If Sea Kings are switched to their real death animation without a matching completion branch, victory can stall.
+- Fixed 2026-06-04: generic boss death handling now routes Sea Kings through `handleSeaKingDeath()`, so killing one king does not end the fight.
+- Fixed 2026-06-04: Sea Kings now have explicit all-kings-dead completion handling that drops rewards once, removes shared UI, stops boss AI, and calls `gameWon()` once.
+- Fixed 2026-06-04: Sea King death animation playback uses the king-specific death animation when possible and falls back to safe destroy if Phaser rejects the animation data.
 - Sea Kings use a shared health bar, but `this.boss` points only to king 1. Legacy projectile and boss-specific systems that damage `this.boss` may ignore the other two kings.
-- `updateSeaKingsBossAI()` returns when all kings are dead but does not itself trigger victory, cleanup, or `gameWon()`.
-- Phase minions are placeholders. The method chooses `crab`, `jellyfish`, and `seahorse`, but then always calls `spawnSpecificEnemy('golem', x, y)`.
+- Fixed 2026-06-04: Ocean phase minions now spawn actual Ocean roster enemies instead of generic golems.
 - Sea Kings do not use the vertical-slice boss health tuning path. Their health is density-scaled manually from `2000` per king, with normal density resulting in `1000` each and `3000` total.
 - The live gate needs to assert all three kings are present, not just `this.boss`.
 
@@ -110,8 +109,9 @@ Before adding a named live gate, the live harness should be able to assert:
 - The shared boss health UI exists and reads `SEA KINGS`.
 - Sea Kings boss music starts.
 - At least one Sea King attack projectile is produced safely.
-- Killing one king does not call `gameWon()`.
-- Killing all three kings triggers rewards, cleanup, `gameWon()`, `ocean-1` completion, and Lava unlock after reload.
+- Covered by `smoke:ocean-boss`: killing one king does not call `gameWon()`.
+- Covered by `smoke:ocean-boss`: killing all three kings triggers boss cleanup and `gameWon()`.
+- Still needed for Ocean promotion: save-level assertion that Ocean completion records `ocean-1` and Lava unlock survives reload.
 
 Current green release gates should still run before widening the production slice:
 
@@ -126,6 +126,7 @@ Current green release gates should still run before widening the production slic
 - `npm run smoke:snow-live`
 - `npm run smoke:swamp-boss`
 - `npm run smoke:snow-boss`
+- `npm run smoke:ocean-boss`
 
 ## Recommended Start Config
 
@@ -170,13 +171,13 @@ The script also needs corresponding `scripts/main.js` dispatch, but this audit i
 2. Add Ocean deterministic coverage to `smoke:feel` and `smoke:progression`, including wave identity, early tuning, save unlock/reload, and `ocean-1` completion.
 3. Add an Ocean vertical-slice tuning entry or document an intentional Ocean-specific alternative for opener pacing, XP, pickup magnet, catalysts, and boss health.
 4. Replace the random Ocean spawn branch with the aquatic roster or prove it is unreachable during the shipped wave loop.
-5. Fix Sea Kings death semantics so one king death marks only that king dead, updates combined health, plays the correct king death animation, and keeps the fight active.
-6. Add explicit all-kings-dead completion handling that drops rewards once, stops Sea Kings AI/music once, calls `gameWon()` once, and unlocks Lava through save reload.
-7. Replace Sea Kings phase minion placeholders with existing Ocean enemies: `crabby`, `jellyfish`, `squid`, `shark`, `crablore`, or `waterslime`.
+5. Fixed 2026-06-04: Sea Kings death semantics now mark only the killed king dead, update combined health, and keep the fight active.
+6. Fixed 2026-06-04: all-kings-dead completion now drops rewards once, stops Sea Kings AI/music once, and calls `gameWon()` once. Lava unlock reload coverage still belongs in Ocean progression smoke.
+7. Fixed 2026-06-04: Sea Kings phase minions now use existing Ocean enemies: `crabby`, `jellyfish`, `squid`, `shark`, `crablore`, or `waterslime`.
 8. Add a boss-entry live assertion for `scene.seaKings.length === 3` and shared health UI.
 9. Add a boss-completion live assertion that killing one king is not victory and killing all kings is victory.
 10. Add `smoke:ocean-live` to the current green gate stack only after it is stable.
 
 ## Decision
 
-Do not promote Ocean now. The viable next Ocean work is a small runtime hardening slice around Sea Kings multi-boss death/completion, followed by deterministic Ocean coverage. Only then should Ocean receive a named live gate and enter the production slice.
+Do not promote Ocean now. The Sea Kings multi-boss death/completion slice is fixed and covered by `npm run smoke:ocean-boss`; the viable next Ocean work is deterministic Ocean tuning/progression coverage, followed by a stable named live gate.
