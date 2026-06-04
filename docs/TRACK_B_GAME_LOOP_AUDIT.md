@@ -99,3 +99,10 @@ Acceptance criteria:
 - Forest, Cave, and Sand now drop early fusion catalysts at levels 4 and 8 so fusion can happen during the first slice.
 - Forest, Cave, and Sand boss health is lightly reduced for first-pass feel testing.
 - Fixed remaining Sand stage key drift in stage dialogue and stage difficulty lookup.
+
+## 2026-06-04 Delegated Progression Smoke
+
+- Added `npm run smoke:progression` for a deeper automated slice check.
+- The progression smoke creates a temporary save, verifies legacy localStorage unlocks do not leak into an active fresh save, forces Forest/Cave/Sand victories through `GameOverScene.updateSaveData()`, reloads the save, and checks Stage Select unlock visibility.
+- The smoke also asserts Forest/Cave/Sand catalyst and boss-health tuning constants so first-slice balance drift is caught automatically.
+- Fixed a Stage Select Voidkin animation crash by falling back to a static sprite when the animation is unavailable or malformed.

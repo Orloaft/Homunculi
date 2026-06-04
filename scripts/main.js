@@ -14,10 +14,11 @@ app.commandLine.appendSwitch('disable-gpu-vsync');
 
 let mainWindow;
 const isSmokeRun = process.env.HOMUNCULI_SMOKE === '1';
+const isProgressionSmokeRun = process.env.HOMUNCULI_PROGRESSION_SMOKE === '1';
 let smokeFailed = false;
 
 function finishSmoke(exitCode, reason) {
-  if (!isSmokeRun || app.isQuitting) return;
+  if ((!isSmokeRun && !isProgressionSmokeRun) || app.isQuitting) return;
   app.isQuitting = true;
   console.log(`[smoke] ${reason}`);
   app.exit(exitCode);
@@ -50,7 +51,7 @@ function createWindow() {
   // Load the game
   mainWindow.loadFile(path.join(__dirname, '..', 'index.html'));
 
-  if (isSmokeRun) {
+  if (isSmokeRun || isProgressionSmokeRun) {
     mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
       smokeFailed = true;
       finishSmoke(1, `load failed ${errorCode}: ${errorDescription} (${validatedURL})`);
@@ -61,8 +62,13 @@ function createWindow() {
       finishSmoke(1, `renderer exited: ${details.reason}`);
     });
 
+    mainWindow.webContents.on('unresponsive', () => {
+      smokeFailed = true;
+      finishSmoke(1, 'renderer became unresponsive');
+    });
+
     mainWindow.webContents.on('console-message', (_event, _level, message) => {
-      if (/Uncaught|Failed to initialize Phaser|Script error/i.test(message)) {
+      if (!isProgressionSmokeRun && /Uncaught|Failed to initialize Phaser|Script error/i.test(message)) {
         smokeFailed = true;
         finishSmoke(1, `renderer console error: ${message}`);
       }
@@ -71,10 +77,30 @@ function createWindow() {
     mainWindow.webContents.once('did-finish-load', () => {
       setTimeout(async () => {
         if (!smokeFailed) {
-          const hasCanvas = await mainWindow.webContents.executeJavaScript(
-            'Boolean(document.querySelector("canvas"))'
-          );
-          finishSmoke(hasCanvas ? 0 : 1, hasCanvas ? 'renderer loaded with Phaser canvas' : 'renderer loaded without Phaser canvas');
+          if (isProgressionSmokeRun) {
+            try {
+              const result = await mainWindow.webContents.executeJavaScript(`
+                (async () => {
+                  if (!document.querySelector("canvas")) {
+                    throw new Error("Phaser canvas missing");
+                  }
+                  if (typeof window.runHomunculiProgressionSmoke !== "function") {
+                    throw new Error("progression smoke helper missing");
+                  }
+                  return await window.runHomunculiProgressionSmoke();
+                })()
+              `);
+              finishSmoke(result && result.ok ? 0 : 1, result && result.ok ? `progression verified ${JSON.stringify(result)}` : 'progression verification failed');
+            } catch (error) {
+              smokeFailed = true;
+              finishSmoke(1, `progression verification error: ${error && error.message ? error.message : error}`);
+            }
+          } else {
+            const hasCanvas = await mainWindow.webContents.executeJavaScript(
+              'Boolean(document.querySelector("canvas"))'
+            );
+            finishSmoke(hasCanvas ? 0 : 1, hasCanvas ? 'renderer loaded with Phaser canvas' : 'renderer loaded without Phaser canvas');
+          }
         }
       }, Number(process.env.HOMUNCULI_SMOKE_HOLD_MS || 5000));
     });

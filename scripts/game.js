@@ -3371,8 +3371,12 @@ class StageSelectScene extends Phaser.Scene {
         this.player2Connected = false;
         this.multiplayerUI = null; // Reset UI reference
         // Multiplayer is now handled at title screen, no need to check here
-        // Create voidkin animation
-        if (!this.anims.exists('voidkin-idle')) {
+        // Create voidkin animation when the spritesheet is available; otherwise keep the map usable with a static sprite.
+        const existingVoidkinAnim = this.anims.exists('voidkin-idle') ? this.anims.get('voidkin-idle') : null;
+        if (existingVoidkinAnim && (!existingVoidkinAnim.frames || existingVoidkinAnim.frames.length === 0)) {
+            this.anims.remove('voidkin-idle');
+        }
+        if (!this.anims.exists('voidkin-idle') && this.textures.exists('voidkin')) {
             this.anims.create({
                 key: 'voidkin-idle',
                 frames: this.anims.generateFrameNumbers('voidkin', { start: 0, end: 14 }),
@@ -3504,7 +3508,10 @@ class StageSelectScene extends Phaser.Scene {
                 if (!stage.unlocked) {
                     island.setTint(0x444444);
                 }
-                island.play('voidkin-idle');
+                const voidkinAnim = this.anims.exists('voidkin-idle') ? this.anims.get('voidkin-idle') : null;
+                if (voidkinAnim && voidkinAnim.frames && voidkinAnim.frames.length > 0) {
+                    island.play('voidkin-idle');
+                }
                 container.add(island);
             } else if (stage.icon && this.textures.exists(stage.icon)) {
                 island = this.add.image(0, 0, stage.icon);
@@ -59752,6 +59759,168 @@ const config = {
     },
     scene: [LoadingScene, TitleScene, CreditsScene, SaveSlotScene, StageSelectScene, ArcadeScene, TalentTreeScene, CutsceneScene, GameScene, GameOverScene]
 };
+
+if (typeof window !== 'undefined') {
+    window.runHomunculiProgressionSmoke = async function runHomunculiProgressionSmoke() {
+        const originalStorage = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            originalStorage[key] = localStorage.getItem(key);
+        }
+        const rendererErrors = [];
+        const captureRendererError = (event) => {
+            rendererErrors.push({
+                message: event.message,
+                stack: event.error && event.error.stack,
+                filename: event.filename,
+                line: event.lineno,
+                column: event.colno
+            });
+        };
+
+        const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        const waitFor = async (label, predicate, timeoutMs = 8000) => {
+            const start = Date.now();
+            while (Date.now() - start < timeoutMs) {
+                if (predicate()) return;
+                await wait(100);
+            }
+            const activeScenes = typeof game !== 'undefined' && game && game.scene
+                ? game.scene.getScenes(true).map(scene => scene.scene.key).join(', ')
+                : 'none';
+            const stageSelect = typeof game !== 'undefined' && game && game.scene
+                ? game.scene.getScene('StageSelectScene')
+                : null;
+            throw new Error(`Timed out waiting for ${label}; active scenes: ${activeScenes}; stageSelectHasStages: ${Boolean(stageSelect && stageSelect.stages)}`);
+        };
+        const assert = (condition, message) => {
+            if (!condition) throw new Error(message);
+        };
+        const assertNoRendererErrors = (label) => {
+            if (rendererErrors.length > 0) {
+                const latestError = rendererErrors[rendererErrors.length - 1];
+                throw new Error(`${label}: ${latestError.message}${latestError.stack ? `\n${latestError.stack}` : ''}`);
+            }
+        };
+        const startStageSelectAndGetStages = async (saveManager) => {
+            const existingStageSelect = game.scene.getScene('StageSelectScene');
+            if (existingStageSelect && Array.isArray(existingStageSelect.stages) && existingStageSelect.createStageSelectInterface) {
+                existingStageSelect.saveManager = saveManager;
+                existingStageSelect.characterSelectionMode = false;
+                existingStageSelect.createStageSelectInterface();
+                await wait(100);
+                return existingStageSelect.stages;
+            }
+
+            const activeScene = game.scene.getScenes(true)[0];
+            const sceneData = {
+                saveManager,
+                resuming: true,
+                fromCharacterSelect: true
+            };
+            if (activeScene && activeScene.scene) {
+                activeScene.scene.start('StageSelectScene', sceneData);
+            } else {
+                game.scene.start('StageSelectScene', sceneData);
+            }
+            await waitFor('StageSelectScene stages', () => {
+                const scene = game.scene.getScene('StageSelectScene');
+                return scene && Array.isArray(scene.stages);
+            });
+            return game.scene.getScene('StageSelectScene').stages;
+        };
+        const getStage = (stages, name) => stages.find(stage => stage.name === name);
+        const simulateVictory = (saveManager, stage, survivalTime = 600000) => {
+            const gameOverScene = new GameOverScene();
+            gameOverScene.saveManager = saveManager;
+            gameOverScene.stage = stage;
+            gameOverScene.won = true;
+            gameOverScene.survivalTime = survivalTime;
+            gameOverScene.enemiesKilled = 150;
+            gameOverScene.itemsCollected = 3;
+            gameOverScene.updateSaveData();
+            assert(saveManager.autoSave(), `Auto-save failed after ${stage} victory`);
+            return saveManager.currentSaveData;
+        };
+
+        try {
+            window.addEventListener('error', captureRendererError);
+            localStorage.clear();
+            await waitFor('Phaser game boot', () => typeof game !== 'undefined' && game && game.scene);
+            await waitFor('SaveManager availability', () => typeof SaveManager !== 'undefined');
+
+            const tuningChecks = [
+                ['forest', 0.8, { 4: 1, 8: 2 }],
+                ['cave', 0.85, { 4: 1, 8: 2 }],
+                ['sand', 0.9, { 4: 1, 8: 2 }]
+            ];
+            tuningChecks.forEach(([stage, bossMultiplier, catalysts]) => {
+                const gameScene = new GameScene();
+                gameScene.stage = stage;
+                assert(gameScene.getBossHealthTuningMultiplier() === bossMultiplier, `${stage} boss tuning drifted`);
+                Object.entries(catalysts).forEach(([level, count]) => {
+                    assert(gameScene.getEarlyCatalystMilestone(Number(level)) === count, `${stage} catalyst milestone ${level} drifted`);
+                });
+            });
+
+            const saveManager = new SaveManager();
+            window.saveManager = saveManager;
+            saveManager.createNewSave(0);
+
+            // Legacy pollution should not unlock worlds when an active save slot has explicit progression.
+            localStorage.setItem('caveLandUnlocked', 'true');
+            let stages = await startStageSelectAndGetStages(saveManager);
+            assertNoRendererErrors('StageSelect fresh-save check failed');
+            assert(getStage(stages, 'Forest Land').unlocked === true, 'Fresh save should unlock Forest');
+            assert(getStage(stages, 'Cave Land').unlocked === false, 'Active fresh save should ignore legacy Cave unlock');
+            assert(getStage(stages, 'Sand Land').unlocked === false, 'Active fresh save should keep Sand locked');
+
+            let saveData = simulateVictory(saveManager, 'forest');
+            assert(saveData.stages.completedStages.includes('forest-1'), 'Forest completion was not recorded');
+            assert(saveData.stages.unlockedWorlds.includes('caveland'), 'Forest victory did not unlock Cave');
+            assert(saveData.characters.unlocked.includes('orb'), 'Forest victory did not unlock Orb');
+            assert(saveData.talents.essence >= 5, 'Forest victory did not award essence');
+
+            const reloadedAfterForest = new SaveManager();
+            window.saveManager = reloadedAfterForest;
+            assert(reloadedAfterForest.loadAndSetCurrent(0), 'Reload after Forest victory failed');
+            assert(reloadedAfterForest.currentSaveData.stages.unlockedWorlds.includes('caveland'), 'Cave unlock did not persist after reload');
+            stages = await startStageSelectAndGetStages(reloadedAfterForest);
+            assertNoRendererErrors('StageSelect Forest reload check failed');
+            assert(getStage(stages, 'Cave Land').unlocked === true, 'Stage select did not show Cave unlocked from save');
+            assert(getStage(stages, 'Sand Land').unlocked === false, 'Stage select unlocked Sand too early');
+
+            saveData = simulateVictory(reloadedAfterForest, 'cave', 660000);
+            assert(saveData.stages.completedStages.includes('cave-1'), 'Cave completion was not recorded');
+            assert(saveData.stages.unlockedWorlds.includes('sandland'), 'Cave victory did not unlock Sand');
+            assert(saveData.characters.unlocked.includes('grim'), 'Cave victory did not unlock Grim');
+
+            saveData = simulateVictory(reloadedAfterForest, 'sand', 720000);
+            assert(saveData.stages.completedStages.includes('sand-1'), 'Sand completion was not recorded');
+            assert(saveData.stages.unlockedWorlds.includes('swampland'), 'Sand victory did not unlock the next world');
+            assert(saveData.characters.unlocked.includes('blip'), 'Sand victory did not unlock Blip');
+
+            const finalReload = new SaveManager();
+            window.saveManager = finalReload;
+            assert(finalReload.loadAndSetCurrent(0), 'Final save reload failed');
+            stages = await startStageSelectAndGetStages(finalReload);
+            assertNoRendererErrors('StageSelect final reload check failed');
+            assert(getStage(stages, 'Sand Land').unlocked === true, 'Stage select did not show Sand unlocked from save');
+
+            return {
+                ok: true,
+                completedStages: finalReload.currentSaveData.stages.completedStages,
+                unlockedWorlds: finalReload.currentSaveData.stages.unlockedWorlds,
+                unlockedCharacters: finalReload.currentSaveData.characters.unlocked,
+                essence: finalReload.currentSaveData.talents.essence
+            };
+        } finally {
+            window.removeEventListener('error', captureRendererError);
+            localStorage.clear();
+            Object.entries(originalStorage).forEach(([key, value]) => localStorage.setItem(key, value));
+        }
+    };
+}
 
 let game;
 try {
