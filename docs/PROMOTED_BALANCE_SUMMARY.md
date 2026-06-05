@@ -36,7 +36,7 @@ All promoted worlds share the same early catalyst promise:
 - Level 8 grants 2 catalysts.
 - The early primary-element reward path biases a one-element run toward at least one compatible fusion setup in Forest, Cave, Sand, Swamp, Snow, Ocean, and Lava.
 
-The deterministic feel smoke verifies the fusion setup with a fire-held test wizard. World-theme identity is still protected by the stage rosters and enemy element drops; Stage Select now gives the player a first grimoire readback for known elements and discovered fusions.
+The deterministic feel smoke verifies the fusion setup with a fire-held test wizard. World-theme identity is still protected by the stage rosters and enemy element drops; Stage Select now gives the player a first grimoire readback for known elements and discovered fusions, and GameOver reports world pressure plus alchemy nudges after each run.
 
 ## Progression Contract
 
@@ -51,12 +51,12 @@ The promoted path currently guarantees:
 - Ocean victory records `ocean-1`, unlocks Lava Land, awards essence, and records stage stats.
 - Lava victory records `lava-1`, unlocks Grave Land, awards essence, and records stage stats.
 - Reload checks preserve promoted unlock state through Grave Land visibility.
-- Post-run reward readback names the cleared/attempted stage, essence banked, new world unlocks, character unlocks, and best-time updates.
+- Post-run reward readback names the cleared/attempted stage, essence banked, new world unlocks, character unlocks, best-time updates, duration, level reached, pickups, defeats, world pressure, win/death outcome, and recipe/nudge state.
 
 ## Coverage Notes
 
 - `smoke:feel` protects opener roster width, opening spawn interval, opening enemy cap, first-three-wave variety, catalyst milestones, pickup tuning, boss tuning multipliers, and early fusion setup for Forest/Cave/Sand/Swamp/Snow/Ocean/Lava.
-- `smoke:progression` protects save unlocks, alchemy recipe persistence, Stage Select grimoire readback, post-run reward readback, character rewards, essence rewards, and Snow/Ocean/Lava reload stats through Grave unlock.
+- `smoke:progression` protects save unlocks, alchemy recipe persistence, Stage Select grimoire readback, richer post-run victory/attempt readback, character rewards, essence rewards, and Snow/Ocean/Lava reload stats through Grave unlock.
 - `smoke:forest-live`, `smoke:swamp-live`, `smoke:snow-live`, `smoke:ocean-live`, and `smoke:lava-live` protect short real-renderer survival for promoted live worlds. Ocean uses a water-start pilot; Ocean and Lava assert observed live enemies stay inside their stage rosters.
 - `smoke:swamp-boss`, `smoke:snow-boss`, `smoke:ocean-boss`, and `smoke:lava-boss` protect deterministic boss entry and completion for the promoted post-slice bosses.
 

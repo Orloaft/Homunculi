@@ -8115,6 +8115,10 @@ class GameOverScene extends Phaser.Scene {
             (data.enemiesKilled ? Object.values(data.enemiesKilled).reduce((a, b) => a + b, 0) : 0);
         this.itemsCollected = typeof data.itemsCollected === 'number' ? data.itemsCollected :
             (data.itemsCollected ? Object.values(data.itemsCollected).reduce((a, b) => a + b, 0) : 0);
+        this.levelReached = typeof data.level === 'number' ? data.level : 0;
+        this.elementsDiscovered = typeof data.elementsDiscovered === 'number' ? data.elementsDiscovered : 0;
+        this.damageDealt = typeof data.damageDealt === 'number' ? data.damageDealt : 0;
+        this.alchemyDiscoveries = Array.isArray(data.alchemyDiscoveries) ? data.alchemyDiscoveries.slice() : [];
         this.won = data.won || false;
         this.stage = data.stage || 'forest';
         this.arcadeMode = data.arcadeMode || false;
@@ -8150,34 +8154,120 @@ class GameOverScene extends Phaser.Scene {
         return characterNames[character] || character || null;
     }
 
+    formatDuration(milliseconds) {
+        const totalSeconds = Math.max(0, Math.floor((milliseconds || 0) / 1000));
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    formatElementDisplayName(element) {
+        if (!element || typeof element !== 'string') return 'Unknown';
+        return element
+            .split(/[-_]/)
+            .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(' ');
+    }
+
+    formatRecipeDiscovery(discovery) {
+        if (!discovery || !Array.isArray(discovery.inputs) || !discovery.result) {
+            return null;
+        }
+        const inputs = discovery.inputs.map(element => this.formatElementDisplayName(element)).join(' + ');
+        return `${inputs} -> ${this.formatElementDisplayName(discovery.result)}`;
+    }
+
+    getStageReadbackProfile(stage) {
+        const profiles = {
+            forest: {
+                identity: 'Forest creature pressure',
+                roster: ['mushroom', 'tree', 'squirrel', 'bumblebee'],
+                nudge: 'Try pairing Fire with Earth when Fusion Ritual appears.'
+            },
+            cave: {
+                identity: 'Cave ambush pressure',
+                roster: ['darkbat', 'kobold', 'brainmole', 'slime'],
+                nudge: 'Bank new cave elements and look for stable two-orb fusions.'
+            },
+            sand: {
+                identity: 'Desert swarm pressure',
+                roster: ['cobra', 'cactuse', 'armadillo', 'caveghoul'],
+                nudge: 'Use the grimoire before the next run to chase missing Sand fusions.'
+            },
+            swamp: {
+                identity: 'Swamp control pressure',
+                roster: ['bloboid', 'giantfly', 'mudguard', 'swampmerchant'],
+                nudge: 'Try air, lightning, and earth pairings against swamp control.'
+            },
+            snow: {
+                identity: 'Snow survival pressure',
+                roster: ['snowy', 'northerner', 'spiked-slime', 'elkman'],
+                nudge: 'Snow rewards defensive picks before late-wave frost pressure.'
+            },
+            ocean: {
+                identity: 'Ocean wave pressure',
+                roster: ['jellyfish', 'crabby', 'squid', 'shark'],
+                nudge: 'Water-start runs are good places to test fire and air fusions.'
+            },
+            lava: {
+                identity: 'Lava escalation pressure',
+                roster: ['fireslime', 'clubimp', 'axeimp', 'fireworm'],
+                nudge: 'Lava pushes heat resistance; try water, earth, and fire combinations.'
+            },
+            grave: {
+                identity: 'Grave death pressure',
+                roster: ['yellowskeleton', 'soul', 'skeletonseeker', 'skullhound'],
+                nudge: 'Expect death and poison pressure; bring survivability before chasing fusions.'
+            },
+            castle: {
+                identity: 'Castle formation pressure',
+                roster: ['castle-squire', 'castle-soldier', 'castle-rogue', 'castle-knight'],
+                nudge: 'Castle asks for crowd control before damage greed.'
+            },
+            spire: {
+                identity: 'Spire biome pressure',
+                roster: ['mushroom', 'tree', 'squirrel', 'bumblebee'],
+                nudge: 'Spire shifts biomes; keep a flexible element spread.'
+            },
+            void: {
+                identity: 'Void instability pressure',
+                roster: ['voidling', 'summoner', 'soul'],
+                nudge: 'Void is still thin; bank power before pushing it.'
+            }
+        };
+        return profiles[stage] || {
+            identity: 'Unknown world pressure',
+            roster: [],
+            nudge: 'Review the grimoire and try a new element pairing next run.'
+        };
+    }
+
     getRunRewardReadbackLines() {
         const readback = this.runRewardReadback;
         if (!readback) return [];
 
         const lines = [];
         lines.push(`Essence banked: +${readback.essenceAwarded} (${readback.essenceTotal} total)`);
+        lines.push(`${readback.outcomeLabel}: ${readback.durationText} | Level ${readback.levelReached}`);
+        lines.push(`Run shape: ${readback.enemiesKilled} defeated | ${readback.itemsCollected} pickups`);
+        lines.push(`${readback.stageIdentity}: ${readback.stageRoster.join(', ') || 'no roster data'}`);
 
         if (readback.won) {
-            if (readback.firstCompletion) {
-                lines.push(`Stage cleared: ${readback.stageName}`);
-            } else {
-                lines.push(`Stage cleared again: ${readback.stageName}`);
-            }
-            if (readback.unlockedWorldName) {
-                lines.push(`New world unlocked: ${readback.unlockedWorldName}`);
-            }
-            if (readback.unlockedCharacterName) {
-                lines.push(`New character unlocked: ${readback.unlockedCharacterName}`);
-            }
-            if (readback.bestTimeImproved) {
-                lines.push('Best clear time updated');
-            }
+            const clearText = readback.firstCompletion ? 'Stage cleared' : 'Stage cleared again';
+            const bestTimeText = readback.bestTimeImproved ? ' | Best time updated' : '';
+            lines.push(`${clearText}: ${readback.stageName}${bestTimeText}`);
+            const unlocks = [];
+            if (readback.unlockedWorldName) unlocks.push(`world: ${readback.unlockedWorldName}`);
+            if (readback.unlockedCharacterName) unlocks.push(`character: ${readback.unlockedCharacterName}`);
+            lines.push(unlocks.length > 0 ? `New unlocks: ${unlocks.join(' | ')}` : 'No new unlocks this run');
         } else {
             lines.push(`Attempt recorded: ${readback.stageName}`);
         }
 
-        if (!readback.unlockedWorldName && !readback.unlockedCharacterName && readback.won) {
-            lines.push('No new unlocks this run');
+        if (readback.newRecipeText) {
+            lines.push(`New recipe: ${readback.newRecipeText}`);
+        } else {
+            lines.push(`Alchemy nudge: ${readback.alchemyNudge}`);
         }
 
         return lines;
@@ -8187,23 +8277,23 @@ class GameOverScene extends Phaser.Scene {
         const lines = this.getRunRewardReadbackLines();
         if (lines.length === 0) return delay;
 
-        const panel = this.add.rectangle(400, 222, 620, 140, 0x10101a, 0.88);
+        const panel = this.add.rectangle(400, 222, 650, 190, 0x10101a, 0.9);
         panel.setStrokeStyle(2, this.won ? 0x44ffff : 0x8888ff);
         panel.setAlpha(0);
         panel.setDepth(80);
 
-        const title = this.add.text(400, 170, this.won ? 'RUN REWARDS RECORDED' : 'RUN ATTEMPT RECORDED', {
+        const title = this.add.text(400, 142, this.won ? 'RUN REWARDS RECORDED' : 'RUN ATTEMPT RECORDED', {
             fontSize: '18px',
             color: this.won ? '#44ffff' : '#aaaaff',
             fontStyle: 'bold'
         }).setOrigin(0.5).setAlpha(0).setDepth(81);
 
-        const details = this.add.text(400, 196, lines.join('\n'), {
-            fontSize: '16px',
+        const details = this.add.text(400, 166, lines.join('\n'), {
+            fontSize: '14px',
             color: '#ffffff',
             align: 'center',
-            lineSpacing: 4,
-            wordWrap: { width: 560 }
+            lineSpacing: 2,
+            wordWrap: { width: 610 }
         }).setOrigin(0.5, 0).setAlpha(0).setDepth(81);
 
         this.runRewardReadbackText = details;
@@ -8260,25 +8350,25 @@ class GameOverScene extends Phaser.Scene {
         const score = totalKills * 100 + this.itemsCollected * 10 + Math.floor(totalSeconds) * 5;
 
         // Create text objects with initial alpha 0 - positioned in upper half
-        const timeText = this.add.text(400, 320, `Survived: 0:00`, {
+        const timeText = this.add.text(400, 335, `Survived: 0:00`, {
             fontSize: '28px',
             color: '#ffffff',
             fontStyle: 'bold'
         }).setOrigin(0.5).setAlpha(0).setScale(0.5);
 
-        const killsText = this.add.text(400, 360, `Enemies Defeated: 0`, {
+        const killsText = this.add.text(400, 372, `Enemies Defeated: 0`, {
             fontSize: '24px',
             color: '#ffdd44',
             fontStyle: 'bold'
         }).setOrigin(0.5).setAlpha(0).setScale(0.5);
 
-        const itemsText = this.add.text(400, 395, `Items Collected: 0`, {
+        const itemsText = this.add.text(400, 405, `Items Collected: 0`, {
             fontSize: '24px',
             color: '#44ff44',
             fontStyle: 'bold'
         }).setOrigin(0.5).setAlpha(0).setScale(0.5);
 
-        const scoreText = this.add.text(400, 430, `Score: 0`, {
+        const scoreText = this.add.text(400, 438, `Score: 0`, {
             fontSize: '32px',
             color: '#ffd700',
             fontStyle: 'bold'
@@ -8292,7 +8382,7 @@ class GameOverScene extends Phaser.Scene {
         const totalEssence = baseEssence + enemyBonus + timeBonus;
 
         // Show essence text (both win and loss)
-        const essenceText = this.add.text(400, 470, `Essence Earned: 0`, {
+        const essenceText = this.add.text(400, 476, `Essence Earned: 0`, {
             fontSize: '28px',
             color: this.won ? '#44ffff' : '#88ffff',
             fontStyle: 'bold'
@@ -8857,11 +8947,25 @@ class GameOverScene extends Phaser.Scene {
         }
 
         const unlockedWorldEntry = this.unlockedWorld ? getStageProgressionEntryByWorldId(this.unlockedWorld) : null;
+        const stageProfile = this.getStageReadbackProfile(this.stage);
+        const latestRecipeDiscovery = this.alchemyDiscoveries.length > 0
+            ? this.alchemyDiscoveries[this.alchemyDiscoveries.length - 1]
+            : null;
+        const newRecipeText = this.formatRecipeDiscovery(latestRecipeDiscovery);
         this.runRewardReadback = {
             won: this.won,
             stage: this.stage,
             stageId,
             stageName: currentEntry ? currentEntry.name : this.formatStageDisplayName(this.stage),
+            outcomeLabel: this.won ? 'Victory' : 'Fell after',
+            durationMs: this.survivalTime,
+            durationText: this.formatDuration(this.survivalTime),
+            levelReached: this.levelReached,
+            enemiesKilled: this.enemiesKilled,
+            itemsCollected: this.itemsCollected,
+            damageDealt: this.damageDealt,
+            stageIdentity: stageProfile.identity,
+            stageRoster: stageProfile.roster,
             firstCompletion: this.won && isFirstCompletion,
             essenceAwarded: totalEssence,
             essencePrevious: previousEssence,
@@ -8870,7 +8974,10 @@ class GameOverScene extends Phaser.Scene {
             unlockedWorldName: unlockedWorldEntry ? unlockedWorldEntry.name : null,
             unlockedCharacter: this.unlockedCharacter || null,
             unlockedCharacterName: this.formatCharacterDisplayName(this.unlockedCharacter),
-            bestTimeImproved
+            bestTimeImproved,
+            alchemyDiscoveries: this.alchemyDiscoveries.slice(),
+            newRecipeText,
+            alchemyNudge: stageProfile.nudge
         };
 
         console.log('[GameOverScene] ESSENCE SAVE:', {
@@ -11655,6 +11762,7 @@ class GameScene extends Phaser.Scene {
         this.itemsCollected = 0;
         this.damageDealt = 0;
         this.elementsDiscovered = 1; // Start with 1 (base element)
+        this.runAlchemyDiscoveries = [];
         // Character-specific charge slots
         // In standard mode: Orb gets 4 slots, Blip gets 5, others get 3
         // In extended mode: All characters get MAX_ACTIVE_SLOTS (8)
@@ -12324,6 +12432,7 @@ class GameScene extends Phaser.Scene {
         this.itemsCollected = 0;
         this.damageDealt = 0;
         this.elementsDiscovered = 1; // Start with 1 (base element)
+        this.runAlchemyDiscoveries = [];
         // maxCharges is set earlier based on slot configuration and character
         // this.maxCharges = 4; // Start with 4 charge slots (removed - already set above)
         this.lastFireTime = 0;
@@ -12603,6 +12712,15 @@ class GameScene extends Phaser.Scene {
 
             const wasNewDiscovery = activeSaveManager.recordAlchemyRecipe(element1, element2, result);
             if (wasNewDiscovery) {
+                if (!Array.isArray(this.runAlchemyDiscoveries)) {
+                    this.runAlchemyDiscoveries = [];
+                }
+                const inputs = [element1, element2].sort();
+                this.runAlchemyDiscoveries.push({
+                    key: `${inputs.join('+')}=${result}`,
+                    inputs,
+                    result
+                });
                 activeSaveManager.autoSave();
             }
             return wasNewDiscovery;
@@ -29353,6 +29471,7 @@ class GameScene extends Phaser.Scene {
                     level: this.playerLevel,
                     elementsDiscovered: this.elementsDiscovered,
                     damageDealt: this.damageDealt,
+                    alchemyDiscoveries: this.runAlchemyDiscoveries || [],
                     won: false
                 });
             }
@@ -33095,6 +33214,10 @@ class GameScene extends Phaser.Scene {
                     survivalTime: this.survivalTime,
                     enemiesKilled: this.enemiesKilled,
                     itemsCollected: this.itemsCollected,
+                    level: this.playerLevel,
+                    elementsDiscovered: this.elementsDiscovered,
+                    damageDealt: this.damageDealt,
+                    alchemyDiscoveries: this.runAlchemyDiscoveries || [],
                     won: false,
                     stage: this.selectedStage || this.stage || 'forest'
                 });
@@ -58499,6 +58622,7 @@ class GameScene extends Phaser.Scene {
                         level: this.playerLevel,
                         elementsDiscovered: this.elementsDiscovered,
                         damageDealt: this.damageDealt,
+                        alchemyDiscoveries: this.runAlchemyDiscoveries || [],
                         won: true,
                         stage: this.stage,
                         arcadeMode: this.arcadeMode
@@ -58554,6 +58678,7 @@ class GameScene extends Phaser.Scene {
                 level: this.playerLevel,
                 elementsDiscovered: this.elementsDiscovered,
                 damageDealt: this.damageDealt,
+                alchemyDiscoveries: this.runAlchemyDiscoveries || [],
                 won: false,
                 stage: this.stage,
                 arcadeMode: this.arcadeMode
@@ -61396,20 +61521,40 @@ if (typeof window !== 'undefined') {
             return game.scene.getScene('StageSelectScene').stages;
         };
         const getStage = (stages, name) => stages.find(stage => stage.name === name);
-        const simulateVictory = (saveManager, stage, survivalTime = 600000) => {
+        const simulateVictory = (saveManager, stage, survivalTime = 600000, options = {}) => {
             const gameOverScene = new GameOverScene();
             gameOverScene.saveManager = saveManager;
             gameOverScene.stage = stage;
             gameOverScene.won = true;
             gameOverScene.survivalTime = survivalTime;
-            gameOverScene.enemiesKilled = 150;
-            gameOverScene.itemsCollected = 3;
+            gameOverScene.enemiesKilled = options.enemiesKilled || 150;
+            gameOverScene.itemsCollected = options.itemsCollected || 3;
+            gameOverScene.levelReached = options.levelReached || 7;
+            gameOverScene.damageDealt = options.damageDealt || 0;
+            gameOverScene.alchemyDiscoveries = Array.isArray(options.alchemyDiscoveries) ? options.alchemyDiscoveries : [];
             gameOverScene.updateSaveData();
             simulateVictory.lastReadback = gameOverScene.runRewardReadback;
             assert(saveManager.autoSave(), `Auto-save failed after ${stage} victory`);
             return saveManager.currentSaveData;
         };
         simulateVictory.lastReadback = null;
+        const simulateAttempt = (saveManager, stage, survivalTime = 180000, options = {}) => {
+            const gameOverScene = new GameOverScene();
+            gameOverScene.saveManager = saveManager;
+            gameOverScene.stage = stage;
+            gameOverScene.won = false;
+            gameOverScene.survivalTime = survivalTime;
+            gameOverScene.enemiesKilled = options.enemiesKilled || 24;
+            gameOverScene.itemsCollected = options.itemsCollected || 11;
+            gameOverScene.levelReached = options.levelReached || 3;
+            gameOverScene.damageDealt = options.damageDealt || 0;
+            gameOverScene.alchemyDiscoveries = Array.isArray(options.alchemyDiscoveries) ? options.alchemyDiscoveries : [];
+            gameOverScene.updateSaveData();
+            simulateAttempt.lastReadback = gameOverScene.runRewardReadback;
+            assert(saveManager.autoSave(), `Auto-save failed after ${stage} attempt`);
+            return saveManager.currentSaveData;
+        };
+        simulateAttempt.lastReadback = null;
 
         try {
             window.addEventListener('error', captureRendererError);
@@ -61468,15 +61613,36 @@ if (typeof window !== 'undefined') {
             freshStageSelect.closeAlchemyGrimoire();
             assert(!freshStageSelect.alchemyGrimoireOverlay, 'Grimoire overlay did not close');
 
-            let saveData = simulateVictory(saveManager, 'forest');
+            let saveData = simulateVictory(saveManager, 'forest', 600000, {
+                levelReached: 6,
+                alchemyDiscoveries: [{ key: 'earth+fire=lava', inputs: ['earth', 'fire'], result: 'lava' }]
+            });
             assert(simulateVictory.lastReadback && simulateVictory.lastReadback.stageName === 'Forest Land', 'Forest reward readback did not name the completed stage');
             assert(simulateVictory.lastReadback.unlockedWorldName === 'Cave Land', 'Forest reward readback did not name the Cave unlock');
             assert(simulateVictory.lastReadback.unlockedCharacterName === 'The Mystic Sphere', 'Forest reward readback did not name the Orb unlock');
             assert(simulateVictory.lastReadback.essenceAwarded > 0, 'Forest reward readback did not include earned essence');
+            assert(simulateVictory.lastReadback.durationText === '10:00', 'Forest reward readback did not include run duration');
+            assert(simulateVictory.lastReadback.levelReached === 6, 'Forest reward readback did not include level reached');
+            assert(simulateVictory.lastReadback.enemiesKilled === 150, 'Forest reward readback did not include enemies defeated');
+            assert(simulateVictory.lastReadback.itemsCollected === 3, 'Forest reward readback did not include pickups collected');
+            assert(simulateVictory.lastReadback.stageIdentity === 'Forest creature pressure', 'Forest reward readback did not include stage identity');
+            assert(simulateVictory.lastReadback.stageRoster.includes('mushroom'), 'Forest reward readback did not include roster pressure');
+            assert(simulateVictory.lastReadback.newRecipeText === 'Earth + Fire -> Lava', 'Forest reward readback did not include new recipe text');
             assert(saveData.stages.completedStages.includes('forest-1'), 'Forest completion was not recorded');
             assert(saveData.stages.unlockedWorlds.includes('caveland'), 'Forest victory did not unlock Cave');
             assert(saveData.characters.unlocked.includes('orb'), 'Forest victory did not unlock Orb');
             assert(saveData.talents.essence >= 5, 'Forest victory did not award essence');
+
+            const essenceAfterForest = saveData.talents.essence;
+            saveData = simulateAttempt(saveManager, 'forest', 125000, { levelReached: 2, enemiesKilled: 12, itemsCollected: 5 });
+            assert(simulateAttempt.lastReadback && simulateAttempt.lastReadback.won === false, 'Attempt readback did not record loss outcome');
+            assert(simulateAttempt.lastReadback.durationText === '2:05', 'Attempt readback did not include survival duration');
+            assert(simulateAttempt.lastReadback.levelReached === 2, 'Attempt readback did not include level reached');
+            assert(simulateAttempt.lastReadback.enemiesKilled === 12, 'Attempt readback did not include enemies defeated');
+            assert(simulateAttempt.lastReadback.itemsCollected === 5, 'Attempt readback did not include pickups collected');
+            assert(simulateAttempt.lastReadback.alchemyNudge.includes('Fusion Ritual'), 'Attempt readback did not include alchemy nudge');
+            assert(saveData.stages.stageStats['forest-1'].deaths >= 1, 'Forest attempt did not record death count');
+            assert(saveData.talents.essence > essenceAfterForest, 'Forest attempt did not bank effort essence');
 
             const reloadedAfterForest = new SaveManager();
             window.saveManager = reloadedAfterForest;

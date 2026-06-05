@@ -9,7 +9,7 @@ This is the short handoff ledger for the current Homunculi production-roadmap pu
 - Promoted path: Forest -> Cave -> Sand -> Swamp -> Snow -> Ocean -> Lava.
 - Current front edge: Lava is release-backed.
 - Next world lane: Grave.
-- Next core-loop lane: richer post-run readback for level timing, pickups, biome, roster, and survival outcome.
+- Next core-loop lane: player-build readback for equipped elements, passive picks, fusion count, and strongest spell.
 
 ## Landed Today
 
@@ -20,6 +20,8 @@ This is the short handoff ledger for the current Homunculi production-roadmap pu
 - Extended progression smoke to prove recipe readback survives reload and the grimoire opens/closes.
 - Added post-run reward/unlock readback for cleared stage, essence banked, new world unlocks, character unlocks, and best-time updates.
 - Extended progression smoke to assert Forest and Lava reward readback matches the saved unlock contract.
+- Extended post-run readback again with duration, level reached, pickups, enemies defeated, world pressure, win/death outcome, new recipe text, and no-new-recipe alchemy nudges.
+- Extended progression smoke to assert the richer victory and failed-attempt readback contracts.
 - Hardened the shared live harness with roster observation, off-roster failures, better scene-stop diagnostics, and stronger kiting behavior.
 - Updated the promoted balance summary so the human-readable path covers Forest through Lava.
 
@@ -37,11 +39,11 @@ Latest green stack:
 
 Latest pushed implementation commit:
 
-- pending current Lava promotion changes
+- `e6b5ccd` - `Promote Lava and add progression readbacks`
 
 ## Next Batch
 
-1. Extend post-run readback with pickups, level timing, biome, roster, death/survival outcome, and "try next" alchemy nudges.
+1. Add player-build readback for equipped elements, passive picks, fusion count, and strongest spell if the result screen still needs more run-story detail.
 2. Promote Grave next only after deciding its death/poison identity and adding named live plus Nekros boss gates.
 3. Continue live-harness hardening so future world promotions reuse consistent health, enemy, pickup, kill, and level-up artifacts.
 4. Refresh docs after each promoted gate so `PRODUCTION_READINESS_WORKFLOW.md`, `PARALLEL_WORLD_AUDIT.md`, and `PROMOTED_BALANCE_SUMMARY.md` agree on the current edge.

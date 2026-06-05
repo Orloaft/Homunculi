@@ -49,7 +49,7 @@ Park:
 
 1. Keep the Forest -> Cave -> Sand -> Swamp -> Snow -> Ocean -> Lava release-backed path green.
 2. Promote Grave next with deterministic feel/progression, named live, named boss, and release-stack coverage.
-3. Add the first grimoire/readback surface so players can see discovered recipes, unlocks, and run outcomes.
+3. Keep grimoire and post-run readback healthy so players can see discovered recipes, unlocks, run outcomes, and next-run nudges.
 4. Keep each promoted world tied to one memorable rule before adding new content.
 5. Keep Castle, Spire, and Void out of production claims until Grave and the readback lane are stable.
 

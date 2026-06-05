@@ -67,12 +67,13 @@ Current status:
 - Recipe discovery persists per save.
 - Stage Select now has a first alchemy grimoire readback for known elements and discovered fusions.
 - GameOver now has post-run readback for essence banked, stage cleared/attempted, new world unlocks, character unlocks, and best-time updates.
+- GameOver also reports run duration, level reached, pickups, defeats, world pressure, win/death outcome, and new recipe or alchemy nudge.
 - First-slice start hints and fusion copy are improved.
 
 Next slices:
 
-1. Extend post-run readback with pickups, level timing, biome, roster, death/survival outcome, recipe or element advancement, and what to try next.
-2. Verify richer post-run readback through a focused renderer smoke after the summary grows beyond save-derived data.
+1. Add a focused renderer smoke for the visual GameOver panel if the readback layout changes again.
+2. Add player-build readback next: equipped elements, passive picks, fusion count, and strongest spell.
 3. Keep essence, character unlocks, completed stage stats, discovered recipes, reward readback, and grimoire readback covered in progression smoke.
 
 ### Lane 3: World Promotion Pipeline
@@ -133,9 +134,9 @@ Next slices:
 
 ## Immediate Queue
 
-1. Run full `npm run verify:release` after the grimoire/progression update.
-2. Extend post-run readback for pickups, level timing, biome, roster, and survival outcome.
-3. Design Grave promotion around death/poison identity, live coverage, and a Nekros boss gate.
+1. Run full `npm run verify:release` after the richer post-run readback update.
+2. Design Grave promotion around death/poison identity, live coverage, and a Nekros boss gate.
+3. Add player-build readback after Grave planning if GameOver still needs more run-story detail.
 
 ## Done Definition
 
