@@ -132,6 +132,7 @@ Release checklist:
 Latest packaging proof:
 
 - 2026-06-04: `npm run build-win-portable` produced `dist/WizBiz 1.0.1.exe` at 263M.
+- 2026-06-05: `npm run build-win-portable` produced `dist/WizBiz 1.0.1.exe` at 263M; ASAR inspection confirmed required runtime files are present and dev-only helper scripts are excluded.
 
 ### Lane 5: Architecture Containment
 

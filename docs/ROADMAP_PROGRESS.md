@@ -33,6 +33,7 @@ This is the short handoff ledger for the current Homunculi production-roadmap pu
 - Added player-build readback for equipped elements, passive picks/upgrades, fusion count, equipped fusions, strongest spell, and a compact carry line.
 - Added `smoke:first-run` for title options, fresh save creation, Forest victory persistence, relaunch-style save-slot reload, and continue into Stage Select without repeating onboarding.
 - Added `npm run audit:package` to verify `electron-builder` keeps the local runtime files referenced by `index.html`.
+- Trimmed dev-only helper scripts out of the portable package while keeping the runtime scripts and hitbox loader files packaged.
 
 ## Verified Release Stack
 
@@ -46,7 +47,7 @@ Latest green stack:
 - focused Grave stack: `node --check scripts/game.js`, `node --check scripts/main.js`, `npm run typecheck`, `npm run smoke:feel`, `npm run smoke:progression`, `npm run smoke:grave-live`, `npm run smoke:grave-boss`
 - focused Castle stack: `node --check scripts/game.js`, `node --check scripts/main.js`, `npm run typecheck`, `npm run smoke:feel`, `npm run smoke:progression`, `npm run smoke:castle-live`, `npm run smoke:castle-boss`
 - focused readback stack: `node --check scripts/game.js`, `node --check scripts/main.js`, `npm run typecheck`, `npm run smoke:prod`, `npm run smoke:feel`, `npm run smoke:progression`
-- focused first-run/package stack: `node --check scripts/game.js`, `node --check scripts/main.js`, `node --check src/scenes/SaveSlotScene.js`, `node --check scripts/audit-package-config.js`, `npm run typecheck`, `npm run audit:package`, `npm run smoke:prod`, `npm run smoke:first-run`, `npm run smoke:feel`, `npm run smoke:progression`
+- focused first-run/package stack: `node --check scripts/game.js`, `node --check scripts/main.js`, `node --check src/scenes/SaveSlotScene.js`, `node --check scripts/audit-package-config.js`, `npm run typecheck`, `npm run audit:package`, `npm run smoke:prod`, `npm run smoke:first-run`, `npm run smoke:feel`, `npm run smoke:progression`, `npm run build-win-portable`, ASAR manifest inspection
 - full `npm run verify:release` with Castle live and Castle boss included
 - `git diff --check`
 
@@ -56,8 +57,8 @@ Latest pushed implementation commit:
 
 ## Next Batch
 
-1. Do packaged-build inspection: build Windows portable, inspect `dist/` contents/size/source noise, and launch the package through the first-run checklist.
-2. Keep the Castle-fronted release path green while tightening any issues found by packaged-build inspection.
+1. Launch the packaged Windows portable build for the manual offline first-run checklist.
+2. Keep the Castle-fronted release path green while tightening any issues found by packaged launch inspection.
 3. Continue live-harness hardening so future world promotions reuse consistent health, enemy, pickup, kill, and level-up artifacts.
 4. Leave Spire/Void out of production claims until after ship-quality work lands for the promoted path.
 5. Refresh docs after each promoted gate so `PRODUCTION_READINESS_WORKFLOW.md`, `PARALLEL_WORLD_AUDIT.md`, and `PROMOTED_BALANCE_SUMMARY.md` agree on the current edge.

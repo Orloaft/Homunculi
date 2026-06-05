@@ -32,6 +32,33 @@ requiredPackageEntries.forEach((entry) => {
   }
 });
 
+const forbiddenPackageEntries = [
+  'scripts/audit-package-config.js',
+  'scripts/automated-test-runner.js',
+  'scripts/build-bundle.js',
+  'scripts/check-corruption.js',
+  'scripts/cutscene-integration-patch.js',
+  'scripts/diagnose-bundle.js',
+  'scripts/extract-hardcoded-hitboxes.js',
+  'scripts/fix-*.js',
+  'scripts/hitbox-server.js',
+  'scripts/main-modular-default.js',
+  'scripts/main-original.js',
+  'scripts/main-test.js',
+  'scripts/parity-checker.js',
+  'scripts/remove-fallback-hitboxes.js',
+  'scripts/rollup.config.js',
+  'scripts/test-update-logic.js',
+  'scripts/update-paths.js',
+  'scripts/verify-imports.js'
+];
+
+forbiddenPackageEntries.forEach((entry) => {
+  if (!files.includes(`!${entry}`)) {
+    fail(`electron-builder files should exclude dev-only ${entry}`);
+  }
+});
+
 if (packageJson.main !== 'scripts/main.js') {
   fail(`package main should be scripts/main.js, found ${packageJson.main}`);
 }
@@ -65,4 +92,4 @@ localScriptSources.forEach((src) => {
   }
 });
 
-console.log('[package-audit] package config covers first-run runtime files');
+console.log('[package-audit] package config covers first-run runtime files and excludes dev-only scripts');
