@@ -10,7 +10,7 @@ Parallel world/release audit notes live in `docs/PARALLEL_WORLD_AUDIT.md`.
 
 1. Keep `overhaul` green and shippable after every slice.
 2. Prefer small commits that each improve either player-facing feel, progression reliability, automation, or release packaging.
-3. Promote worlds in canonical order only after the previous world has a live or deterministic gate.
+3. Promote worlds in canonical order only when the next world is an active production target.
 4. Do not polish parked worlds until the current production slice has clear identity, progression, boss access, and smoke coverage.
 5. When a smoke catches drift, tighten the smoke first if the failure reveals a bad assertion; otherwise fix the game.
 
@@ -60,7 +60,7 @@ Next slices:
 
 1. Keep the reusable live-smoke harness healthy: `smoke:live` enables the shared live harness through `HOMUNCULI_STAGE_LIVE_SMOKE=1` and can be configured with `HOMUNCULI_LIVE_SMOKE_STAGE` and `HOMUNCULI_LIVE_SMOKE_ELEMENT`.
 2. Keep named live gates focused on the first 30 seconds of their worlds, and keep named boss gates focused on deterministic boss entry and completion.
-3. Use `docs/PROMOTED_BALANCE_SUMMARY.md` as the human-readable balance snapshot for Forest/Cave/Sand/Swamp/Snow/Ocean/Lava/Grave/Castle when promoting Spire or changing first-slice tuning.
+3. Use `docs/PROMOTED_BALANCE_SUMMARY.md` as the human-readable balance snapshot for Forest/Cave/Sand/Swamp/Snow/Ocean/Lava/Grave/Castle when changing first-slice tuning.
 4. Keep `smoke:castle-live` fire-start coverage and `smoke:castle-boss` King Nothing coverage inside `verify:release` while Castle remains the front edge of promotion.
 
 ### Lane 2: Core Loop Completeness
@@ -94,8 +94,8 @@ Promotion order:
 4. Lava: fire/lava escalation, Demon Slime gate.
 5. Grave: death/poison pressure, Nekros gate.
 6. Castle: fallen-fortress identity, King Nothing gate.
-7. Spire: next promotion lane after Castle; needs distinct waves before gates.
-8. Void: design pass before production claims because its identity is still thin.
+7. Spire: deferred post-release candidate; it was not fully fleshed out and needs a fresh design pass before promotion work.
+8. Void: deferred post-release candidate; design pass before production claims because its identity is still thin.
 
 Promotion checklist:
 
@@ -141,9 +141,9 @@ Next slices:
 
 ## Immediate Queue
 
-1. Run full `npm run verify:release` after the Castle promotion update.
-2. Audit Spire wave identity before adding gates.
-3. Add player-build readback after Spire planning if GameOver still needs more run-story detail.
+1. Add player-build readback if GameOver still needs more run-story detail.
+2. Keep the Castle-fronted release path green with `npm run verify:release`.
+3. Audit packaging and first-run polish before adding any new world lane.
 
 ## Done Definition
 

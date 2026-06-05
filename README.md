@@ -98,7 +98,7 @@ If `trash` is unavailable, move `node_modules/electron` aside or delete only tha
 
 ## 🎮 Game Features
 
-- **11 Unique Worlds**: Forest, Cave, Sand, Swamp, Snow, Ocean, Lava, Grave, Castle, Spire, and Void
+- **Release-backed world path**: Forest, Cave, Sand, Swamp, Snow, Ocean, Lava, Grave, and Castle, with Spire and Void parked for later expansion work
 - **Element Fusion System**: Combine elements to create powerful spells
 - **Co-op Mode**: Play with a friend
 - **Boss Battles**: Epic boss fights with unique mechanics

@@ -55,14 +55,14 @@ The promoted path currently guarantees:
 - Ocean victory records `ocean-1`, unlocks Lava Land, awards essence, and records stage stats.
 - Lava victory records `lava-1`, unlocks Grave Land, awards essence, and records stage stats.
 - Grave victory records `grave-1`, unlocks Castle Land, awards essence, and records stage stats.
-- Castle victory records `castle-1`, unlocks Spire Land, awards essence, and records stage stats.
-- Reload checks preserve promoted unlock state through Spire Land visibility.
+- Castle victory records `castle-1`, unlocks Spire Land as a deferred/post-release world, awards essence, and records stage stats.
+- Reload checks preserve promoted unlock state through Spire Land visibility without treating Spire as production-backed content.
 - Post-run reward readback names the cleared/attempted stage, essence banked, new world unlocks, character unlocks, best-time updates, duration, level reached, pickups, defeats, world pressure, win/death outcome, and recipe/nudge state.
 
 ## Coverage Notes
 
 - `smoke:feel` protects opener roster width, opening spawn interval, opening enemy cap, first-three-wave variety, catalyst milestones, pickup tuning, boss tuning multipliers, and early fusion setup for Forest/Cave/Sand/Swamp/Snow/Ocean/Lava/Grave/Castle.
-- `smoke:progression` protects save unlocks, alchemy recipe persistence, Stage Select grimoire readback, richer post-run victory/attempt readback, character rewards, essence rewards, and Snow/Ocean/Lava/Grave/Castle reload stats through Spire unlock.
+- `smoke:progression` protects save unlocks, alchemy recipe persistence, Stage Select grimoire readback, richer post-run victory/attempt readback, character rewards, essence rewards, and Snow/Ocean/Lava/Grave/Castle reload stats through the deferred Spire unlock.
 - `smoke:forest-live`, `smoke:swamp-live`, `smoke:snow-live`, `smoke:ocean-live`, `smoke:lava-live`, `smoke:grave-live`, and `smoke:castle-live` protect short real-renderer survival for promoted live worlds. Ocean uses a water-start pilot; Grave uses an arcane-start pilot; Lava and Castle use fire-start pilots, and Lava/Grave/Castle assert observed live enemies stay inside their stage rosters.
 - `smoke:swamp-boss`, `smoke:snow-boss`, `smoke:ocean-boss`, `smoke:lava-boss`, `smoke:grave-boss`, and `smoke:castle-boss` protect deterministic boss entry and completion for the promoted post-slice bosses.
 
@@ -70,4 +70,4 @@ The promoted path currently guarantees:
 
 - Cave and Sand do not yet have named live or boss gates, despite being part of the committed production path.
 - First-level timing is live-proven for Forest and observed in the Lava, Grave, and Castle live gates. Cave, Sand, Swamp, Snow, and Ocean rely on deterministic XP/pickup tuning checks, not explicit named first-level assertions.
-- Spire is the next world in the promotion path and needs a distinct wave identity before production claims widen past Castle.
+- Spire and Void are deferred post-release candidates. The next production work should harden the Castle-fronted path rather than widen world scope.

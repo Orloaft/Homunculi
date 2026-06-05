@@ -8,7 +8,7 @@ This is the short handoff ledger for the current Homunculi production-roadmap pu
 
 - Promoted path: Forest -> Cave -> Sand -> Swamp -> Snow -> Ocean -> Lava -> Grave -> Castle.
 - Current front edge: Castle is release-backed.
-- Next world lane: Spire.
+- Deferred world lane: Spire and Void stay parked for a later expansion/design pass after the release-backed path reaches production quality.
 - Next core-loop lane: player-build readback for equipped elements, passive picks, fusion count, and strongest spell.
 
 ## Landed Today
@@ -47,11 +47,12 @@ Latest green stack:
 
 Latest pushed implementation commit:
 
-- `8bc4110` - `Promote Grave into release stack`
+- `3de031e` - `Promote Castle into release stack`
 
 ## Next Batch
 
 1. Add player-build readback for equipped elements, passive picks, fusion count, and strongest spell if the result screen still needs more run-story detail.
-2. Audit Spire next before promotion; it currently needs distinct wave identity before production claims widen past Castle.
+2. Keep the Castle-fronted release path green while tightening first-run/readback/package polish.
 3. Continue live-harness hardening so future world promotions reuse consistent health, enemy, pickup, kill, and level-up artifacts.
-4. Refresh docs after each promoted gate so `PRODUCTION_READINESS_WORKFLOW.md`, `PARALLEL_WORLD_AUDIT.md`, and `PROMOTED_BALANCE_SUMMARY.md` agree on the current edge.
+4. Leave Spire/Void out of production claims until after ship-quality work lands for the promoted path.
+5. Refresh docs after each promoted gate so `PRODUCTION_READINESS_WORKFLOW.md`, `PARALLEL_WORLD_AUDIT.md`, and `PROMOTED_BALANCE_SUMMARY.md` agree on the current edge.

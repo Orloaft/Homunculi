@@ -110,7 +110,7 @@ Status: promoted into deterministic feel/progression gates, now has a 30-second 
 Useful facts:
 
 - Runtime IDs: `stage: 'castle'`, `worldId: 'castleland'`, completion ID `castle-1`.
-- Progression: Grave victory unlocks Castle; Castle victory unlocks Spire.
+- Progression: Grave victory unlocks Castle; Castle victory currently unlocks Spire, which is deferred/post-release rather than production-backed.
 - Runtime roster includes `castle-squire`, `castle-soldier`, `castle-rogue`, `castle-knight`, `castle-bladekeeper`, and giant castle knight.
 - Boss path routes Castle to King Nothing.
 - Current live command: `npm run smoke:castle-live`.
@@ -118,7 +118,7 @@ Useful facts:
 
 Promotion coverage:
 
-- Fixed 2026-06-05: Castle is in deterministic feel/progression coverage, including Castle -> Spire unlock/reload assertions.
+- Fixed 2026-06-05: Castle is in deterministic feel/progression coverage, including Castle -> deferred Spire unlock/reload assertions.
 - Fixed 2026-06-05: Castle has vertical-slice tuning for readable first-minute pacing, XP/pickup support, catalysts, and King Nothing health.
 - Fixed 2026-06-05: `smoke:castle-live` asserts live enemy activity stays inside the Castle roster.
 - Fixed 2026-06-05: King Nothing health tuning, phase transitions, label/crown entry, and death-to-victory cleanup are covered by `smoke:castle-boss`.
