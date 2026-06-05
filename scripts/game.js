@@ -8119,6 +8119,7 @@ class GameOverScene extends Phaser.Scene {
         this.elementsDiscovered = typeof data.elementsDiscovered === 'number' ? data.elementsDiscovered : 0;
         this.damageDealt = typeof data.damageDealt === 'number' ? data.damageDealt : 0;
         this.alchemyDiscoveries = Array.isArray(data.alchemyDiscoveries) ? data.alchemyDiscoveries.slice() : [];
+        this.buildSummary = data.buildSummary && typeof data.buildSummary === 'object' ? data.buildSummary : {};
         this.won = data.won || false;
         this.stage = data.stage || 'forest';
         this.arcadeMode = data.arcadeMode || false;
@@ -8175,6 +8176,25 @@ class GameOverScene extends Phaser.Scene {
         }
         const inputs = discovery.inputs.map(element => this.formatElementDisplayName(element)).join(' + ');
         return `${inputs} -> ${this.formatElementDisplayName(discovery.result)}`;
+    }
+
+    formatBuildList(elements, fallback = 'None') {
+        if (!Array.isArray(elements) || elements.length === 0) return fallback;
+        return elements.map(element => this.formatElementDisplayName(element)).join(', ');
+    }
+
+    formatPassiveBuildSummary(buildSummary) {
+        const socketPassives = Array.isArray(buildSummary.passivePicks) ? buildSummary.passivePicks : [];
+        const upgradePassives = Array.isArray(buildSummary.passiveUpgrades) ? buildSummary.passiveUpgrades : [];
+        const passives = [...socketPassives, ...upgradePassives];
+        return this.formatBuildList(passives, 'None');
+    }
+
+    formatTopSpell(buildSummary) {
+        if (!buildSummary || !buildSummary.topSpell || !buildSummary.topSpell.element) {
+            return 'No casts recorded';
+        }
+        return `${this.formatElementDisplayName(buildSummary.topSpell.element)} (${buildSummary.topSpell.casts} casts)`;
     }
 
     getStageReadbackProfile(stage) {
@@ -8250,6 +8270,10 @@ class GameOverScene extends Phaser.Scene {
         lines.push(`Essence banked: +${readback.essenceAwarded} (${readback.essenceTotal} total)`);
         lines.push(`${readback.outcomeLabel}: ${readback.durationText} | Level ${readback.levelReached}`);
         lines.push(`Run shape: ${readback.enemiesKilled} defeated | ${readback.itemsCollected} pickups`);
+        lines.push(`Equipped: ${this.formatBuildList(readback.equippedElements)}`);
+        lines.push(`Passives: ${this.formatPassiveBuildSummary(readback.buildSummary)}`);
+        lines.push(`Fusions: ${readback.fusionCount} made | ${this.formatBuildList(readback.fusionsUsed, 'none equipped')}`);
+        lines.push(`Top spell: ${this.formatTopSpell(readback.buildSummary)} | Carried by: ${readback.carryLine}`);
         lines.push(`${readback.stageIdentity}: ${readback.stageRoster.join(', ') || 'no roster data'}`);
 
         if (readback.won) {
@@ -8277,23 +8301,23 @@ class GameOverScene extends Phaser.Scene {
         const lines = this.getRunRewardReadbackLines();
         if (lines.length === 0) return delay;
 
-        const panel = this.add.rectangle(400, 222, 650, 190, 0x10101a, 0.9);
+        const panel = this.add.rectangle(400, 205, 670, 250, 0x10101a, 0.9);
         panel.setStrokeStyle(2, this.won ? 0x44ffff : 0x8888ff);
         panel.setAlpha(0);
         panel.setDepth(80);
 
-        const title = this.add.text(400, 142, this.won ? 'RUN REWARDS RECORDED' : 'RUN ATTEMPT RECORDED', {
+        const title = this.add.text(400, 94, this.won ? 'RUN REWARDS RECORDED' : 'RUN ATTEMPT RECORDED', {
             fontSize: '18px',
             color: this.won ? '#44ffff' : '#aaaaff',
             fontStyle: 'bold'
         }).setOrigin(0.5).setAlpha(0).setDepth(81);
 
-        const details = this.add.text(400, 166, lines.join('\n'), {
-            fontSize: '14px',
+        const details = this.add.text(400, 118, lines.join('\n'), {
+            fontSize: '13px',
             color: '#ffffff',
             align: 'center',
-            lineSpacing: 2,
-            wordWrap: { width: 610 }
+            lineSpacing: 1,
+            wordWrap: { width: 630 }
         }).setOrigin(0.5, 0).setAlpha(0).setDepth(81);
 
         this.runRewardReadbackText = details;
@@ -8952,6 +8976,7 @@ class GameOverScene extends Phaser.Scene {
             ? this.alchemyDiscoveries[this.alchemyDiscoveries.length - 1]
             : null;
         const newRecipeText = this.formatRecipeDiscovery(latestRecipeDiscovery);
+        const buildSummary = this.buildSummary || {};
         this.runRewardReadback = {
             won: this.won,
             stage: this.stage,
@@ -8964,6 +8989,13 @@ class GameOverScene extends Phaser.Scene {
             enemiesKilled: this.enemiesKilled,
             itemsCollected: this.itemsCollected,
             damageDealt: this.damageDealt,
+            buildSummary,
+            equippedElements: Array.isArray(buildSummary.equippedElements) ? buildSummary.equippedElements.slice() : [],
+            passivePicks: Array.isArray(buildSummary.passivePicks) ? buildSummary.passivePicks.slice() : [],
+            fusionCount: typeof buildSummary.fusionCount === 'number' ? buildSummary.fusionCount : this.alchemyDiscoveries.length,
+            fusionsUsed: Array.isArray(buildSummary.fusionsUsed) ? buildSummary.fusionsUsed.slice() : [],
+            topSpell: buildSummary.topSpell || null,
+            carryLine: buildSummary.carryLine || 'No build readback recorded',
             stageIdentity: stageProfile.identity,
             stageRoster: stageProfile.roster,
             firstCompletion: this.won && isFirstCompletion,
@@ -11763,6 +11795,8 @@ class GameScene extends Phaser.Scene {
         this.damageDealt = 0;
         this.elementsDiscovered = 1; // Start with 1 (base element)
         this.runAlchemyDiscoveries = [];
+        this.runFusionCount = 0;
+        this.runSpellCasts = {};
         // Character-specific charge slots
         // In standard mode: Orb gets 4 slots, Blip gets 5, others get 3
         // In extended mode: All characters get MAX_ACTIVE_SLOTS (8)
@@ -12433,6 +12467,8 @@ class GameScene extends Phaser.Scene {
         this.damageDealt = 0;
         this.elementsDiscovered = 1; // Start with 1 (base element)
         this.runAlchemyDiscoveries = [];
+        this.runFusionCount = 0;
+        this.runSpellCasts = {};
         // maxCharges is set earlier based on slot configuration and character
         // this.maxCharges = 4; // Start with 4 charge slots (removed - already set above)
         this.lastFireTime = 0;
@@ -18365,6 +18401,89 @@ class GameScene extends Phaser.Scene {
         return [...chargeSlots, ...pouchSlots].filter(elem => elem && elem !== 'none' && !passiveOrbs.includes(elem));
     }
 
+    getPassiveElementNames() {
+        return ['rook', 'bishop', 'knight', 'queen', 'king', 'pawn', 'joker', 'saturn', 'spiral',
+                'wizardOrb', 'summonOrb', 'saturnOrb', 'knightOrb', 'kingOrb', 'rookOrb',
+                'flameOrb', 'healOrb', 'dashOrb', 'catalyst', 'mind'];
+    }
+
+    isPassiveElement(element) {
+        return this.getPassiveElementNames().includes(element);
+    }
+
+    isFusionElement(element) {
+        if (!element || !this.elementFusions) return false;
+        return Object.values(this.elementFusions).includes(element);
+    }
+
+    getRunPassiveInventory(wizard = null) {
+        const targetWizard = wizard || this.wizard;
+        if (!targetWizard) return [];
+        const chargeSlots = targetWizard.chargeSlots || this.chargeSlots || [];
+        const pouchSlots = targetWizard.elementPouch || this.elementPouch || [];
+        return [...chargeSlots, ...pouchSlots].filter(elem => elem && elem !== 'none' && this.isPassiveElement(elem));
+    }
+
+    getRunPassiveUpgradeNames() {
+        if (!this.passiveUpgrades || typeof this.passiveUpgrades !== 'object') return [];
+        return Object.entries(this.passiveUpgrades)
+            .filter(([, count]) => Number(count) > 0)
+            .map(([key, count]) => `${key} x${count}`);
+    }
+
+    recordRunSpellCast(element) {
+        if (!element || this.isPassiveElement(element)) return;
+        if (!this.runSpellCasts || typeof this.runSpellCasts !== 'object') {
+            this.runSpellCasts = {};
+        }
+        this.runSpellCasts[element] = (this.runSpellCasts[element] || 0) + 1;
+    }
+
+    getTopRunSpell() {
+        const entries = Object.entries(this.runSpellCasts || {})
+            .filter(([, casts]) => Number(casts) > 0)
+            .sort((a, b) => b[1] - a[1]);
+        if (entries.length === 0) return null;
+        return {
+            element: entries[0][0],
+            casts: entries[0][1]
+        };
+    }
+
+    buildRunBuildSummary(wizard = null) {
+        const targetWizard = wizard || this.wizard;
+        const chargeSlots = targetWizard ? (targetWizard.chargeSlots || this.chargeSlots || []) : (this.chargeSlots || []);
+        const activeLimit = Math.max(1, targetWizard?.maxCharges || this.maxCharges || targetWizard?.initialMaxCharges || this.initialMaxCharges || this.MAX_ACTIVE_SLOTS || 4);
+        const equippedElements = [...new Set(chargeSlots
+            .slice(0, activeLimit)
+            .filter(element => element && element !== 'none' && !this.isPassiveElement(element)))];
+        const passivePicks = [...new Set(this.getRunPassiveInventory(targetWizard))];
+        const fusionsUsed = [...new Set(this.getRunElementInventory(targetWizard).filter(element => this.isFusionElement(element)))];
+        const topSpell = this.getTopRunSpell();
+        const fusionCount = Number(this.runFusionCount || 0);
+        const passiveUpgrades = this.getRunPassiveUpgradeNames();
+
+        let carryLine = 'No casts recorded';
+        if (topSpell && fusionsUsed.length > 0) {
+            carryLine = `${topSpell.element} casts with ${fusionsUsed[0]} fusion support`;
+        } else if (topSpell) {
+            carryLine = `${topSpell.element} cast volume`;
+        } else if (equippedElements.length > 0) {
+            carryLine = `${equippedElements[0]} setup`;
+        }
+
+        return {
+            equippedElements,
+            passivePicks,
+            passiveUpgrades,
+            fusionCount,
+            fusionsUsed,
+            topSpell,
+            carryLine,
+            spellCasts: { ...(this.runSpellCasts || {}) }
+        };
+    }
+
     getCompatiblePrimaryElementsFor(element) {
         const primaryElements = this.primaryElements || ['fire', 'water', 'earth', 'air', 'lightning', 'arcane'];
         const fallbackFusions = {
@@ -23409,6 +23528,7 @@ class GameScene extends Phaser.Scene {
 
         // Show fusion effect
         const resultConfig = this.elementConfig[fusionResult];
+        this.runFusionCount = (this.runFusionCount || 0) + 1;
         const wasNewRecipe = this.recordAlchemyRecipe(element1, element2, fusionResult);
         this.showFloatingText(400, 200, `Created ${resultConfig.name}!`, `#${resultConfig.color.toString(16).padStart(6, '0')}`, 24);
         if (wasNewRecipe) {
@@ -23562,6 +23682,7 @@ class GameScene extends Phaser.Scene {
             this.discoveredElements.add(newElement);
             localStorage.setItem('discoveredElements', JSON.stringify(Array.from(this.discoveredElements)));
         }
+        this.runFusionCount = (this.runFusionCount || 0) + 1;
         this.recordAlchemyRecipe(sourceElement, targetElement, newElement);
 
         // Show fusion success animation
@@ -29490,6 +29611,7 @@ class GameScene extends Phaser.Scene {
                     elementsDiscovered: this.elementsDiscovered,
                     damageDealt: this.damageDealt,
                     alchemyDiscoveries: this.runAlchemyDiscoveries || [],
+                    buildSummary: this.buildRunBuildSummary(),
                     won: false
                 });
             }
@@ -33236,6 +33358,7 @@ class GameScene extends Phaser.Scene {
                     elementsDiscovered: this.elementsDiscovered,
                     damageDealt: this.damageDealt,
                     alchemyDiscoveries: this.runAlchemyDiscoveries || [],
+                    buildSummary: this.buildRunBuildSummary(),
                     won: false,
                     stage: this.selectedStage || this.stage || 'forest'
                 });
@@ -36362,6 +36485,7 @@ class GameScene extends Phaser.Scene {
         // stores the actual wizard reference. All spell functions called from here should
         // capture: const casterWizard = this.currentSpellOwner || this.wizard;
         // at the start to ensure callbacks use the correct player.
+        this.recordRunSpellCast(element);
 
         // Build charges array from chargeSlots (filter out nulls for legacy code compatibility)
         const charges = this.chargeSlots ? this.chargeSlots.filter(slot => slot !== null) : [];
@@ -51702,6 +51826,7 @@ class GameScene extends Phaser.Scene {
             if (!this.discoveredElements.has(result)) {
                 this.discoveredElements.add(result);
             }
+            this.runFusionCount = (this.runFusionCount || 0) + 1;
             // Clean up after 3 seconds
             setTimeout(() => {
                 sprite1.destroy();
@@ -58651,6 +58776,7 @@ class GameScene extends Phaser.Scene {
                         elementsDiscovered: this.elementsDiscovered,
                         damageDealt: this.damageDealt,
                         alchemyDiscoveries: this.runAlchemyDiscoveries || [],
+                        buildSummary: this.buildRunBuildSummary(),
                         won: true,
                         stage: this.stage,
                         arcadeMode: this.arcadeMode
@@ -58707,6 +58833,7 @@ class GameScene extends Phaser.Scene {
                 elementsDiscovered: this.elementsDiscovered,
                 damageDealt: this.damageDealt,
                 alchemyDiscoveries: this.runAlchemyDiscoveries || [],
+                buildSummary: this.buildRunBuildSummary(),
                 won: false,
                 stage: this.stage,
                 arcadeMode: this.arcadeMode
@@ -61849,6 +61976,16 @@ if (typeof window !== 'undefined') {
             gameOverScene.levelReached = options.levelReached || 7;
             gameOverScene.damageDealt = options.damageDealt || 0;
             gameOverScene.alchemyDiscoveries = Array.isArray(options.alchemyDiscoveries) ? options.alchemyDiscoveries : [];
+            gameOverScene.buildSummary = options.buildSummary || {
+                equippedElements: ['fire', 'earth'],
+                passivePicks: ['rook'],
+                passiveUpgrades: ['damage x1'],
+                fusionCount: gameOverScene.alchemyDiscoveries.length,
+                fusionsUsed: gameOverScene.alchemyDiscoveries.map(discovery => discovery.result).filter(Boolean),
+                topSpell: { element: 'fire', casts: 12 },
+                carryLine: 'fire cast volume',
+                spellCasts: { fire: 12 }
+            };
             gameOverScene.updateSaveData();
             simulateVictory.lastReadback = gameOverScene.runRewardReadback;
             assert(saveManager.autoSave(), `Auto-save failed after ${stage} victory`);
@@ -61866,6 +62003,16 @@ if (typeof window !== 'undefined') {
             gameOverScene.levelReached = options.levelReached || 3;
             gameOverScene.damageDealt = options.damageDealt || 0;
             gameOverScene.alchemyDiscoveries = Array.isArray(options.alchemyDiscoveries) ? options.alchemyDiscoveries : [];
+            gameOverScene.buildSummary = options.buildSummary || {
+                equippedElements: ['fire'],
+                passivePicks: [],
+                passiveUpgrades: [],
+                fusionCount: gameOverScene.alchemyDiscoveries.length,
+                fusionsUsed: [],
+                topSpell: { element: 'fire', casts: 4 },
+                carryLine: 'fire cast volume',
+                spellCasts: { fire: 4 }
+            };
             gameOverScene.updateSaveData();
             simulateAttempt.lastReadback = gameOverScene.runRewardReadback;
             assert(saveManager.autoSave(), `Auto-save failed after ${stage} attempt`);
@@ -61944,6 +62091,12 @@ if (typeof window !== 'undefined') {
             assert(simulateVictory.lastReadback.levelReached === 6, 'Forest reward readback did not include level reached');
             assert(simulateVictory.lastReadback.enemiesKilled === 150, 'Forest reward readback did not include enemies defeated');
             assert(simulateVictory.lastReadback.itemsCollected === 3, 'Forest reward readback did not include pickups collected');
+            assert(simulateVictory.lastReadback.equippedElements.includes('fire'), 'Forest reward readback did not include equipped elements');
+            assert(simulateVictory.lastReadback.passivePicks.includes('rook'), 'Forest reward readback did not include passive picks');
+            assert(simulateVictory.lastReadback.fusionCount === 1, 'Forest reward readback did not include fusion count');
+            assert(simulateVictory.lastReadback.fusionsUsed.includes('lava'), 'Forest reward readback did not include equipped fusion usage');
+            assert(simulateVictory.lastReadback.topSpell && simulateVictory.lastReadback.topSpell.element === 'fire', 'Forest reward readback did not include strongest spell');
+            assert(simulateVictory.lastReadback.carryLine.includes('fire'), 'Forest reward readback did not include carry line');
             assert(simulateVictory.lastReadback.stageIdentity === 'Forest creature pressure', 'Forest reward readback did not include stage identity');
             assert(simulateVictory.lastReadback.stageRoster.includes('mushroom'), 'Forest reward readback did not include roster pressure');
             assert(simulateVictory.lastReadback.newRecipeText === 'Earth + Fire -> Lava', 'Forest reward readback did not include new recipe text');
@@ -61959,6 +62112,8 @@ if (typeof window !== 'undefined') {
             assert(simulateAttempt.lastReadback.levelReached === 2, 'Attempt readback did not include level reached');
             assert(simulateAttempt.lastReadback.enemiesKilled === 12, 'Attempt readback did not include enemies defeated');
             assert(simulateAttempt.lastReadback.itemsCollected === 5, 'Attempt readback did not include pickups collected');
+            assert(simulateAttempt.lastReadback.equippedElements.includes('fire'), 'Attempt readback did not include equipped elements');
+            assert(simulateAttempt.lastReadback.topSpell && simulateAttempt.lastReadback.topSpell.casts === 4, 'Attempt readback did not include spell cast readback');
             assert(simulateAttempt.lastReadback.alchemyNudge.includes('Fusion Ritual'), 'Attempt readback did not include alchemy nudge');
             assert(saveData.stages.stageStats['forest-1'].deaths >= 1, 'Forest attempt did not record death count');
             assert(saveData.talents.essence > essenceAfterForest, 'Forest attempt did not bank effort essence');
