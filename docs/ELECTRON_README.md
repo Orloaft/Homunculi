@@ -64,8 +64,9 @@ This creates a `.dmg` file in the `dist` folder. Treat this as secondary until t
 ### For Linux:
 ```bash
 npm run build-linux
+npm run smoke:linux-package
 ```
-This creates an `.AppImage` file in the `dist` folder.
+This creates an `.AppImage` file in the `dist` folder and launches the latest AppImage with the packaged first-run smoke on Linux.
 
 ### Build for all platforms:
 ```bash
@@ -88,6 +89,14 @@ npm run dist
    ```
 4. Inspect `dist/` for total size, missing assets, source maps, docs/editor tools, backups, and other source noise.
 5. Launch the packaged app offline and test a fresh save, first run, first victory, reload, options, and quit/relaunch.
+
+On Ubuntu, validate the native packaged artifact with:
+```bash
+npm run build-linux
+npm run smoke:linux-package
+```
+
+The Windows `.exe` can be built and inspected on Ubuntu, but its launch checklist still needs Windows or Wine.
 
 ## Features
 

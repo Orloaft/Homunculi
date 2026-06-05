@@ -48,6 +48,7 @@ const forbiddenPackageEntries = [
   'scripts/parity-checker.js',
   'scripts/remove-fallback-hitboxes.js',
   'scripts/rollup.config.js',
+  'scripts/smoke-packaged-linux.js',
   'scripts/test-update-logic.js',
   'scripts/update-paths.js',
   'scripts/verify-imports.js'

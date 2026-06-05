@@ -134,6 +134,7 @@ Findings:
 - `index.html` depends on CDN Three.js/OBJLoader before fallback, so offline first-run polish is risky.
 - Fixed 2026-06-04: release docs now match the package Node range, Phaser version, Windows portable target, smoke commands, and icon state.
 - Verified 2026-06-04: `npm run build-win-portable` produced `dist/WizBiz 1.0.1.exe` at 263M after freeing workspace image space.
+- Verified 2026-06-05: `npm run build-linux` produced `dist/WizBiz-1.0.1.AppImage` at 305M, and `npm run smoke:linux-package` launched it on Ubuntu through the packaged first-run smoke.
 - Only `icon.png` exists; Windows/macOS icon coverage may warn or fall back.
 - `npm run smoke:swamp-boss`, `npm run smoke:snow-boss`, `npm run smoke:ocean-boss`, `npm run smoke:lava-boss`, `npm run smoke:grave-boss`, and `npm run smoke:castle-boss` are release-green and included in `verify:release`.
 
@@ -141,5 +142,6 @@ Recommended release checklist:
 
 1. Run `npm run verify:release`.
 2. Build Windows portable first with `npm run build-win-portable`.
-3. Inspect packaged contents for missing assets, source noise, tools/docs, and total size.
-4. Launch the packaged app offline: fresh save, first run, first victory, reload, options, quit/relaunch.
+3. Build and smoke the Ubuntu AppImage with `npm run build-linux` and `npm run smoke:linux-package`.
+4. Inspect packaged contents for missing assets, source noise, tools/docs, and total size.
+5. Launch the Windows portable app on Windows or Wine for the offline checklist: fresh save, first run, first victory, reload, options, quit/relaunch.

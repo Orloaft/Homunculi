@@ -119,7 +119,7 @@ Next slices:
 1. Run `npm run smoke:prod`, `npm run smoke:first-run`, and `npm run audit:package` regularly.
 2. Audit `electron-builder` output for package size, included source noise, and missing assets.
 3. Use the clean-save/manual-release checklist covering new save, first run, first victory, reload, options, and quit/relaunch.
-4. Decide release targets: Windows portable first, then Linux AppImage/macOS only after the Windows loop is stable.
+4. Keep Ubuntu-native AppImage launch smoke green, then run the Windows portable launch check on Windows or Wine before calling the Windows artifact player-verified.
 
 Release checklist:
 
@@ -129,10 +129,17 @@ Release checklist:
 4. Inspect `dist/` for package size, missing assets, source maps, docs/editor tools, backup files, and other source noise.
 5. Launch the packaged app offline and test a fresh save, first run, first victory, reload, options, and quit/relaunch.
 
+Ubuntu-native package checklist:
+
+1. `npm run build-linux`
+2. `npm run smoke:linux-package`
+3. Inspect `dist/linux-unpacked/resources/app.asar` for required runtime files and excluded dev-only scripts.
+
 Latest packaging proof:
 
 - 2026-06-04: `npm run build-win-portable` produced `dist/WizBiz 1.0.1.exe` at 263M.
 - 2026-06-05: `npm run build-win-portable` produced `dist/WizBiz 1.0.1.exe` at 263M; ASAR inspection confirmed required runtime files are present and dev-only helper scripts are excluded.
+- 2026-06-05: `npm run build-linux` produced `dist/WizBiz-1.0.1.AppImage` at 305M; `npm run smoke:linux-package` launched the AppImage on Ubuntu and passed the packaged first-run smoke.
 
 ### Lane 5: Architecture Containment
 
