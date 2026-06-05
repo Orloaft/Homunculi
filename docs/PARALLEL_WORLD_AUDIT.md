@@ -87,7 +87,7 @@ Promotion notes:
 
 ## Grave
 
-Status: next promotion lane after Lava.
+Status: promoted after Lava.
 
 Useful facts:
 
@@ -96,12 +96,12 @@ Useful facts:
 - Runtime roster includes `yellowskeleton`, `skeletonseeker`, `soul`, `skullhound`, imps, and giant skeleton.
 - Boss path routes Grave to Nekros.
 
-Promotion needs:
+Promotion coverage:
 
-- Add Grave deterministic feel/progression assertions matching the promoted-world contract.
-- Add a named Grave live gate with death/poison roster identity checks.
-- Add or promote the Nekros boss gate before Grave enters `verify:release`.
-- Record Grave first-minute balance in `docs/PROMOTED_BALANCE_SUMMARY.md` only after the gate is stable.
+- Fixed 2026-06-05: Grave is in deterministic feel/progression coverage, including Grave -> Castle unlock/reload assertions.
+- Fixed 2026-06-05: Grave has vertical-slice tuning for readable first-minute pacing, XP/pickup support, catalysts, and Nekros health.
+- Fixed 2026-06-05: `smoke:grave-live` asserts live enemy activity stays inside the Grave roster.
+- Fixed 2026-06-05: Nekros health tuning and death-to-victory cleanup are covered by `smoke:grave-boss`.
 
 ## Release Hardening
 
@@ -115,7 +115,7 @@ Findings:
 - Fixed 2026-06-04: release docs now match the package Node range, Phaser version, Windows portable target, smoke commands, and icon state.
 - Verified 2026-06-04: `npm run build-win-portable` produced `dist/WizBiz 1.0.1.exe` at 263M after freeing workspace image space.
 - Only `icon.png` exists; Windows/macOS icon coverage may warn or fall back.
-- `npm run smoke:swamp-boss`, `npm run smoke:snow-boss`, `npm run smoke:ocean-boss`, and `npm run smoke:lava-boss` are release-green and included in `verify:release`.
+- `npm run smoke:swamp-boss`, `npm run smoke:snow-boss`, `npm run smoke:ocean-boss`, `npm run smoke:lava-boss`, and `npm run smoke:grave-boss` are release-green and included in `verify:release`.
 
 Recommended release checklist:
 

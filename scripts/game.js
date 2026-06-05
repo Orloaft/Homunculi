@@ -18398,7 +18398,7 @@ class GameScene extends Phaser.Scene {
     getPrimaryElementRewardChoices(wizard = null, choiceCount = 3) {
         const primaryElements = this.primaryElements || ['fire', 'water', 'earth', 'air', 'lightning', 'arcane'];
         const choices = [];
-        const firstSliceStages = ['forest', 'cave', 'sand', 'swamp', 'snow', 'ocean'];
+        const firstSliceStages = ['forest', 'cave', 'sand', 'swamp', 'snow', 'ocean', 'lava', 'grave'];
         const heldElements = this.getRunElementInventory(wizard);
         const uniqueHeldElements = [...new Set(heldElements)];
 
@@ -18475,6 +18475,14 @@ class GameScene extends Phaser.Scene {
                 pickupMagnetRadius: 195,
                 pickupMagnetSpeed: 460,
                 xpDropMultiplier: 1.2,
+                earlyCatalystMilestones: { 4: 1, 8: 2 }
+            },
+            grave: {
+                bossHealthMultiplier: 1.15,
+                waveSpawnIntervalMultiplier: 1.35,
+                pickupMagnetRadius: 190,
+                pickupMagnetSpeed: 455,
+                xpDropMultiplier: 1.15,
                 earlyCatalystMilestones: { 4: 1, 8: 2 }
             }
         };
@@ -18587,10 +18595,11 @@ class GameScene extends Phaser.Scene {
                 // Wave 0 (0:00-1:00) - Introduction - Easy start with yellow skeletons
                 {
                     enemies: [
-                        { type: 'yellowskeleton', weight: 70, count: 2 },
-                        { type: 'soul', weight: 30, count: 1 }
+                        { type: 'yellowskeleton', weight: 55, count: 2 },
+                        { type: 'soul', weight: 30, count: 1 },
+                        { type: 'skeletonseeker', weight: 15, count: 1 }
                     ],
-                    spawnInterval: 3000,  // Slower spawn rate
+                    spawnInterval: 2400,  // Release-tuned first minute pace
                     maxEnemies: 15  // Fewer total enemies
                 },
                 // Wave 1 (1:00-2:00) - Add skeleton seekers and introduce skull hounds
@@ -54781,7 +54790,7 @@ class GameScene extends Phaser.Scene {
         };
         const enemyDensity = localStorage.getItem('enemyDensity') || 'normal';
         const healthMultiplier = densityMultipliers[enemyDensity] || 0.5;
-        boss.health = Math.floor(baseHealth * healthMultiplier);
+        boss.health = Math.floor(baseHealth * healthMultiplier * this.getBossHealthTuningMultiplier());
         boss.maxHealth = boss.health;
         boss.isBoss = true;
         boss.knockbackResistance = 0.1; // Bosses resist 90% of knockback
@@ -57862,7 +57871,7 @@ class GameScene extends Phaser.Scene {
                 }
                 // Spawn stage-appropriate enemy or fall back to generic enemy
                 if (enemyType !== 'normal') {
-                    this.spawnEnemy(x, y, enemyType);
+                    this.createEnemy(enemyType, x, y);
                 } else {
                     // Generic enemy for other stages
                     const enemy = this.physics.add.sprite(x, y, 'enemy-walk', 0);
@@ -58477,7 +58486,8 @@ class GameScene extends Phaser.Scene {
                 this.gameWon();
             };
             if (boss.isFrostGuardian || boss.enemyType === 'frost-guardian-boss' ||
-                boss.isDemonSlime || boss.enemyType === 'demon-slime-boss') {
+                boss.isDemonSlime || boss.enemyType === 'demon-slime-boss' ||
+                boss.isNekros || boss.enemyType === 'nekros-boss') {
                 setTimeout(triggerVictory, 2000);
             } else {
                 this.time.delayedCall(2000, triggerVictory);
@@ -58494,7 +58504,8 @@ class GameScene extends Phaser.Scene {
             }
             completeBossDeath();
         });
-        if (boss.isFrostGuardian || boss.enemyType === 'frost-guardian-boss') {
+        if (boss.isFrostGuardian || boss.enemyType === 'frost-guardian-boss' ||
+            boss.isNekros || boss.enemyType === 'nekros-boss') {
             setTimeout(() => {
                 if (bossDeathComplete) return;
                 bossDeathComplete = true;
@@ -60837,6 +60848,18 @@ if (typeof window !== 'undefined') {
         });
     };
 
+    window.runHomunculiGraveLiveSmoke = async function runHomunculiGraveLiveSmoke() {
+        const graveEnemyTypes = ['yellowskeleton', 'soul', 'skeletonseeker', 'skullhound', 'clubimp', 'axeimp', 'giant-yellowskeleton'];
+        return window.runHomunculiStageLiveSmoke({
+            stage: 'grave',
+            label: 'Grave live',
+            startElement: 'arcane',
+            desiredEnemyDistance: 150,
+            requiredEnemyTypes: ['yellowskeleton', 'soul', 'skeletonseeker'],
+            allowedEnemyTypes: graveEnemyTypes
+        });
+    };
+
     window.runHomunculiSwampBossSmoke = async function runHomunculiSwampBossSmoke() {
         const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
         const waitFor = async (label, predicate, timeoutMs = 10000) => {
@@ -60905,6 +60928,18 @@ if (typeof window !== 'undefined') {
             scene.gamePaused = false;
             scene.pauseSource = null;
             scene.gameStarted = true;
+            scene.godMode = true;
+            scene.invulnerable = true;
+            scene.playerInvulnerableUntil = Number.MAX_SAFE_INTEGER;
+            scene.playerHealth = 999999;
+            scene.maxPlayerHealth = Math.max(scene.maxPlayerHealth || 0, scene.playerHealth);
+            scene.maxHealth = Math.max(scene.maxHealth || 0, scene.playerHealth);
+            if (scene.wizard) {
+                scene.wizard.health = scene.playerHealth;
+                scene.wizard.maxHealth = scene.playerHealth;
+                scene.wizard.invulnerable = true;
+                scene.wizard.isInvulnerable = true;
+            }
             if (scene.physics && scene.physics.world) {
                 scene.physics.resume();
             }
@@ -61052,7 +61087,8 @@ if (typeof window !== 'undefined') {
             try {
                 await waitFor('Frost Guardian death cleanup', () => scene.gameWonCalled === true && scene.boss === null && (!scene.bossAITimer || scene.bossAITimer.hasDispatched), 8000);
             } catch (error) {
-                throw new Error(`${error.message}; gameWonCalled=${scene.gameWonCalled === true}; gameEnded=${scene.gameEnded === true}; sceneBoss=${scene.boss && scene.boss.enemyType}; bossActive=${boss.active}; bossAnim=${boss.anims && boss.anims.currentAnim && boss.anims.currentAnim.key}`);
+                const gameOverScene = game.scene.getScene('GameOverScene');
+                throw new Error(`${error.message}; gameWonCalled=${scene.gameWonCalled === true}; gameEnded=${scene.gameEnded === true}; gameOverWon=${gameOverScene && gameOverScene.won}; gameOverStage=${gameOverScene && gameOverScene.stage}; sceneBoss=${scene.boss && scene.boss.enemyType}; bossActive=${boss.active}; bossAnim=${boss.anims && boss.anims.currentAnim && boss.anims.currentAnim.key}`);
             }
             assert(scene.gameEnded === true, 'Frost Guardian boss death did not end the run');
             assertNoRendererErrors('Frost Guardian boss death');
@@ -61307,7 +61343,8 @@ if (typeof window !== 'undefined') {
             try {
                 await waitFor('Demon Slime death cleanup', () => scene.gameWonCalled === true && scene.gameEnded === true && scene.boss === null && (!scene.bossAITimer || scene.bossAITimer.hasDispatched), 9000);
             } catch (error) {
-                throw new Error(`${error.message}; gameWonCalled=${scene.gameWonCalled === true}; gameEnded=${scene.gameEnded === true}; sceneBoss=${scene.boss && scene.boss.enemyType}; bossActive=${boss.active}; bossAnim=${boss.anims && boss.anims.currentAnim && boss.anims.currentAnim.key}`);
+                const gameOverScene = game.scene.getScene('GameOverScene');
+                throw new Error(`${error.message}; gameWonCalled=${scene.gameWonCalled === true}; gameEnded=${scene.gameEnded === true}; gameOverWon=${gameOverScene && gameOverScene.won}; gameOverStage=${gameOverScene && gameOverScene.stage}; sceneBoss=${scene.boss && scene.boss.enemyType}; bossActive=${boss.active}; bossAnim=${boss.anims && boss.anims.currentAnim && boss.anims.currentAnim.key}`);
             }
             assertNoRendererErrors('Demon Slime boss death');
 
@@ -61317,6 +61354,123 @@ if (typeof window !== 'undefined') {
                 bossType: boss.enemyType,
                 maxHealth: expectedMaxHealth,
                 gameWonCalled: scene.gameWonCalled === true
+            };
+        } finally {
+            window.removeEventListener('error', captureRendererError);
+            localStorage.clear();
+            Object.entries(originalStorage).forEach(([key, value]) => localStorage.setItem(key, value));
+        }
+    };
+
+    window.runHomunculiGraveBossSmoke = async function runHomunculiGraveBossSmoke() {
+        const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        const waitFor = async (label, predicate, timeoutMs = 8000) => {
+            const start = Date.now();
+            while (Date.now() - start < timeoutMs) {
+                if (predicate()) return;
+                await wait(100);
+            }
+            const activeScenes = typeof game !== 'undefined' && game && game.scene
+                ? game.scene.getScenes(true).map(scene => scene.scene.key).join(', ')
+                : 'none';
+            throw new Error(`Timed out waiting for ${label}; active scenes: ${activeScenes}`);
+        };
+        const assert = (condition, message) => {
+            if (!condition) throw new Error(message);
+        };
+
+        const rendererErrors = [];
+        const captureRendererError = (event) => {
+            rendererErrors.push({
+                message: event.message,
+                stack: event.error && event.error.stack
+            });
+        };
+        const assertNoRendererErrors = (label) => {
+            if (rendererErrors.length > 0) {
+                const latestError = rendererErrors[rendererErrors.length - 1];
+                throw new Error(`${label}: ${latestError.message}${latestError.stack ? `\n${latestError.stack}` : ''}`);
+            }
+        };
+
+        const originalStorage = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            originalStorage[key] = localStorage.getItem(key);
+        }
+
+        try {
+            window.addEventListener('error', captureRendererError);
+            localStorage.clear();
+            localStorage.setItem('enemyDensity', 'normal');
+
+            await waitFor('Phaser game boot', () => typeof game !== 'undefined' && game && game.scene);
+            await waitFor('title scene and Nekros assets', () => {
+                const titleScene = game.scene.getScene('TitleScene');
+                return titleScene && titleScene.scene && titleScene.scene.isActive() && titleScene.textures && titleScene.textures.exists('nekros-walk-1');
+            });
+            game.scene.stop('TitleScene');
+            game.scene.start('GameScene', {
+                stage: 'grave',
+                p1Character: 'wizard',
+                multiplayerEnabled: false,
+                arcadeMode: false,
+                startElement: 'arcane'
+            });
+
+            await waitFor('Grave GameScene create', () => {
+                const scene = game.scene.getScene('GameScene');
+                return scene && scene.scene && scene.scene.isActive() && scene.stage === 'grave' && scene.wizard;
+            });
+
+            const scene = game.scene.getScene('GameScene');
+            if (scene.dialogueManager && scene.dialogueManager.active) {
+                scene.dialogueManager.close(true);
+            }
+            scene.gamePaused = false;
+            scene.pauseSource = null;
+            scene.gameStarted = true;
+            if (scene.physics && scene.physics.world) {
+                scene.physics.resume();
+            }
+            if (scene.time) {
+                scene.time.timeScale = 1;
+            }
+
+            scene.createGraveBoss();
+            await waitFor('Nekros boss entry', () => scene.boss && scene.boss.active && scene.boss.enemyType === 'nekros-boss');
+
+            const boss = scene.boss;
+            const expectedMaxHealth = Math.floor(5000 * 0.5 * scene.getBossHealthTuningMultiplier());
+            assert(boss.isNekros === true, 'Nekros boss flag missing');
+            assert(boss.maxHealth === expectedMaxHealth, `Nekros health tuning drifted: expected ${expectedMaxHealth}, got ${boss.maxHealth}`);
+            assert(boss.currentMode === 'walk', 'Nekros should enter in vulnerable walk mode');
+            assert(boss.isDamageImmune === false, 'Nekros should not start damage immune');
+            assert(scene.bossHealthBar && scene.bossHealthBar.active, 'Nekros health bar missing');
+            assert(scene.bossHealthBarBg && scene.bossHealthBarBg.active, 'Nekros health bar background missing');
+            assert(scene.bossNameText && scene.bossNameText.text === 'NEKROS, FIST OF THE DEAD', 'Nekros health label missing');
+            assert(scene.nekrosAITimer && !scene.nekrosAITimer.paused, 'Nekros AI timer missing');
+            assertNoRendererErrors('Nekros boss entry');
+
+            scene.handleBossDeath(boss);
+            try {
+                await waitFor('Nekros death cleanup', () => {
+                    const gameOverScene = game.scene.getScene('GameOverScene');
+                    return gameOverScene && gameOverScene.scene && gameOverScene.scene.isActive() && gameOverScene.won === true && !scene.nekrosAITimer;
+                }, 9000);
+            } catch (error) {
+                const gameOverScene = game.scene.getScene('GameOverScene');
+                throw new Error(`${error.message}; gameWonCalled=${scene.gameWonCalled === true}; gameEnded=${scene.gameEnded === true}; gameOverWon=${gameOverScene && gameOverScene.won}; gameOverStage=${gameOverScene && gameOverScene.stage}; sceneBoss=${scene.boss && scene.boss.enemyType}; bossActive=${boss.active}; bossAnim=${boss.anims && boss.anims.currentAnim && boss.anims.currentAnim.key}`);
+            }
+            assertNoRendererErrors('Nekros boss death');
+            const gameOverScene = game.scene.getScene('GameOverScene');
+
+            return {
+                ok: true,
+                stage: scene.stage,
+                bossType: boss.enemyType,
+                maxHealth: expectedMaxHealth,
+                gameWon: gameOverScene && gameOverScene.won === true
             };
         } finally {
             window.removeEventListener('error', captureRendererError);
@@ -61359,7 +61513,7 @@ if (typeof window !== 'undefined') {
         await waitFor('Phaser game boot', () => typeof game !== 'undefined' && game && game.scene);
         await waitFor('GameScene availability', () => typeof GameScene !== 'undefined');
 
-        const stages = ['forest', 'cave', 'sand', 'swamp', 'snow', 'ocean', 'lava'];
+        const stages = ['forest', 'cave', 'sand', 'swamp', 'snow', 'ocean', 'lava', 'grave'];
         const stageExpectations = {
             snow: {
                 requiredOpeningEnemies: ['snowy', 'northerner', 'spiked-slime'],
@@ -61375,6 +61529,11 @@ if (typeof window !== 'undefined') {
                 requiredOpeningEnemies: ['fireslime', 'clubimp', 'axeimp'],
                 requiredEarlyEnemies: ['fireslime', 'clubimp', 'axeimp', 'flyingdemon', 'fireworm'],
                 maxBossHealthMultiplier: 1.1
+            },
+            grave: {
+                requiredOpeningEnemies: ['yellowskeleton', 'soul', 'skeletonseeker'],
+                requiredEarlyEnemies: ['yellowskeleton', 'soul', 'skeletonseeker', 'skullhound'],
+                maxBossHealthMultiplier: 1.15
             }
         };
         const metrics = {};
@@ -61569,7 +61728,8 @@ if (typeof window !== 'undefined') {
                 ['swamp', 0.95, { 4: 1, 8: 2 }],
                 ['snow', 1.0, { 4: 1, 8: 2 }],
                 ['ocean', 1.05, { 4: 1, 8: 2 }],
-                ['lava', 1.1, { 4: 1, 8: 2 }]
+                ['lava', 1.1, { 4: 1, 8: 2 }],
+                ['grave', 1.15, { 4: 1, 8: 2 }]
             ];
             tuningChecks.forEach(([stage, bossMultiplier, catalysts]) => {
                 const gameScene = new GameScene();
@@ -61733,13 +61893,32 @@ if (typeof window !== 'undefined') {
             assertNoRendererErrors('StageSelect Lava reload check failed');
             assert(getStage(stages, 'Lava Land').unlocked === true, 'Stage select did not preserve Lava unlock from save');
             assert(getStage(stages, 'Grave Land').unlocked === true, 'Stage select did not show Grave unlocked from save');
+            assert(getStage(stages, 'Castle Land').unlocked === false, 'Stage select unlocked Castle too early');
+
+            saveData = simulateVictory(reloadAfterLava, 'grave', 1020000);
+            assert(simulateVictory.lastReadback && simulateVictory.lastReadback.unlockedWorldName === 'Castle Land', 'Grave reward readback did not name the Castle unlock');
+            assert(simulateVictory.lastReadback.unlockedCharacterName === null, 'Grave reward readback should not report a character unlock');
+            assert(simulateVictory.lastReadback.stageIdentity === 'Grave death pressure', 'Grave reward readback did not include stage identity');
+            assert(simulateVictory.lastReadback.stageRoster.includes('skullhound'), 'Grave reward readback did not include roster pressure');
+            assert(saveData.stages.completedStages.includes('grave-1'), 'Grave completion was not recorded');
+            assert(saveData.stages.unlockedWorlds.includes('castleland'), 'Grave victory did not unlock Castle');
+            assert(saveData.stages.stageStats['grave-1'].attempts >= 1, 'Grave stage stats attempts were not recorded');
+            assert(saveData.stages.stageStats['grave-1'].bestTime === 1020000, 'Grave stage stats best time was not recorded');
+
+            const reloadAfterGrave = new SaveManager();
+            window.saveManager = reloadAfterGrave;
+            assert(reloadAfterGrave.loadAndSetCurrent(0), 'Reload after Grave victory failed');
+            stages = await startStageSelectAndGetStages(reloadAfterGrave);
+            assertNoRendererErrors('StageSelect Grave reload check failed');
+            assert(getStage(stages, 'Grave Land').unlocked === true, 'Stage select did not preserve Grave unlock from save');
+            assert(getStage(stages, 'Castle Land').unlocked === true, 'Stage select did not show Castle unlocked from save');
 
             return {
                 ok: true,
-                completedStages: reloadAfterLava.currentSaveData.stages.completedStages,
-                unlockedWorlds: reloadAfterLava.currentSaveData.stages.unlockedWorlds,
-                unlockedCharacters: reloadAfterLava.currentSaveData.characters.unlocked,
-                essence: reloadAfterLava.currentSaveData.talents.essence
+                completedStages: reloadAfterGrave.currentSaveData.stages.completedStages,
+                unlockedWorlds: reloadAfterGrave.currentSaveData.stages.unlockedWorlds,
+                unlockedCharacters: reloadAfterGrave.currentSaveData.characters.unlocked,
+                essence: reloadAfterGrave.currentSaveData.talents.essence
             };
         } finally {
             window.removeEventListener('error', captureRendererError);
