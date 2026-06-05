@@ -535,8 +535,17 @@ class SaveSlotScene extends Phaser.Scene {
 
         console.log('✅ Loaded save and initialized AchievementManager');
 
-        // Determine where to start based on save data
-        if (saveData.stages.currentStage) {
+        // Existing saves should return to Stage Select. A cleared currentStage only means
+        // the player was between runs, not that they should repeat first-pick onboarding.
+        const hasRunProgress = Boolean(
+            saveData.stages &&
+            (
+                saveData.stages.currentStage ||
+                (Array.isArray(saveData.stages.completedStages) && saveData.stages.completedStages.length > 0) ||
+                (Array.isArray(saveData.stages.unlockedWorlds) && saveData.stages.unlockedWorlds.length > 1)
+            )
+        );
+        if (hasRunProgress) {
             // Resume from stage select (skip character selection)
             this.scene.start('StageSelectScene', {
                 saveManager: this.saveManager,

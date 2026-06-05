@@ -57,24 +57,31 @@ Requires Node.js 20-25. Node 26 is currently blocked because it can leave Electr
    ```bash
    npm run verify:smoke
    ```
+   This includes the first-run path: title options, new save creation, Forest victory persistence, and continue/reload into Stage Select.
 
-5. **Build the Windows portable package:**
+5. **Audit packaged runtime inputs:**
+   ```bash
+   npm run audit:package
+   ```
+   This checks that `electron-builder` includes the runtime files referenced by `index.html`.
+
+6. **Build the Windows portable package:**
    ```bash
    npm run build-win-portable
    ```
    `npm run build-portable` is kept as an alias for the Windows portable target.
 
-6. **Run the full release gate before packaging for distribution:**
+7. **Run the full release gate before packaging for distribution:**
    ```bash
    npm run verify:release
    ```
 
-7. **Sprite Editor:**
+8. **Sprite Editor:**
    ```bash
    run-sprite-editor.bat
    ```
 
-8. **Sprite Importer:**
+9. **Sprite Importer:**
    ```bash
    run-sprite-importer.bat
    ```

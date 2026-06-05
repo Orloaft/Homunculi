@@ -60684,6 +60684,148 @@ const config = {
 };
 
 if (typeof window !== 'undefined') {
+    window.runHomunculiFirstRunSmoke = async function runHomunculiFirstRunSmoke() {
+        const originalStorage = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            originalStorage[key] = localStorage.getItem(key);
+        }
+        const rendererErrors = [];
+        const captureRendererError = (event) => {
+            rendererErrors.push({
+                message: event.message,
+                stack: event.error && event.error.stack,
+                filename: event.filename,
+                line: event.lineno,
+                column: event.colno
+            });
+        };
+
+        const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        const waitFor = async (label, predicate, timeoutMs = 10000) => {
+            const start = Date.now();
+            while (Date.now() - start < timeoutMs) {
+                if (predicate()) return;
+                await wait(100);
+            }
+            const activeScenes = typeof game !== 'undefined' && game && game.scene
+                ? game.scene.getScenes(true).map(scene => scene.scene.key).join(', ')
+                : 'none';
+            throw new Error(`Timed out waiting for ${label}; active scenes: ${activeScenes}`);
+        };
+        const assert = (condition, message) => {
+            if (!condition) throw new Error(message);
+        };
+        const assertNoRendererErrors = (label) => {
+            if (rendererErrors.length > 0) {
+                const latestError = rendererErrors[rendererErrors.length - 1];
+                throw new Error(`${label}: ${latestError.message}${latestError.stack ? `\n${latestError.stack}` : ''}`);
+            }
+        };
+        const startSaveSlotScene = async (saveManager) => {
+            game.scene.start('SaveSlotScene', { saveManager });
+            await waitFor('SaveSlotScene active', () => {
+                const scene = game.scene.getScene('SaveSlotScene');
+                return scene && scene.scene && scene.scene.isActive() && scene.saveManager === saveManager;
+            });
+            return game.scene.getScene('SaveSlotScene');
+        };
+        const simulateForestVictory = (saveManager) => {
+            const gameOverScene = new GameOverScene();
+            gameOverScene.saveManager = saveManager;
+            gameOverScene.stage = 'forest';
+            gameOverScene.won = true;
+            gameOverScene.survivalTime = 600000;
+            gameOverScene.enemiesKilled = 150;
+            gameOverScene.itemsCollected = 3;
+            gameOverScene.levelReached = 6;
+            gameOverScene.damageDealt = 0;
+            gameOverScene.alchemyDiscoveries = [];
+            gameOverScene.buildSummary = {
+                equippedElements: ['fire'],
+                passivePicks: ['rook'],
+                passiveUpgrades: ['damage x1'],
+                fusionCount: 0,
+                fusionsUsed: [],
+                topSpell: { element: 'fire', casts: 10 },
+                carryLine: 'fire cast volume',
+                spellCasts: { fire: 10 }
+            };
+            gameOverScene.updateSaveData();
+            assert(saveManager.autoSave(), 'Auto-save failed after first-run Forest victory');
+            return saveManager.currentSaveData;
+        };
+        const getStage = (stages, name) => stages.find(stage => stage.name === name);
+
+        try {
+            window.addEventListener('error', captureRendererError);
+            localStorage.clear();
+            await waitFor('Phaser game boot', () => typeof game !== 'undefined' && game && game.scene);
+            await waitFor('TitleScene active', () => {
+                const titleScene = game.scene.getScene('TitleScene');
+                return titleScene && titleScene.scene && titleScene.scene.isActive() && titleScene.textures && titleScene.textures.exists('wizard-idle');
+            });
+            await waitFor('save system globals', () => typeof SaveManager !== 'undefined' && typeof SaveSlotScene !== 'undefined' && typeof AchievementManager !== 'undefined');
+
+            const titleScene = game.scene.getScene('TitleScene');
+            assert(typeof titleScene.showOptionsMenu === 'function', 'Title options API missing');
+            titleScene.showOptionsMenu();
+            assert(titleScene.optionsMenu && Array.isArray(titleScene.optionsMenuItems), 'Options menu did not open from Title');
+            assert(titleScene.optionsMenuItems.length === 4, 'Options menu lost expected controls');
+            titleScene.optionsMenuItems[0].rightArrow.emit('pointerdown');
+            assert(localStorage.getItem('speedMode') === 'vibe', 'Options speed selector did not persist');
+            titleScene.closeOptionsMenu();
+            assert(!titleScene.optionsMenu, 'Options menu did not close cleanly');
+            assertNoRendererErrors('Title options first-run check failed');
+
+            const saveManager = new SaveManager();
+            window.saveManager = saveManager;
+            let saveSlotScene = await startSaveSlotScene(saveManager);
+            assert(saveManager.getAllSaveSlots().every(slot => slot.isEmpty), 'Fresh package launch should not find existing saves');
+            saveSlotScene.startNewGame(0);
+            await waitFor('new save character selection', () => {
+                const stageSelect = game.scene.getScene('StageSelectScene');
+                return stageSelect && stageSelect.scene && stageSelect.scene.isActive() && stageSelect.characterSelectionMode === true;
+            });
+            assert(saveManager.currentSlot === 0, 'New game did not set active save slot');
+            assert(saveManager.currentSaveData.stages.unlockedWorlds.length === 1, 'New save should start with only Forest unlocked');
+            assert(saveManager.currentSaveData.stages.unlockedWorlds[0] === 'forestland', 'New save should start on Forest');
+
+            const saveData = simulateForestVictory(saveManager);
+            assert(saveData.stages.completedStages.includes('forest-1'), 'First-run Forest victory did not record completion');
+            assert(saveData.stages.unlockedWorlds.includes('caveland'), 'First-run Forest victory did not unlock Cave');
+            assert(saveData.characters.unlocked.includes('orb'), 'First-run Forest victory did not unlock Orb');
+
+            const continueManager = new SaveManager();
+            window.saveManager = continueManager;
+            saveSlotScene = await startSaveSlotScene(continueManager);
+            const occupiedSlot = continueManager.getAllSaveSlots().find(slot => slot.slotNumber === 0);
+            assert(occupiedSlot && occupiedSlot.isEmpty === false, 'Saved first-run slot was not visible after relaunch-style reload');
+            saveSlotScene.continueGame(0);
+            await waitFor('continue into StageSelect without onboarding', () => {
+                const stageSelect = game.scene.getScene('StageSelectScene');
+                return stageSelect && stageSelect.scene && stageSelect.scene.isActive() && stageSelect.characterSelectionMode === false && Array.isArray(stageSelect.stages);
+            });
+            const stageSelect = game.scene.getScene('StageSelectScene');
+            assert(getStage(stageSelect.stages, 'Forest Land').unlocked === true, 'Continue path lost Forest unlock');
+            assert(getStage(stageSelect.stages, 'Cave Land').unlocked === true, 'Continue path lost Cave unlock');
+            assert(getStage(stageSelect.stages, 'Sand Land').unlocked === false, 'Continue path unlocked Sand too early');
+            assertNoRendererErrors('Continue first-run check failed');
+
+            return {
+                ok: true,
+                slot: continueManager.currentSlot,
+                completedStages: continueManager.currentSaveData.stages.completedStages,
+                unlockedWorlds: continueManager.currentSaveData.stages.unlockedWorlds,
+                unlockedCharacters: continueManager.currentSaveData.characters.unlocked
+            };
+        } finally {
+            window.removeEventListener('error', captureRendererError);
+            localStorage.clear();
+            Object.entries(originalStorage).forEach(([key, value]) => localStorage.setItem(key, value));
+        }
+    };
+
     window.runHomunculiStageLiveSmoke = async function runHomunculiStageLiveSmoke(options = {}) {
         const smokeStage = options.stage || 'forest';
         const smokeStageLabel = options.label || `${smokeStage} live`;

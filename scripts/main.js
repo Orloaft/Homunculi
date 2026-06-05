@@ -14,6 +14,7 @@ app.commandLine.appendSwitch('disable-gpu-vsync');
 
 let mainWindow;
 const isSmokeRun = process.env.HOMUNCULI_SMOKE === '1';
+const isFirstRunSmokeRun = process.env.HOMUNCULI_FIRST_RUN_SMOKE === '1';
 const isProgressionSmokeRun = process.env.HOMUNCULI_PROGRESSION_SMOKE === '1';
 const isFeelSmokeRun = process.env.HOMUNCULI_FEEL_SMOKE === '1';
 const isForestLiveSmokeRun = process.env.HOMUNCULI_FOREST_LIVE_SMOKE === '1';
@@ -29,7 +30,7 @@ const isCastleBossSmokeRun = process.env.HOMUNCULI_CASTLE_BOSS_SMOKE === '1';
 let smokeFailed = false;
 
 function finishSmoke(exitCode, reason) {
-  if ((!isSmokeRun && !isProgressionSmokeRun && !isFeelSmokeRun && !isStageLiveSmokeRun && !isSwampBossSmokeRun && !isSnowBossSmokeRun && !isOceanBossSmokeRun && !isLavaBossSmokeRun && !isGraveBossSmokeRun && !isCastleBossSmokeRun) || app.isQuitting) return;
+  if ((!isSmokeRun && !isFirstRunSmokeRun && !isProgressionSmokeRun && !isFeelSmokeRun && !isStageLiveSmokeRun && !isSwampBossSmokeRun && !isSnowBossSmokeRun && !isOceanBossSmokeRun && !isLavaBossSmokeRun && !isGraveBossSmokeRun && !isCastleBossSmokeRun) || app.isQuitting) return;
   app.isQuitting = true;
   console.log(`[smoke] ${reason}`);
   app.exit(exitCode);
@@ -62,7 +63,7 @@ function createWindow() {
   // Load the game
   mainWindow.loadFile(path.join(__dirname, '..', 'index.html'));
 
-  if (isSmokeRun || isProgressionSmokeRun || isFeelSmokeRun || isStageLiveSmokeRun || isSwampBossSmokeRun || isSnowBossSmokeRun || isOceanBossSmokeRun || isLavaBossSmokeRun || isGraveBossSmokeRun || isCastleBossSmokeRun) {
+  if (isSmokeRun || isFirstRunSmokeRun || isProgressionSmokeRun || isFeelSmokeRun || isStageLiveSmokeRun || isSwampBossSmokeRun || isSnowBossSmokeRun || isOceanBossSmokeRun || isLavaBossSmokeRun || isGraveBossSmokeRun || isCastleBossSmokeRun) {
     mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
       smokeFailed = true;
       finishSmoke(1, `load failed ${errorCode}: ${errorDescription} (${validatedURL})`);
@@ -88,7 +89,7 @@ function createWindow() {
     mainWindow.webContents.once('did-finish-load', () => {
       setTimeout(async () => {
         if (!smokeFailed) {
-          if (isProgressionSmokeRun || isFeelSmokeRun || isStageLiveSmokeRun || isSwampBossSmokeRun || isSnowBossSmokeRun || isOceanBossSmokeRun || isLavaBossSmokeRun || isGraveBossSmokeRun || isCastleBossSmokeRun) {
+          if (isFirstRunSmokeRun || isProgressionSmokeRun || isFeelSmokeRun || isStageLiveSmokeRun || isSwampBossSmokeRun || isSnowBossSmokeRun || isOceanBossSmokeRun || isLavaBossSmokeRun || isGraveBossSmokeRun || isCastleBossSmokeRun) {
             try {
               const liveStage = isSwampLiveSmokeRun
                 ? 'swamp'
@@ -125,7 +126,9 @@ function createWindow() {
                 liveSmokeOptions.requiredEnemyTypes = ['castle-squire', 'castle-soldier', 'castle-rogue'];
                 liveSmokeOptions.allowedEnemyTypes = ['castle-squire', 'castle-soldier', 'castle-rogue', 'castle-knight', 'castle-bladekeeper', 'giant-castle-knight'];
               }
-              const smokeHelperName = isSwampBossSmokeRun
+              const smokeHelperName = isFirstRunSmokeRun
+                ? 'runHomunculiFirstRunSmoke'
+                : isSwampBossSmokeRun
                 ? 'runHomunculiSwampBossSmoke'
                 : isSnowBossSmokeRun
                 ? 'runHomunculiSnowBossSmoke'
@@ -142,7 +145,7 @@ function createWindow() {
                 : isFeelSmokeRun
                   ? 'runHomunculiFeelSmoke'
                   : 'runHomunculiProgressionSmoke';
-              const smokeLabel = isSwampBossSmokeRun ? 'swamp boss' : isSnowBossSmokeRun ? 'snow boss' : isOceanBossSmokeRun ? 'ocean boss' : isLavaBossSmokeRun ? 'lava boss' : isGraveBossSmokeRun ? 'grave boss' : isCastleBossSmokeRun ? 'castle boss' : isStageLiveSmokeRun ? `${liveStage} live` : isFeelSmokeRun ? 'feel' : 'progression';
+              const smokeLabel = isFirstRunSmokeRun ? 'first-run' : isSwampBossSmokeRun ? 'swamp boss' : isSnowBossSmokeRun ? 'snow boss' : isOceanBossSmokeRun ? 'ocean boss' : isLavaBossSmokeRun ? 'lava boss' : isGraveBossSmokeRun ? 'grave boss' : isCastleBossSmokeRun ? 'castle boss' : isStageLiveSmokeRun ? `${liveStage} live` : isFeelSmokeRun ? 'feel' : 'progression';
               const result = await mainWindow.webContents.executeJavaScript(`
                 (async () => {
                   if (!document.querySelector("canvas")) {
@@ -159,7 +162,7 @@ function createWindow() {
             } catch (error) {
               smokeFailed = true;
               const errorDetails = error && error.stack ? error.stack : error && error.message ? error.message : error;
-              finishSmoke(1, `${isSwampBossSmokeRun ? 'swamp boss' : isSnowBossSmokeRun ? 'snow boss' : isOceanBossSmokeRun ? 'ocean boss' : isLavaBossSmokeRun ? 'lava boss' : isGraveBossSmokeRun ? 'grave boss' : isCastleBossSmokeRun ? 'castle boss' : isStageLiveSmokeRun ? 'stage live' : isFeelSmokeRun ? 'feel' : 'progression'} verification error: ${errorDetails}`);
+              finishSmoke(1, `${isFirstRunSmokeRun ? 'first-run' : isSwampBossSmokeRun ? 'swamp boss' : isSnowBossSmokeRun ? 'snow boss' : isOceanBossSmokeRun ? 'ocean boss' : isLavaBossSmokeRun ? 'lava boss' : isGraveBossSmokeRun ? 'grave boss' : isCastleBossSmokeRun ? 'castle boss' : isStageLiveSmokeRun ? 'stage live' : isFeelSmokeRun ? 'feel' : 'progression'} verification error: ${errorDetails}`);
             }
           } else {
             const hasCanvas = await mainWindow.webContents.executeJavaScript(

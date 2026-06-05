@@ -19,7 +19,9 @@ Parallel world/release audit notes live in `docs/PARALLEL_WORLD_AUDIT.md`.
 - `node --check scripts/game.js`
 - `npm run typecheck`
 - `npm run compile`
+- `npm run audit:package`
 - `npm run smoke:prod`
+- `npm run smoke:first-run`
 - `npm run smoke:feel`
 - `npm run smoke:progression`
 - `npm run smoke:live`
@@ -74,13 +76,14 @@ Current status:
 - Stage Select now has a first alchemy grimoire readback for known elements and discovered fusions.
 - GameOver now has post-run readback for essence banked, stage cleared/attempted, new world unlocks, character unlocks, and best-time updates.
 - GameOver also reports run duration, level reached, pickups, defeats, world pressure, win/death outcome, and new recipe or alchemy nudge.
+- GameOver also reports equipped elements, passive picks/upgrades, fusion count, equipped fusions, strongest spell, and a compact carry line.
 - First-slice start hints and fusion copy are improved.
 
 Next slices:
 
 1. Add a focused renderer smoke for the visual GameOver panel if the readback layout changes again.
-2. Add player-build readback next: equipped elements, passive picks, fusion count, and strongest spell.
-3. Keep essence, character unlocks, completed stage stats, discovered recipes, reward readback, and grimoire readback covered in progression smoke.
+2. Keep essence, character unlocks, completed stage stats, discovered recipes, reward readback, build readback, and grimoire readback covered in progression smoke.
+3. Keep `smoke:first-run` focused on real first-screen flows instead of deep progression duplication.
 
 ### Lane 3: World Promotion Pipeline
 
@@ -113,17 +116,18 @@ Purpose: make the game buildable, launchable, and supportable outside the dev ma
 
 Next slices:
 
-1. Run `npm run smoke:prod` regularly and add it to the release checklist.
+1. Run `npm run smoke:prod`, `npm run smoke:first-run`, and `npm run audit:package` regularly.
 2. Audit `electron-builder` output for package size, included source noise, and missing assets.
-3. Add a clean-save/manual-release checklist covering new save, first run, first victory, reload, options, and quit/relaunch.
+3. Use the clean-save/manual-release checklist covering new save, first run, first victory, reload, options, and quit/relaunch.
 4. Decide release targets: Windows portable first, then Linux AppImage/macOS only after the Windows loop is stable.
 
 Release checklist:
 
 1. `npm run verify:release`
-2. `npm run build-win-portable`
-3. Inspect `dist/` for package size, missing assets, source maps, docs/editor tools, backup files, and other source noise.
-4. Launch the packaged app offline and test a fresh save, first run, first victory, reload, options, and quit/relaunch.
+2. `npm run audit:package`
+3. `npm run build-win-portable`
+4. Inspect `dist/` for package size, missing assets, source maps, docs/editor tools, backup files, and other source noise.
+5. Launch the packaged app offline and test a fresh save, first run, first victory, reload, options, and quit/relaunch.
 
 Latest packaging proof:
 
