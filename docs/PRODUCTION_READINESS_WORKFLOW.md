@@ -27,9 +27,11 @@ Parallel world/release audit notes live in `docs/PARALLEL_WORLD_AUDIT.md`.
 - `npm run smoke:swamp-live`
 - `npm run smoke:snow-live`
 - `npm run smoke:ocean-live`
+- `npm run smoke:lava-live`
 - `npm run smoke:swamp-boss`
 - `npm run smoke:snow-boss`
 - `npm run smoke:ocean-boss`
+- `npm run smoke:lava-boss`
 - `npm run verify:release`
 
 Run the full gate stack before releases and before widening the production slice. For narrow content tuning, run syntax, compile, the touched smoke, and one live sanity gate.
@@ -46,13 +48,14 @@ Current status:
 - Swamp is promoted into deterministic feel/progression gates, 30-second live coverage, and deterministic Amphibian boss-entry/death coverage.
 - Snow is promoted into deterministic feel/progression gates, 30-second live coverage, and deterministic Frost Guardian boss-entry/attack/death coverage.
 - Ocean is promoted into deterministic feel/progression gates, 30-second water-start live coverage, and deterministic Sea Kings multi-boss completion coverage.
+- Lava is promoted into deterministic feel/progression gates, 30-second fire-start live coverage, and deterministic Demon Slime entry/phase-add/death coverage.
 
 Next slices:
 
 1. Keep the reusable live-smoke harness healthy: `smoke:live` enables the shared live harness through `HOMUNCULI_STAGE_LIVE_SMOKE=1` and can be configured with `HOMUNCULI_LIVE_SMOKE_STAGE` and `HOMUNCULI_LIVE_SMOKE_ELEMENT`.
-2. Keep `smoke:swamp-live`/`smoke:snow-live` focused on the first 30 seconds of their worlds, and keep `smoke:swamp-boss`/`smoke:snow-boss` focused on deterministic boss entry and completion.
-3. Use `docs/PROMOTED_BALANCE_SUMMARY.md` as the human-readable balance snapshot for Forest/Cave/Sand/Swamp/Snow/Ocean when promoting Lava or changing first-slice tuning.
-4. Keep `smoke:ocean-live` water-start coverage and `smoke:ocean-boss` Sea Kings coverage inside `verify:release` while Ocean remains the front edge of promotion.
+2. Keep named live gates focused on the first 30 seconds of their worlds, and keep named boss gates focused on deterministic boss entry and completion.
+3. Use `docs/PROMOTED_BALANCE_SUMMARY.md` as the human-readable balance snapshot for Forest/Cave/Sand/Swamp/Snow/Ocean/Lava when promoting Grave or changing first-slice tuning.
+4. Keep `smoke:lava-live` fire-start coverage and `smoke:lava-boss` Demon Slime coverage inside `verify:release` while Lava remains the front edge of promotion.
 
 ### Lane 2: Core Loop Completeness
 
@@ -62,13 +65,15 @@ Current status:
 
 - Save progression is canonical and mirrored to legacy keys.
 - Recipe discovery persists per save.
+- Stage Select now has a first alchemy grimoire readback for known elements and discovered fusions.
+- GameOver now has post-run readback for essence banked, stage cleared/attempted, new world unlocks, character unlocks, and best-time updates.
 - First-slice start hints and fusion copy are improved.
 
 Next slices:
 
-1. Add an in-save alchemy grimoire view or a low-risk Stage Select/Nexus summary of discovered recipes.
-2. Add post-victory copy that tells the player what unlocked, what recipe or element advanced, and what to try next.
-3. Verify essence, character unlocks, completed stage stats, and discovered recipes through reload in progression smoke.
+1. Extend post-run readback with pickups, level timing, biome, roster, death/survival outcome, recipe or element advancement, and what to try next.
+2. Verify richer post-run readback through a focused renderer smoke after the summary grows beyond save-derived data.
+3. Keep essence, character unlocks, completed stage stats, discovered recipes, reward readback, and grimoire readback covered in progression smoke.
 
 ### Lane 3: World Promotion Pipeline
 
@@ -79,9 +84,10 @@ Promotion order:
 1. Swamp: poison/mud control identity, Amphibian live gate.
 2. Snow: ice/water survival pressure, Frost Guardian gate.
 3. Ocean: water/wave identity, Sea Kings multi-boss gate.
-4. Lava: next promotion lane after Ocean.
-5. Grave, Castle: later power-curve pass after Lava is stable.
-6. Spire/Void: design pass before production claims because their identity is still thin.
+4. Lava: fire/lava escalation, Demon Slime gate.
+5. Grave: next promotion lane after Lava.
+6. Castle: later power-curve pass after Grave is stable.
+7. Spire/Void: design pass before production claims because their identity is still thin.
 
 Promotion checklist:
 
@@ -127,9 +133,9 @@ Next slices:
 
 ## Immediate Queue
 
-1. Promote Lava with deterministic feel/progression, named live, named Demon Slime boss, and release-stack coverage.
-2. Add first grimoire/readback surface for discovered recipes and run outcomes.
-3. Keep the Ocean release gates green while Lava enters the stack.
+1. Run full `npm run verify:release` after the grimoire/progression update.
+2. Extend post-run readback for pickups, level timing, biome, roster, and survival outcome.
+3. Design Grave promotion around death/poison identity, live coverage, and a Nekros boss gate.
 
 ## Done Definition
 

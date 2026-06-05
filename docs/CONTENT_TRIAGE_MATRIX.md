@@ -6,7 +6,7 @@ For the current execution order, smoke gates, and done definition, see `docs/PRO
 
 ## Production Slice Decision
 
-Update 2026-06-04: Swamp, Snow, and Ocean have moved from promotion candidates into the release-backed path. Lava is now the next promotion lane; Grave, Castle, Spire, and Void remain parked until Lava has deterministic, live, boss, and progression coverage.
+Update 2026-06-05: Swamp, Snow, Ocean, and Lava have moved from promotion candidates into the release-backed path. Grave is now the next promotion lane; Castle, Spire, and Void remain parked until Grave has deterministic, live, boss, and progression coverage.
 
 Keep now:
 
@@ -19,14 +19,15 @@ Promoted:
 - Swamp Land: release-backed through deterministic feel/progression, 30-second live coverage, and Amphibian boss coverage.
 - Snow Land: release-backed through deterministic feel/progression, 30-second live coverage, and Frost Guardian boss coverage.
 - Ocean Land: release-backed through deterministic feel/progression, 30-second water-start live coverage, and Sea Kings multi-boss completion coverage.
+- Lava Land: release-backed through deterministic feel/progression, 30-second fire-start live coverage, and Demon Slime completion coverage.
 
 Promote next:
 
-- Lava Land: follows Ocean in canonical progression and has strong fire/lava assets, but still needs the full promoted-world gate set before production claims widen past Ocean.
+- Grave Land: follows Lava in canonical progression and has strong death/poison assets, but still needs the full promoted-world gate set before production claims widen past Lava.
 
 Park:
 
-- Grave Land, Castle Land, Spire Land, The Void. They have valuable assets and bosses, but should not pull attention away from Lava and the core-loop readback lane.
+- Castle Land, Spire Land, The Void. They have valuable assets and bosses, but should not pull attention away from Grave and the core-loop readback lane.
 
 ## Runtime Matrix
 
@@ -38,19 +39,19 @@ Park:
 | Swamp Land | Promoted | bloboid, giantfly, mudguard, swampmerchant, torchboy, eyewalker, giant bloboid | Amphibian | `swampland-bgm`, `boss1-bgm` | Sand victory unlocks Swamp | Water, Poison, Mud | First post-slice world; rot, sickness, and corrupted wetlands | Promising; bespoke boss and stage music exist | Medium-low; covered by feel/progression, live, and boss gates |
 | Snow Land | Promoted | snowy, northerner, spiked slime, elkman, frost golem, lightning slime | Frost Guardian | `snowland-bgm`, `boss3-bgm` | Swamp victory unlocks Snow | Ice, Water, Lightning | Frozen aftermath and survival pressure | Coherent enemy pack and stage music | Medium-low; covered by feel/progression, live, and boss gates |
 | Ocean Land | Promoted | jellyfish, crabby, squid, shark, crablore, water slime | Sea Kings | `oceanland-bgm`, `boss3-bgm` | Snow victory unlocks Ocean | Water, Wave | Ancient sea secrets and multi-threat finale | Strong asset identity, but more complex boss surface | Medium; covered by feel/progression, water-start live, and Sea Kings completion gates |
-| Lava Land | Promote next | fireslime, clubimp, axeimp, flyingdemon, fireworm, orangegolem, summoner, giant fireslime | Demon Slime | `lavaland-bgm`, `demonslime-boss-bgm` | Ocean victory unlocks Lava | Fire, Lava | Volcanic underworld escalation | Strong audio/boss identity | Medium-high; needs deterministic, live, boss, and progression promotion gates |
-| Grave Land | Park / candidate alternative slice | yellowskeleton, skeletonseeker, soul, skullhound, imps, giant skeleton | Nekros | `graveland-bgm`, `boss4-bgm` | Lava victory unlocks Grave | Death, Poison | Necromancy and world-ending lore | Strong dark fantasy fit | Medium; thematically strong enough to revisit if Forest is not the final first-world choice |
+| Lava Land | Promoted | fireslime, clubimp, axeimp, flyingdemon, fireworm, orangegolem, summoner, giant fireslime | Demon Slime | `lavaland-bgm`, `demonslime-boss-bgm` | Ocean victory unlocks Lava | Fire, Lava | Volcanic underworld escalation | Strong audio/boss identity | Medium; covered by feel/progression, live, and boss gates |
+| Grave Land | Promote next | yellowskeleton, skeletonseeker, soul, skullhound, imps, giant skeleton | Nekros | `graveland-bgm`, `boss4-bgm` | Lava victory unlocks Grave | Death, Poison | Necromancy and world-ending lore | Strong dark fantasy fit | Medium-high; needs deterministic, live, boss, and progression promotion gates |
 | Castle Land | Park | castle-squire, soldier, rogue, knight, bladekeeper, giant knight | King Nothing | `castleland-intro-bgm`, `castleland-bgm`, `castleboss-bgm` | Grave victory unlocks Castle | Metal, Arcane | Human ruin / fallen power center | Richest staged audio stack and enemy set | High; biggest set-piece expectations, should not be tuned before core loop is proven |
 | Spire Land | Park | currently shares Forest wave patterns | Default Obelisk path unless overridden elsewhere | no clear Spire stage BGM is loaded in the active preload list | Castle victory unlocks Spire | Air, Lightning | Vertical ascent/endgame trial | Stage exists, but identity is not yet distinct in wave table | High; shared Forest waves undermine world identity |
 | The Void | Park | runtime identity is thinner than other worlds in current matrix | Default Obelisk/voidkin-related fallback paths | no clear stage BGM in loaded audio list | Spire victory unlocks Void | Chaos, Arcane | Final dimension / end-state reveal | Stage select node exists; recent smoke fixed Voidkin animation fallback | High; final-world role should be designed, not merely unlocked |
 
 ## Immediate Roadmap
 
-1. Keep the Forest -> Cave -> Sand -> Swamp -> Snow -> Ocean release-backed path green.
-2. Promote Lava next with deterministic feel/progression, named live, named boss, and release-stack coverage.
+1. Keep the Forest -> Cave -> Sand -> Swamp -> Snow -> Ocean -> Lava release-backed path green.
+2. Promote Grave next with deterministic feel/progression, named live, named boss, and release-stack coverage.
 3. Add the first grimoire/readback surface so players can see discovered recipes, unlocks, and run outcomes.
 4. Keep each promoted world tied to one memorable rule before adding new content.
-5. Keep Grave, Castle, Spire, and Void out of production claims until Lava and the readback lane are stable.
+5. Keep Castle, Spire, and Void out of production claims until Grave and the readback lane are stable.
 
 ## Notes From Runtime Audit
 

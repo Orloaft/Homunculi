@@ -1,10 +1,10 @@
 # Track A Gameplay Feel Smoke
 
-Track A added `npm run smoke:feel` as a low-risk automated probe for the Forest/Cave/Sand/Swamp/Snow/Ocean promoted slice.
+Track A added `npm run smoke:feel` as a low-risk automated probe for the Forest/Cave/Sand/Swamp/Snow/Ocean/Lava promoted slice.
 
 The smoke boots the real Electron/Phaser renderer, then calls `window.runHomunculiFeelSmoke()` from `scripts/game.js`. It does not start a live match or tune content. Instead, it instantiates `GameScene` in renderer context and checks deterministic pacing data that should correlate with first-play readability:
 
-- Forest, Cave, Sand, Swamp, Snow, and Ocean each have a distinct opening enemy roster.
+- Forest, Cave, Sand, Swamp, Snow, Ocean, and Lava each have a distinct opening enemy roster.
 - Opening waves stay readable: 3-4 enemy types, no giant enemies, no special events, normalized weights, a slow spawn interval, and a low enemy cap at normal density.
 - Waves 1 and 2 increase pressure through shorter spawn intervals and higher enemy caps.
 - The first three waves contain at least five enemy types per stage.
@@ -13,13 +13,13 @@ The smoke boots the real Electron/Phaser renderer, then calls `window.runHomuncu
 - First-slice boss health multipliers remain in the tuned confidence envelope.
 - Early primary-element rewards set up fusion instead of leaving alchemy to pure chance when the player has one element.
 
-Swamp, Snow, and Ocean are included as promoted post-slice worlds. Their smoke coverage keeps the opening wetland/frozen/ocean waves readable, verifies early catalyst support, and protects the first pass of world-theme fusion setup before deeper world-specific mechanics are added.
+Swamp, Snow, Ocean, and Lava are included as promoted post-slice worlds. Their smoke coverage keeps the opening wetland/frozen/ocean/volcanic waves readable, verifies early catalyst support, and protects the first pass of world-theme fusion setup before deeper world-specific mechanics are added.
 
 This complements `npm run smoke:progression`, which verifies save progression and exact vertical-slice constants. `smoke:feel` intentionally uses ranges and invariants rather than exact values so Track B can keep tuning content without changing the test for every small balance adjustment.
 
 ## Forest Live Smoke
 
-`npm run smoke:live` is the reusable live-run gate. It boots the real Electron/Phaser renderer, starts a requested stage through the active `GameScene`, injects a starting element through the same runtime state the intro would fill, and lets the run advance for 30 seconds. `npm run smoke:forest-live`, `npm run smoke:swamp-live`, `npm run smoke:snow-live`, and `npm run smoke:ocean-live` are named wrappers over that shared harness. Forest/Swamp/Snow use a reliable fire-start pilot; Ocean uses a water-start pilot and asserts live enemy activity stays inside the aquatic roster.
+`npm run smoke:live` is the reusable live-run gate. It boots the real Electron/Phaser renderer, starts a requested stage through the active `GameScene`, injects a starting element through the same runtime state the intro would fill, and lets the run advance for 30 seconds. `npm run smoke:forest-live`, `npm run smoke:swamp-live`, `npm run smoke:snow-live`, `npm run smoke:ocean-live`, and `npm run smoke:lava-live` are named wrappers over that shared harness. Forest/Swamp/Snow/Lava use a reliable fire-start pilot; Ocean uses a water-start pilot and asserts live enemy activity stays inside the aquatic roster.
 
 The smoke fails if the Phaser canvas is missing, a renderer script error is raised, the requested stage does not enter active gameplay, the wizard dies, the survival timer does not advance, or no enemy activity is observed. It uses normal enemy density so the wave system has to produce real combat activity during the check.
 

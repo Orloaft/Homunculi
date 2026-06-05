@@ -1,6 +1,6 @@
 # Parallel World Audit
 
-Date: 2026-06-04
+Date: 2026-06-05
 
 These findings came from parallel read-only agents. Use this as the handoff queue for future world-promotion workers.
 
@@ -67,7 +67,7 @@ Promotion notes:
 
 ## Lava
 
-Status: next promotion lane after Ocean.
+Status: promoted into deterministic feel/progression gates, now has a 30-second fire-start live gate and deterministic Demon Slime boss-entry/phase-add/death gate.
 
 Useful facts:
 
@@ -75,13 +75,33 @@ Useful facts:
 - Progression: Ocean victory unlocks Lava; Lava victory unlocks Grave.
 - Runtime roster includes `fireslime`, `clubimp`, `axeimp`, `flyingdemon`, `fireworm`, `orangegolem`, `summoner`, and `giant fireslime`.
 - Boss path routes Lava to Demon Slime.
+- Current live command: `npm run smoke:lava-live`.
+- Current boss command: `npm run smoke:lava-boss`.
+
+Promotion notes:
+
+- Fixed 2026-06-05: Lava is in deterministic feel/progression coverage, including Ocean -> Lava -> Grave unlock/reload assertions.
+- Fixed 2026-06-05: Lava has vertical-slice tuning for readable first-minute pacing, XP/pickup support, catalysts, and boss health.
+- Fixed 2026-06-05: `smoke:lava-live` asserts live enemy activity stays inside the Lava roster.
+- Fixed 2026-06-05: Demon Slime health tuning, phase adds, death animation, and victory cleanup are covered by `smoke:lava-boss`.
+
+## Grave
+
+Status: next promotion lane after Lava.
+
+Useful facts:
+
+- Runtime IDs: `stage: 'grave'`, `worldId: 'graveland'`, completion ID `grave-1`.
+- Progression: Lava victory unlocks Grave; Grave victory unlocks Castle.
+- Runtime roster includes `yellowskeleton`, `skeletonseeker`, `soul`, `skullhound`, imps, and giant skeleton.
+- Boss path routes Grave to Nekros.
 
 Promotion needs:
 
-- Add Lava deterministic feel/progression assertions matching the promoted-world contract.
-- Add a named Lava live gate with roster/biome identity checks.
-- Add or promote the Demon Slime boss gate before Lava enters `verify:release`.
-- Record Lava first-minute balance in `docs/PROMOTED_BALANCE_SUMMARY.md` only after the gate is stable.
+- Add Grave deterministic feel/progression assertions matching the promoted-world contract.
+- Add a named Grave live gate with death/poison roster identity checks.
+- Add or promote the Nekros boss gate before Grave enters `verify:release`.
+- Record Grave first-minute balance in `docs/PROMOTED_BALANCE_SUMMARY.md` only after the gate is stable.
 
 ## Release Hardening
 
@@ -95,7 +115,7 @@ Findings:
 - Fixed 2026-06-04: release docs now match the package Node range, Phaser version, Windows portable target, smoke commands, and icon state.
 - Verified 2026-06-04: `npm run build-win-portable` produced `dist/WizBiz 1.0.1.exe` at 263M after freeing workspace image space.
 - Only `icon.png` exists; Windows/macOS icon coverage may warn or fall back.
-- `npm run smoke:swamp-boss` and `npm run smoke:snow-boss` are release-green and included in `verify:release`.
+- `npm run smoke:swamp-boss`, `npm run smoke:snow-boss`, `npm run smoke:ocean-boss`, and `npm run smoke:lava-boss` are release-green and included in `verify:release`.
 
 Recommended release checklist:
 

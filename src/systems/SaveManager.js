@@ -294,6 +294,33 @@ class SaveManager {
     }
 
     /**
+     * Return a stable, UI-friendly snapshot of the active save's alchemy memory.
+     */
+    getAlchemyReadback() {
+        if (!this.currentSaveData) {
+            return {
+                knownElements: [],
+                discoveredRecipes: []
+            };
+        }
+
+        this.migrateSaveData(this.currentSaveData);
+
+        return {
+            knownElements: Array.from(new Set(this.currentSaveData.alchemy.knownElements || [])).sort(),
+            discoveredRecipes: (this.currentSaveData.alchemy.discoveredRecipes || [])
+                .slice()
+                .sort((a, b) => (a.discoveredAt || 0) - (b.discoveredAt || 0))
+                .map(recipe => ({
+                    key: recipe.key,
+                    inputs: Array.isArray(recipe.inputs) ? recipe.inputs.slice().sort() : [],
+                    result: recipe.result,
+                    discoveredAt: recipe.discoveredAt || null
+                }))
+        };
+    }
+
+    /**
      * Update current save data
      * @param {Object} updates - Partial save data to merge
      */
