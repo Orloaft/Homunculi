@@ -41,7 +41,7 @@ Run the full release gate before a distribution build:
 npm run verify:release
 ```
 
-This runs TypeScript checks plus the production, feel, progression, Forest/Swamp/Snow live, and Swamp/Snow boss smoke checks.
+This runs TypeScript checks plus the production, feel, progression, promoted-world live, and promoted-world boss smoke checks.
 
 ### For Windows Portable:
 ```bash

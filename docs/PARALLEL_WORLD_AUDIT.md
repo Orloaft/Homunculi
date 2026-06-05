@@ -87,7 +87,7 @@ Promotion notes:
 
 ## Grave
 
-Status: promoted after Lava.
+Status: promoted into deterministic feel/progression gates, now has a 30-second arcane-start live gate and deterministic Nekros boss-entry/death gate.
 
 Useful facts:
 
@@ -103,6 +103,26 @@ Promotion coverage:
 - Fixed 2026-06-05: `smoke:grave-live` asserts live enemy activity stays inside the Grave roster.
 - Fixed 2026-06-05: Nekros health tuning and death-to-victory cleanup are covered by `smoke:grave-boss`.
 
+## Castle
+
+Status: promoted into deterministic feel/progression gates, now has a 30-second fire-start live gate and deterministic King Nothing boss-entry/phase/death gate.
+
+Useful facts:
+
+- Runtime IDs: `stage: 'castle'`, `worldId: 'castleland'`, completion ID `castle-1`.
+- Progression: Grave victory unlocks Castle; Castle victory unlocks Spire.
+- Runtime roster includes `castle-squire`, `castle-soldier`, `castle-rogue`, `castle-knight`, `castle-bladekeeper`, and giant castle knight.
+- Boss path routes Castle to King Nothing.
+- Current live command: `npm run smoke:castle-live`.
+- Current boss command: `npm run smoke:castle-boss`.
+
+Promotion coverage:
+
+- Fixed 2026-06-05: Castle is in deterministic feel/progression coverage, including Castle -> Spire unlock/reload assertions.
+- Fixed 2026-06-05: Castle has vertical-slice tuning for readable first-minute pacing, XP/pickup support, catalysts, and King Nothing health.
+- Fixed 2026-06-05: `smoke:castle-live` asserts live enemy activity stays inside the Castle roster.
+- Fixed 2026-06-05: King Nothing health tuning, phase transitions, label/crown entry, and death-to-victory cleanup are covered by `smoke:castle-boss`.
+
 ## Release Hardening
 
 Status: parallel lane, not on the world-promotion critical path.
@@ -115,7 +135,7 @@ Findings:
 - Fixed 2026-06-04: release docs now match the package Node range, Phaser version, Windows portable target, smoke commands, and icon state.
 - Verified 2026-06-04: `npm run build-win-portable` produced `dist/WizBiz 1.0.1.exe` at 263M after freeing workspace image space.
 - Only `icon.png` exists; Windows/macOS icon coverage may warn or fall back.
-- `npm run smoke:swamp-boss`, `npm run smoke:snow-boss`, `npm run smoke:ocean-boss`, `npm run smoke:lava-boss`, and `npm run smoke:grave-boss` are release-green and included in `verify:release`.
+- `npm run smoke:swamp-boss`, `npm run smoke:snow-boss`, `npm run smoke:ocean-boss`, `npm run smoke:lava-boss`, `npm run smoke:grave-boss`, and `npm run smoke:castle-boss` are release-green and included in `verify:release`.
 
 Recommended release checklist:
 

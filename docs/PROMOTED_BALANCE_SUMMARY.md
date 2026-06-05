@@ -2,7 +2,7 @@
 
 Date: 2026-06-05
 
-Scope: current promoted production path, Forest -> Cave -> Sand -> Swamp -> Snow -> Ocean -> Lava -> Grave. Values come from the shipped runtime in `scripts/game.js`, with normal enemy density and the deterministic feel/progression smoke assumptions.
+Scope: current promoted production path, Forest -> Cave -> Sand -> Swamp -> Snow -> Ocean -> Lava -> Grave -> Castle. Values come from the shipped runtime in `scripts/game.js`, with normal enemy density and the deterministic feel/progression smoke assumptions.
 
 ## Summary Table
 
@@ -16,6 +16,7 @@ Scope: current promoted production path, Forest -> Cave -> Sand -> Swamp -> Snow
 | Ocean Land | `jellyfish`, `crabby`, `waterslime` | 6600ms spawn, 7 max enemies | boss x1.05, XP x1.2, magnet 200/470, catalysts L4 +1 and L8 +2 | Sea Kings, 3000 total HP at normal density | Lava Land, essence |
 | Lava Land | `fireslime`, `clubimp`, `axeimp` | 6480ms spawn, 7 max enemies | boss x1.1, XP x1.2, magnet 195/460, catalysts L4 +1 and L8 +2 | Demon Slime, 5500 HP | Grave Land, essence |
 | Grave Land | `yellowskeleton`, `soul`, `skeletonseeker` | 6480ms spawn, 7 max enemies | boss x1.15, XP x1.15, magnet 190/455, catalysts L4 +1 and L8 +2 | Nekros, 2875 HP | Castle Land, essence |
+| Castle Land | `castle-squire`, `castle-soldier`, `castle-rogue` | 6480ms spawn, 7 max enemies | boss x1.2, XP x1.15, magnet 185/450, catalysts L4 +1 and L8 +2 | King Nothing, 4800 HP | Spire Land, essence |
 
 Normal opener values are after the smoke harness sets `enemyDensityMultiplier = 0.5` and after vertical-slice spawn-interval tuning is applied.
 
@@ -29,6 +30,7 @@ Normal opener values are after the smoke harness sets `enemyDensityMultiplier = 
 - Ocean opens with jellyfish, crabby, and an early waterslime water source, then adds a gentler squid second wave and brings in shark by wave 2.
 - Lava opens with fire slime plus imps, then introduces flying demons and fireworms before orange golems and giant fire slimes raise the pressure.
 - Grave opens with yellow skeletons, souls, and skeleton seekers, then adds skullhounds before imps and giant skeletons raise death pressure.
+- Castle opens with a readable formation of squires, soldiers, and rogues, then adds knights and the first giant knight before bladekeepers enter the late first slice.
 
 ## Fusion And Catalyst Setup
 
@@ -36,7 +38,7 @@ All promoted worlds share the same early catalyst promise:
 
 - Level 4 grants 1 catalyst.
 - Level 8 grants 2 catalysts.
-- The early primary-element reward path biases a one-element run toward at least one compatible fusion setup in Forest, Cave, Sand, Swamp, Snow, Ocean, Lava, and Grave.
+- The early primary-element reward path biases a one-element run toward at least one compatible fusion setup in Forest, Cave, Sand, Swamp, Snow, Ocean, Lava, Grave, and Castle.
 
 The deterministic feel smoke verifies the fusion setup with a fire-held test wizard. World-theme identity is still protected by the stage rosters and enemy element drops; Stage Select now gives the player a first grimoire readback for known elements and discovered fusions, and GameOver reports world pressure plus alchemy nudges after each run.
 
@@ -53,18 +55,19 @@ The promoted path currently guarantees:
 - Ocean victory records `ocean-1`, unlocks Lava Land, awards essence, and records stage stats.
 - Lava victory records `lava-1`, unlocks Grave Land, awards essence, and records stage stats.
 - Grave victory records `grave-1`, unlocks Castle Land, awards essence, and records stage stats.
-- Reload checks preserve promoted unlock state through Castle Land visibility.
+- Castle victory records `castle-1`, unlocks Spire Land, awards essence, and records stage stats.
+- Reload checks preserve promoted unlock state through Spire Land visibility.
 - Post-run reward readback names the cleared/attempted stage, essence banked, new world unlocks, character unlocks, best-time updates, duration, level reached, pickups, defeats, world pressure, win/death outcome, and recipe/nudge state.
 
 ## Coverage Notes
 
-- `smoke:feel` protects opener roster width, opening spawn interval, opening enemy cap, first-three-wave variety, catalyst milestones, pickup tuning, boss tuning multipliers, and early fusion setup for Forest/Cave/Sand/Swamp/Snow/Ocean/Lava/Grave.
-- `smoke:progression` protects save unlocks, alchemy recipe persistence, Stage Select grimoire readback, richer post-run victory/attempt readback, character rewards, essence rewards, and Snow/Ocean/Lava/Grave reload stats through Castle unlock.
-- `smoke:forest-live`, `smoke:swamp-live`, `smoke:snow-live`, `smoke:ocean-live`, `smoke:lava-live`, and `smoke:grave-live` protect short real-renderer survival for promoted live worlds. Ocean uses a water-start pilot; Lava and Grave assert observed live enemies stay inside their stage rosters.
-- `smoke:swamp-boss`, `smoke:snow-boss`, `smoke:ocean-boss`, `smoke:lava-boss`, and `smoke:grave-boss` protect deterministic boss entry and completion for the promoted post-slice bosses.
+- `smoke:feel` protects opener roster width, opening spawn interval, opening enemy cap, first-three-wave variety, catalyst milestones, pickup tuning, boss tuning multipliers, and early fusion setup for Forest/Cave/Sand/Swamp/Snow/Ocean/Lava/Grave/Castle.
+- `smoke:progression` protects save unlocks, alchemy recipe persistence, Stage Select grimoire readback, richer post-run victory/attempt readback, character rewards, essence rewards, and Snow/Ocean/Lava/Grave/Castle reload stats through Spire unlock.
+- `smoke:forest-live`, `smoke:swamp-live`, `smoke:snow-live`, `smoke:ocean-live`, `smoke:lava-live`, `smoke:grave-live`, and `smoke:castle-live` protect short real-renderer survival for promoted live worlds. Ocean uses a water-start pilot; Grave uses an arcane-start pilot; Lava and Castle use fire-start pilots, and Lava/Grave/Castle assert observed live enemies stay inside their stage rosters.
+- `smoke:swamp-boss`, `smoke:snow-boss`, `smoke:ocean-boss`, `smoke:lava-boss`, `smoke:grave-boss`, and `smoke:castle-boss` protect deterministic boss entry and completion for the promoted post-slice bosses.
 
 ## Gaps To Close Next
 
 - Cave and Sand do not yet have named live or boss gates, despite being part of the committed production path.
-- First-level timing is live-proven for Forest and observed in the Lava and Grave live gates. Cave, Sand, Swamp, Snow, and Ocean rely on deterministic XP/pickup tuning checks, not explicit named first-level assertions.
-- Castle is the next world in the promotion path and needs the same deterministic feel/progression/boss/live pass before production claims widen past Grave.
+- First-level timing is live-proven for Forest and observed in the Lava, Grave, and Castle live gates. Cave, Sand, Swamp, Snow, and Ocean rely on deterministic XP/pickup tuning checks, not explicit named first-level assertions.
+- Spire is the next world in the promotion path and needs a distinct wave identity before production claims widen past Castle.

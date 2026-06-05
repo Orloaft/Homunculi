@@ -29,11 +29,13 @@ Parallel world/release audit notes live in `docs/PARALLEL_WORLD_AUDIT.md`.
 - `npm run smoke:ocean-live`
 - `npm run smoke:lava-live`
 - `npm run smoke:grave-live`
+- `npm run smoke:castle-live`
 - `npm run smoke:swamp-boss`
 - `npm run smoke:snow-boss`
 - `npm run smoke:ocean-boss`
 - `npm run smoke:lava-boss`
 - `npm run smoke:grave-boss`
+- `npm run smoke:castle-boss`
 - `npm run verify:release`
 
 Run the full gate stack before releases and before widening the production slice. For narrow content tuning, run syntax, compile, the touched smoke, and one live sanity gate.
@@ -52,13 +54,14 @@ Current status:
 - Ocean is promoted into deterministic feel/progression gates, 30-second water-start live coverage, and deterministic Sea Kings multi-boss completion coverage.
 - Lava is promoted into deterministic feel/progression gates, 30-second fire-start live coverage, and deterministic Demon Slime entry/phase-add/death coverage.
 - Grave is promoted into deterministic feel/progression gates, 30-second arcane-start live coverage, and deterministic Nekros entry/death coverage.
+- Castle is promoted into deterministic feel/progression gates, 30-second fire-start live coverage, and deterministic King Nothing entry/phase/death coverage.
 
 Next slices:
 
 1. Keep the reusable live-smoke harness healthy: `smoke:live` enables the shared live harness through `HOMUNCULI_STAGE_LIVE_SMOKE=1` and can be configured with `HOMUNCULI_LIVE_SMOKE_STAGE` and `HOMUNCULI_LIVE_SMOKE_ELEMENT`.
 2. Keep named live gates focused on the first 30 seconds of their worlds, and keep named boss gates focused on deterministic boss entry and completion.
-3. Use `docs/PROMOTED_BALANCE_SUMMARY.md` as the human-readable balance snapshot for Forest/Cave/Sand/Swamp/Snow/Ocean/Lava/Grave when promoting Castle or changing first-slice tuning.
-4. Keep `smoke:grave-live` arcane-start coverage and `smoke:grave-boss` Nekros coverage inside `verify:release` while Grave remains the front edge of promotion.
+3. Use `docs/PROMOTED_BALANCE_SUMMARY.md` as the human-readable balance snapshot for Forest/Cave/Sand/Swamp/Snow/Ocean/Lava/Grave/Castle when promoting Spire or changing first-slice tuning.
+4. Keep `smoke:castle-live` fire-start coverage and `smoke:castle-boss` King Nothing coverage inside `verify:release` while Castle remains the front edge of promotion.
 
 ### Lane 2: Core Loop Completeness
 
@@ -90,8 +93,9 @@ Promotion order:
 3. Ocean: water/wave identity, Sea Kings multi-boss gate.
 4. Lava: fire/lava escalation, Demon Slime gate.
 5. Grave: death/poison pressure, Nekros gate.
-6. Castle: next promotion lane after Grave.
-7. Spire/Void: design pass before production claims because their identity is still thin.
+6. Castle: fallen-fortress identity, King Nothing gate.
+7. Spire: next promotion lane after Castle; needs distinct waves before gates.
+8. Void: design pass before production claims because its identity is still thin.
 
 Promotion checklist:
 
@@ -137,9 +141,9 @@ Next slices:
 
 ## Immediate Queue
 
-1. Run full `npm run verify:release` after the Grave promotion update.
-2. Design Castle promotion around fallen-fortress identity, live coverage, and a King Nothing boss gate.
-3. Add player-build readback after Grave planning if GameOver still needs more run-story detail.
+1. Run full `npm run verify:release` after the Castle promotion update.
+2. Audit Spire wave identity before adding gates.
+3. Add player-build readback after Spire planning if GameOver still needs more run-story detail.
 
 ## Done Definition
 

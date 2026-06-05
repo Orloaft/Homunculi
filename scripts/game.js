@@ -18484,6 +18484,14 @@ class GameScene extends Phaser.Scene {
                 pickupMagnetSpeed: 455,
                 xpDropMultiplier: 1.15,
                 earlyCatalystMilestones: { 4: 1, 8: 2 }
+            },
+            castle: {
+                bossHealthMultiplier: 1.2,
+                waveSpawnIntervalMultiplier: 1.35,
+                pickupMagnetRadius: 185,
+                pickupMagnetSpeed: 450,
+                xpDropMultiplier: 1.15,
+                earlyCatalystMilestones: { 4: 1, 8: 2 }
             }
         };
 
@@ -18754,13 +18762,14 @@ class GameScene extends Phaser.Scene {
         } else if (this.stage === 'castle') {
             // Castle stage waves: knights, rogues, soldiers, bladekeepers, squires
             baseWaves = [
-                // Wave 0 (0:00-1:00) - Introduction - Easy start with squires
+                // Wave 0 (0:00-1:00) - Introduction - Easy start with squires, soldiers, and rogues
                 {
                     enemies: [
-                        { type: 'castle-squire', weight: 70, count: 2 },
-                        { type: 'castle-soldier', weight: 30, count: 1 }
+                        { type: 'castle-squire', weight: 50, count: 2 },
+                        { type: 'castle-soldier', weight: 30, count: 1 },
+                        { type: 'castle-rogue', weight: 20, count: 1 }
                     ],
-                    spawnInterval: 3000,
+                    spawnInterval: 2400,
                     maxEnemies: 15
                 },
                 // Wave 1 (1:00-2:00) - Add rogues
@@ -58409,6 +58418,19 @@ class GameScene extends Phaser.Scene {
             boss.isAttacking = false;
             boss.anims.stop();
             boss.play('frost-guardian-death');
+        } else if (boss.isKingNothing || boss.enemyType === 'king-nothing-boss') {
+            if (this.bossAITimer) {
+                this.bossAITimer.destroy();
+                this.bossAITimer = null;
+            }
+            if (this.bossCrown) {
+                this.bossCrown.destroy();
+                this.bossCrown = null;
+            }
+            boss.isDead = true;
+            boss.isDying = true;
+            boss.isAttacking = false;
+            boss.setTexture('king-nothing-death');
         } else {
             boss.play('obelisk-death');
         }
@@ -58487,7 +58509,8 @@ class GameScene extends Phaser.Scene {
             };
             if (boss.isFrostGuardian || boss.enemyType === 'frost-guardian-boss' ||
                 boss.isDemonSlime || boss.enemyType === 'demon-slime-boss' ||
-                boss.isNekros || boss.enemyType === 'nekros-boss') {
+                boss.isNekros || boss.enemyType === 'nekros-boss' ||
+                boss.isKingNothing || boss.enemyType === 'king-nothing-boss') {
                 setTimeout(triggerVictory, 2000);
             } else {
                 this.time.delayedCall(2000, triggerVictory);
@@ -58505,17 +58528,11 @@ class GameScene extends Phaser.Scene {
             completeBossDeath();
         });
         if (boss.isFrostGuardian || boss.enemyType === 'frost-guardian-boss' ||
-            boss.isNekros || boss.enemyType === 'nekros-boss') {
+            boss.isNekros || boss.enemyType === 'nekros-boss' ||
+            boss.isKingNothing || boss.enemyType === 'king-nothing-boss') {
             setTimeout(() => {
                 if (bossDeathComplete) return;
-                bossDeathComplete = true;
-                if (boss.active) {
-                    boss.destroy();
-                }
-                if (this.boss === boss) {
-                    this.boss = null;
-                }
-                this.gameWon();
+                completeBossDeath();
             }, 3500);
         }
     }
@@ -58727,14 +58744,17 @@ class GameScene extends Phaser.Scene {
         // Create King Nothing boss
         const centerX = 400;
         const centerY = 250;
-        // Create boss sprite with placeholder graphics (using voidkin as base)
-        this.boss = this.physics.add.sprite(centerX, centerY, 'voidkin', 0);
+        // Create boss sprite
+        this.boss = this.physics.add.sprite(centerX, centerY, 'king-nothing-run');
         this.boss.setScale(4);
         this.boss.setTint(0x000000); // Black tint for void theme
         this.boss.isBoss = true;
+        this.boss.isKingNothing = true;
         this.boss.knockbackResistance = 0.1; // Bosses resist 90% of knockback
         this.boss.enemyType = 'king-nothing-boss';
-        this.boss.maxHealth = 8000;
+        const density = localStorage.getItem('enemyDensity') || 'normal';
+        const healthMultiplier = density === 'low' ? 0.7 : density === 'normal' ? 0.5 : 1.0;
+        this.boss.maxHealth = Math.floor(8000 * healthMultiplier * this.getBossHealthTuningMultiplier());
         this.boss.health = this.boss.maxHealth;
         this.boss.phase = 1;
         this.boss.isDying = false;
@@ -58769,14 +58789,13 @@ class GameScene extends Phaser.Scene {
             duration: 8000,
             repeat: -1
         });
-        // Play idle animation if it exists
-        if (this.anims.exists('voidkin-move')) {
-            this.boss.play('voidkin-move');
-        }
         // Create boss health bar UI
         this.createBossHealthBar();
+        if (this.bossNameText) {
+            this.bossNameText.setText('KING NOTHING');
+        }
         // Boss behavior timer
-        this.time.addEvent({
+        this.bossAITimer = this.time.addEvent({
             delay: 3000,
             callback: () => {
                 if (this.boss && this.boss.active && !this.boss.isDying) {
@@ -58793,6 +58812,10 @@ class GameScene extends Phaser.Scene {
         // Update crown position
         if (this.bossCrown) {
             this.bossCrown.x = this.boss.x;
+        }
+        if (this.bossHealthBar && this.boss.maxHealth > 0) {
+            const healthPercentForBar = Math.max(0, this.boss.health / this.boss.maxHealth);
+            this.bossHealthBar.width = (600 - 6) * healthPercentForBar;
         }
         // Check phase transitions
         const healthPercent = this.boss.health / this.boss.maxHealth;
@@ -61479,6 +61502,136 @@ if (typeof window !== 'undefined') {
         }
     };
 
+    window.runHomunculiCastleBossSmoke = async function runHomunculiCastleBossSmoke() {
+        const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        const waitFor = async (label, predicate, timeoutMs = 8000) => {
+            const start = Date.now();
+            while (Date.now() - start < timeoutMs) {
+                if (predicate()) return;
+                await wait(100);
+            }
+            const activeScenes = typeof game !== 'undefined' && game && game.scene
+                ? game.scene.getScenes(true).map(scene => scene.scene.key).join(', ')
+                : 'none';
+            throw new Error(`Timed out waiting for ${label}; active scenes: ${activeScenes}`);
+        };
+        const assert = (condition, message) => {
+            if (!condition) throw new Error(message);
+        };
+
+        const rendererErrors = [];
+        const captureRendererError = (event) => {
+            rendererErrors.push({
+                message: event.message,
+                stack: event.error && event.error.stack
+            });
+        };
+        const assertNoRendererErrors = (label) => {
+            if (rendererErrors.length > 0) {
+                const latestError = rendererErrors[rendererErrors.length - 1];
+                throw new Error(`${label}: ${latestError.message}${latestError.stack ? `\n${latestError.stack}` : ''}`);
+            }
+        };
+
+        const originalStorage = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            originalStorage[key] = localStorage.getItem(key);
+        }
+
+        try {
+            window.addEventListener('error', captureRendererError);
+            localStorage.clear();
+            localStorage.setItem('enemyDensity', 'normal');
+
+            await waitFor('Phaser game boot', () => typeof game !== 'undefined' && game && game.scene);
+            await waitFor('title scene and King Nothing assets', () => {
+                const titleScene = game.scene.getScene('TitleScene');
+                return titleScene && titleScene.scene && titleScene.scene.isActive() &&
+                    titleScene.textures && titleScene.textures.exists('king-nothing-run') &&
+                    titleScene.textures.exists('king-nothing-death');
+            });
+            game.scene.stop('TitleScene');
+            game.scene.start('GameScene', {
+                stage: 'castle',
+                p1Character: 'wizard',
+                multiplayerEnabled: false,
+                arcadeMode: false,
+                startElement: 'arcane'
+            });
+
+            await waitFor('Castle GameScene create', () => {
+                const scene = game.scene.getScene('GameScene');
+                return scene && scene.scene && scene.scene.isActive() && scene.stage === 'castle' && scene.wizard;
+            });
+
+            const scene = game.scene.getScene('GameScene');
+            if (scene.dialogueManager && scene.dialogueManager.active) {
+                scene.dialogueManager.close(true);
+            }
+            scene.gamePaused = false;
+            scene.pauseSource = null;
+            scene.gameStarted = true;
+            if (scene.physics && scene.physics.world) {
+                scene.physics.resume();
+            }
+            if (scene.time) {
+                scene.time.timeScale = 1;
+            }
+
+            scene.createCastleBoss();
+            await waitFor('King Nothing boss entry', () => scene.boss && scene.boss.active && scene.boss.enemyType === 'king-nothing-boss');
+
+            const boss = scene.boss;
+            const expectedMaxHealth = Math.floor(8000 * 0.5 * scene.getBossHealthTuningMultiplier());
+            assert(boss.isKingNothing === true, 'King Nothing boss flag missing');
+            assert(boss.maxHealth === expectedMaxHealth, `King Nothing health tuning drifted: expected ${expectedMaxHealth}, got ${boss.maxHealth}`);
+            assert(boss.phase === 1, 'King Nothing should enter in phase 1');
+            assert(scene.bossHealthBar && scene.bossHealthBar.active, 'King Nothing health bar missing');
+            assert(scene.bossHealthBarBg && scene.bossHealthBarBg.active, 'King Nothing health bar background missing');
+            assert(scene.bossNameText && scene.bossNameText.text === 'KING NOTHING', 'King Nothing health label missing');
+            assert(scene.bossCrown && scene.bossCrown.active, 'King Nothing crown missing');
+            assert(scene.bossAITimer && !scene.bossAITimer.paused, 'King Nothing AI timer missing');
+            assertNoRendererErrors('King Nothing boss entry');
+
+            boss.attackCooldown = 9999;
+            boss.health = Math.floor(boss.maxHealth * 0.6);
+            scene.updateKingNothingBoss();
+            assert(boss.phase === 2, 'King Nothing did not enter phase 2 below 66% health');
+            boss.health = Math.floor(boss.maxHealth * 0.3);
+            scene.updateKingNothingBoss();
+            assert(boss.phase === 3, 'King Nothing did not enter phase 3 below 33% health');
+            assertNoRendererErrors('King Nothing phase transitions');
+
+            scene.handleBossDeath(boss);
+            try {
+                await waitFor('King Nothing death cleanup', () => {
+                    const gameOverScene = game.scene.getScene('GameOverScene');
+                    return gameOverScene && gameOverScene.scene && gameOverScene.scene.isActive() &&
+                        gameOverScene.won === true && scene.boss === null && !scene.bossAITimer;
+                }, 9000);
+            } catch (error) {
+                const gameOverScene = game.scene.getScene('GameOverScene');
+                throw new Error(`${error.message}; gameWonCalled=${scene.gameWonCalled === true}; gameEnded=${scene.gameEnded === true}; gameOverWon=${gameOverScene && gameOverScene.won}; gameOverStage=${gameOverScene && gameOverScene.stage}; sceneBoss=${scene.boss && scene.boss.enemyType}; bossActive=${boss.active}`);
+            }
+            assertNoRendererErrors('King Nothing boss death');
+            const gameOverScene = game.scene.getScene('GameOverScene');
+
+            return {
+                ok: true,
+                stage: scene.stage,
+                bossType: boss.enemyType,
+                maxHealth: expectedMaxHealth,
+                phase: boss.phase,
+                gameWon: gameOverScene && gameOverScene.won === true
+            };
+        } finally {
+            window.removeEventListener('error', captureRendererError);
+            localStorage.clear();
+            Object.entries(originalStorage).forEach(([key, value]) => localStorage.setItem(key, value));
+        }
+    };
+
     window.runHomunculiFeelSmoke = async function runHomunculiFeelSmoke() {
         const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
         const waitFor = async (label, predicate, timeoutMs = 8000) => {
@@ -61513,7 +61666,7 @@ if (typeof window !== 'undefined') {
         await waitFor('Phaser game boot', () => typeof game !== 'undefined' && game && game.scene);
         await waitFor('GameScene availability', () => typeof GameScene !== 'undefined');
 
-        const stages = ['forest', 'cave', 'sand', 'swamp', 'snow', 'ocean', 'lava', 'grave'];
+        const stages = ['forest', 'cave', 'sand', 'swamp', 'snow', 'ocean', 'lava', 'grave', 'castle'];
         const stageExpectations = {
             snow: {
                 requiredOpeningEnemies: ['snowy', 'northerner', 'spiked-slime'],
@@ -61534,6 +61687,11 @@ if (typeof window !== 'undefined') {
                 requiredOpeningEnemies: ['yellowskeleton', 'soul', 'skeletonseeker'],
                 requiredEarlyEnemies: ['yellowskeleton', 'soul', 'skeletonseeker', 'skullhound'],
                 maxBossHealthMultiplier: 1.15
+            },
+            castle: {
+                requiredOpeningEnemies: ['castle-squire', 'castle-soldier', 'castle-rogue'],
+                requiredEarlyEnemies: ['castle-squire', 'castle-soldier', 'castle-rogue', 'castle-knight', 'giant-castle-knight'],
+                maxBossHealthMultiplier: 1.2
             }
         };
         const metrics = {};
@@ -61729,7 +61887,8 @@ if (typeof window !== 'undefined') {
                 ['snow', 1.0, { 4: 1, 8: 2 }],
                 ['ocean', 1.05, { 4: 1, 8: 2 }],
                 ['lava', 1.1, { 4: 1, 8: 2 }],
-                ['grave', 1.15, { 4: 1, 8: 2 }]
+                ['grave', 1.15, { 4: 1, 8: 2 }],
+                ['castle', 1.2, { 4: 1, 8: 2 }]
             ];
             tuningChecks.forEach(([stage, bossMultiplier, catalysts]) => {
                 const gameScene = new GameScene();
@@ -61912,13 +62071,32 @@ if (typeof window !== 'undefined') {
             assertNoRendererErrors('StageSelect Grave reload check failed');
             assert(getStage(stages, 'Grave Land').unlocked === true, 'Stage select did not preserve Grave unlock from save');
             assert(getStage(stages, 'Castle Land').unlocked === true, 'Stage select did not show Castle unlocked from save');
+            assert(getStage(stages, 'Spire Land').unlocked === false, 'Stage select unlocked Spire too early');
+
+            saveData = simulateVictory(reloadAfterGrave, 'castle', 1080000);
+            assert(simulateVictory.lastReadback && simulateVictory.lastReadback.unlockedWorldName === 'Spire Land', 'Castle reward readback did not name the Spire unlock');
+            assert(simulateVictory.lastReadback.unlockedCharacterName === null, 'Castle reward readback should not report a character unlock');
+            assert(simulateVictory.lastReadback.stageIdentity === 'Castle formation pressure', 'Castle reward readback did not include stage identity');
+            assert(simulateVictory.lastReadback.stageRoster.includes('castle-knight'), 'Castle reward readback did not include roster pressure');
+            assert(saveData.stages.completedStages.includes('castle-1'), 'Castle completion was not recorded');
+            assert(saveData.stages.unlockedWorlds.includes('spireland'), 'Castle victory did not unlock Spire');
+            assert(saveData.stages.stageStats['castle-1'].attempts >= 1, 'Castle stage stats attempts were not recorded');
+            assert(saveData.stages.stageStats['castle-1'].bestTime === 1080000, 'Castle stage stats best time was not recorded');
+
+            const reloadAfterCastle = new SaveManager();
+            window.saveManager = reloadAfterCastle;
+            assert(reloadAfterCastle.loadAndSetCurrent(0), 'Reload after Castle victory failed');
+            stages = await startStageSelectAndGetStages(reloadAfterCastle);
+            assertNoRendererErrors('StageSelect Castle reload check failed');
+            assert(getStage(stages, 'Castle Land').unlocked === true, 'Stage select did not preserve Castle unlock from save');
+            assert(getStage(stages, 'Spire Land').unlocked === true, 'Stage select did not show Spire unlocked from save');
 
             return {
                 ok: true,
-                completedStages: reloadAfterGrave.currentSaveData.stages.completedStages,
-                unlockedWorlds: reloadAfterGrave.currentSaveData.stages.unlockedWorlds,
-                unlockedCharacters: reloadAfterGrave.currentSaveData.characters.unlocked,
-                essence: reloadAfterGrave.currentSaveData.talents.essence
+                completedStages: reloadAfterCastle.currentSaveData.stages.completedStages,
+                unlockedWorlds: reloadAfterCastle.currentSaveData.stages.unlockedWorlds,
+                unlockedCharacters: reloadAfterCastle.currentSaveData.characters.unlocked,
+                essence: reloadAfterCastle.currentSaveData.talents.essence
             };
         } finally {
             window.removeEventListener('error', captureRendererError);

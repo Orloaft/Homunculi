@@ -19,7 +19,7 @@ This complements `npm run smoke:progression`, which verifies save progression an
 
 ## Forest Live Smoke
 
-`npm run smoke:live` is the reusable live-run gate. It boots the real Electron/Phaser renderer, starts a requested stage through the active `GameScene`, injects a starting element through the same runtime state the intro would fill, and lets the run advance for 30 seconds. `npm run smoke:forest-live`, `npm run smoke:swamp-live`, `npm run smoke:snow-live`, `npm run smoke:ocean-live`, and `npm run smoke:lava-live` are named wrappers over that shared harness. Forest/Swamp/Snow/Lava use a reliable fire-start pilot; Ocean uses a water-start pilot and asserts live enemy activity stays inside the aquatic roster.
+`npm run smoke:live` is the reusable live-run gate. It boots the real Electron/Phaser renderer, starts a requested stage through the active `GameScene`, injects a starting element through the same runtime state the intro would fill, and lets the run advance for 30 seconds. `npm run smoke:forest-live`, `npm run smoke:swamp-live`, `npm run smoke:snow-live`, `npm run smoke:ocean-live`, `npm run smoke:lava-live`, `npm run smoke:grave-live`, and `npm run smoke:castle-live` are named wrappers over that shared harness. Forest/Swamp/Snow/Lava/Castle use reliable fire-start pilots; Grave uses an arcane-start pilot; Ocean uses a water-start pilot and asserts live enemy activity stays inside the aquatic roster.
 
 The smoke fails if the Phaser canvas is missing, a renderer script error is raised, the requested stage does not enter active gameplay, the wizard dies, the survival timer does not advance, or no enemy activity is observed. It uses normal enemy density so the wave system has to produce real combat activity during the check.
 

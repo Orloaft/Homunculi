@@ -6,9 +6,9 @@ This is the short handoff ledger for the current Homunculi production-roadmap pu
 
 ## Current Production Edge
 
-- Promoted path: Forest -> Cave -> Sand -> Swamp -> Snow -> Ocean -> Lava -> Grave.
-- Current front edge: Grave is release-backed.
-- Next world lane: Castle.
+- Promoted path: Forest -> Cave -> Sand -> Swamp -> Snow -> Ocean -> Lava -> Grave -> Castle.
+- Current front edge: Castle is release-backed.
+- Next world lane: Spire.
 - Next core-loop lane: player-build readback for equipped elements, passive picks, fusion count, and strongest spell.
 
 ## Landed Today
@@ -25,8 +25,11 @@ This is the short handoff ledger for the current Homunculi production-roadmap pu
 - Promoted Grave through deterministic feel/progression, arcane-start live survival, and Nekros completion gates.
 - Folded Grave live and boss gates into `npm run verify:release`.
 - Fixed Nekros death cleanup so its death animation path reliably reaches victory.
+- Promoted Castle through deterministic feel/progression, fire-start live survival, and King Nothing completion gates.
+- Folded Castle live and boss gates into `npm run verify:release`.
+- Fixed King Nothing health tuning, phase assertions, boss label, and death cleanup so the boss path reaches victory.
 - Hardened the shared live harness with roster observation, off-roster failures, better scene-stop diagnostics, and stronger kiting behavior.
-- Updated the promoted balance summary so the human-readable path covers Forest through Grave.
+- Updated the promoted balance summary so the human-readable path covers Forest through Castle.
 
 ## Verified Release Stack
 
@@ -38,16 +41,17 @@ Latest green stack:
 - focused grimoire stack: `node --check scripts/game.js`, `node --check src/systems/SaveManager.js`, `npm run typecheck`, `npm run smoke:progression`
 - focused post-run readback stack: `node --check scripts/game.js`, `npm run typecheck`, `npm run smoke:progression`
 - focused Grave stack: `node --check scripts/game.js`, `node --check scripts/main.js`, `npm run typecheck`, `npm run smoke:feel`, `npm run smoke:progression`, `npm run smoke:grave-live`, `npm run smoke:grave-boss`
-- full `npm run verify:release` with Lava live and Lava boss included
+- focused Castle stack: `node --check scripts/game.js`, `node --check scripts/main.js`, `npm run typecheck`, `npm run smoke:feel`, `npm run smoke:progression`, `npm run smoke:castle-live`, `npm run smoke:castle-boss`
+- full `npm run verify:release` with Castle live and Castle boss included
 - `git diff --check`
 
 Latest pushed implementation commit:
 
-- `7addd90` - `Enrich post-run readback`
+- `8bc4110` - `Promote Grave into release stack`
 
 ## Next Batch
 
 1. Add player-build readback for equipped elements, passive picks, fusion count, and strongest spell if the result screen still needs more run-story detail.
-2. Promote Castle next only after deciding its fallen-fortress identity and adding named live plus King Nothing boss gates.
+2. Audit Spire next before promotion; it currently needs distinct wave identity before production claims widen past Castle.
 3. Continue live-harness hardening so future world promotions reuse consistent health, enemy, pickup, kill, and level-up artifacts.
 4. Refresh docs after each promoted gate so `PRODUCTION_READINESS_WORKFLOW.md`, `PARALLEL_WORLD_AUDIT.md`, and `PROMOTED_BALANCE_SUMMARY.md` agree on the current edge.

@@ -6,7 +6,7 @@ For the current execution order, smoke gates, and done definition, see `docs/PRO
 
 ## Production Slice Decision
 
-Update 2026-06-05: Swamp, Snow, Ocean, Lava, and Grave have moved from promotion candidates into the release-backed path. Castle is now the next promotion lane; Spire and Void remain parked until Castle has deterministic, live, boss, and progression coverage.
+Update 2026-06-05: Swamp, Snow, Ocean, Lava, Grave, and Castle have moved from promotion candidates into the release-backed path. Spire is now the next promotion lane; Void remains parked until Spire has a distinct world identity and coverage.
 
 Keep now:
 
@@ -21,14 +21,15 @@ Promoted:
 - Ocean Land: release-backed through deterministic feel/progression, 30-second water-start live coverage, and Sea Kings multi-boss completion coverage.
 - Lava Land: release-backed through deterministic feel/progression, 30-second fire-start live coverage, and Demon Slime completion coverage.
 - Grave Land: release-backed through deterministic feel/progression, 30-second arcane-start live coverage, and Nekros completion coverage.
+- Castle Land: release-backed through deterministic feel/progression, 30-second fire-start live coverage, and King Nothing completion coverage.
 
 Promote next:
 
-- Castle Land: follows Grave in canonical progression and has strong fallen-fortress assets, but still needs the full promoted-world gate set before production claims widen past Grave.
+- Spire Land: follows Castle in canonical progression, but needs distinct waves and a stronger world identity before production claims widen past Castle.
 
 Park:
 
-- Spire Land and The Void. They have valuable assets and bosses, but should not pull attention away from Castle and the core-loop readback lane.
+- The Void. It has valuable assets and boss-adjacent pieces, but should not pull attention away from Spire and the core-loop readback lane.
 
 ## Runtime Matrix
 
@@ -42,17 +43,17 @@ Park:
 | Ocean Land | Promoted | jellyfish, crabby, squid, shark, crablore, water slime | Sea Kings | `oceanland-bgm`, `boss3-bgm` | Snow victory unlocks Ocean | Water, Wave | Ancient sea secrets and multi-threat finale | Strong asset identity, but more complex boss surface | Medium; covered by feel/progression, water-start live, and Sea Kings completion gates |
 | Lava Land | Promoted | fireslime, clubimp, axeimp, flyingdemon, fireworm, orangegolem, summoner, giant fireslime | Demon Slime | `lavaland-bgm`, `demonslime-boss-bgm` | Ocean victory unlocks Lava | Fire, Lava | Volcanic underworld escalation | Strong audio/boss identity | Medium; covered by feel/progression, live, and boss gates |
 | Grave Land | Promoted | yellowskeleton, skeletonseeker, soul, skullhound, imps, giant skeleton | Nekros | `graveland-bgm`, `boss4-bgm` | Lava victory unlocks Grave | Death, Poison | Necromancy and world-ending lore | Strong dark fantasy fit | Medium; covered by feel/progression, live, and boss gates |
-| Castle Land | Promote next | castle-squire, soldier, rogue, knight, bladekeeper, giant knight | King Nothing | `castleland-intro-bgm`, `castleland-bgm`, `castleboss-bgm` | Grave victory unlocks Castle | Metal, Arcane | Human ruin / fallen power center | Richest staged audio stack and enemy set | High; biggest set-piece expectations, needs deterministic, live, boss, and progression promotion gates |
-| Spire Land | Park | currently shares Forest wave patterns | Default Obelisk path unless overridden elsewhere | no clear Spire stage BGM is loaded in the active preload list | Castle victory unlocks Spire | Air, Lightning | Vertical ascent/endgame trial | Stage exists, but identity is not yet distinct in wave table | High; shared Forest waves undermine world identity |
+| Castle Land | Promoted | castle-squire, soldier, rogue, knight, bladekeeper, giant knight | King Nothing | `castleland-intro-bgm`, `castleland-bgm`, `castleboss-bgm` | Grave victory unlocks Castle | Metal, Arcane | Human ruin / fallen power center | Richest staged audio stack and enemy set | Medium; covered by feel/progression, live, and boss gates |
+| Spire Land | Promote next | currently shares Forest wave patterns | Default Obelisk path unless overridden elsewhere | no clear Spire stage BGM is loaded in the active preload list | Castle victory unlocks Spire | Air, Lightning | Vertical ascent/endgame trial | Stage exists, but identity is not yet distinct in wave table | High; shared Forest waves undermine world identity |
 | The Void | Park | runtime identity is thinner than other worlds in current matrix | Default Obelisk/voidkin-related fallback paths | no clear stage BGM in loaded audio list | Spire victory unlocks Void | Chaos, Arcane | Final dimension / end-state reveal | Stage select node exists; recent smoke fixed Voidkin animation fallback | High; final-world role should be designed, not merely unlocked |
 
 ## Immediate Roadmap
 
-1. Keep the Forest -> Cave -> Sand -> Swamp -> Snow -> Ocean -> Lava -> Grave release-backed path green.
-2. Promote Castle next with deterministic feel/progression, named live, named boss, and release-stack coverage.
+1. Keep the Forest -> Cave -> Sand -> Swamp -> Snow -> Ocean -> Lava -> Grave -> Castle release-backed path green.
+2. Promote Spire next only after giving it distinct wave identity, then add deterministic feel/progression, named live, named boss, and release-stack coverage.
 3. Keep grimoire and post-run readback healthy so players can see discovered recipes, unlocks, run outcomes, and next-run nudges.
 4. Keep each promoted world tied to one memorable rule before adding new content.
-5. Keep Spire and Void out of production claims until Castle and the readback lane are stable.
+5. Keep Void out of production claims until Spire and the readback lane are stable.
 
 ## Notes From Runtime Audit
 
