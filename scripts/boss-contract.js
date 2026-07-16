@@ -85,6 +85,19 @@
         return true;
     }
 
+    function centeredBodyConfig(frameWidth, frameHeight, bodyWidth, bodyHeight, centerOffsetX = 0, centerOffsetY = 0) {
+        const safeFrameWidth = Math.max(0, Number(frameWidth) || 0);
+        const safeFrameHeight = Math.max(0, Number(frameHeight) || 0);
+        const safeBodyWidth = Math.min(safeFrameWidth, Math.max(1, Number(bodyWidth) || safeFrameWidth));
+        const safeBodyHeight = Math.min(safeFrameHeight, Math.max(1, Number(bodyHeight) || safeFrameHeight));
+        return {
+            width: safeBodyWidth,
+            height: safeBodyHeight,
+            offsetX: (safeFrameWidth - safeBodyWidth) / 2 + centerOffsetX,
+            offsetY: (safeFrameHeight - safeBodyHeight) / 2 + centerOffsetY
+        };
+    }
+
     return Object.freeze({
         DENSITY_HEALTH,
         densityHealthMultiplier,
@@ -96,6 +109,7 @@
         cancelActions,
         terminateEncounter,
         isCallbackValid,
-        claimCompletion
+        claimCompletion,
+        centeredBodyConfig
     });
 });

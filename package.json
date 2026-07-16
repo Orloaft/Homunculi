@@ -35,7 +35,7 @@
     "smoke:cave-boss": "npm run compile && HOMUNCULI_CORE_BOSS_SMOKE_STAGE=cave electron --no-sandbox --disable-gpu .",
     "smoke:sand-boss": "npm run compile && HOMUNCULI_CORE_BOSS_SMOKE_STAGE=sand electron --no-sandbox --disable-gpu .",
     "smoke:linux-package": "node scripts/smoke-packaged-linux.js",
-    "verify:smoke": "npm run test:boss-contract && npm run smoke:prod && npm run smoke:first-run && npm run smoke:feel && npm run smoke:progression && npm run smoke:swamp-boss && npm run smoke:ocean-boss && npm run smoke:castle-boss",
+    "verify:smoke": "npm run test:boss-contract && npm run smoke:prod && npm run smoke:first-run && npm run smoke:feel && npm run smoke:progression && npm run smoke:forest-boss && npm run smoke:cave-boss && npm run smoke:sand-boss && npm run smoke:swamp-boss && npm run smoke:snow-boss && npm run smoke:ocean-boss && npm run smoke:lava-boss && npm run smoke:grave-boss && npm run smoke:castle-boss",
     "verify:release": "npm run typecheck && npm run compile && npm run audit:package && npm run test:boss-contract && npm run smoke:prod && npm run smoke:first-run && npm run smoke:feel && npm run smoke:progression && npm run smoke:forest-live && npm run smoke:swamp-live && npm run smoke:snow-live && npm run smoke:ocean-live && npm run smoke:lava-live && npm run smoke:grave-live && npm run smoke:castle-live && npm run smoke:forest-boss && npm run smoke:cave-boss && npm run smoke:sand-boss && npm run smoke:swamp-boss && npm run smoke:snow-boss && npm run smoke:ocean-boss && npm run smoke:lava-boss && npm run smoke:grave-boss && npm run smoke:castle-boss",
     "build-win": "npm run compile && electron-builder --win",
     "build-win-portable": "npm run compile && electron-builder --win portable",

@@ -45,6 +45,58 @@ assert.match(gameSource, /boss\.play\('king-nothing-death'\)/, 'King Nothing dea
 assert.match(gameSource, /visualState = 'leap-windup'[\s\S]*?visualState = 'leap-airborne'[\s\S]*?visualState = 'leap-impact'/,
     'Demon Slime leap must expose explicit visual states');
 
+const kingBody = contract.centeredBodyConfig(160, 111, 45, 86);
+assert.deepEqual(kingBody, { width: 45, height: 86, offsetX: 57.5, offsetY: 12.5 },
+    'King Nothing body must be derived from and centered in one 160x111 frame');
+for (const scale of [4, 3.2]) {
+    const spriteCenter = { x: 160 * scale / 2, y: 111 * scale / 2 };
+    const bodyCenter = {
+        x: (kingBody.offsetX + kingBody.width / 2) * scale,
+        y: (kingBody.offsetY + kingBody.height / 2) * scale
+    };
+    assert.ok(Math.hypot(bodyCenter.x - spriteCenter.x, bodyCenter.y - spriteCenter.y) < 10,
+        `King Nothing body center drifted at scale ${scale}`);
+}
+
+const centeredFamilies = [
+    [32, 20, 20, 16],
+    [80, 35, 50, 30],
+    [96, 64, 30, 42],
+    [180, 180, 40, 62]
+];
+centeredFamilies.forEach(([frameWidth, frameHeight, bodyWidth, bodyHeight]) => {
+    const body = contract.centeredBodyConfig(frameWidth, frameHeight, bodyWidth, bodyHeight);
+    assert.equal(body.offsetX + body.width / 2, frameWidth / 2, 'giant body x center drifted');
+    assert.equal(body.offsetY + body.height / 2, frameHeight / 2, 'giant body y center drifted');
+});
+
+assert.match(gameSource, /scheduleBossVictory\(delay = 2000\)[\s\S]*?setTimeout\(/,
+    'terminal boss progression must use an unscaled wall-clock timer');
+assert.match(gameSource, /scheduleWonSceneTransition\(delay = 3000\)[\s\S]*?setTimeout\(/,
+    'won-scene transition must remain independent of Phaser scene time');
+assert.equal((gameSource.match(/this\.scheduleBossVictory\(2000\);/g) || []).length, 2,
+    'generic and Sea Kings completion paths must both use unscaled terminal scheduling');
+assert.match(gameSource, /if \(this\.gameWonCalled \|\| this\._bossVictoryScheduled\) return false;/,
+    'terminal scheduling must be exactly once');
+assert.match(gameSource, /if \(bossDeathComplete\) return;[\s\S]*?bossDeathComplete = true;/,
+    'generic boss rewards must be claimed exactly once');
+assert.match(gameSource, /if \(this\.seaKingsCompletionStarted\) return;[\s\S]*?this\.seaKingsCompletionStarted = true;/,
+    'Sea Kings rewards must be claimed exactly once');
+assert.match(gameSource, /if \(this\.gameEnded \|\| this\.gameWonCalled\) \{[\s\S]*?return;[\s\S]*?FIRST PAUSE GAME CALLED BY/,
+    'late reward callbacks must not re-pause a terminal scene');
+
+const enemyRepairExpectations = [
+    ["giantCobra.play('cobra-walking')", 'giant cobra must use the base-family animation'],
+    ["giantBloboid.play('bloboid-walking')", 'giant bloboid must use the base-family animation'],
+    ["sprite(x, y, 'skeleton-yellow-walk', 0)", 'giant yellow skeleton must use the base-family texture'],
+    ["giantSkeleton.play('skeleton-yellow-walking')", 'giant yellow skeleton must use the base-family animation'],
+    ["sprite(x, y, 'castle-knight', 0)", 'giant castle knight must use the base-family texture'],
+    ["giantKnight.play('castle-knight-run')", 'giant castle knight must use the base-family animation'],
+    ["sprite(x, y, 'summoner-idle', 0)", 'summoner must start with a valid texture'],
+    ["summoner.play('summoner-idling')", 'summoner must start with a valid animation']
+];
+enemyRepairExpectations.forEach(([needle, message]) => assert.ok(gameSource.includes(needle), message));
+
 const boss = { active: true, health: 100 };
 const encounter = contract.createEncounter(1, boss);
 let timerDestroyed = 0;

@@ -12002,7 +12002,14 @@ class GameScene extends Phaser.Scene {
 
         // Initialize boss cutscene system
         this.bossCutsceneSystem = new BossCutsceneSystem(this);
-        this.events.once('shutdown', () => this.cancelBossEncounter());
+        this.events.once('shutdown', () => {
+            this.cancelBossEncounter();
+            this.clearBossVictoryTimeout();
+            if (this._wonSceneTransitionTimeout !== null && this._wonSceneTransitionTimeout !== undefined) {
+                clearTimeout(this._wonSceneTransitionTimeout);
+                this._wonSceneTransitionTimeout = null;
+            }
+        });
 
         // Initialize dialogue manager
         this.dialogueManager = new DialogueManager(this);
@@ -12175,6 +12182,8 @@ class GameScene extends Phaser.Scene {
         // Reset game end flags
         this.gameEnded = false;
         this.gameWonCalled = false;
+        this._wonSceneTransitioned = false;
+        this._wonSceneTransitionTimeout = null;
         // Initialize pause tracking flag VERY EARLY
         this._firstPauseLogged = false;
         // Force reset pause states and time scale
@@ -15414,6 +15423,12 @@ class GameScene extends Phaser.Scene {
         createAnimIfNotExists({
             key: 'skeleton-yellow-walking',
             frames: this.anims.generateFrameNumbers('skeleton-yellow-walk', { start: 0, end: 9 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        createAnimIfNotExists({
+            key: 'castle-knight-run',
+            frames: this.anims.generateFrameNumbers('castle-knight', { start: 0, end: 7 }),
             frameRate: 10,
             repeat: -1
         });
@@ -23831,6 +23846,9 @@ class GameScene extends Phaser.Scene {
 
     // Centralized pause system
     pauseGame(source = 'unknown') {
+        if (this.gameEnded || this.gameWonCalled) {
+            return;
+        }
         // Only log the FIRST pause to find the culprit
         if (!this._firstPauseLogged) {
             console.error('=== FIRST PAUSE GAME CALLED BY:', source, '===');
@@ -29245,6 +29263,27 @@ class GameScene extends Phaser.Scene {
         enemy.setScale(1.0);
         return true;
     }
+    configureCenteredBody(enemy, bodyWidth, bodyHeight, centerOffsetX = 0, centerOffsetY = 0) {
+        if (!enemy || !enemy.body) return null;
+        const frame = enemy.frame || {};
+        const frameWidth = frame.realWidth || frame.width || enemy.width;
+        const frameHeight = frame.realHeight || frame.height || enemy.height;
+        const config = BossCombatContract.centeredBodyConfig(
+            frameWidth,
+            frameHeight,
+            bodyWidth,
+            bodyHeight,
+            centerOffsetX,
+            centerOffsetY
+        );
+        enemy.body.setSize(config.width, config.height);
+        enemy.body.setOffset(config.offsetX, config.offsetY);
+        if (typeof enemy.body.updateFromGameObject === 'function') {
+            enemy.body.updateFromGameObject();
+        }
+        enemy.centeredBodyConfig = config;
+        return config;
+    }
     // Combined function to apply both hitbox and scale data
     applyEditorData(enemy, enemyType) {
         // Apply hitbox config
@@ -29758,9 +29797,10 @@ class GameScene extends Phaser.Scene {
             this.setEnemySpeed(giantCobra, 50 / 2); // 25 speed
             giantCobra.setTint(0x555555);
             giantCobra.currentDirection = 'down';
-            giantCobra.play('cobra-walk-down');
+            giantCobra.play('cobra-walking');
             // Apply hitbox config - it will automatically scale based on sprite scale
             this.applyHitboxConfig(giantCobra, 'cobra');
+            this.configureCenteredBody(giantCobra, 20, 16);
             this.addEnemyToGroup(giantCobra);
         } else if (enemyType === 'giant-bloboid') {
             // Giant bloboid for swamp stage - 3x size, 100x HP, half speed, dark tint
@@ -29776,13 +29816,14 @@ class GameScene extends Phaser.Scene {
             this.setEnemySpeed(giantBloboid, 30 / 2); // 15 speed
             giantBloboid.setTint(0x444444);
             giantBloboid.currentDirection = 'down';
-            giantBloboid.play('bloboid-walk-down');
+            giantBloboid.play('bloboid-walking');
             // Apply hitbox config - it will automatically scale based on sprite scale
             this.applyHitboxConfig(giantBloboid, 'bloboid');
+            this.configureCenteredBody(giantBloboid, 50, 30);
             this.addEnemyToGroup(giantBloboid);
         } else if (enemyType === 'giant-yellowskeleton') {
             // Giant yellow skeleton for grave stage - 3x size, 100x HP, half speed, dark tint
-            const giantSkeleton = this.physics.add.sprite(x, y, 'yellowskeleton-walk', 0);
+            const giantSkeleton = this.physics.add.sprite(x, y, 'skeleton-yellow-walk', 0);
             this.applySavedScale(giantSkeleton, 'yellowskeleton');
             giantSkeleton.setScale(giantSkeleton.scaleX * 3, giantSkeleton.scaleY * 3);
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
@@ -29794,13 +29835,14 @@ class GameScene extends Phaser.Scene {
             this.setEnemySpeed(giantSkeleton, 40 / 2); // 20 speed
             giantSkeleton.setTint(0x555533); // Darker yellowish tint
             giantSkeleton.currentDirection = 'down';
-            giantSkeleton.play('yellowskeleton-walk-down');
+            giantSkeleton.play('skeleton-yellow-walking');
             // Apply hitbox config - it will automatically scale based on sprite scale
             this.applyHitboxConfig(giantSkeleton, 'yellowskeleton');
+            this.configureCenteredBody(giantSkeleton, 30, 42);
             this.addEnemyToGroup(giantSkeleton);
         } else if (enemyType === 'giant-castle-knight') {
             // Giant castle knight for castle stage - 3x size, 100x HP, half speed, dark tint
-            const giantKnight = this.physics.add.sprite(x, y, 'castle-knight-walk', 0);
+            const giantKnight = this.physics.add.sprite(x, y, 'castle-knight', 0);
             this.applySavedScale(giantKnight, 'castle-knight');
             giantKnight.setScale(giantKnight.scaleX * 3, giantKnight.scaleY * 3);
             if (typeof hitboxConfig !== 'undefined' && hitboxConfig.loaded) {
@@ -29812,9 +29854,10 @@ class GameScene extends Phaser.Scene {
             this.setEnemySpeed(giantKnight, 35 / 2); // 17.5 speed
             giantKnight.setTint(0x444444);
             giantKnight.currentDirection = 'down';
-            giantKnight.play('castle-knight-walk-down');
+            giantKnight.play('castle-knight-run');
             // Apply hitbox config - it will automatically scale based on sprite scale
             this.applyHitboxConfig(giantKnight, 'castle-knight');
+            this.configureCenteredBody(giantKnight, 40, 62);
             this.addEnemyToGroup(giantKnight);
         } else if (enemyType === 'giantfly') {
             // Check if texture exists before creating sprite
@@ -29937,7 +29980,7 @@ class GameScene extends Phaser.Scene {
             this.addEnemyToGroup(fireworm);
             fireworm.play('fireworm-walking');
         } else if (enemyType === 'summoner') {
-            const summoner = this.physics.add.sprite(x, y, 'summoner-walk', 0);
+            const summoner = this.physics.add.sprite(x, y, 'summoner-idle', 0);
             // Apply scale from config
             this.applySavedScale(summoner, 'summoner');
             const baseHealth = 30; // Increased from 12 for better balance
@@ -29945,7 +29988,7 @@ class GameScene extends Phaser.Scene {
             this.scaleEnemyHealth(summoner, baseHealth);
             summoner.enemyType = 'summoner';
             this.setEnemySpeed(summoner, 20); // Reduced by 20% from 25
-            summoner.play('summoner-walking');
+            summoner.play('summoner-idling');
             // Apply hitbox from config or use defaults
             // Apply hitbox from config
             this.applyHitboxConfig(summoner, 'summoner');
@@ -54467,6 +54510,57 @@ class GameScene extends Phaser.Scene {
         if (this.bossEncounter === encounter) this.bossEncounter = null;
         return true;
     }
+    clearBossVictoryTimeout() {
+        if (this._bossVictoryTimeout !== null && this._bossVictoryTimeout !== undefined) {
+            clearTimeout(this._bossVictoryTimeout);
+        }
+        this._bossVictoryTimeout = null;
+        this._bossVictoryScheduled = false;
+    }
+    scheduleBossVictory(delay = 2000) {
+        if (this.gameWonCalled || this._bossVictoryScheduled) return false;
+        this._bossVictoryScheduled = true;
+        // Boss rewards can pause Phaser scene time. Terminal progression must use
+        // wall-clock time so opening or ignoring the reward chest cannot deadlock it.
+        this._bossVictoryTimeout = setTimeout(() => {
+            this._bossVictoryTimeout = null;
+            this._bossVictoryScheduled = false;
+            if (this.gameWonCalled || !this.scene || !this.scene.isActive()) return;
+            this.gameWon();
+        }, Math.max(0, delay));
+        return true;
+    }
+    scheduleWonSceneTransition(delay = 3000) {
+        if (this._wonSceneTransitioned || this._wonSceneTransitionTimeout) return false;
+        this._wonSceneTransitionTimeout = setTimeout(() => {
+            this._wonSceneTransitionTimeout = null;
+            if (this._wonSceneTransitioned || !this.scene || !this.scene.isActive()) return;
+            this._wonSceneTransitioned = true;
+            if (this.bgMusic) {
+                this.bgMusic.stop();
+                this.bgMusic = null;
+            }
+            if (this.bossMusic) {
+                this.bossMusic.stop();
+                this.bossMusic = null;
+            }
+            this.sound.stopAll();
+            this.scene.start('GameOverScene', {
+                survivalTime: this.survivalTime,
+                enemiesKilled: this.enemiesKilled,
+                itemsCollected: this.itemsCollected,
+                level: this.playerLevel,
+                elementsDiscovered: this.elementsDiscovered,
+                damageDealt: this.damageDealt,
+                alchemyDiscoveries: this.runAlchemyDiscoveries || [],
+                buildSummary: this.buildRunBuildSummary(),
+                won: true,
+                stage: this.stage,
+                arcadeMode: this.arcadeMode
+            });
+        }, Math.max(0, delay));
+        return true;
+    }
     bossCooldownReady(boss, key) {
         return BossCombatContract.cooldownReady(this.time.now, boss[`${key}ReadyAt`] || 0);
     }
@@ -56405,9 +56499,7 @@ class GameScene extends Phaser.Scene {
             console.warn('Sea Kings reward drop failed during death cleanup:', error);
         }
 
-        this.time.delayedCall(2000, () => {
-            if (this.seaKingsCompletionStarted) this.gameWon();
-        });
+        this.scheduleBossVictory(2000);
     }
     // ===== END SEA KINGS BOSS =====
 
@@ -58748,18 +58840,7 @@ class GameScene extends Phaser.Scene {
             if (this.boss === boss) {
                 this.boss = null;
             }
-            // Trigger actual victory after delay
-            const triggerVictory = () => {
-                this.gameWon();
-            };
-            if (boss.isFrostGuardian || boss.enemyType === 'frost-guardian-boss' ||
-                boss.isDemonSlime || boss.enemyType === 'demon-slime-boss' ||
-                boss.isNekros || boss.enemyType === 'nekros-boss' ||
-                boss.isKingNothing || boss.enemyType === 'king-nothing-boss') {
-                this.time.delayedCall(2000, triggerVictory);
-            } else {
-                this.time.delayedCall(2000, triggerVictory);
-            }
+            this.scheduleBossVictory(2000);
         };
         // Wait for death animation
         boss.once('animationcomplete', (animation, frame) => {
@@ -58786,7 +58867,18 @@ class GameScene extends Phaser.Scene {
     gameWon() {
         // Prevent multiple calls
         if (this.gameWonCalled) return;
+        this.clearBossVictoryTimeout();
         this.gameWonCalled = true;
+        // A boss chest may be anywhere between overlap, opening animation, and
+        // selection. Release every chest-owned pause before terminal tweens/timers.
+        if (this.chestSelectionActive || this.chestOpening || this.pauseSource === 'chest') {
+            this.closeChestUI();
+        }
+        // Terminal UI/timers must advance even if an opening callback cleared the
+        // pause owner without restoring the Phaser clock.
+        this.gamePaused = false;
+        this.pauseSource = null;
+        this.time.timeScale = 1;
         // Stop all music
         if (this.bgMusic) {
             this.bgMusic.stop();
@@ -58852,10 +58944,7 @@ class GameScene extends Phaser.Scene {
             this.chargeHoldTimer.remove();
             this.chargeHoldTimer = null;
         }
-        // Clear any pending level up or chest UI
-        if (this.chestSelectionActive) {
-            this.closeChestUI();
-        }
+        // Clear any pending non-chest UI
         if (this.fusionUI) {
             this.closeFusionUI();
         }
@@ -58875,37 +58964,9 @@ class GameScene extends Phaser.Scene {
             targets: victoryText,
             scale: { from: 0, to: 1 },
             duration: 1000,
-            ease: 'Bounce.easeOut',
-            onComplete: () => {
-                // Use a simple timer for the scene transition
-                this.time.delayedCall(2000, () => {
-                    // Stop all audio before transitioning to prevent null reference errors
-                    if (this.bgMusic) {
-                        this.bgMusic.stop();
-                        this.bgMusic = null;
-                    }
-                    if (this.bossMusic) {
-                        this.bossMusic.stop();
-                        this.bossMusic = null;
-                    }
-                    // Stop all sounds to prevent any lingering audio issues
-                    this.sound.stopAll();
-                    this.scene.start('GameOverScene', {
-                        survivalTime: this.survivalTime,
-                        enemiesKilled: this.enemiesKilled,
-                        itemsCollected: this.itemsCollected,
-                        level: this.playerLevel,
-                        elementsDiscovered: this.elementsDiscovered,
-                        damageDealt: this.damageDealt,
-                        alchemyDiscoveries: this.runAlchemyDiscoveries || [],
-                        buildSummary: this.buildRunBuildSummary(),
-                        won: true,
-                        stage: this.stage,
-                        arcadeMode: this.arcadeMode
-                    });
-                });
-            }
+            ease: 'Bounce.easeOut'
         });
+        this.scheduleWonSceneTransition(3000);
     }
     gameOver() {
         // Stop all sounds immediately
@@ -59011,11 +59072,9 @@ class GameScene extends Phaser.Scene {
         this.boss.attackCooldown = 0;
         this.setEnemySpeed(this.boss, 40); // Reduced by 20% from 50
         this.boss.voidZones = [];
-        // Apply hitbox configuration or use defaults
-        if (!this.applyHitboxConfig(this.boss, this.boss.enemyType)) {
-            this.boss.body.setSize(45, 86);
-            this.boss.body.setOffset(58, 20);
-        }
+        // One frame is 160x111. Keep the vulnerable 45x86 character body
+        // centered in that frame; Phaser scales the body with the 4x sprite.
+        this.configureCenteredBody(this.boss, 45, 86);
         this.boss.setCollideWorldBounds(false);
         this.beginBossEncounter(this.boss);
         // Create crown above boss
@@ -62121,6 +62180,8 @@ if (typeof window !== 'undefined') {
             assert(scene.bossAITimer && !scene.bossAITimer.paused, 'King Nothing AI timer missing');
             assert(boss.anims.currentAnim.key === 'king-nothing-run', 'King Nothing did not enter its run animation');
             assert(boss.displayWidth < 1000 && boss.body.width > 0, 'King Nothing visual/body bounds are not aligned to a single frame');
+            assert(Phaser.Math.Distance.Between(boss.x, boss.y, boss.body.center.x, boss.body.center.y) < 10,
+                'King Nothing body is detached from its rendered center during locomotion');
             assert(Phaser.Math.Distance.Between(boss.x, boss.y, scene.wizard.x, scene.wizard.y) < 400, 'King Nothing spawned outside the active player camera area');
             assert(scene.bossCrown.x === boss.x && Math.abs(scene.bossCrown.y - boss.y) < 120, 'King Nothing crown is detached');
             assertNoRendererErrors('King Nothing boss entry');
@@ -62132,10 +62193,14 @@ if (typeof window !== 'undefined') {
             boss.health = Math.floor(boss.maxHealth * 0.3);
             scene.updateKingNothingBoss();
             assert(boss.phase === 3, 'King Nothing did not enter phase 3 below 33% health');
+            assert(Phaser.Math.Distance.Between(boss.x, boss.y, boss.body.center.x, boss.body.center.y) < 10,
+                'King Nothing body drifted during phase transitions');
             assertNoRendererErrors('King Nothing phase transitions');
 
             scene.kingNothingVoidBarrage();
             assert(boss.anims.currentAnim.key === 'king-nothing-attack1', 'King Nothing attack state did not play an attack animation');
+            assert(Phaser.Math.Distance.Between(boss.x, boss.y, boss.body.center.x, boss.body.center.y) < 10,
+                'King Nothing body drifted during attack animation');
             const encounter = scene.bossEncounter;
             assert(encounter.actionTimers.size > 0, 'King Nothing attack did not own its delayed callbacks');
             scene.handleBossDeath(boss);
