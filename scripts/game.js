@@ -8323,6 +8323,10 @@ class GameOverScene extends Phaser.Scene {
     }
 
     showRunRewardReadback(delay) {
+        // The Castle clear is the web-release ending. Its compact ending layout
+        // needs the results and replay action, not the full mid-screen readback.
+        if (this.releaseComplete) return delay;
+
         const lines = this.getRunRewardReadbackLines();
         if (lines.length === 0) return delay;
 
@@ -8392,16 +8396,23 @@ class GameOverScene extends Phaser.Scene {
             victoryImage.setDepth(0);
         }
         if (this.releaseComplete) {
-            this.add.text(400, 38, 'NINE WORLDS RESTORED', {
+            this.add.text(400, 50, 'NINE WORLDS RESTORED', {
                 fontSize: '30px',
                 color: '#ffd700',
                 fontStyle: 'bold',
                 stroke: '#000000',
                 strokeThickness: 6
             }).setOrigin(0.5).setDepth(120);
-            this.add.text(400, 70, 'Castle marks the end of this release. Replay it any time from the world map.', {
+            this.add.text(400, 82, 'Castle marks the end of this release. Replay it any time from the world map.', {
                 fontSize: '15px',
                 color: '#ffffff',
+                stroke: '#000000',
+                strokeThickness: 3
+            }).setOrigin(0.5).setDepth(120);
+            this.add.text(400, 114, 'CASTLE CLEARED • WEB RELEASE COMPLETE', {
+                fontSize: '16px',
+                color: '#44ffff',
+                fontStyle: 'bold',
                 stroke: '#000000',
                 strokeThickness: 3
             }).setOrigin(0.5).setDepth(120);
@@ -8426,26 +8437,31 @@ class GameOverScene extends Phaser.Scene {
         const totalKills = this.enemiesKilled;
         const score = totalKills * 100 + this.itemsCollected * 10 + Math.floor(totalSeconds) * 5;
 
+        // The release ending reserves a clear vertical lane for the core results
+        // and world-map action. Ordinary win/loss layouts stay unchanged.
+        const endingStatLayout = this.releaseComplete ? { time: 230, kills: 265, items: 300, score: 335, essence: 374 } :
+            { time: 335, kills: 372, items: 405, score: 438, essence: 476 };
+
         // Create text objects with initial alpha 0 - positioned in upper half
-        const timeText = this.add.text(400, 335, `Survived: 0:00`, {
+        const timeText = this.add.text(400, endingStatLayout.time, `Survived: 0:00`, {
             fontSize: '28px',
             color: '#ffffff',
             fontStyle: 'bold'
         }).setOrigin(0.5).setAlpha(0).setScale(0.5);
 
-        const killsText = this.add.text(400, 372, `Enemies Defeated: 0`, {
+        const killsText = this.add.text(400, endingStatLayout.kills, `Enemies Defeated: 0`, {
             fontSize: '24px',
             color: '#ffdd44',
             fontStyle: 'bold'
         }).setOrigin(0.5).setAlpha(0).setScale(0.5);
 
-        const itemsText = this.add.text(400, 405, `Items Collected: 0`, {
+        const itemsText = this.add.text(400, endingStatLayout.items, `Items Collected: 0`, {
             fontSize: '24px',
             color: '#44ff44',
             fontStyle: 'bold'
         }).setOrigin(0.5).setAlpha(0).setScale(0.5);
 
-        const scoreText = this.add.text(400, 438, `Score: 0`, {
+        const scoreText = this.add.text(400, endingStatLayout.score, `Score: 0`, {
             fontSize: '32px',
             color: '#ffd700',
             fontStyle: 'bold'
@@ -8459,7 +8475,7 @@ class GameOverScene extends Phaser.Scene {
         const totalEssence = baseEssence + enemyBonus + timeBonus;
 
         // Show essence text (both win and loss)
-        const essenceText = this.add.text(400, 476, `Essence Earned: 0`, {
+        const essenceText = this.add.text(400, endingStatLayout.essence, `Essence Earned: 0`, {
             fontSize: '28px',
             color: this.won ? '#44ffff' : '#88ffff',
             fontStyle: 'bold'
@@ -8742,12 +8758,14 @@ class GameOverScene extends Phaser.Scene {
                 ? 'Press SPACE for the World Map (Castle Replay Available)'
                 : (this.won ? 'Press SPACE to Return to Stage Select' : 'Press SPACE to Try Again');
         }
-        const restartText = this.add.text(400, 500, buttonText, {
-            fontSize: '24px',
+        const endingActionLayout = this.releaseComplete ? { primary: 435, menu: 470, fontSize: '20px' } :
+            { primary: 500, menu: 540, fontSize: '24px' };
+        const restartText = this.add.text(400, endingActionLayout.primary, buttonText, {
+            fontSize: endingActionLayout.fontSize,
             color: '#ffffff'
         }).setOrigin(0.5).setAlpha(0);
-        const menuText = this.add.text(400, 540, 'Press ESC for Main Menu', {
-            fontSize: '24px',
+        const menuText = this.add.text(400, endingActionLayout.menu, 'Press ESC for Main Menu', {
+            fontSize: endingActionLayout.fontSize,
             color: '#ffffff'
         }).setOrigin(0.5).setAlpha(0);
 
