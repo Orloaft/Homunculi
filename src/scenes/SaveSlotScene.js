@@ -308,11 +308,14 @@ class SaveSlotScene extends Phaser.Scene {
      */
     createSlotUI(slot, centerX, y) {
         const isEmpty = slot.isEmpty;
+        const isDamaged = slot.status === 'CORRUPT' || slot.status === 'INCOMPATIBLE';
         const slotNumber = slot.slotNumber + 1; // Display as 1-3 instead of 0-2
 
         // Slot container background
-        const container = this.add.rectangle(centerX, y, 800, 120, isEmpty ? 0x2d2d44 : 0x3a3a5a)
-            .setStrokeStyle(2, isEmpty ? 0x4a4a6a : 0x6a6a8a);
+        const containerColor = isDamaged ? 0x42222c : (isEmpty ? 0x2d2d44 : 0x3a3a5a);
+        const borderColor = isDamaged ? 0xef4444 : (isEmpty ? 0x4a4a6a : 0x6a6a8a);
+        const container = this.add.rectangle(centerX, y, 800, 120, containerColor)
+            .setStrokeStyle(2, borderColor);
 
         // Slot number
         this.add.text(centerX - 380, y, `SLOT ${slotNumber}`, {
@@ -325,12 +328,58 @@ class SaveSlotScene extends Phaser.Scene {
         if (isEmpty) {
             // Empty slot - show "New Game" button
             this.createNewGameButton(slot.slotNumber, centerX, y);
+        } else if (isDamaged) {
+            this.createDamagedSaveDisplay(slot, centerX, y);
+            this.createResetButton(slot, centerX + 285, y);
         } else {
             // Existing save - show metadata and buttons
             this.createSaveInfoDisplay(slot, centerX, y);
             this.createContinueButton(slot.slotNumber, centerX + 200, y);
             this.createDeleteButton(slot.slotNumber, centerX + 320, y);
         }
+    }
+
+    createDamagedSaveDisplay(slot, centerX, y) {
+        const incompatible = slot.status === 'INCOMPATIBLE';
+        this.add.text(centerX - 270, y - 18,
+            incompatible ? 'INCOMPATIBLE SAVE' : 'CORRUPT SAVE', {
+                fontSize: '23px',
+                fontFamily: 'Arial',
+                color: incompatible ? '#fbbf24' : '#f87171',
+                fontStyle: 'bold'
+            }).setOrigin(0, 0.5);
+        this.add.text(centerX - 270, y + 18,
+            incompatible
+                ? 'Created by a newer or unsupported game version'
+                : 'Save data is damaged and cannot be loaded', {
+                fontSize: '15px',
+                fontFamily: 'Arial',
+                color: '#f3f4f6'
+            }).setOrigin(0, 0.5);
+    }
+
+    createResetButton(slot, x, y) {
+        const button = this.add.text(x, y, 'RESET SLOT', {
+            fontSize: '19px',
+            fontFamily: 'Arial',
+            color: '#ef4444',
+            fontStyle: 'bold'
+        }).setOrigin(0.5)
+            .setInteractive({ useHandCursor: true })
+            .on('pointerover', () => {
+                this.selectedButtonIndex = this.buttonList.findIndex(b => b === button);
+                this.updateButtonSelection();
+            })
+            .on('pointerdown', () => this.confirmDelete(slot.slotNumber, slot.status));
+
+        button.buttonData = {
+            type: 'reset',
+            slotNumber: slot.slotNumber,
+            action: () => this.confirmDelete(slot.slotNumber, slot.status),
+            defaultColor: '#ef4444',
+            hoverColor: '#f87171'
+        };
+        this.buttonList.push(button);
     }
 
     /**
@@ -494,6 +543,10 @@ class SaveSlotScene extends Phaser.Scene {
 
         // Create new save
         const newSave = this.saveManager.createNewSave(slotNumber);
+        if (!newSave) {
+            this.showPersistenceError(this.saveManager.getLastPersistenceError() || 'Could not create save');
+            return;
+        }
 
         // Initialize AchievementManager with the SaveManager
         const achievementManager = new AchievementManager(this.saveManager);
@@ -565,7 +618,7 @@ class SaveSlotScene extends Phaser.Scene {
     /**
      * Confirm deletion with a modal dialog
      */
-    confirmDelete(slotNumber) {
+    confirmDelete(slotNumber, slotStatus = 'VALID') {
         // Disable main navigation while modal is open
         this.modalActive = true;
         this.modalSelection = 1; // 0 = Delete, 1 = Cancel (default to safer option)
@@ -583,21 +636,28 @@ class SaveSlotScene extends Phaser.Scene {
             .setStrokeStyle(3, 0xef4444);
 
         // Warning text
-        const warningTitle = this.add.text(centerX, centerY - 60, 'DELETE SAVE FILE?', {
+        const resettingDamagedSlot = slotStatus === 'CORRUPT' || slotStatus === 'INCOMPATIBLE';
+        const warningTitle = this.add.text(centerX, centerY - 60,
+            resettingDamagedSlot ? 'RESET OCCUPIED SLOT?' : 'DELETE SAVE FILE?', {
             fontSize: '32px',
             fontFamily: 'Arial',
             color: '#ef4444',
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        const warningText = this.add.text(centerX, centerY - 10, 'This action cannot be undone!', {
-            fontSize: '20px',
+        const warningText = this.add.text(centerX, centerY - 10,
+            resettingDamagedSlot
+                ? 'The original raw save will be permanently deleted.\nCancel keeps it unchanged.'
+                : 'This action cannot be undone!', {
+            fontSize: resettingDamagedSlot ? '17px' : '20px',
             fontFamily: 'Arial',
-            color: '#ffffff'
+            color: '#ffffff',
+            align: 'center'
         }).setOrigin(0.5);
 
         // Confirm button
-        const confirmButton = this.add.text(centerX - 80, centerY + 60, 'DELETE', {
+        const confirmButton = this.add.text(centerX - 80, centerY + 60,
+            resettingDamagedSlot ? 'RESET' : 'DELETE', {
             fontSize: '24px',
             fontFamily: 'Arial',
             color: '#ef4444',
@@ -687,6 +747,23 @@ class SaveSlotScene extends Phaser.Scene {
     deleteSlot(slotNumber) {
         console.log(`Deleting save slot ${slotNumber}`);
         this.saveManager.deleteSlot(slotNumber);
+    }
+
+    showPersistenceError(message) {
+        const centerX = this.cameras.main.width / 2;
+        const errorText = this.add.text(centerX, this.cameras.main.height - 100,
+            `SAVE FAILED: ${message}`, {
+                fontSize: '18px',
+                fontFamily: 'Arial',
+                color: '#fecaca',
+                backgroundColor: '#7f1d1d',
+                padding: { x: 14, y: 8 },
+                align: 'center',
+                wordWrap: { width: 700 }
+            }).setOrigin(0.5).setDepth(2000);
+        this.time.delayedCall(6000, () => {
+            if (errorText && errorText.active) errorText.destroy();
+        });
     }
 }
 

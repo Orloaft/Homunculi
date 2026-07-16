@@ -126,16 +126,12 @@
     <div id="preloader">
         <div class="cartridge-container" id="cartridge-3d-container">
             <!-- 3D cartridge will be rendered here -->
-            <img src="gamecartridge/Box+Cartridge-export.png" alt="Loading..." class="cartridge-image" id="cartridge-fallback" style="display: none;" />
+            <img src="gamecartridge/Box+Cartridge-export.png" alt="Loading..." class="cartridge-image" id="cartridge-fallback" />
         </div>
         <div class="loading-text">Initializing...</div>
     </div>
     
     <div id="game-container"></div>
-    
-    <!-- Three.js for 3D cartridge rendering -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
     
     <script src="scripts/phaser.min.js"></script>
     <script src="scripts/hitbox-config.js?v=8"></script>
@@ -174,120 +170,10 @@
     <script src="scripts/autoplay.js"></script>
     
     <script>
-        // Initialize 3D cartridge with Three.js
-        (function init3DCartridge() {
-            const container = document.getElementById('cartridge-3d-container');
-            if (!container) return;
-            
-            try {
-                // Setup Three.js scene
-                const scene = new THREE.Scene();
-                const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-                
-                // Try WebGL renderer first
-                let renderer;
-                try {
-                    renderer = new THREE.WebGLRenderer({ 
-                        antialias: true, 
-                        alpha: true,
-                        powerPreference: 'high-performance'
-                    });
-                    console.log('Three.js WebGL renderer initialized');
-                } catch (e) {
-                    console.warn('WebGL failed for Three.js, using Canvas fallback');
-                    // Fallback to image if WebGL fails
-                    document.getElementById('cartridge-fallback').style.display = 'block';
-                    return;
-                }
-                
-                renderer.setSize(300, 300);
-                renderer.setClearColor(0x000000, 0);
-                container.appendChild(renderer.domElement);
-                
-                // Add lighting
-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-                scene.add(ambientLight);
-                const directionalLight = new THREE.DirectionalLight(0x00ffff, 0.4);
-                directionalLight.position.set(1, 1, 1);
-                scene.add(directionalLight);
-                
-                // Load OBJ model
-                const loader = new THREE.OBJLoader();
-                let cartridgeModel = null;
-                
-                // Load texture
-                const textureLoader = new THREE.TextureLoader();
-                const texture = textureLoader.load('gamecartridge/Box+Cartridge-export.png');
-                
-                loader.load(
-                    'gamecartridge/Box+Cartridge.obj',
-                    function (object) {
-                        // Apply texture to all meshes
-                        object.traverse(function (child) {
-                            if (child instanceof THREE.Mesh) {
-                                child.material = new THREE.MeshPhongMaterial({
-                                    map: texture,
-                                    specular: 0x222222,
-                                    shininess: 25
-                                });
-                            }
-                        });
-                        
-                        // Scale and position the model
-                        object.scale.set(2, 2, 2);
-                        object.position.set(0, 0, 0);
-                        
-                        cartridgeModel = object;
-                        scene.add(object);
-                        console.log('3D cartridge model loaded');
-                    },
-                    function (xhr) {
-                        console.log((xhr.loaded / xhr.total * 100) + '% loaded');
-                    },
-                    function (error) {
-                        console.error('Error loading OBJ:', error);
-                        // Fallback to image
-                        document.getElementById('cartridge-fallback').style.display = 'block';
-                    }
-                );
-                
-                // Position camera
-                camera.position.z = 3;
-                
-                // Animation loop
-                function animate() {
-                    requestAnimationFrame(animate);
-                    
-                    // Rotate the cartridge
-                    if (cartridgeModel) {
-                        cartridgeModel.rotation.y += 0.01;
-                        cartridgeModel.rotation.x = Math.sin(Date.now() * 0.001) * 0.1;
-                    }
-                    
-                    renderer.render(scene, camera);
-                }
-                animate();
-                
-                // Store renderer for cleanup
-                window.cartridge3DRenderer = renderer;
-                
-            } catch (error) {
-                console.error('Failed to initialize 3D cartridge:', error);
-                // Show fallback image
-                document.getElementById('cartridge-fallback').style.display = 'block';
-            }
-        })();
-        
         // Hide the pre-loader once Phaser starts rendering
         window.hidePreloader = function() {
             const preloader = document.getElementById('preloader');
             if (preloader) {
-                // Clean up Three.js renderer
-                if (window.cartridge3DRenderer) {
-                    window.cartridge3DRenderer.dispose();
-                    window.cartridge3DRenderer = null;
-                }
-                
                 preloader.classList.add('hidden');
                 // Remove from DOM after transition
                 setTimeout(() => {

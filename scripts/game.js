@@ -40,6 +40,10 @@ const STAGE_PROGRESSION = [
     { stage: 'void', worldId: 'voidland', name: 'The Void', legacyUnlockKeys: ['voidLandUnlocked', 'voidlandLandUnlocked'] }
 ];
 
+// The web release ends at Castle. Later worlds remain authored for future promotion,
+// but are deliberately excluded from normal progression and completion checks.
+const RELEASE_STAGE_PROGRESSION = STAGE_PROGRESSION.slice(0, 9);
+
 function getStageProgressionEntry(stage) {
     return STAGE_PROGRESSION.find(entry => entry.stage === stage);
 }
@@ -49,11 +53,11 @@ function getStageProgressionEntryByWorldId(worldId) {
 }
 
 function getNextStageProgressionEntry(stage) {
-    const currentIndex = STAGE_PROGRESSION.findIndex(entry => entry.stage === stage);
-    if (currentIndex === -1 || currentIndex >= STAGE_PROGRESSION.length - 1) {
+    const currentIndex = RELEASE_STAGE_PROGRESSION.findIndex(entry => entry.stage === stage);
+    if (currentIndex === -1 || currentIndex >= RELEASE_STAGE_PROGRESSION.length - 1) {
         return null;
     }
-    return STAGE_PROGRESSION[currentIndex + 1];
+    return RELEASE_STAGE_PROGRESSION[currentIndex + 1];
 }
 
 function getStageIdForProgressionEntry(entry) {
@@ -1100,7 +1104,7 @@ class LoadingScene extends Phaser.Scene {
             frameWidth: 64,
             frameHeight: 64
         });
-        this.load.spritesheet('seaking1-death', 'assets/enemies/oceanlandenemies/threekingsboss/Beholder1/Death/Beholder1_Death_body.png', {
+        this.load.spritesheet('seaking1-death', 'assets/enemies/oceanlandenemies/threekingsboss/Beholder1/Death/Beholder1_Death_bpdy.png', {
             frameWidth: 64,
             frameHeight: 64
         });
@@ -3146,7 +3150,7 @@ class TitleScene extends Phaser.Scene {
 class StageSelectScene extends Phaser.Scene {
     constructor() {
         super({ key: 'StageSelectScene' });
-        this.selectedStage = 11; // Start with Nexus selected (now at index 11 after adding 3 stages)
+        this.selectedStage = 10; // Start with Nexus selected in the nine-world release map
         // Initialize detail view state
         this.detailViewActive = false;
         // Character selection state
@@ -3416,7 +3420,7 @@ class StageSelectScene extends Phaser.Scene {
                 return false;
             }
 
-            return STAGE_PROGRESSION.every(entry => {
+            return RELEASE_STAGE_PROGRESSION.every(entry => {
                 const stageId = getStageIdForProgressionEntry(entry);
                 return saveData.stages.completedStages.includes(stageId);
             });
@@ -3441,8 +3445,6 @@ class StageSelectScene extends Phaser.Scene {
               icon: 'planet-grave', color: 0x444444, x: 500, y: 400, worldId: 'graveland' },
             { name: 'Castle Land', unlocked: isWorldUnlocked('castleland'), description: 'An ancient fortress of evil',
               icon: 'planet-castle', color: 0x666666, x: 700, y: 300, worldId: 'castleland' },
-            { name: 'Spire Land', unlocked: isWorldUnlocked('spireland'), description: 'Tower reaching to the heavens',
-              icon: 'planet-spire', color: 0x8B6914, x: 150, y: 400, worldId: 'spireland' },
             { name: 'The Void', unlocked: isWorldUnlocked('voidland'), description: 'The final dimension of darkness',
               icon: 'void', color: 0x4B0082, x: 700, y: 450, worldId: 'voidland' },
             { name: 'Nexus', unlocked: true, description: 'Eternal power awaits within', 
@@ -3450,6 +3452,23 @@ class StageSelectScene extends Phaser.Scene {
             { name: 'Arcade', unlocked: allStagesCompleted(), description: 'The final challenge awaits!',
               icon: 'arcademachine', color: 0x00ff00, x: 750, y: 550, isArcade: true }
         ];
+        this.releaseComplete = !!(saveData && saveData.stages &&
+            RELEASE_STAGE_PROGRESSION.every(entry => saveData.stages.completedStages.includes(getStageIdForProgressionEntry(entry))));
+        if (this.releaseComplete) {
+            this.add.text(400, 34, 'NINE WORLDS RESTORED', {
+                fontSize: '27px',
+                color: '#ffd700',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 5
+            }).setOrigin(0.5).setDepth(1200);
+            this.add.text(400, 64, 'Castle is complete and remains available to replay', {
+                fontSize: '16px',
+                color: '#ffffff',
+                stroke: '#000000',
+                strokeThickness: 3
+            }).setOrigin(0.5).setDepth(1200);
+        }
         // Create deep space/abyss background
         this.cameras.main.setBackgroundColor('#0a0a1a');
         // Add floating particles for mystical effect
@@ -3717,8 +3736,8 @@ class StageSelectScene extends Phaser.Scene {
         this.mKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
         // UI elements already created at the beginning of create()
         // Highlight Nexus initially (it's always unlocked)
-        this.selectedStage = 11; // Nexus is at index 11
-        this.highlightStage(11);
+        this.selectedStage = 10; // Nexus is at index 10 in the release map
+        this.highlightStage(10);
         // Ensure input is enabled (important when returning from game over)
         this.input.enabled = true;
         this.input.keyboard.enabled = true;
@@ -3847,22 +3866,16 @@ class StageSelectScene extends Phaser.Scene {
     }
     createConstellationPaths(animated = false) {
         // Create connections between stages (constellation style)
-        const connections = [
-            [0, 1], // Forest Land to Cave Land
-            [1, 2], // Cave Land to Sand Land
-            [0, 3], // Forest Land to Lava Land
-            [1, 3], // Cave Land to Lava Land
-            [2, 3], // Sand Land to Lava Land
-            [3, 4], // Lava Land to Grave Land
-            [4, 5], // Grave Land to Castle Land
-            [5, 7], // Castle Land to The Void
-            [0, 6], // Forest Land to Spire Land
-            [6, 7], // Spire Land to The Void
-            [0, 8], // Forest Land to Nexus
-            [1, 8], // Cave Land to Nexus
-            [3, 8], // Lava Land to Nexus
-            [8, 7]  // Nexus to The Void
-        ];
+        const releaseConnections = RELEASE_STAGE_PROGRESSION.slice(0, -1).map((entry, index) => [
+            this.stages.findIndex(stage => stage.worldId === entry.worldId),
+            this.stages.findIndex(stage => stage.worldId === RELEASE_STAGE_PROGRESSION[index + 1].worldId)
+        ]);
+        const nexusIndex = this.stages.findIndex(stage => stage.isNexus);
+        const connections = releaseConnections.concat([
+            [this.stages.findIndex(stage => stage.worldId === 'forestland'), nexusIndex],
+            [this.stages.findIndex(stage => stage.worldId === 'caveland'), nexusIndex],
+            [this.stages.findIndex(stage => stage.worldId === 'lavaland'), nexusIndex]
+        ]).filter(([from, to]) => from >= 0 && to >= 0);
         // Store graphics as class property so we can hide it later
         this.constellationGraphics = this.add.graphics();
         if (animated) {
@@ -8124,6 +8137,12 @@ class GameOverScene extends Phaser.Scene {
         this.won = data.won || false;
         this.stage = data.stage || 'forest';
         this.arcadeMode = data.arcadeMode || false;
+        this.retryData = data.retryData && typeof data.retryData === 'object'
+            ? data.retryData
+            : { stage: this.stage, p1Character: data.p1Character || 'wizard' };
+        this.releaseComplete = this.won && this.stage === 'castle' && !this.arcadeMode;
+        this.persistenceFailed = false;
+        this.primaryActionHandled = false;
 
         // Get managers from registry
         this.saveManager = this.registry.get('saveManager');
@@ -8132,8 +8151,13 @@ class GameOverScene extends Phaser.Scene {
         // If we have a save manager, update stats and auto-save (both win and loss)
         if (this.saveManager) {
             this.updateSaveData();
-            this.saveManager.autoSave();
-            console.log(this.won ? '✅ Auto-saved after stage completion' : '✅ Auto-saved after stage attempt (essence retained)');
+            const saved = this.saveManager.autoSave();
+            this.persistenceFailed = !saved;
+            if (saved) {
+                console.log(this.won ? '✅ Auto-saved after stage completion' : '✅ Auto-saved after stage attempt (essence retained)');
+            } else {
+                console.error('❌ Progress could not be persisted; the previous save remains unchanged');
+            }
         }
 
         // Don't check achievements here - wait until create() when notification system is ready
@@ -8366,6 +8390,34 @@ class GameOverScene extends Phaser.Scene {
             // Reduced by 40% to fit viewport (was 0.8, now 0.48)
             victoryImage.setScale(0.48);
             victoryImage.setDepth(0);
+        }
+        if (this.releaseComplete) {
+            this.add.text(400, 38, 'NINE WORLDS RESTORED', {
+                fontSize: '30px',
+                color: '#ffd700',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 6
+            }).setOrigin(0.5).setDepth(120);
+            this.add.text(400, 70, 'Castle marks the end of this release. Replay it any time from the world map.', {
+                fontSize: '15px',
+                color: '#ffffff',
+                stroke: '#000000',
+                strokeThickness: 3
+            }).setOrigin(0.5).setDepth(120);
+        }
+        if (this.persistenceFailed) {
+            const failureReason = this.saveManager && this.saveManager.getLastPersistenceError
+                ? this.saveManager.getLastPersistenceError()
+                : 'storage write failed';
+            this.add.text(400, 565, `SAVE FAILED — previous data preserved (${failureReason})`, {
+                fontSize: '14px',
+                color: '#fecaca',
+                backgroundColor: '#7f1d1d',
+                padding: { x: 8, y: 5 },
+                wordWrap: { width: 720 },
+                align: 'center'
+            }).setOrigin(0.5).setDepth(200);
         }
         // Calculate final values
         const totalSeconds = Math.floor(this.survivalTime / 1000);
@@ -8686,7 +8738,9 @@ class GameOverScene extends Phaser.Scene {
         if (this.arcadeMode) {
             buttonText = this.won ? 'Press SPACE to Continue to Next Stage' : 'Press SPACE to Return to Title';
         } else {
-            buttonText = this.won ? 'Press SPACE to Return to Stage Select' : 'Press SPACE to Try Again';
+            buttonText = this.releaseComplete
+                ? 'Press SPACE for the World Map (Castle Replay Available)'
+                : (this.won ? 'Press SPACE to Return to Stage Select' : 'Press SPACE to Try Again');
         }
         const restartText = this.add.text(400, 500, buttonText, {
             fontSize: '24px',
@@ -8707,41 +8761,7 @@ class GameOverScene extends Phaser.Scene {
             });
         });
         this.input.keyboard.once('keydown-SPACE', () => {
-            console.log('SPACE pressed - arcadeMode:', this.arcadeMode, 'won:', this.won);
-            if (this.arcadeMode) {
-                if (this.won) {
-                    // Arcade mode victory: advance to next stage
-                    console.log('Arcade mode victory - advancing to next stage');
-                    const arcadeStages = JSON.parse(localStorage.getItem('arcadeStages') || '["forest", "cave", "sand", "swamp", "ocean", "snow", "castle", "lava", "grave"]');
-                    // Find current stage in the array
-                    const currentIndex = arcadeStages.indexOf(this.stage);
-
-                    // Move to next stage (wrap around to start if at end)
-                    const nextIndex = (currentIndex + 1) % arcadeStages.length;
-                    localStorage.setItem('currentArcadeStageIndex', nextIndex.toString());
-
-                    this.scene.start('GameScene', {
-                        multiplayerEnabled: false,
-                        stage: arcadeStages[nextIndex],
-                        arcadeMode: true
-                    });
-                } else {
-                    // Arcade mode loss: return to title screen
-                    console.log('Arcade mode loss - returning to title screen');
-                    this.sound.stopAll();
-                    this.scene.start('TitleScene');
-                }
-            } else {
-                // Normal mode: unlock next stage if won, then go to stage select
-                console.log('Normal mode - going to stage select');
-                if (this.won) {
-                    this.unlockNextStage();
-                }
-                this.scene.start('StageSelectScene', {
-                    fromCharacterSelect: true,
-                    showCharacterSelect: false
-                });
-            }
+            this.performPrimaryAction();
         });
         this.input.keyboard.once('keydown-ESC', () => {
             // Stop all sounds including boss music
@@ -8753,45 +8773,56 @@ class GameOverScene extends Phaser.Scene {
             this.gamepad = this.input.gamepad.getPad(0);
         }
     }
+    performPrimaryAction() {
+        if (this.primaryActionHandled) return;
+        this.primaryActionHandled = true;
+        console.log('Primary GameOver action - arcadeMode:', this.arcadeMode, 'won:', this.won);
+        if (this.arcadeMode) {
+            if (this.won) {
+                const arcadeStages = JSON.parse(localStorage.getItem('arcadeStages') || '["forest", "cave", "sand", "swamp", "ocean", "snow", "castle", "lava", "grave"]');
+                const currentIndex = arcadeStages.indexOf(this.stage);
+                const nextIndex = (currentIndex + 1) % arcadeStages.length;
+                localStorage.setItem('currentArcadeStageIndex', nextIndex.toString());
+                this.scene.start('GameScene', {
+                    multiplayerEnabled: false,
+                    stage: arcadeStages[nextIndex],
+                    arcadeMode: true
+                });
+            } else {
+                this.sound.stopAll();
+                this.scene.start('TitleScene');
+            }
+            return;
+        }
+
+        if (!this.won) {
+            this.sound.stopAll();
+            this.scene.start('LoadingScene', {
+                nextScene: 'GameScene',
+                data: { ...this.retryData, arcadeMode: false }
+            });
+            return;
+        }
+
+        this.unlockNextStage();
+        this.scene.start('StageSelectScene', {
+            fromCharacterSelect: true,
+            showCharacterSelect: false,
+            resuming: true,
+            saveManager: this.saveManager
+        });
+    }
     update() {
         // Check for gamepad buttons
         if (this.input.gamepad && this.input.gamepad.total > 0) {
             const pad = this.input.gamepad.getPad(0);
             if (pad) {
                 // A button or Start button to retry/continue
-                if (pad.buttons[0].pressed || pad.buttons[9].pressed) {
-                    if (this.arcadeMode) {
-                        if (this.won) {
-                            // Arcade mode victory: advance to next stage
-                            const arcadeStages = JSON.parse(localStorage.getItem('arcadeStages') || '["forest", "cave", "sand", "swamp", "ocean", "snow", "castle", "lava", "grave"]');
-                            // Find current stage in the array
-                            const currentIndex = arcadeStages.indexOf(this.stage);
-
-                            // Move to next stage (wrap around to start if at end)
-                            const nextIndex = (currentIndex + 1) % arcadeStages.length;
-                            localStorage.setItem('currentArcadeStageIndex', nextIndex.toString());
-
-                            this.scene.start('GameScene', {
-                                multiplayerEnabled: false,
-                                stage: arcadeStages[nextIndex],
-                                arcadeMode: true
-                            });
-                        } else {
-                            // Arcade mode loss: return to title screen
-                            this.sound.stopAll();
-                            this.scene.start('TitleScene');
-                        }
-                    } else {
-                        // Normal mode
-                        if (this.won) {
-                            this.unlockNextStage();
-                        }
-                        this.scene.start('StageSelectScene', {
-                            fromCharacterSelect: true,
-                            showCharacterSelect: false
-                        });
-                    }
+                const primaryPressed = pad.buttons[0].pressed || pad.buttons[9].pressed;
+                if (primaryPressed && !this.gamepadPrimaryPressed) {
+                    this.performPrimaryAction();
                 }
+                this.gamepadPrimaryPressed = primaryPressed;
                 // B button or Back button for main menu
                 if (pad.buttons[1].pressed || pad.buttons[8].pressed) {
                     this.scene.start('TitleScene');
@@ -12218,7 +12249,7 @@ class GameScene extends Phaser.Scene {
                 changeCount++;
                 // Only log first 3 changes to avoid spam
                 if (changeCount <= 3) {
-                    console.error('=== TIMESCALE CHANGED from', lastTimeScale, 'to', this.time.timeScale, '===');
+                    console.debug('=== TIMESCALE CHANGED from', lastTimeScale, 'to', this.time.timeScale, '===');
                     if (changeCount === 1) {
                     }
                 }
@@ -23851,7 +23882,7 @@ class GameScene extends Phaser.Scene {
         }
         // Only log the FIRST pause to find the culprit
         if (!this._firstPauseLogged) {
-            console.error('=== FIRST PAUSE GAME CALLED BY:', source, '===');
+            console.debug('=== FIRST PAUSE GAME CALLED BY:', source, '===');
             this._firstPauseLogged = true;
         }
         if (this.gamePaused) {
@@ -29537,6 +29568,26 @@ class GameScene extends Phaser.Scene {
         return 1 + (this.passiveUpgrades.damage * 0.2);
     }
 
+    getRetryData() {
+        return {
+            stage: this.stage,
+            multiplayerEnabled: this.multiplayerEnabled,
+            p2ControllerIndex: this.p2ControllerIndex,
+            p1Character: this.p1Character || 'wizard',
+            p2Character: this.p2Character || null,
+            p3Character: this.p3Character || null,
+            p4Character: this.p4Character || null,
+            coopMode: this.coopMode,
+            p2Joined: this.p2Joined,
+            playerCount: this.playerCount || 1,
+            playerControllers: Array.isArray(this.playerControllers)
+                ? this.playerControllers.map(controller => ({ ...controller }))
+                : [],
+            startElement: this.startElement || this.selectedStartElement || null,
+            arcadeMode: false
+        };
+    }
+
     /**
      * Centralized player death check with revive support
      * Call this whenever player health reaches 0
@@ -29674,7 +29725,10 @@ class GameScene extends Phaser.Scene {
                     damageDealt: this.damageDealt,
                     alchemyDiscoveries: this.runAlchemyDiscoveries || [],
                     buildSummary: this.buildRunBuildSummary(),
-                    won: false
+                    won: false,
+                    stage: this.stage,
+                    arcadeMode: this.arcadeMode,
+                    retryData: this.getRetryData()
                 });
             }
         });
@@ -32258,7 +32312,7 @@ class GameScene extends Phaser.Scene {
             delay: tickInterval,
             callback: () => {
                 if (this.playerHealth > 0 && !this.isPaused && !this.chestSelectionActive) {
-                    this.playerHealth -= damage;
+                    this.playerHealth = Math.max(0, this.playerHealth - damage);
                     this.updateHealthBar();
                     this.updateWizardHealthBar();
                     // Flash effect
@@ -33421,7 +33475,9 @@ class GameScene extends Phaser.Scene {
                     alchemyDiscoveries: this.runAlchemyDiscoveries || [],
                     buildSummary: this.buildRunBuildSummary(),
                     won: false,
-                    stage: this.selectedStage || this.stage || 'forest'
+                    stage: this.selectedStage || this.stage || 'forest',
+                    arcadeMode: this.arcadeMode,
+                    retryData: this.getRetryData()
                 });
             }
             return;
@@ -53809,7 +53865,7 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        this.playerHealth -= damage;
+        this.playerHealth = Math.max(0, this.playerHealth - damage);
 
         // Play player hurt sound
         if (this.cache.audio.exists('player-hurt')) {
@@ -59019,7 +59075,8 @@ class GameScene extends Phaser.Scene {
                 buildSummary: this.buildRunBuildSummary(),
                 won: false,
                 stage: this.stage,
-                arcadeMode: this.arcadeMode
+                arcadeMode: this.arcadeMode,
+                retryData: this.getRetryData()
             });
         });
     }
@@ -61819,7 +61876,12 @@ if (typeof window !== 'undefined') {
 
             scene.handleBossDeath(kings[0]);
             await waitFor('single Sea King death handling', () => kings[0].isDead === true && scene.boss && scene.boss !== kings[0], 3000);
+            assert(kings[0].anims.currentAnim && kings[0].anims.currentAnim.key.startsWith('seaking1-death-'), 'Sea King 1 did not enter its death animation');
+            assert(kings[0].anims.currentAnim.frames.length === 9, 'Sea King 1 death did not expose nine valid frames');
+            const seaKing1DeathStartFrame = kings[0].anims.currentFrame && kings[0].anims.currentFrame.textureFrame;
             await wait(500);
+            const seaKing1DeathLaterFrame = kings[0].anims.currentFrame && kings[0].anims.currentFrame.textureFrame;
+            assert(seaKing1DeathLaterFrame !== seaKing1DeathStartFrame, 'Sea King 1 death frames did not advance');
             assert(scene.gameWonCalled !== true, 'Killing one Sea King should not end the run');
             assert(scene.bossHealthBar && scene.bossHealthBar.active, 'Sea Kings health bar should remain after one king death');
             assert(scene.seaKingsTotalHealth === expectedHealthPerKing * 2, 'Sea Kings combined health did not update after one king death');
@@ -61827,6 +61889,9 @@ if (typeof window !== 'undefined') {
 
             scene.handleBossDeath(kings[1]);
             scene.handleBossDeath(kings[2]);
+            assert(kings[1].anims.currentAnim && kings[1].anims.currentAnim.frames.length === 9, 'Sea King 2 death animation is incomplete');
+            assert(kings[2].anims.currentAnim && kings[2].anims.currentAnim.frames.length === 9, 'Sea King 3 death animation is incomplete');
+            const seaKingDeathFrameCounts = kings.map(king => king.anims.currentAnim.frames.length);
             try {
                 await waitFor('all Sea Kings death cleanup', () => scene.gameWonCalled === true && scene.gameEnded === true && scene.boss === null, 8000);
             } catch (error) {
@@ -61841,7 +61906,10 @@ if (typeof window !== 'undefined') {
                 kings: kings.map(king => king.enemyType),
                 maxHealthPerKing: expectedHealthPerKing,
                 totalMaxHealth: expectedHealthPerKing * 3,
-                gameWonCalled: scene.gameWonCalled === true
+                gameWonCalled: scene.gameWonCalled === true,
+                deathFramesPerKing: seaKingDeathFrameCounts,
+                seaKing1DeathFrameProgressed: seaKing1DeathLaterFrame !== seaKing1DeathStartFrame,
+                completionStartedExactlyOnce: scene.seaKingsCompletionStarted === true
             };
         } finally {
             window.removeEventListener('error', captureRendererError);
@@ -62701,15 +62769,15 @@ if (typeof window !== 'undefined') {
             assertNoRendererErrors('StageSelect Grave reload check failed');
             assert(getStage(stages, 'Grave Land').unlocked === true, 'Stage select did not preserve Grave unlock from save');
             assert(getStage(stages, 'Castle Land').unlocked === true, 'Stage select did not show Castle unlocked from save');
-            assert(getStage(stages, 'Spire Land').unlocked === false, 'Stage select unlocked Spire too early');
+            assert(!getStage(stages, 'Spire Land'), 'Stage select exposed deferred Spire before Castle');
 
             saveData = simulateVictory(reloadAfterGrave, 'castle', 1080000);
-            assert(simulateVictory.lastReadback && simulateVictory.lastReadback.unlockedWorldName === 'Spire Land', 'Castle reward readback did not name the Spire unlock');
+            assert(simulateVictory.lastReadback && simulateVictory.lastReadback.unlockedWorldName === null, 'Castle should not unlock a deferred world');
             assert(simulateVictory.lastReadback.unlockedCharacterName === null, 'Castle reward readback should not report a character unlock');
             assert(simulateVictory.lastReadback.stageIdentity === 'Castle formation pressure', 'Castle reward readback did not include stage identity');
             assert(simulateVictory.lastReadback.stageRoster.includes('castle-knight'), 'Castle reward readback did not include roster pressure');
             assert(saveData.stages.completedStages.includes('castle-1'), 'Castle completion was not recorded');
-            assert(saveData.stages.unlockedWorlds.includes('spireland'), 'Castle victory did not unlock Spire');
+            assert(!saveData.stages.unlockedWorlds.includes('spireland'), 'Castle victory exposed deferred Spire');
             assert(saveData.stages.stageStats['castle-1'].attempts >= 1, 'Castle stage stats attempts were not recorded');
             assert(saveData.stages.stageStats['castle-1'].bestTime === 1080000, 'Castle stage stats best time was not recorded');
 
@@ -62719,7 +62787,8 @@ if (typeof window !== 'undefined') {
             stages = await startStageSelectAndGetStages(reloadAfterCastle);
             assertNoRendererErrors('StageSelect Castle reload check failed');
             assert(getStage(stages, 'Castle Land').unlocked === true, 'Stage select did not preserve Castle unlock from save');
-            assert(getStage(stages, 'Spire Land').unlocked === true, 'Stage select did not show Spire unlocked from save');
+            assert(!getStage(stages, 'Spire Land'), 'Stage select exposed deferred Spire after reload');
+            assert(reloadAfterCastle.calculateProgress(reloadAfterCastle.currentSaveData) === 100, 'Nine release worlds should report 100% completion');
 
             return {
                 ok: true,

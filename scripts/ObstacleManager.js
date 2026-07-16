@@ -463,6 +463,11 @@ class ObstacleManager {
                 scale = 0.4;
             }
         }
+        // Stages without an obstacle art family (for example Ocean) intentionally
+        // leave generated cells empty instead of requesting an undefined texture.
+        if (!texture) {
+            return null;
+        }
         // Check if texture exists
         if (!this.scene.textures.exists(texture)) {
             console.error(`Texture '${texture}' does not exist for stage ${this.stage}!`);

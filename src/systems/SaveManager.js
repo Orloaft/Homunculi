@@ -8,8 +8,18 @@ class SaveManager {
     constructor() {
         this.MAX_SAVE_SLOTS = 3;
         this.SAVE_KEY_PREFIX = 'wizbiz_save_';
+        this.TRANSACTION_KEY_SUFFIX = '_pending';
+        this.CURRENT_SAVE_VERSION = '1.0.0';
+        this.RELEASE_STAGE_COUNT = 9;
+        this.SLOT_STATUS = Object.freeze({
+            EMPTY: 'EMPTY',
+            VALID: 'VALID',
+            CORRUPT: 'CORRUPT',
+            INCOMPATIBLE: 'INCOMPATIBLE'
+        });
         this.currentSlot = null;
         this.currentSaveData = null;
+        this.lastPersistenceError = null;
     }
 
     /**
@@ -17,7 +27,7 @@ class SaveManager {
      */
     getEmptySaveData() {
         return {
-            version: '1.0.0',
+            version: this.CURRENT_SAVE_VERSION,
             createdAt: Date.now(),
             lastSaved: Date.now(),
             playTime: 0, // Total play time in milliseconds
@@ -111,13 +121,7 @@ class SaveManager {
     getAllSaveSlots() {
         const slots = [];
         for (let i = 0; i < this.MAX_SAVE_SLOTS; i++) {
-            const slotData = this.loadSlot(i);
-            slots.push({
-                slotNumber: i,
-                isEmpty: !slotData,
-                data: slotData,
-                metadata: slotData ? this.getSaveMetadata(slotData) : null
-            });
+            slots.push(this.inspectSlot(i));
         }
         return slots;
     }
@@ -128,16 +132,18 @@ class SaveManager {
     getSaveMetadata(saveData) {
         if (!saveData) return null;
 
-        const playTimeHours = Math.floor(saveData.playTime / 3600000);
-        const playTimeMinutes = Math.floor((saveData.playTime % 3600000) / 60000);
+        const normalized = this.normalizeSaveData(saveData);
+
+        const playTimeHours = Math.floor(normalized.playTime / 3600000);
+        const playTimeMinutes = Math.floor((normalized.playTime % 3600000) / 60000);
 
         return {
-            playerLevel: saveData.player.level,
-            currentStage: saveData.stages.currentStage || 'New Game',
-            completedStages: saveData.stages.completedStages.length,
-            lastSaved: new Date(saveData.lastSaved).toLocaleString(),
+            playerLevel: normalized.player.level,
+            currentStage: normalized.stages.currentStage || 'New Game',
+            completedStages: normalized.stages.completedStages.length,
+            lastSaved: new Date(normalized.lastSaved).toLocaleString(),
             playTime: `${playTimeHours}h ${playTimeMinutes}m`,
-            progress: this.calculateProgress(saveData)
+            progress: this.calculateProgress(normalized)
         };
     }
 
@@ -145,10 +151,188 @@ class SaveManager {
      * Calculate overall game completion percentage
      */
     calculateProgress(saveData) {
-        // This can be customized based on what counts as "completion"
-        const totalStages = 50; // Update with actual total
-        const completedStages = saveData.stages.completedStages.length;
-        return Math.floor((completedStages / totalStages) * 100);
+        const releaseStageIds = new Set([
+            'forest-1', 'cave-1', 'sand-1', 'swamp-1', 'snow-1',
+            'ocean-1', 'lava-1', 'grave-1', 'castle-1'
+        ]);
+        const completedStages = new Set(this.normalizeSaveData(saveData).stages.completedStages);
+        const releaseStagesCompleted = Array.from(releaseStageIds)
+            .filter(stageId => completedStages.has(stageId)).length;
+        return Math.floor((releaseStagesCompleted / this.RELEASE_STAGE_COUNT) * 100);
+    }
+
+    isPlainObject(value) {
+        return value !== null && typeof value === 'object' && !Array.isArray(value);
+    }
+
+    cloneValue(value) {
+        if (Array.isArray(value)) return value.map(item => this.cloneValue(item));
+        if (this.isPlainObject(value)) {
+            const clone = {};
+            Object.keys(value).forEach(key => { clone[key] = this.cloneValue(value[key]); });
+            return clone;
+        }
+        return value;
+    }
+
+    normalizeValue(value, defaultValue) {
+        if (Array.isArray(defaultValue)) {
+            return Array.isArray(value) ? this.cloneValue(value) : this.cloneValue(defaultValue);
+        }
+        if (this.isPlainObject(defaultValue)) {
+            const source = this.isPlainObject(value) ? value : {};
+            const normalized = this.cloneValue(source);
+            Object.keys(defaultValue).forEach(key => {
+                normalized[key] = this.normalizeValue(source[key], defaultValue[key]);
+            });
+            return normalized;
+        }
+        if (defaultValue === null) {
+            return value === undefined ? null : this.cloneValue(value);
+        }
+        if (typeof defaultValue === 'number') {
+            return typeof value === 'number' && Number.isFinite(value) ? value : defaultValue;
+        }
+        if (typeof defaultValue === 'string') {
+            return typeof value === 'string' ? value : defaultValue;
+        }
+        if (typeof defaultValue === 'boolean') {
+            return typeof value === 'boolean' ? value : defaultValue;
+        }
+        return value === undefined ? defaultValue : this.cloneValue(value);
+    }
+
+    normalizeSaveData(saveData) {
+        if (!this.isPlainObject(saveData)) {
+            throw new Error('Save root must be an object');
+        }
+        const normalized = this.normalizeValue(saveData, this.getEmptySaveData());
+        normalized.version = this.CURRENT_SAVE_VERSION;
+        normalized.stages.completedStages = Array.from(new Set(normalized.stages.completedStages
+            .filter(stageId => typeof stageId === 'string')));
+        normalized.stages.unlockedWorlds = Array.from(new Set(normalized.stages.unlockedWorlds
+            .filter(worldId => typeof worldId === 'string')));
+        if (!normalized.stages.unlockedWorlds.includes('forestland')) {
+            normalized.stages.unlockedWorlds.unshift('forestland');
+        }
+        normalized.characters.unlocked = Array.from(new Set(normalized.characters.unlocked
+            .filter(character => typeof character === 'string')));
+        if (!normalized.characters.unlocked.includes('wizard')) {
+            normalized.characters.unlocked.unshift('wizard');
+        }
+        return normalized;
+    }
+
+    compareVersions(left, right) {
+        const parse = version => {
+            if (typeof version !== 'string' || !/^\d+\.\d+\.\d+$/.test(version)) return null;
+            return version.split('.').map(Number);
+        };
+        const a = parse(left);
+        const b = parse(right);
+        if (!a || !b) return null;
+        for (let i = 0; i < 3; i++) {
+            if (a[i] !== b[i]) return a[i] > b[i] ? 1 : -1;
+        }
+        return 0;
+    }
+
+    inspectSlot(slotNumber) {
+        const key = this.SAVE_KEY_PREFIX + slotNumber;
+        let rawPayload;
+        try {
+            rawPayload = localStorage.getItem(key);
+        } catch (error) {
+            return {
+                slotNumber,
+                status: this.SLOT_STATUS.CORRUPT,
+                isEmpty: false,
+                data: null,
+                metadata: null,
+                rawPayload: null,
+                reason: `Storage read failed: ${error.message || error}`
+            };
+        }
+
+        if (rawPayload === null) {
+            return {
+                slotNumber,
+                status: this.SLOT_STATUS.EMPTY,
+                isEmpty: true,
+                data: null,
+                metadata: null,
+                rawPayload: null,
+                reason: null
+            };
+        }
+
+        let parsed;
+        try {
+            parsed = JSON.parse(rawPayload);
+        } catch (error) {
+            return {
+                slotNumber,
+                status: this.SLOT_STATUS.CORRUPT,
+                isEmpty: false,
+                data: null,
+                metadata: null,
+                rawPayload,
+                reason: 'Malformed JSON'
+            };
+        }
+
+        if (!this.isPlainObject(parsed)) {
+            return {
+                slotNumber,
+                status: this.SLOT_STATUS.CORRUPT,
+                isEmpty: false,
+                data: null,
+                metadata: null,
+                rawPayload,
+                reason: 'Save root is not an object'
+            };
+        }
+
+        if (parsed.version !== undefined) {
+            const comparison = this.compareVersions(parsed.version, this.CURRENT_SAVE_VERSION);
+            if (comparison === null || comparison > 0) {
+                return {
+                    slotNumber,
+                    status: this.SLOT_STATUS.INCOMPATIBLE,
+                    isEmpty: false,
+                    data: null,
+                    metadata: null,
+                    rawPayload,
+                    reason: comparison === null
+                        ? `Unsupported save version: ${String(parsed.version)}`
+                        : `Save version ${parsed.version} is newer than ${this.CURRENT_SAVE_VERSION}`
+                };
+            }
+        }
+
+        try {
+            const data = this.normalizeSaveData(parsed);
+            return {
+                slotNumber,
+                status: this.SLOT_STATUS.VALID,
+                isEmpty: false,
+                data,
+                metadata: this.getSaveMetadata(data),
+                rawPayload,
+                wasMigrated: JSON.stringify(data) !== rawPayload,
+                reason: null
+            };
+        } catch (error) {
+            return {
+                slotNumber,
+                status: this.SLOT_STATUS.CORRUPT,
+                isEmpty: false,
+                data: null,
+                metadata: null,
+                rawPayload,
+                reason: error.message || String(error)
+            };
+        }
     }
 
     /**
@@ -157,19 +341,9 @@ class SaveManager {
      * @returns {Object|null} Save data or null if slot is empty
      */
     loadSlot(slotNumber) {
-        try {
-            const key = this.SAVE_KEY_PREFIX + slotNumber;
-            const data = localStorage.getItem(key);
-            if (!data) return null;
-
-            const saveData = JSON.parse(data);
-
-            // Version migration if needed
-            return this.migrateSaveData(saveData);
-        } catch (error) {
-            console.error(`Error loading slot ${slotNumber}:`, error);
-            return null;
-        }
+        const slot = this.inspectSlot(slotNumber);
+        if (slot.status !== this.SLOT_STATUS.VALID) return null;
+        return slot.data;
     }
 
     /**
@@ -179,22 +353,58 @@ class SaveManager {
      * @returns {boolean} Success status
      */
     saveToSlot(slotNumber, saveData) {
+        const key = this.SAVE_KEY_PREFIX + slotNumber;
+        const transactionKey = key + this.TRANSACTION_KEY_SUFFIX;
+        let previousPayload = null;
         try {
-            // Update last saved timestamp
-            saveData.lastSaved = Date.now();
+            if (!Number.isInteger(slotNumber) || slotNumber < 0 || slotNumber >= this.MAX_SAVE_SLOTS) {
+                throw new Error(`Invalid save slot: ${slotNumber}`);
+            }
+            if (!this.isPlainObject(saveData)) throw new Error('Save data must be an object');
 
-            const key = this.SAVE_KEY_PREFIX + slotNumber;
-            const jsonData = JSON.stringify(saveData);
+            const occupiedState = this.inspectSlot(slotNumber);
+            if (occupiedState.status === this.SLOT_STATUS.CORRUPT ||
+                occupiedState.status === this.SLOT_STATUS.INCOMPATIBLE) {
+                throw new Error(`Refusing to overwrite ${occupiedState.status.toLowerCase()} slot without explicit reset`);
+            }
+
+            previousPayload = localStorage.getItem(key);
+            const normalized = this.normalizeSaveData(saveData);
+            normalized.lastSaved = Date.now();
+            const jsonData = JSON.stringify(normalized);
 
             // Check if we have space (localStorage has ~5-10MB limit)
             if (jsonData.length > 1000000) { // ~1MB warning
                 console.warn('Save data is very large:', jsonData.length, 'bytes');
             }
 
+            // Stage and verify before replacing the last known-good payload.
+            localStorage.setItem(transactionKey, jsonData);
+            if (localStorage.getItem(transactionKey) !== jsonData) {
+                throw new Error('Staged save verification failed');
+            }
             localStorage.setItem(key, jsonData);
+            if (localStorage.getItem(key) !== jsonData) {
+                throw new Error('Committed save verification failed');
+            }
+            localStorage.removeItem(transactionKey);
+            saveData.lastSaved = normalized.lastSaved;
+            this.lastPersistenceError = null;
             console.log(`✅ Saved to slot ${slotNumber}`);
             return true;
         } catch (error) {
+            try {
+                const currentPayload = localStorage.getItem(key);
+                if (previousPayload !== null && currentPayload !== previousPayload) {
+                    localStorage.setItem(key, previousPayload);
+                } else if (previousPayload === null && currentPayload !== null) {
+                    localStorage.removeItem(key);
+                }
+                localStorage.removeItem(transactionKey);
+            } catch (cleanupError) {
+                console.error('Could not clean save transaction:', cleanupError);
+            }
+            this.lastPersistenceError = error.message || String(error);
             console.error(`❌ Error saving to slot ${slotNumber}:`, error);
             if (error.name === 'QuotaExceededError') {
                 console.error('localStorage quota exceeded!');
@@ -211,6 +421,12 @@ class SaveManager {
         try {
             const key = this.SAVE_KEY_PREFIX + slotNumber;
             localStorage.removeItem(key);
+            localStorage.removeItem(key + this.TRANSACTION_KEY_SUFFIX);
+            if (this.currentSlot === slotNumber) {
+                this.currentSlot = null;
+                this.currentSaveData = null;
+            }
+            this.lastPersistenceError = null;
             console.log(`🗑️ Deleted slot ${slotNumber}`);
             return true;
         } catch (error) {
@@ -225,8 +441,12 @@ class SaveManager {
      * @returns {Object} New save data
      */
     createNewSave(slotNumber) {
+        if (this.inspectSlot(slotNumber).status !== this.SLOT_STATUS.EMPTY) {
+            this.lastPersistenceError = 'Slot is occupied and must be explicitly reset before starting a new game';
+            return null;
+        }
         const newSave = this.getEmptySaveData();
-        this.saveToSlot(slotNumber, newSave);
+        if (!this.saveToSlot(slotNumber, newSave)) return null;
         this.currentSlot = slotNumber;
         this.currentSaveData = newSave;
         return newSave;
@@ -238,10 +458,14 @@ class SaveManager {
      * @returns {Object|null} Loaded save data
      */
     loadAndSetCurrent(slotNumber) {
-        const saveData = this.loadSlot(slotNumber);
+        const slot = this.inspectSlot(slotNumber);
+        const saveData = slot.status === this.SLOT_STATUS.VALID ? slot.data : null;
         if (saveData) {
             this.currentSlot = slotNumber;
             this.currentSaveData = saveData;
+            if (slot.wasMigrated && !this.saveToSlot(slotNumber, saveData)) {
+                console.warn(`Loaded slot ${slotNumber}, but normalized migration could not be persisted`);
+            }
             console.log(`📂 Loaded save from slot ${slotNumber}`);
         }
         return saveData;
@@ -352,24 +576,9 @@ class SaveManager {
      * Handle save data version migration
      */
     migrateSaveData(saveData) {
-        // Example: Migrate from old versions to new versions
-        if (!saveData.version) {
-            // Very old save, migrate to v1.0.0
-            saveData.version = '1.0.0';
-            // Add any missing fields
-        }
-
-        if (!saveData.alchemy) {
-            saveData.alchemy = {};
-        }
-        if (!Array.isArray(saveData.alchemy.knownElements)) {
-            saveData.alchemy.knownElements = ['fire'];
-        }
-        if (!Array.isArray(saveData.alchemy.discoveredRecipes)) {
-            saveData.alchemy.discoveredRecipes = [];
-        }
-
-        // Add more migration logic as game evolves
+        const normalized = this.normalizeSaveData(saveData);
+        Object.keys(saveData).forEach(key => { delete saveData[key]; });
+        Object.assign(saveData, normalized);
         return saveData;
     }
 
@@ -408,8 +617,7 @@ class SaveManager {
                 throw new Error('Invalid save data format');
             }
 
-            this.saveToSlot(slotNumber, saveData);
-            return true;
+            return this.saveToSlot(slotNumber, this.normalizeSaveData(saveData));
         } catch (error) {
             console.error('Error importing save:', error);
             return false;
@@ -420,19 +628,28 @@ class SaveManager {
      * Validate save data structure
      */
     validateSaveData(data) {
-        // Basic validation - can be expanded
-        return data &&
-               typeof data.version === 'string' &&
-               data.player &&
-               data.stages &&
-               data.inventory;
+        if (!this.isPlainObject(data)) return false;
+        if (data.version !== undefined) {
+            const comparison = this.compareVersions(data.version, this.CURRENT_SAVE_VERSION);
+            if (comparison === null || comparison > 0) return false;
+        }
+        try {
+            this.normalizeSaveData(data);
+            return true;
+        } catch (error) {
+            return false;
+        }
     }
 
     /**
      * Get current save data (read-only)
      */
     getCurrentSave() {
-        return this.currentSaveData ? { ...this.currentSaveData } : null;
+        return this.currentSaveData ? this.cloneValue(this.currentSaveData) : null;
+    }
+
+    getLastPersistenceError() {
+        return this.lastPersistenceError;
     }
 
     /**
