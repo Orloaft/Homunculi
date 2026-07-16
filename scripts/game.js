@@ -922,12 +922,13 @@ class LoadingScene extends Phaser.Scene {
             frameWidth: 150, // 1200 / 8 frames
             frameHeight: 150
         });
-        // Load King Nothing boss sprites
-        this.load.image('king-nothing-attack1', 'assets/enemies/castlelandfoes/kingnothingboss/Attack1.png');
-        this.load.image('king-nothing-attack2', 'assets/enemies/castlelandfoes/kingnothingboss/Attack2.png');
-        this.load.image('king-nothing-attack3', 'assets/enemies/castlelandfoes/kingnothingboss/Attack3.png');
-        this.load.image('king-nothing-death', 'assets/enemies/castlelandfoes/kingnothingboss/Death.png');
-        this.load.image('king-nothing-run', 'assets/enemies/castlelandfoes/kingnothingboss/Run.png');
+        // King Nothing uses 160x111 animation strips (run: 8, attacks: 4, death: 6).
+        const kingNothingSheet = { frameWidth: 160, frameHeight: 111 };
+        this.load.spritesheet('king-nothing-attack1', 'assets/enemies/castlelandfoes/kingnothingboss/Attack1.png', kingNothingSheet);
+        this.load.spritesheet('king-nothing-attack2', 'assets/enemies/castlelandfoes/kingnothingboss/Attack2.png', kingNothingSheet);
+        this.load.spritesheet('king-nothing-attack3', 'assets/enemies/castlelandfoes/kingnothingboss/Attack3.png', kingNothingSheet);
+        this.load.spritesheet('king-nothing-death', 'assets/enemies/castlelandfoes/kingnothingboss/Death.png', kingNothingSheet);
+        this.load.spritesheet('king-nothing-run', 'assets/enemies/castlelandfoes/kingnothingboss/Run.png', kingNothingSheet);
         // Load chest sprites
         this.load.spritesheet('chest-idle', 'assets/images/Chests5frames.PNG', {
             frameWidth: 48,
@@ -12001,6 +12002,7 @@ class GameScene extends Phaser.Scene {
 
         // Initialize boss cutscene system
         this.bossCutsceneSystem = new BossCutsceneSystem(this);
+        this.events.once('shutdown', () => this.cancelBossEncounter());
 
         // Initialize dialogue manager
         this.dialogueManager = new DialogueManager(this);
@@ -15750,8 +15752,7 @@ class GameScene extends Phaser.Scene {
             frameRate: 10,
             repeat: 0
         });
-        // Create Sea Kings boss animations (Ocean Land boss - Three Kings)
-        // Each spritesheet is 8x4 (8 frames across, 4 rows: down, up, left, right)
+        // Create Sea Kings boss animations (walk 8x4, attack 12x4, death 9x4).
         const seaKingDirections = ['down', 'up', 'left', 'right'];
         for (let kingNum = 1; kingNum <= 3; kingNum++) {
             // Walk animations for each direction
@@ -15771,8 +15772,8 @@ class GameScene extends Phaser.Scene {
                 createAnimIfNotExists({
                     key: `seaking${kingNum}-attack-${dir}`,
                     frames: this.anims.generateFrameNumbers(`seaking${kingNum}-attack`, {
-                        start: rowIndex * 8,
-                        end: rowIndex * 8 + 7
+                        start: rowIndex * 12,
+                        end: rowIndex * 12 + 11
                     }),
                     frameRate: 12,
                     repeat: 0
@@ -15783,14 +15784,34 @@ class GameScene extends Phaser.Scene {
                 createAnimIfNotExists({
                     key: `seaking${kingNum}-death-${dir}`,
                     frames: this.anims.generateFrameNumbers(`seaking${kingNum}-death`, {
-                        start: rowIndex * 8,
-                        end: rowIndex * 8 + 7
+                        start: rowIndex * 9,
+                        end: rowIndex * 9 + 8
                     }),
                     frameRate: 8,
                     repeat: 0
                 });
             });
         }
+        createAnimIfNotExists({
+            key: 'king-nothing-run',
+            frames: this.anims.generateFrameNumbers('king-nothing-run', { start: 0, end: 7 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        ['attack1', 'attack2', 'attack3'].forEach(attack => {
+            createAnimIfNotExists({
+                key: `king-nothing-${attack}`,
+                frames: this.anims.generateFrameNumbers(`king-nothing-${attack}`, { start: 0, end: 3 }),
+                frameRate: 10,
+                repeat: 0
+            });
+        });
+        createAnimIfNotExists({
+            key: 'king-nothing-death',
+            frames: this.anims.generateFrameNumbers('king-nothing-death', { start: 0, end: 5 }),
+            frameRate: 8,
+            repeat: 0
+        });
         // Create elemental slime animations (8x4 grid: 8 frames across, 4 rows for down/up/left/right)
         const slimeTypes = ['bombslime', 'fireslime', 'arcaneslime', 'waterslime', 'lightningslime', 'earthslime'];
         const slimeDirections = ['down', 'up', 'left', 'right'];
@@ -29496,9 +29517,11 @@ class GameScene extends Phaser.Scene {
             console.log('REVIVE: Consumed revive. Remaining:', this.passiveUpgrades.revive);
         }
 
-        // In multiplayer, only end game if both players are dead
-        if (this.multiplayerEnabled && this.wizard2 && this.playerHealthP2 > 0 && !willRevive) {
-            // P1 died but P2 is still alive - handle P1 death without ending game
+        // In multiplayer, P1 death is non-terminal while any P2-P4 teammate is alive.
+        const livingTeammates = [this.wizard2, this.wizard3, this.wizard4].filter(player => {
+            return player && player.active && player.body && player.body.enable && player.health > 0;
+        });
+        if (livingTeammates.length > 0 && !willRevive) {
             this.handlePlayer1Death();
             return;
         }
@@ -32039,11 +32062,10 @@ class GameScene extends Phaser.Scene {
         );
         this.addEnemyToGroup(slime);
     }
-    hitEnemy(wizard, enemy, isP2 = false) {
-        // Check which player is being hit
-        const targetWizard = isP2 ? this.wizard2 : this.wizard;
-        const playerHealth = isP2 ? this.wizard2.health : this.playerHealth;
-        const isInvulnerable = isP2 ? this.wizard2.invulnerable : this.invulnerable;
+    hitEnemy(wizard, enemy, isP2 = false, playerNumber = isP2 ? 2 : 1) {
+        const targetWizard = wizard;
+        const playerHealth = playerNumber === 1 ? this.playerHealth : targetWizard.health;
+        const isInvulnerable = playerNumber === 1 ? this.invulnerable : targetWizard.invulnerable;
         // Check if player is invulnerable, dead, or game is paused/in chest selection
         if (isInvulnerable || this.godMode || this.isPaused || this.chestSelectionActive || playerHealth <= 0) return;
         // Check if enemy is hexed (deals no damage)
@@ -32087,17 +32109,13 @@ class GameScene extends Phaser.Scene {
         } else if (enemy.enemyType === 'cacodemon' && enemy.isPursuing && enemy.chargeDamage) {
             damage = enemy.chargeDamage; // Higher damage when charging
         }
-        if (isP2) {
-            this.damagePlayer2(damage, enemy);
-        } else {
-            this.damagePlayer(damage, enemy);
-        }
+        const damaged = this.damageBossTarget(targetWizard, damage, enemy);
         // Apply burn effect if enemy has burn damage
-        if (enemy.burnDamage && !this.playerBurning) {
+        if (damaged && playerNumber === 1 && enemy.burnDamage && !this.playerBurning) {
             this.applyPlayerBurn(enemy.burnDamage, enemy.burnDuration);
         }
         // Apply slight knockback to player (only if alive)
-        const currentHealth = isP2 ? this.wizard2.health : this.playerHealth;
+        const currentHealth = playerNumber === 1 ? this.playerHealth : targetWizard.health;
         if (currentHealth > 0) {
             const knockbackForce = 200;
             const angle = Math.atan2(targetWizard.y - enemy.y, targetWizard.x - enemy.x);
@@ -53360,12 +53378,12 @@ class GameScene extends Phaser.Scene {
         }
         this.closeChestUI();
     }
-    bossProjectileHitPlayer(projectile, wizard, isP2 = false) {
+    bossProjectileHitPlayer(projectile, wizard, isP2 = false, playerNumber = isP2 ? 2 : 1) {
         // Only handle boss projectiles
         if (!projectile.fromBoss) return;
         // Determine which player is being hit
-        const targetWizard = isP2 ? this.wizard2 : this.wizard;
-        const isInvulnerable = isP2 ? this.wizard2.invulnerable : this.invulnerable;
+        const targetWizard = wizard;
+        const isInvulnerable = playerNumber === 1 ? this.invulnerable : targetWizard.invulnerable;
         // Check if player is invulnerable, in god mode, or game is paused/in chest selection
         if (isInvulnerable || this.godMode || this.isPaused || this.chestSelectionActive) return;
         // Check if this is an archer arrow that teleports
@@ -53408,11 +53426,15 @@ class GameScene extends Phaser.Scene {
                 onComplete: () => endEffect.destroy()
             });
             // Brief invulnerability after teleport
-            this.invulnerable = true;
+            if (playerNumber === 1) this.invulnerable = true;
+            targetWizard.invulnerable = true;
             wizard.setTint(0xffccff);
             this.time.delayedCall(500, () => {
-                this.invulnerable = false;
-                wizard.clearTint();
+                if (playerNumber === 1) this.invulnerable = false;
+                if (targetWizard && targetWizard.active) {
+                    targetWizard.invulnerable = false;
+                    targetWizard.clearTint();
+                }
             });
             // Show teleport text
             const teleportText = this.add.text(finalX, finalY - 50, 'TELEPORTED!', {
@@ -53434,11 +53456,7 @@ class GameScene extends Phaser.Scene {
             });
         }
         // Deal damage
-        if (isP2) {
-            this.damagePlayer2(projectile.damage || 20);
-        } else {
-            this.damagePlayer(projectile.damage || 20);
-        }
+        this.damageBossTarget(targetWizard, projectile.damage || 20, projectile);
         // Destroy projectile unless it's a laser
         if (!projectile.isLaser && !projectile.isPiercing) {
             // Check if it's an Eyelor projectile that needs destroy animation
@@ -54195,6 +54213,7 @@ class GameScene extends Phaser.Scene {
         this.addEnemyToGroup(boss);
         // Store boss reference
         this.boss = boss;
+        this.beginBossEncounter(boss);
         // Initialize health threshold tracking for enemy waves
         this.bossHealthThresholds = new Set([75, 50, 25]); // Spawn waves at 75%, 50%, 25% health
         // Create boss health bar
@@ -54297,27 +54316,162 @@ class GameScene extends Phaser.Scene {
         });
     }
     getNearestActiveWizard(fromX, fromY) {
-        // Helper function to get the nearest active wizard for boss targeting
+        // Boss targeting supports the complete live P1-P4 party model.
         let targetWizard = null;
         let nearestDistance = Infinity;
-        // Check P1
-        if (this.wizard && this.wizard.active && this.wizard.body && this.wizard.body.enable) {
-            const distanceToP1 = Phaser.Math.Distance.Between(fromX, fromY, this.wizard.x, this.wizard.y);
-            if (distanceToP1 < nearestDistance) {
-                targetWizard = this.wizard;
-                nearestDistance = distanceToP1;
+        this.getActiveBossTargets().forEach(wizard => {
+            const distance = Phaser.Math.Distance.Between(fromX, fromY, wizard.x, wizard.y);
+            if (distance < nearestDistance) {
+                targetWizard = wizard;
+                nearestDistance = distance;
             }
-        }
-        // Check P2 in multiplayer
-        if (this.multiplayerEnabled && this.wizard2 && this.wizard2.active && this.wizard2.body && this.wizard2.body.enable) {
-            const distanceToP2 = Phaser.Math.Distance.Between(fromX, fromY, this.wizard2.x, this.wizard2.y);
-            if (distanceToP2 < nearestDistance) {
-                targetWizard = this.wizard2;
-                nearestDistance = distanceToP2;
-            }
-        }
+        });
         // Fallback to P1 if no valid target found
         return targetWizard || this.wizard;
+    }
+    getActiveBossTargets() {
+        return [this.wizard, this.wizard2, this.wizard3, this.wizard4].filter((wizard, index) => {
+            if (!wizard || !wizard.active || !wizard.body || !wizard.body.enable) return false;
+            const health = index === 0 ? this.playerHealth : wizard.health;
+            return health > 0;
+        });
+    }
+    damageBossTarget(target, damage, source = null, onHit = null) {
+        if (!target || !target.active || target.isInvulnerable || target.invulnerable || damage <= 0 ||
+            this.godMode || this.isPaused || this.chestSelectionActive) return false;
+        const players = [this.wizard, this.wizard2, this.wizard3, this.wizard4];
+        const playerIndex = players.indexOf(target);
+        if (playerIndex < 0) return false;
+        const before = playerIndex === 0 ? this.playerHealth : target.health;
+        if (before <= 0) return false;
+
+        if (playerIndex === 0) {
+            this.damagePlayer(damage, source);
+        } else if (playerIndex === 1) {
+            this.damagePlayer2(damage, source);
+            if (target.health <= 0 && this.getActiveBossTargets().length === 0) this.gameOver();
+        } else {
+            if (target.invulnerable || (target.invulnerableUntil && this.time.now < target.invulnerableUntil)) return false;
+            const result = BossCombatContract.applyCappedHealthDamage(target.health, target.maxHealth, damage);
+            const cappedDamage = result.appliedDamage;
+            target.health = result.health;
+            target.invulnerable = true;
+            target.invulnerableUntil = this.time.now + 500;
+            this.updateWizardHealthBar();
+            this.showDamageNumber(target.x, target.y - 30, cappedDamage, '#ff0000');
+            this.time.delayedCall(500, () => {
+                if (target && target.active && target.health > 0) {
+                    target.invulnerable = false;
+                    target.invulnerableUntil = 0;
+                    target.clearTint();
+                }
+            });
+            if (target.health <= 0) {
+                target.setVelocity(0, 0);
+                if (target.body) target.body.enable = false;
+                const deathAnim = this.getCharacterDeathAnimation(target);
+                if (this.anims.exists(deathAnim)) target.play(deathAnim);
+                this.time.delayedCall(1000, () => {
+                    if (target && target.active) target.setVisible(false);
+                });
+                if (this.getActiveBossTargets().length === 0) this.gameOver();
+            }
+        }
+        const after = playerIndex === 0 ? this.playerHealth : target.health;
+        const damaged = after < before;
+        if (damaged && typeof onHit === 'function') onHit(target, before - after);
+        return damaged;
+    }
+    getBossDensityHealthMultiplier() {
+        return BossCombatContract.densityHealthMultiplier(localStorage.getItem('enemyDensity') || 'normal');
+    }
+    beginBossEncounter(bosses) {
+        this.cancelBossEncounter();
+        const bossList = Array.isArray(bosses) ? bosses : [bosses];
+        this.bossEncounter = BossCombatContract.createEncounter((this.bossEncounterSerial || 0) + 1, bossList);
+        this.bossEncounterSerial = this.bossEncounter.id;
+        this.bossEncounter.bosses.forEach(boss => { boss.bossEncounterId = this.bossEncounter.id; });
+        return this.bossEncounter;
+    }
+    isBossEncounterActive(boss, generation = null) {
+        const encounter = this.bossEncounter;
+        const generationValid = generation === null || BossCombatContract.isCallbackValid(encounter, boss, generation);
+        return !!(encounter && !encounter.terminal && encounter.bosses.has(boss) && generationValid &&
+            boss && boss.active && !boss.isDying && !boss.isDead && boss.health > 0 &&
+            true);
+    }
+    bossDelayedCall(boss, delay, callback) {
+        const encounter = this.bossEncounter;
+        if (!encounter || !encounter.bosses.has(boss)) return null;
+        const generation = encounter.actionGeneration;
+        let timer = null;
+        timer = this.time.delayedCall(delay, () => {
+            encounter.actionTimers.delete(timer);
+            if (this.isBossEncounterActive(boss, generation)) callback(boss);
+        });
+        encounter.actionTimers.add(timer);
+        return timer;
+    }
+    bossLoopEvent(boss, config, actionOwned = false) {
+        const encounter = this.bossEncounter;
+        if (!encounter || !encounter.bosses.has(boss)) return null;
+        const generation = encounter.actionGeneration;
+        const originalCallback = config.callback;
+        let timer = null;
+        timer = this.time.addEvent({
+            ...config,
+            callback: () => {
+                const lifetimeActive = this.bossEncounter === encounter && !encounter.terminal && encounter.bosses.has(boss);
+                if (actionOwned ? !this.isBossEncounterActive(boss, generation) : !lifetimeActive) return;
+                originalCallback(boss, timer);
+            }
+        });
+        (actionOwned ? encounter.actionTimers : encounter.lifetimeTimers).add(timer);
+        return timer;
+    }
+    bossTween(boss, config) {
+        const encounter = this.bossEncounter;
+        if (!encounter || !encounter.bosses.has(boss)) return null;
+        const generation = encounter.actionGeneration;
+        const originalUpdate = config.onUpdate;
+        const originalComplete = config.onComplete;
+        let tween = null;
+        tween = this.tweens.add({
+            ...config,
+            onUpdate: (...args) => {
+                if (this.isBossEncounterActive(boss, generation) && originalUpdate) originalUpdate(...args);
+            },
+            onComplete: (...args) => {
+                encounter.actionTweens.delete(tween);
+                if (this.isBossEncounterActive(boss, generation) && originalComplete) originalComplete(...args);
+            }
+        });
+        encounter.actionTweens.add(tween);
+        return tween;
+    }
+    ownBossCleanup(boss, cleanup) {
+        if (this.bossEncounter && this.bossEncounter.bosses.has(boss)) this.bossEncounter.cleanups.add(cleanup);
+        return cleanup;
+    }
+    cancelBossActions(boss) {
+        const encounter = this.bossEncounter;
+        if (!encounter || !encounter.bosses.has(boss)) return;
+        try { BossCombatContract.cancelActions(encounter); }
+        catch (error) { console.warn('Boss action cleanup failed:', error); }
+    }
+    cancelBossEncounter(boss = null) {
+        const encounter = this.bossEncounter;
+        if (!encounter || (boss && !encounter.bosses.has(boss))) return false;
+        try { BossCombatContract.terminateEncounter(encounter); }
+        catch (error) { console.warn('Boss encounter cleanup failed:', error); }
+        if (this.bossEncounter === encounter) this.bossEncounter = null;
+        return true;
+    }
+    bossCooldownReady(boss, key) {
+        return BossCombatContract.cooldownReady(this.time.now, boss[`${key}ReadyAt`] || 0);
+    }
+    startBossCooldown(boss, key, duration) {
+        boss[`${key}ReadyAt`] = BossCombatContract.nextCooldownAt(this.time.now, duration, this.speedMultiplier);
     }
     createBossHealthBar() {
         // Boss health bar background
@@ -54415,6 +54569,7 @@ class GameScene extends Phaser.Scene {
         this.addEnemyToGroup(boss);
         // Store boss reference
         this.boss = boss;
+        this.beginBossEncounter(boss);
         // Initialize health threshold tracking
         this.bossHealthThresholds = new Set([75, 50, 25]);
         // Create boss health bar
@@ -54425,7 +54580,7 @@ class GameScene extends Phaser.Scene {
         boss.sandstormActive = false;
         boss.allSeeingMode = false;
         // Start Eyelor boss AI
-        this.eyelorAITimer = this.time.addEvent({
+        this.eyelorAITimer = this.bossLoopEvent(boss, {
             delay: 2000 / this.speedMultiplier,
             callback: () => this.updateEyelorBossAI(),
             loop: true,
@@ -54473,7 +54628,7 @@ class GameScene extends Phaser.Scene {
             }
         }
         // Move towards player
-        if (this.wizard && this.wizard.active && !this.boss.isCharging && !this.boss.isFiringBeam) {
+        if (this.wizard && this.wizard.active && !this.boss.actionState && !this.boss.isCharging && !this.boss.isFiringBeam) {
             const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, this.wizard.x, this.wizard.y);
             const velocityX = Math.cos(angle) * this.boss.moveSpeed * this.speedMultiplier;
             const velocityY = Math.sin(angle) * this.boss.moveSpeed * this.speedMultiplier;
@@ -54485,44 +54640,29 @@ class GameScene extends Phaser.Scene {
         const distanceToPlayer = Phaser.Math.Distance.Between(
             this.boss.x, this.boss.y, this.wizard.x, this.wizard.y
         );
-        // Initialize attack cooldowns if not set
-        if (!this.boss.beamCooldown) this.boss.beamCooldown = 0;
-        if (!this.boss.projectileCooldown) this.boss.projectileCooldown = 0;
-        if (!this.boss.sandstormCooldown) this.boss.sandstormCooldown = 0;
-        if (!this.boss.allSeeingCooldown) this.boss.allSeeingCooldown = 0;
-        // Eye beam attack
-        if (this.boss.beamCooldown <= 0 && distanceToPlayer < 600) {
-            this.performEyelorBeam();
-            this.boss.beamCooldown = 5000 / this.speedMultiplier;
-        } else if (this.boss.beamCooldown > 0) {
-            this.boss.beamCooldown -= 2000 / this.speedMultiplier;
-        }
-        // Projectile burst
-        if (this.boss.projectileCooldown <= 0) {
-            this.performEyelorProjectileBurst();
-            this.boss.projectileCooldown = 3000 / this.speedMultiplier;
-        } else if (this.boss.projectileCooldown > 0) {
-            this.boss.projectileCooldown -= 2000 / this.speedMultiplier;
-        }
-        // Sandstorm (phase 2+)
-        if (this.boss.currentPhase >= 2 && this.boss.sandstormCooldown <= 0) {
-            this.performEyelorSandstorm();
-            this.boss.sandstormCooldown = 8000 / this.speedMultiplier;
-        } else if (this.boss.sandstormCooldown > 0) {
-            this.boss.sandstormCooldown -= 2000 / this.speedMultiplier;
-        }
-        // All-seeing mode (phase 3)
-        if (this.boss.currentPhase >= 3 && this.boss.allSeeingCooldown <= 0) {
+        // Eyelor owns one telegraphed action at a time; phase attacks take priority.
+        if (this.boss.actionState) return;
+        if (this.boss.currentPhase >= 3 && this.bossCooldownReady(this.boss, 'allSeeing')) {
             this.performEyelorAllSeeing();
-            this.boss.allSeeingCooldown = 10000 / this.speedMultiplier;
-        } else if (this.boss.allSeeingCooldown > 0) {
-            this.boss.allSeeingCooldown -= 2000 / this.speedMultiplier;
+            this.startBossCooldown(this.boss, 'allSeeing', 10000);
+        } else if (this.boss.currentPhase >= 2 && this.bossCooldownReady(this.boss, 'sandstorm')) {
+            this.performEyelorSandstorm();
+            this.startBossCooldown(this.boss, 'sandstorm', 8000);
+        } else if (distanceToPlayer < 600 && this.bossCooldownReady(this.boss, 'beam')) {
+            this.performEyelorBeam();
+            this.startBossCooldown(this.boss, 'beam', 5000);
+        } else if (this.bossCooldownReady(this.boss, 'projectile')) {
+            this.performEyelorProjectileBurst();
+            this.startBossCooldown(this.boss, 'projectile', 3000);
         }
     }
     performEyelorBeam() {
         if (!this.boss || !this.wizard) return;
-        this.boss.isCharging = true;
-        this.boss.setVelocity(0, 0);
+        const boss = this.boss;
+        boss.actionState = 'beam';
+        boss.attackCycleCount = (boss.attackCycleCount || 0) + 1;
+        boss.isCharging = true;
+        boss.setVelocity(0, 0);
         // Don't play attack animation during charge, just tint
         this.boss.setTint(0xffff00);
         // Calculate target position
@@ -54544,18 +54684,18 @@ class GameScene extends Phaser.Scene {
                 followSource: true, // Follow the boss
                 onComplete: () => {
                     // This fires when the warning ends
-                    if (!this.boss || !this.boss.active) return;
-                    this.boss.clearTint();
-                    this.boss.isCharging = false;
-                    this.boss.isFiringBeam = true;
+                    if (!this.isBossEncounterActive(boss) || boss.actionState !== 'beam') return;
+                    boss.clearTint();
+                    boss.isCharging = false;
+                    boss.isFiringBeam = true;
                     // Play attack animation when actually firing
-                    this.boss.play('eyelor-attack');
+                    boss.play('eyelor-attack');
             // Create massive eye beam
-            const beam = this.physics.add.sprite(this.boss.x, this.boss.y, 'void-ball-1');
+            const beam = this.physics.add.sprite(boss.x, boss.y, 'void-ball-1');
             beam.setOrigin(0, 0.5);
             beam.setScale(3, 5);
             beam.rotation = Phaser.Math.Angle.Between(
-                this.boss.x, this.boss.y,
+                boss.x, boss.y,
                 this.wizard.x, this.wizard.y
             );
             beam.setDepth(95);
@@ -54565,53 +54705,49 @@ class GameScene extends Phaser.Scene {
             beam.body.setSize(1000, 80);
             beam.body.setOffset(0, -40);
             beam.damage = 60;
-            // Beam damage collision
-            const beamOverlap = this.physics.add.overlap(
-                beam, this.wizard,
-                () => {
-                    if (this.wizard && !this.invulnerable && !this.godMode) {
-                        // Use damagePlayer to ensure damage cap is applied
-                        this.damagePlayer(beam.damage);
-                        // Check for death and handle revives
-                        this.checkPlayerDeath();
-                    }
-                }
-            );
+            // Beam damage collision for every active party member.
+            const beamOverlaps = this.getActiveBossTargets().map(target => this.physics.add.overlap(
+                beam, target, () => this.damageBossTarget(target, beam.damage, boss)
+            ));
                     // Animate beam for 2 seconds
-                    this.time.delayedCall(2000 / this.speedMultiplier, () => {
+                    this.ownBossCleanup(boss, () => {
+                        if (beam.active) beam.destroy();
+                        beamOverlaps.forEach(overlap => overlap.destroy());
+                    });
+                    this.bossDelayedCall(boss, 2000 / this.speedMultiplier, capturedBoss => {
                         if (beam && beam.active) {
                             beam.destroy();
                         }
-                        if (beamOverlap) {
-                            beamOverlap.destroy();
-                        }
-                        if (this.boss) {
-                            this.boss.isFiringBeam = false;
-                            this.boss.play('eyelor-move');
-                        }
+                        beamOverlaps.forEach(overlap => overlap.destroy());
+                        capturedBoss.isFiringBeam = false;
+                        capturedBoss.actionState = null;
+                        capturedBoss.play('eyelor-move');
                     });
                 }
             }
         );
+        this.ownBossCleanup(boss, () => this.removeDangerWarning(laserWarning));
     }
     performEyelorProjectileBurst() {
         if (!this.boss || !this.wizard) return;
+        const boss = this.boss;
+        boss.actionState = 'projectile';
+        boss.attackCycleCount = (boss.attackCycleCount || 0) + 1;
         const baseAngle = Phaser.Math.Angle.Between(
             this.boss.x, this.boss.y,
             this.wizard.x, this.wizard.y
         );
         const spreadAngle = Math.PI / 6; // 30 degree spread
-        for (let i = 0; i < this.boss.projectileBurstCount; i++) {
-            const angleOffset = (i - (this.boss.projectileBurstCount - 1) / 2) * 
-                              (spreadAngle / (this.boss.projectileBurstCount - 1));
+        for (let i = 0; i < boss.projectileBurstCount; i++) {
+            const angleOffset = (i - (boss.projectileBurstCount - 1) / 2) *
+                              (spreadAngle / Math.max(1, boss.projectileBurstCount - 1));
             const angle = baseAngle + angleOffset;
-            this.time.delayedCall(i * 50 / this.speedMultiplier, () => {
-                if (!this.boss || !this.boss.active) return;
+            this.bossDelayedCall(boss, i * 50 / this.speedMultiplier, capturedBoss => {
                 // Create projectile in front of boss to avoid spawning behind
                 const offsetDistance = 50;
                 const projectile = this.physics.add.sprite(
-                    this.boss.x + Math.cos(angle) * offsetDistance, 
-                    this.boss.y + Math.sin(angle) * offsetDistance, 
+                    capturedBoss.x + Math.cos(angle) * offsetDistance,
+                    capturedBoss.y + Math.sin(angle) * offsetDistance,
                     'void-ball-1'
                 );
                 projectile.setScale(1.5);
@@ -54628,11 +54764,11 @@ class GameScene extends Phaser.Scene {
                 projectile.body.setSize(20, 20);
                 // Make projectiles homing like Lost Soul projectiles
                 projectile.isHoming = true;
-                projectile.homingSpeed = 200 * this.speedMultiplier; // Speed for homing
+                projectile.homingSpeed = capturedBoss.projectileSpeed * this.speedMultiplier;
                 projectile.homingTarget = this.wizard; // Target the player
                 projectile.isEnemyProjectile = true;
                 // Set initial velocity towards player
-                const initialSpeed = 250 * this.speedMultiplier;
+                const initialSpeed = capturedBoss.projectileSpeed * this.speedMultiplier;
                 projectile.setVelocity(
                     Math.cos(angle) * initialSpeed,
                     Math.sin(angle) * initialSpeed
@@ -54641,17 +54777,25 @@ class GameScene extends Phaser.Scene {
                 projectile.fromBoss = true;
                 this.enemyProjectiles.add(projectile);
                 // Auto-destroy after 5 seconds with animation
-                projectile.destroyTimer = this.time.delayedCall(5000 / this.speedMultiplier, () => {
+                this.ownBossCleanup(capturedBoss, () => { if (projectile.active) projectile.destroy(); });
+                projectile.destroyTimer = this.bossDelayedCall(capturedBoss, 5000 / this.speedMultiplier, () => {
                     if (projectile && projectile.active) {
                         this.destroyEyelorProjectile(projectile);
                     }
                 });
             });
         }
+        this.bossDelayedCall(boss, (boss.projectileBurstCount * 50 + 500) / this.speedMultiplier, capturedBoss => {
+            capturedBoss.actionState = null;
+            capturedBoss.play('eyelor-move');
+        });
     }
     performEyelorSandstorm() {
         if (!this.boss) return;
-        this.boss.sandstormActive = true;
+        const boss = this.boss;
+        boss.actionState = 'sandstorm';
+        boss.attackCycleCount = (boss.attackCycleCount || 0) + 1;
+        boss.sandstormActive = true;
         this.boss.setTint(0xffaa00);
         // Warning text
         const warningText = this.add.text(this.boss.x, this.boss.y - 100, 'SANDSTORM!', {
@@ -54696,7 +54840,7 @@ class GameScene extends Phaser.Scene {
         );
         sandstormZone.setDepth(1);
         // Update sandstorm
-        const sandstormTimer = this.time.addEvent({
+        const sandstormTimer = this.bossLoopEvent(boss, {
             delay: 50,
             callback: () => {
                 if (!this.boss || !sandstormParticles.length) return;
@@ -54707,46 +54851,43 @@ class GameScene extends Phaser.Scene {
                     particle.sprite.x = this.boss.x + Math.cos(particle.angle) * particle.distance;
                     particle.sprite.y = this.boss.y + Math.sin(particle.angle) * particle.distance;
                 });
-                // Check for player damage
-                if (this.wizard && this.wizard.active) {
+                // Check every active player independently.
+                this.getActiveBossTargets().forEach(target => {
                     const distance = Phaser.Math.Distance.Between(
-                        this.boss.x, this.boss.y, this.wizard.x, this.wizard.y
+                        boss.x, boss.y, target.x, target.y
                     );
-                    if (distance <= this.boss.sandstormRadius) {
+                    if (distance <= boss.sandstormRadius) {
                         // Continuous damage (every 500ms)
-                        if (!this.lastSandstormDamage ||
-                            this.time.now - this.lastSandstormDamage > 500 / this.speedMultiplier) {
-                            if (!this.invulnerable && !this.godMode) {
-                                // Use damagePlayer to ensure damage cap is applied
-                                this.damagePlayer(15);
-                                // Flash orange when hit by sandstorm
-                                this.time.delayedCall(200, () => {
-                                    if (this.wizard && this.wizard.active) {
-                                        this.wizard.setTint(0xffaa00);
-                                    }
-                                });
-                            }
-                            this.lastSandstormDamage = this.time.now;
+                        if (!target.lastSandstormDamage ||
+                            this.time.now - target.lastSandstormDamage > 500 / this.speedMultiplier) {
+                            this.damageBossTarget(target, 15, boss);
+                            target.lastSandstormDamage = this.time.now;
                         }
                     }
-                }
+                });
             },
             loop: true
+        }, true);
+        this.ownBossCleanup(boss, () => {
+            sandstormParticles.forEach(particle => { if (particle.sprite.active) particle.sprite.destroy(); });
+            if (sandstormZone.active) sandstormZone.destroy();
         });
         // End sandstorm after 4 seconds
-        this.time.delayedCall(4000 / this.speedMultiplier, () => {
+        this.bossDelayedCall(boss, 4000 / this.speedMultiplier, capturedBoss => {
             sandstormTimer.destroy();
             sandstormParticles.forEach(particle => particle.sprite.destroy());
             sandstormZone.destroy();
-            if (this.boss) {
-                this.boss.clearTint();
-                this.boss.sandstormActive = false;
-            }
+            capturedBoss.clearTint();
+            capturedBoss.sandstormActive = false;
+            capturedBoss.actionState = null;
         });
     }
     performEyelorAllSeeing() {
         if (!this.boss) return;
-        this.boss.allSeeingMode = true;
+        const boss = this.boss;
+        boss.actionState = 'allSeeing';
+        boss.attackCycleCount = (boss.attackCycleCount || 0) + 1;
+        boss.allSeeingMode = true;
         this.boss.setVelocity(0, 0);
         this.boss.play('eyelor-attack');
         this.boss.setTint(0xff0000);
@@ -54755,16 +54896,16 @@ class GameScene extends Phaser.Scene {
         this.cameras.main.shake(500, 0.02);
         // Fire projectiles in all directions
         let waveCount = 0;
-        const allSeeingTimer = this.time.addEvent({
+        const allSeeingTimer = this.bossLoopEvent(boss, {
             delay: 100 / this.speedMultiplier,
-            callback: () => {
-                if (!this.boss || waveCount >= 30) return;
+            callback: capturedBoss => {
+                if (waveCount >= 30) return;
                 const projectileCount = 8;
                 const angleStep = (Math.PI * 2) / projectileCount;
                 for (let i = 0; i < projectileCount; i++) {
-                    const angle = angleStep * i + this.boss.rotation;
+                    const angle = angleStep * i + capturedBoss.rotation;
                     const projectile = this.physics.add.sprite(
-                        this.boss.x, this.boss.y, 'void-ball-1'
+                        capturedBoss.x, capturedBoss.y, 'void-ball-1'
                     );
                     projectile.setScale(1.2);
                     projectile.setTint(0xff0000);
@@ -54780,33 +54921,35 @@ class GameScene extends Phaser.Scene {
                     projectile.damage = 20;
                     projectile.fromBoss = true;
                     this.enemyProjectiles.add(projectile);
+                    this.ownBossCleanup(capturedBoss, () => { if (projectile.active) projectile.destroy(); });
                     // Auto-destroy with animation
-                    projectile.destroyTimer = this.time.delayedCall(3000 / this.speedMultiplier, () => {
+                    projectile.destroyTimer = this.bossDelayedCall(capturedBoss, 3000 / this.speedMultiplier, () => {
                         if (projectile && projectile.active) {
                             this.destroyEyelorProjectile(projectile);
                         }
                     });
                 }
                 // Rotate boss
-                this.boss.rotation += 0.2;
+                capturedBoss.rotation += 0.2;
                 waveCount++;
             },
             loop: true
-        });
+        }, true);
         // End all-seeing mode
-        this.time.delayedCall(3000 / this.speedMultiplier, () => {
+        this.bossDelayedCall(boss, 3000 / this.speedMultiplier, capturedBoss => {
             allSeeingTimer.destroy();
-            if (this.boss) {
-                this.boss.clearTint();
-                this.boss.rotation = 0;
-                this.boss.setScale(2.0);
-                this.boss.play('eyelor-move');
-                this.boss.allSeeingMode = false;
-            }
+            capturedBoss.clearTint();
+            capturedBoss.rotation = 0;
+            capturedBoss.setScale(2.0);
+            capturedBoss.play('eyelor-move');
+            capturedBoss.allSeeingMode = false;
+            capturedBoss.actionState = null;
         });
     }
     enhanceEyelorBoss(threshold) {
         if (!this.boss) return;
+        this.cancelBossActions(this.boss);
+        this.boss.actionState = null;
         if (threshold === 75) {
             // Phase 2
             this.boss.currentPhase = 2;
@@ -54954,12 +55097,13 @@ class GameScene extends Phaser.Scene {
         this.addEnemyToGroup(boss);
         // Store boss reference
         this.boss = boss;
+        this.beginBossEncounter(boss);
         // Initialize health threshold tracking
         this.bossHealthThresholds = new Set([75, 50, 25]);
         // Create boss health bar
         this.createNekrosBossHealthBar();
         // Start Nekros boss AI
-        this.nekrosAITimer = this.time.addEvent({
+        this.nekrosAITimer = this.bossLoopEvent(boss, {
             delay: 100 / this.speedMultiplier, // More frequent updates for complex behavior
             callback: () => this.updateNekrosAI(),
             loop: true,
@@ -55084,12 +55228,13 @@ class GameScene extends Phaser.Scene {
         this.addEnemyToGroup(boss);
         // Store boss reference
         this.boss = boss;
+        this.beginBossEncounter(boss);
         // Initialize health threshold tracking
         this.bossHealthThresholds = new Set([75, 50, 25]);
         // Create boss health bar
         this.createDemonSlimeBossHealthBar();
         // Start boss AI
-        this.bossAITimer = this.time.addEvent({
+        this.bossAITimer = this.bossLoopEvent(boss, {
             delay: 2000 / this.speedMultiplier,
             callback: () => this.updateDemonSlimeBossAI(),
             loop: true,
@@ -55164,16 +55309,7 @@ class GameScene extends Phaser.Scene {
         }
         // Adjust boss health based on enemy density setting
         const baseHealth = 7200;
-        const densityMultipliers = {
-            'beginner': 0.1,
-            'sparse': 0.25,
-            'normal': 0.5,
-            'dense': 0.75,
-            'swarm': 1.0
-        };
-        const enemyDensity = localStorage.getItem('enemyDensity') || 'normal';
-        const healthMultiplier = densityMultipliers[enemyDensity] || 0.5;
-        boss.health = Math.floor(baseHealth * healthMultiplier);
+        boss.health = Math.floor(baseHealth * this.getBossDensityHealthMultiplier() * this.getBossHealthTuningMultiplier());
         boss.maxHealth = boss.health;
         boss.isBoss = true;
         boss.knockbackResistance = 0.1; // Bosses resist 90% of knockback
@@ -55195,12 +55331,13 @@ class GameScene extends Phaser.Scene {
         this.addEnemyToGroup(boss);
         // Store boss reference
         this.boss = boss;
+        this.beginBossEncounter(boss);
         // Initialize health threshold tracking for phase changes
         this.bossHealthThresholds = new Set([75, 50, 25]);
         // Create boss health bar
         this.createFrostGuardianBossHealthBar();
         // Start boss AI
-        this.bossAITimer = this.time.addEvent({
+        this.bossAITimer = this.bossLoopEvent(boss, {
             delay: 1800 / this.speedMultiplier,
             callback: () => this.updateFrostGuardianBossAI(),
             loop: true,
@@ -55266,33 +55403,27 @@ class GameScene extends Phaser.Scene {
         } else {
             // Stop moving and attack
             this.boss.setVelocity(0, 0);
-            if (this.boss.attackCooldown <= 0) {
+            if (this.bossCooldownReady(this.boss, 'attack')) {
                 this.frostGuardianAttack();
-                this.boss.attackCooldown = 3000 / this.speedMultiplier; // 3 second cooldown
+                this.startBossCooldown(this.boss, 'attack', 3000);
             }
-        }
-        // Update cooldowns
-        if (this.boss.attackCooldown > 0) {
-            this.boss.attackCooldown -= 1800 / this.speedMultiplier;
         }
     }
     frostGuardianAttack() {
-        this.boss.isAttacking = true;
-        this.boss.play('frost-guardian-attack');
+        const boss = this.boss;
+        boss.isAttacking = true;
+        boss.attackCycleCount = (boss.attackCycleCount || 0) + 1;
+        boss.play('frost-guardian-attack');
         // Create ice slam warning
         this.createIceSlamWarning();
         // Execute slam after animation delay
-        this.time.delayedCall(800, () => {
-            if (this.boss && this.boss.active) {
-                this.executeIceSlam();
-            }
+        this.bossDelayedCall(boss, 800, () => {
+            this.executeIceSlam(boss);
         });
         // Reset attacking state
-        this.time.delayedCall(2000, () => {
-            if (this.boss && this.boss.active) {
-                this.boss.isAttacking = false;
-                this.boss.play('frost-guardian-idle');
-            }
+        this.bossDelayedCall(boss, 2000, capturedBoss => {
+            capturedBoss.isAttacking = false;
+            capturedBoss.play('frost-guardian-idle');
         });
     }
     createIceSlamWarning() {
@@ -55316,6 +55447,11 @@ class GameScene extends Phaser.Scene {
         });
         warningText.setOrigin(0.5);
         warningText.setDepth(200);
+        const boss = this.boss;
+        this.ownBossCleanup(boss, () => {
+            if (warning.active) warning.destroy();
+            if (warningText.active) warningText.destroy();
+        });
         // Pulse animation
         this.tweens.add({
             targets: [warning, warningText],
@@ -55333,21 +55469,19 @@ class GameScene extends Phaser.Scene {
             }
         });
     }
-    executeIceSlam() {
+    executeIceSlam(boss = this.boss) {
         // Screen shake
         this.cameras.main.shake(400, 0.04);
         // Damage area
-        const target = this.getNearestActiveWizard(this.boss.x, this.boss.y);
+        const target = this.getNearestActiveWizard(boss.x, boss.y);
         if (target) {
-            const distance = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, target.x, target.y);
-            if (distance <= this.boss.slamRadius && target.takeDamage) {
-                target.takeDamage(this.boss.slamDamage);
-                // Apply freeze effect
-                this.applyFreezeEffect(target);
+            const distance = Phaser.Math.Distance.Between(boss.x, boss.y, target.x, target.y);
+            if (distance <= boss.slamRadius) {
+                this.damageBossTarget(target, boss.slamDamage, boss, damagedTarget => this.applyFreezeEffect(damagedTarget, boss));
             }
         }
         // Create ice effect
-        const iceEffect = this.add.sprite(this.boss.x, this.boss.y, 'ice-spell');
+        const iceEffect = this.add.sprite(boss.x, boss.y, 'ice-spell');
         iceEffect.setScale(6);
         iceEffect.setTint(0x66ccff);
         if (iceEffect.anims && this.anims.exists('ice-spell-anim')) {
@@ -55355,13 +55489,13 @@ class GameScene extends Phaser.Scene {
         }
         iceEffect.once('animationcomplete', () => iceEffect.destroy());
     }
-    applyFreezeEffect(target) {
+    applyFreezeEffect(target, boss = this.boss) {
         if (target.moveSpeed) {
             const originalSpeed = target.moveSpeed;
             target.moveSpeed *= 0.5;
             target.setTint(0x88ccff);
             // Restore after 2 seconds
-            this.time.delayedCall(2000, () => {
+            this.bossDelayedCall(boss, 2000, () => {
                 if (target.active) {
                     target.moveSpeed = originalSpeed;
                     target.clearTint();
@@ -55479,6 +55613,7 @@ class GameScene extends Phaser.Scene {
 
         // Store boss reference
         this.boss = boss;
+        this.beginBossEncounter(boss);
 
         // Initialize health threshold tracking for phase changes
         this.bossHealthThresholds = new Set([75, 50, 25]);
@@ -55487,7 +55622,7 @@ class GameScene extends Phaser.Scene {
         this.createAmphibianBossHealthBar();
 
         // Start boss AI
-        this.bossAITimer = this.time.addEvent({
+        this.bossAITimer = this.bossLoopEvent(boss, {
             delay: 1600 / this.speedMultiplier,
             callback: () => this.updateAmphibianBossAI(),
             loop: true,
@@ -55557,16 +55692,16 @@ class GameScene extends Phaser.Scene {
         this.boss.setFlipX(target.x < this.boss.x);
 
         // Heal when health is low (once per phase at <40% health)
-        if (healthPercent < 0.4 && this.boss.canHeal && this.boss.healCooldown <= 0) {
+        if (healthPercent < 0.4 && this.boss.canHeal && this.bossCooldownReady(this.boss, 'heal')) {
             this.amphibianHeal();
             return; // Don't do other actions while healing
         }
 
         // Attack patterns based on distance and cooldowns
-        if (distance <= this.boss.tongueRange && this.boss.tongueCooldown <= 0) {
+        if (distance <= this.boss.tongueRange && this.bossCooldownReady(this.boss, 'tongue')) {
             // Tongue attack (pull player)
             this.amphibianTongueAttack(target);
-        } else if (distance > this.boss.tongueRange && this.boss.spitCooldown <= 0) {
+        } else if (distance > this.boss.tongueRange && this.bossCooldownReady(this.boss, 'spit')) {
             // Spit attack (ranged projectile)
             this.amphibianSpitAttack(target);
         } else {
@@ -55586,31 +55721,24 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        // Update cooldowns
-        if (this.boss.spitCooldown > 0) {
-            this.boss.spitCooldown -= 16; // 60fps approximation
-        }
-        if (this.boss.tongueCooldown > 0) {
-            this.boss.tongueCooldown -= 16;
-        }
-        if (this.boss.healCooldown > 0) {
-            this.boss.healCooldown -= 16;
-        }
     }
 
     amphibianSpitAttack(target) {
-        this.boss.isAttacking = true;
-        this.boss.setVelocity(0, 0);
-        this.boss.play('amphibian-spit');
+        const boss = this.boss;
+        boss.isAttacking = true;
+        boss.attackCycleCount = (boss.attackCycleCount || 0) + 1;
+        this.startBossCooldown(boss, 'spit', 2500);
+        boss.setVelocity(0, 0);
+        boss.play('amphibian-spit');
 
         // Fire spit projectile after animation delay
-        this.time.delayedCall(500, () => {
-            if (this.boss && this.boss.active && target && target.active) {
+        this.bossDelayedCall(boss, 500, capturedBoss => {
+            if (target && target.active) {
                 // Calculate angle to target
-                const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, target.x, target.y);
+                const angle = Phaser.Math.Angle.Between(capturedBoss.x, capturedBoss.y, target.x, target.y);
 
                 // Create poison spit projectile
-                const spit = this.add.sprite(this.boss.x, this.boss.y, 'poison-spell');
+                const spit = this.add.sprite(capturedBoss.x, capturedBoss.y, 'poison-spell');
                 spit.setScale(1.5);
                 spit.setTint(0x88ff44);
                 spit.setRotation(angle);
@@ -55621,28 +55749,26 @@ class GameScene extends Phaser.Scene {
                 spit.body.setSize(20, 20);
 
                 // Set velocity towards target
-                const velocityX = Math.cos(angle) * this.boss.spitSpeed;
-                const velocityY = Math.sin(angle) * this.boss.spitSpeed;
+                const velocityX = Math.cos(angle) * capturedBoss.spitSpeed;
+                const velocityY = Math.sin(angle) * capturedBoss.spitSpeed;
                 spit.body.setVelocity(velocityX, velocityY);
 
                 // Damage collision with all wizards
                 const wizards = [this.wizard, this.wizard2, this.wizard3, this.wizard4].filter(w => w && w.active);
                 wizards.forEach(wizard => {
                     const damageOverlap = this.physics.add.overlap(spit, wizard, () => {
-                        if (wizard.takeDamage) {
-                            wizard.takeDamage(this.boss.spitDamage);
-                            // Apply poison effect
-                            this.applyPoisonEffect(wizard);
-                        }
+                        this.damageBossTarget(wizard, capturedBoss.spitDamage, capturedBoss,
+                            damagedTarget => this.applyPoisonEffect(damagedTarget, capturedBoss));
                         damageOverlap.destroy();
                         spit.destroy();
                     }, (s, w) => {
                         return this.validateCollision(s, w);
                     });
                 });
+                this.ownBossCleanup(capturedBoss, () => { if (spit.active) spit.destroy(); });
 
                 // Auto-destroy after time
-                this.time.delayedCall(3000, () => {
+                this.bossDelayedCall(capturedBoss, 3000, () => {
                     if (spit.active) {
                         spit.destroy();
                     }
@@ -55651,19 +55777,19 @@ class GameScene extends Phaser.Scene {
         });
 
         // Reset attacking state
-        this.time.delayedCall(1200, () => {
-            if (this.boss && this.boss.active) {
-                this.boss.isAttacking = false;
-                this.boss.spitCooldown = 2500 / this.speedMultiplier;
-                this.boss.play('amphibian-idle');
-            }
+        this.bossDelayedCall(boss, 1200, capturedBoss => {
+            capturedBoss.isAttacking = false;
+            capturedBoss.play('amphibian-idle');
         });
     }
 
     amphibianTongueAttack(target) {
-        this.boss.isAttacking = true;
-        this.boss.setVelocity(0, 0);
-        this.boss.play('amphibian-tongue');
+        const boss = this.boss;
+        boss.isAttacking = true;
+        boss.attackCycleCount = (boss.attackCycleCount || 0) + 1;
+        this.startBossCooldown(boss, 'tongue', 3500);
+        boss.setVelocity(0, 0);
+        boss.play('amphibian-tongue');
 
         // Create tongue visual warning
         const tongueWarning = this.add.graphics();
@@ -55679,18 +55805,16 @@ class GameScene extends Phaser.Scene {
         });
 
         // Execute tongue pull after animation delay
-        this.time.delayedCall(400, () => {
-            if (this.boss && this.boss.active && target && target.active) {
-                const currentDistance = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, target.x, target.y);
+        this.bossDelayedCall(boss, 400, capturedBoss => {
+            if (target && target.active) {
+                const currentDistance = Phaser.Math.Distance.Between(capturedBoss.x, capturedBoss.y, target.x, target.y);
 
-                if (currentDistance <= this.boss.tongueRange) {
+                if (currentDistance <= capturedBoss.tongueRange) {
                     // Deal damage
-                    if (target.takeDamage) {
-                        target.takeDamage(this.boss.tongueDamage);
-                    }
+                    this.damageBossTarget(target, capturedBoss.tongueDamage, capturedBoss);
 
                     // Pull player towards boss
-                    const angle = Phaser.Math.Angle.Between(target.x, target.y, this.boss.x, this.boss.y);
+                    const angle = Phaser.Math.Angle.Between(target.x, target.y, capturedBoss.x, capturedBoss.y);
                     const pullStrength = 400;
 
                     if (target.body) {
@@ -55718,20 +55842,20 @@ class GameScene extends Phaser.Scene {
         });
 
         // Reset attacking state
-        this.time.delayedCall(1000, () => {
-            if (this.boss && this.boss.active) {
-                this.boss.isAttacking = false;
-                this.boss.tongueCooldown = 3500 / this.speedMultiplier;
-                this.boss.play('amphibian-idle');
-            }
+        this.bossDelayedCall(boss, 1000, capturedBoss => {
+            capturedBoss.isAttacking = false;
+            capturedBoss.play('amphibian-idle');
         });
     }
 
     amphibianHeal() {
-        this.boss.isAttacking = true;
-        this.boss.canHeal = false; // Can only heal once per phase
-        this.boss.setVelocity(0, 0);
-        this.boss.play('amphibian-heal');
+        const boss = this.boss;
+        boss.isAttacking = true;
+        boss.attackCycleCount = (boss.attackCycleCount || 0) + 1;
+        boss.canHeal = false; // Can only heal once per phase
+        this.startBossCooldown(boss, 'heal', 8000);
+        boss.setVelocity(0, 0);
+        boss.play('amphibian-heal');
 
         // Create heal visual warning
         const healWarning = this.add.text(this.boss.x, this.boss.y - 80, 'HEALING!', {
@@ -55765,15 +55889,14 @@ class GameScene extends Phaser.Scene {
         });
 
         // Execute heal after animation delay
-        this.time.delayedCall(1000, () => {
-            if (this.boss && this.boss.active) {
+        this.bossDelayedCall(boss, 1000, capturedBoss => {
                 // Heal boss
-                const previousHealth = this.boss.health;
-                this.boss.health = Math.min(this.boss.health + this.boss.healAmount, this.boss.maxHealth);
-                const actualHeal = this.boss.health - previousHealth;
+                const previousHealth = capturedBoss.health;
+                capturedBoss.health = Math.min(capturedBoss.health + capturedBoss.healAmount, capturedBoss.maxHealth);
+                const actualHeal = capturedBoss.health - previousHealth;
 
                 // Show heal number
-                const healText = this.add.text(this.boss.x, this.boss.y - 40, `+${actualHeal}`, {
+                const healText = this.add.text(capturedBoss.x, capturedBoss.y - 40, `+${actualHeal}`, {
                     fontSize: '28px',
                     color: '#44ff44',
                     fontStyle: 'bold',
@@ -55790,16 +55913,12 @@ class GameScene extends Phaser.Scene {
                     duration: 1500,
                     onComplete: () => healText.destroy()
                 });
-            }
         });
 
         // Reset attacking state
-        this.time.delayedCall(1800, () => {
-            if (this.boss && this.boss.active) {
-                this.boss.isAttacking = false;
-                this.boss.healCooldown = 8000 / this.speedMultiplier; // Long cooldown
-                this.boss.play('amphibian-idle');
-            }
+        this.bossDelayedCall(boss, 1800, capturedBoss => {
+            capturedBoss.isAttacking = false;
+            capturedBoss.play('amphibian-idle');
         });
     }
 
@@ -55820,7 +55939,7 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    applyPoisonEffect(target) {
+    applyPoisonEffect(target, boss = this.boss) {
         if (!target || !target.active) return;
 
         // Apply poison DoT effect
@@ -55830,11 +55949,11 @@ class GameScene extends Phaser.Scene {
         const maxTicks = 3; // 3 seconds of poison
         const poisonDamage = 5;
 
-        const poisonInterval = this.time.addEvent({
+        const poisonInterval = this.bossLoopEvent(boss, {
             delay: 1000,
             callback: () => {
-                if (target && target.active && target.takeDamage) {
-                    target.takeDamage(poisonDamage);
+                if (target && target.active) {
+                    this.damageBossTarget(target, poisonDamage, boss);
                     poisonTicks++;
 
                     if (poisonTicks >= maxTicks) {
@@ -55846,7 +55965,7 @@ class GameScene extends Phaser.Scene {
                 }
             },
             loop: true
-        });
+        }, true);
     }
     // ===== END AMPHIBIAN BOSS =====
 
@@ -55887,16 +56006,7 @@ class GameScene extends Phaser.Scene {
 
         // Adjust boss health based on enemy density setting
         const baseHealthPerKing = 2000; // Each king has their own health
-        const densityMultipliers = {
-            'beginner': 0.1,
-            'sparse': 0.25,
-            'normal': 0.5,
-            'dense': 0.75,
-            'swarm': 1.0
-        };
-        const enemyDensity = localStorage.getItem('enemyDensity') || 'normal';
-        const healthMultiplier = densityMultipliers[enemyDensity] || 0.5;
-        const healthPerKing = Math.floor(baseHealthPerKing * healthMultiplier);
+        const healthPerKing = Math.floor(baseHealthPerKing * this.getBossDensityHealthMultiplier() * this.getBossHealthTuningMultiplier());
 
         // Create array to store all 3 kings
         this.seaKings = [];
@@ -55960,6 +56070,7 @@ class GameScene extends Phaser.Scene {
         this.boss = this.seaKings[0];
         this.boss.isMultiBoss = true;
         this.boss.seaKingsGroup = this.seaKings;
+        this.beginBossEncounter(this.seaKings);
 
         // Initialize health threshold tracking for phase changes
         this.bossHealthThresholds = new Set([75, 50, 25]);
@@ -55968,7 +56079,7 @@ class GameScene extends Phaser.Scene {
         this.createSeaKingsBossHealthBar();
 
         // Start boss AI for all kings
-        this.bossAITimer = this.time.addEvent({
+        this.bossAITimer = this.bossLoopEvent(this.boss, {
             delay: 1600 / this.speedMultiplier,
             callback: () => this.updateSeaKingsBossAI(),
             loop: true,
@@ -56060,7 +56171,7 @@ class GameScene extends Phaser.Scene {
             }
 
             // Attack if in range
-            if (distance <= king.attackRange && king.attackCooldown <= 0) {
+            if (distance <= king.attackRange && this.bossCooldownReady(king, 'attack')) {
                 this.seaKingAttack(king, target, newDirection);
             } else {
                 // Movement towards player
@@ -56077,27 +56188,25 @@ class GameScene extends Phaser.Scene {
                     king.setVelocity(0, 0);
                 }
             }
-
-            // Update cooldowns
-            if (king.attackCooldown > 0) {
-                king.attackCooldown -= 16; // 60fps approximation
-            }
         });
     }
 
     seaKingAttack(king, target, direction) {
         king.isAttacking = true;
+        king.attackCycleCount = (king.attackCycleCount || 0) + 1;
+        king.currentDirection = direction;
+        this.startBossCooldown(king, 'attack', 2000);
         king.setVelocity(0, 0);
         king.play(`seaking${king.kingNumber}-attack-${direction}`);
 
         // Create attack projectile after animation delay
-        this.time.delayedCall(300, () => {
-            if (king && king.active && target && target.active) {
+        this.bossDelayedCall(king, 300, capturedKing => {
+            if (target && target.active) {
                 // Calculate angle to target
-                const angle = Phaser.Math.Angle.Between(king.x, king.y, target.x, target.y);
+                const angle = Phaser.Math.Angle.Between(capturedKing.x, capturedKing.y, target.x, target.y);
 
                 // Create water projectile
-                const projectile = this.add.sprite(king.x, king.y, 'water-spell');
+                const projectile = this.add.sprite(capturedKing.x, capturedKing.y, 'water-spell');
                 projectile.setScale(1.3);
                 projectile.setTint(0x00aaff);
                 projectile.setRotation(angle);
@@ -56117,18 +56226,17 @@ class GameScene extends Phaser.Scene {
                 const wizards = [this.wizard, this.wizard2, this.wizard3, this.wizard4].filter(w => w && w.active);
                 wizards.forEach(wizard => {
                     const damageOverlap = this.physics.add.overlap(projectile, wizard, () => {
-                        if (wizard.takeDamage) {
-                            wizard.takeDamage(king.attackDamage);
-                        }
+                        this.damageBossTarget(wizard, capturedKing.attackDamage, capturedKing);
                         damageOverlap.destroy();
                         projectile.destroy();
                     }, (p, w) => {
                         return this.validateCollision(p, w);
                     });
                 });
+                this.ownBossCleanup(capturedKing, () => { if (projectile.active) projectile.destroy(); });
 
                 // Auto-destroy after time
-                this.time.delayedCall(3000, () => {
+                this.bossDelayedCall(capturedKing, 3000, () => {
                     if (projectile.active) {
                         projectile.destroy();
                     }
@@ -56137,12 +56245,9 @@ class GameScene extends Phaser.Scene {
         });
 
         // Reset attacking state
-        this.time.delayedCall(800, () => {
-            if (king && king.active) {
-                king.isAttacking = false;
-                king.attackCooldown = 2000 / this.speedMultiplier;
-                king.play(`seaking${king.kingNumber}-walk-${king.currentDirection}`);
-            }
+        this.bossDelayedCall(king, 800, capturedKing => {
+            capturedKing.isAttacking = false;
+            capturedKing.play(`seaking${capturedKing.kingNumber}-walk-${capturedKing.currentDirection}`);
         });
     }
 
@@ -56246,6 +56351,7 @@ class GameScene extends Phaser.Scene {
     completeSeaKingsBossDeath(lastKing) {
         if (this.seaKingsCompletionStarted) return;
         this.seaKingsCompletionStarted = true;
+        this.cancelBossEncounter(lastKing);
 
         if (this.bossAITimer) {
             this.bossAITimer.destroy();
@@ -56299,7 +56405,9 @@ class GameScene extends Phaser.Scene {
             console.warn('Sea Kings reward drop failed during death cleanup:', error);
         }
 
-        setTimeout(() => this.gameWon(), 2000);
+        this.time.delayedCall(2000, () => {
+            if (this.seaKingsCompletionStarted) this.gameWon();
+        });
     }
     // ===== END SEA KINGS BOSS =====
 
@@ -56317,39 +56425,33 @@ class GameScene extends Phaser.Scene {
         for (const threshold of this.bossHealthThresholds) {
             if (healthPercentage <= threshold) {
                 this.bossHealthThresholds.delete(threshold);
-                this.spawnLavaWave();
                 // Also perform a rage mode enhancement
                 this.enhanceDemonSlimeBoss(threshold);
+                this.spawnLavaWave();
                 break;
             }
         }
-        // Initialize cooldowns if not set
-        if (!this.boss.leapCooldown) this.boss.leapCooldown = 0;
-        if (!this.boss.lavaBurstCooldown) this.boss.lavaBurstCooldown = 0;
         // Enhanced attack patterns based on health
         const distanceToPlayer = Phaser.Math.Distance.Between(
             this.boss.x, this.boss.y, this.wizard.x, this.wizard.y
         );
         // Leap attack when far from player
-        if (distanceToPlayer > 300 && this.boss.leapCooldown <= 0) {
+        if (distanceToPlayer > 300 && this.bossCooldownReady(this.boss, 'leap')) {
             this.performDemonSlimeLeap();
-            this.boss.leapCooldown = 4000 / this.speedMultiplier;
-        } else if (this.boss.leapCooldown > 0) {
-            this.boss.leapCooldown -= 2000 / this.speedMultiplier;
+            this.startBossCooldown(this.boss, 'leap', 4000);
+            return;
         }
         // Lava burst attack (new ranged attack)
-        if (this.boss.lavaBurstCooldown <= 0 && healthPercent < 0.75) {
+        if (this.bossCooldownReady(this.boss, 'lavaBurst') && healthPercent < 0.75) {
             this.performLavaBurst();
-            this.boss.lavaBurstCooldown = 5000 / this.speedMultiplier;
-        } else if (this.boss.lavaBurstCooldown > 0) {
-            this.boss.lavaBurstCooldown -= 2000 / this.speedMultiplier;
+            this.startBossCooldown(this.boss, 'lavaBurst', 5000);
+            return;
         }
         // Main attack pattern - cleave attack
-        if (this.boss.cleaveCooldown <= 0 && distanceToPlayer < 200) {
+        if (this.bossCooldownReady(this.boss, 'cleave') && distanceToPlayer < 200) {
             this.performDemonSlimeCleave();
-            this.boss.cleaveCooldown = 3000 / this.speedMultiplier; // 3 second cooldown
-        } else {
-            this.boss.cleaveCooldown -= 2000 / this.speedMultiplier;
+            this.startBossCooldown(this.boss, 'cleave', 3000);
+            return;
         }
         // Move towards player when not attacking
         if (!this.boss.isCleaving && this.wizard && this.wizard.active) {
@@ -56367,22 +56469,23 @@ class GameScene extends Phaser.Scene {
     }
     performDemonSlimeCleave() {
         if (!this.boss || !this.wizard) return;
-        this.boss.isCleaving = true;
-        this.boss.setVelocity(0, 0);
+        const boss = this.boss;
+        boss.isCleaving = true;
+        boss.visualState = 'cleave';
+        boss.setVelocity(0, 0);
         // Face the player (reversed because sprite is flipped)
         const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, this.wizard.x, this.wizard.y);
         this.boss.setFlipX(this.wizard.x > this.boss.x);
         // Play cleave animation
         this.boss.play('demon-slime-cleave');
         // Create shockwave projectiles when cleave hits (at frame 8)
-        this.time.delayedCall(800 / this.speedMultiplier, () => {
-            if (!this.boss || !this.boss.active) return;
+        this.bossDelayedCall(boss, 800 / this.speedMultiplier, capturedBoss => {
             // Create 8 shockwave projectiles in all directions
             const numShockwaves = 8;
             const angleStep = (Math.PI * 2) / numShockwaves;
             for (let i = 0; i < numShockwaves; i++) {
                 const projectileAngle = i * angleStep;
-                const shockwave = this.physics.add.sprite(this.boss.x, this.boss.y, 'fire-spell', 0);
+                const shockwave = this.physics.add.sprite(capturedBoss.x, capturedBoss.y, 'fire-spell', 0);
                 shockwave.setScale(2);
                 shockwave.setTint(0xff4400);
                 shockwave.play('fire-spell-anim');
@@ -56395,8 +56498,9 @@ class GameScene extends Phaser.Scene {
                 shockwave.fromBoss = true;
                 shockwave.isShockwave = true;
                 this.enemyProjectiles.add(shockwave);
+                this.ownBossCleanup(capturedBoss, () => { if (shockwave.active) shockwave.destroy(); });
                 // Destroy after 2 seconds
-                this.time.delayedCall(2000 / this.speedMultiplier, () => {
+                this.bossDelayedCall(capturedBoss, 2000 / this.speedMultiplier, () => {
                     if (shockwave && shockwave.active) {
                         shockwave.destroy();
                     }
@@ -56404,23 +56508,25 @@ class GameScene extends Phaser.Scene {
             }
         });
         // Return to idle after cleave
-        this.boss.once('animationcomplete', () => {
-            if (this.boss && this.boss.active) {
-                this.boss.isCleaving = false;
-                this.boss.play('demon-slime-idle');
+        boss.once('animationcomplete', () => {
+            if (this.isBossEncounterActive(boss)) {
+                boss.isCleaving = false;
+                boss.visualState = 'idle';
+                boss.play('demon-slime-idle');
             }
         });
     }
     spawnLavaWave() {
         // Spawn a wave of lava enemies
+        const boss = this.boss;
         const enemies = ['fireslime', 'fireworm', 'flyingdemon'];
         const count = 4;
         for (let i = 0; i < count; i++) {
-            this.time.delayedCall(i * 200 / this.speedMultiplier, () => {
+            this.bossDelayedCall(boss, i * 200 / this.speedMultiplier, capturedBoss => {
                 const angle = (Math.PI * 2 / count) * i;
                 const distance = 250;
-                const x = this.boss.x + Math.cos(angle) * distance;
-                const y = this.boss.y + Math.sin(angle) * distance;
+                const x = capturedBoss.x + Math.cos(angle) * distance;
+                const y = capturedBoss.y + Math.sin(angle) * distance;
                 const enemyType = enemies[Math.floor(Math.random() * enemies.length)];
                 this.createEnemy(enemyType, x, y);
             });
@@ -56428,8 +56534,22 @@ class GameScene extends Phaser.Scene {
     }
     performDemonSlimeLeap() {
         if (!this.boss || !this.wizard) return;
-        this.boss.isLeaping = true;
-        this.boss.setVelocity(0, 0);
+        const boss = this.boss;
+        boss.isLeaping = true;
+        boss.visualState = 'leap-windup';
+        boss.attackCycleCount = (boss.attackCycleCount || 0) + 1;
+        boss.leapBaseScaleX = Math.abs(boss.scaleX);
+        boss.leapBaseScaleY = Math.abs(boss.scaleY);
+        boss.setVelocity(0, 0);
+        boss.play('demon-slime-walk');
+        boss.setTint(0xffaa44);
+        boss.setScale(boss.leapBaseScaleX, boss.leapBaseScaleY * 0.8);
+        this.ownBossCleanup(boss, () => {
+            if (!boss.active) return;
+            boss.setScale(boss.leapBaseScaleX, boss.leapBaseScaleY);
+            boss.clearTint();
+            boss.isLeaping = false;
+        });
         // Store target position
         const targetX = this.wizard.x;
         const targetY = this.wizard.y;
@@ -56444,28 +56564,31 @@ class GameScene extends Phaser.Scene {
             pulseSpeed: 100,
             fadeIn: 100,
             onComplete: () => {
-                if (!this.boss || !this.boss.active) return;
+                if (!this.isBossEncounterActive(boss)) return;
+                boss.visualState = 'leap-airborne';
+                boss.setScale(boss.leapBaseScaleX, boss.leapBaseScaleY * 1.15);
                 // Calculate leap trajectory
-                const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, targetX, targetY);
-                const distance = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, targetX, targetY);
+                const angle = Phaser.Math.Angle.Between(boss.x, boss.y, targetX, targetY);
+                const distance = Phaser.Math.Distance.Between(boss.x, boss.y, targetX, targetY);
                 const leapSpeed = Math.min(distance * 2, 800) * this.speedMultiplier;
                 // Leap towards target
-                this.boss.setVelocity(
+                boss.setVelocity(
                     Math.cos(angle) * leapSpeed,
                     Math.sin(angle) * leapSpeed
                 );
                 // Create shadow effect
-                const shadow = this.add.ellipse(this.boss.x, this.boss.y + 20, 100, 50, 0x000000, 0.5);
+                const shadow = this.add.ellipse(boss.x, boss.y + 20, 100, 50, 0x000000, 0.5);
                 shadow.setDepth(0);
+                this.ownBossCleanup(boss, () => { if (shadow.active) shadow.destroy(); });
                 // Land after a short time
-                this.time.delayedCall(600 / this.speedMultiplier, () => {
-                if (!this.boss || !this.boss.active) return;
+                this.bossDelayedCall(boss, 600 / this.speedMultiplier, capturedBoss => {
                 // Impact!
-                this.boss.setVelocity(0, 0);
-                this.boss.isLeaping = false;
+                capturedBoss.setVelocity(0, 0);
+                capturedBoss.isLeaping = false;
+                capturedBoss.visualState = 'leap-impact';
                 shadow.destroy();
                 // Create shockwave on landing
-                const shockwave = this.add.circle(this.boss.x, this.boss.y, 50, 0xff4400, 0.8);
+                const shockwave = this.add.circle(capturedBoss.x, capturedBoss.y, 50, 0xff4400, 0.8);
                 shockwave.setDepth(50);
                 this.tweens.add({
                     targets: shockwave,
@@ -56476,54 +56599,57 @@ class GameScene extends Phaser.Scene {
                     onComplete: () => shockwave.destroy()
                 });
                 // Damage player if nearby
-                const impactDistance = Phaser.Math.Distance.Between(
-                    this.boss.x, this.boss.y, this.wizard.x, this.wizard.y
-                );
-                if (impactDistance < 150) {
-                    if (!this.invulnerable && !this.godMode) {
-                        // Use damagePlayer to ensure damage cap is applied
-                        this.damagePlayer(50);
+                const target = this.getNearestActiveWizard(capturedBoss.x, capturedBoss.y);
+                const impactDistance = target ? Phaser.Math.Distance.Between(capturedBoss.x, capturedBoss.y, target.x, target.y) : Infinity;
+                if (target && impactDistance < 150) {
+                    if (this.damageBossTarget(target, 50, capturedBoss)) {
                         // Knockback
                         const knockbackAngle = Phaser.Math.Angle.Between(
-                            this.boss.x, this.boss.y, this.wizard.x, this.wizard.y
+                            capturedBoss.x, capturedBoss.y, target.x, target.y
                         );
-                        this.wizard.setVelocity(
+                        target.setVelocity(
                             Math.cos(knockbackAngle) * 300,
                             Math.sin(knockbackAngle) * 300
                         );
-                        // Check for death and handle revives
-                        this.checkPlayerDeath();
                     }
                 }
                 // Resume normal animation
-                this.boss.play('demon-slime-idle');
+                capturedBoss.clearTint();
+                capturedBoss.setScale(capturedBoss.leapBaseScaleX, capturedBoss.leapBaseScaleY);
+                capturedBoss.visualState = 'idle';
+                capturedBoss.play('demon-slime-idle');
                 });
             }
         });
+        this.ownBossCleanup(boss, () => this.removeDangerWarning(warning));
     }
     performLavaBurst() {
         if (!this.boss || !this.wizard) return;
+        const boss = this.boss;
+        boss.isAttacking = true;
+        boss.visualState = 'lava-burst';
+        boss.attackCycleCount = (boss.attackCycleCount || 0) + 1;
         // Visual warning
-        this.boss.setTint(0xffaa00);
-        this.time.delayedCall(300 / this.speedMultiplier, () => {
-            if (!this.boss || !this.boss.active) return;
-            this.boss.clearTint();
+        boss.setTint(0xffaa00);
+        boss.play('demon-slime-cleave');
+        this.bossDelayedCall(boss, 300 / this.speedMultiplier, capturedBoss => {
+            capturedBoss.clearTint();
             // Create multiple lava projectiles
             const projectileCount = 12;
             for (let i = 0; i < projectileCount; i++) {
-                this.time.delayedCall(i * 50 / this.speedMultiplier, () => {
-                    if (!this.boss || !this.boss.active) return;
+                this.bossDelayedCall(capturedBoss, i * 50 / this.speedMultiplier, activeBoss => {
                     // Random spread around player position
-                    const targetX = this.wizard.x + (Math.random() - 0.5) * 200;
-                    const targetY = this.wizard.y + (Math.random() - 0.5) * 200;
+                    const target = this.getNearestActiveWizard(activeBoss.x, activeBoss.y) || this.wizard;
+                    const targetX = target.x + (Math.random() - 0.5) * 200;
+                    const targetY = target.y + (Math.random() - 0.5) * 200;
                     // Create projectile at boss position
-                    const projectile = this.physics.add.sprite(this.boss.x, this.boss.y - 50, 'fire-spell', 0);
+                    const projectile = this.physics.add.sprite(activeBoss.x, activeBoss.y - 50, 'fire-spell', 0);
                     projectile.setScale(1.5);
                     projectile.setTint(0xff4400);
                     projectile.play('fire-spell-anim');
                     // Arc trajectory
-                    const angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, targetX, targetY);
-                    const distance = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, targetX, targetY);
+                    const angle = Phaser.Math.Angle.Between(activeBoss.x, activeBoss.y, targetX, targetY);
+                    const distance = Phaser.Math.Distance.Between(activeBoss.x, activeBoss.y, targetX, targetY);
                     const speed = Math.min(distance * 0.8, 400) * this.speedMultiplier;
                     projectile.setVelocity(
                         Math.cos(angle) * speed,
@@ -56534,18 +56660,24 @@ class GameScene extends Phaser.Scene {
                     projectile.damage = 25;
                     projectile.fromBoss = true;
                     this.enemyProjectiles.add(projectile);
+                    this.ownBossCleanup(activeBoss, () => { if (projectile.active) projectile.destroy(); });
                     // Create lava pool on impact
-                    this.time.delayedCall(1000 / this.speedMultiplier, () => {
+                    this.bossDelayedCall(activeBoss, 1000 / this.speedMultiplier, poolBoss => {
                         if (projectile && projectile.active) {
-                            this.createLavaPool(projectile.x, projectile.y);
+                            this.createLavaPool(projectile.x, projectile.y, poolBoss);
                             projectile.destroy();
                         }
                     });
                 });
             }
         });
+        this.bossDelayedCall(boss, 1400 / this.speedMultiplier, capturedBoss => {
+            capturedBoss.isAttacking = false;
+            capturedBoss.visualState = 'idle';
+            capturedBoss.play('demon-slime-idle');
+        });
     }
-    createLavaPool(x, y) {
+    createLavaPool(x, y, boss = this.boss) {
         const lavaPool = this.add.circle(x, y, 40, 0xff4400, 0.6);
         lavaPool.setDepth(1);
         // Add to physics for collision
@@ -56553,34 +56685,22 @@ class GameScene extends Phaser.Scene {
         lavaPool.body.setCircle(40);
         lavaPool.damage = 10;
         // Damage over time
-        const damageTimer = this.time.addEvent({
+        this.ownBossCleanup(boss, () => { if (lavaPool.active) lavaPool.destroy(); });
+        const damageTimer = this.bossLoopEvent(boss, {
             delay: 500 / this.speedMultiplier,
             callback: () => {
-                if (!lavaPool.active || !this.wizard) return;
-                const distance = Phaser.Math.Distance.Between(
-                    lavaPool.x, lavaPool.y, this.wizard.x, this.wizard.y
-                );
-                if (distance < 50) {
-                    if (!this.invulnerable && !this.godMode) {
-                        // Use damagePlayer to ensure damage cap is applied
-                        this.damagePlayer(lavaPool.damage);
-                        // Flash red/orange when hit by lava
-                        this.time.delayedCall(200, () => {
-                            if (this.wizard && this.wizard.active) {
-                                this.wizard.setTint(0xff4400);
-                            }
-                        });
-                        // Check for death and handle revives
-                        this.checkPlayerDeath();
-                    }
-                }
+                if (!lavaPool.active) return;
+                this.getActiveBossTargets().forEach(target => {
+                    const distance = Phaser.Math.Distance.Between(lavaPool.x, lavaPool.y, target.x, target.y);
+                    if (distance < 50) this.damageBossTarget(target, lavaPool.damage, boss);
+                });
             },
             loop: true
-        });
+        }, true);
         // Fade out and destroy after 5 seconds
-        this.time.delayedCall(5000 / this.speedMultiplier, () => {
+        this.bossDelayedCall(boss, 5000 / this.speedMultiplier, () => {
             damageTimer.destroy();
-            this.tweens.add({
+            this.bossTween(boss, {
                 targets: lavaPool,
                 alpha: 0,
                 duration: 500,
@@ -56590,6 +56710,11 @@ class GameScene extends Phaser.Scene {
     }
     enhanceDemonSlimeBoss(threshold) {
         if (!this.boss) return;
+        this.cancelBossActions(this.boss);
+        this.boss.isLeaping = false;
+        this.boss.isCleaving = false;
+        this.boss.visualState = 'phase-transition';
+        this.boss.setVelocity(0, 0);
         // Phase-based enhancements
         if (threshold === 75) {
             // Phase 2: Increased speed and aggression
@@ -57543,6 +57668,9 @@ class GameScene extends Phaser.Scene {
         if (this.boss.enemyType === 'nekros-boss' && Math.floor(timeSinceLastChange / 1000) % 2 === 0) {
             }
         if (currentTime - this.boss.lastModeChange > this.boss.modeChangeTime) {
+            this.cancelBossActions(this.boss);
+            this.boss.isBombarding = false;
+            this.boss.isFiringBarrage = false;
             this.boss.lastModeChange = currentTime;
             if (this.boss.currentMode === 'walk') {
                 // Switch to fly mode
@@ -57629,31 +57757,32 @@ class GameScene extends Phaser.Scene {
                 this.boss.play('nekros-fly');
                 // Create poison bomb trail with zigzag pattern
                 let bombCount = 0;
-                this.nekrosBombTrailTimer = this.time.addEvent({
+                const boss = this.boss;
+                this.nekrosBombTrailTimer = this.bossLoopEvent(boss, {
                     delay: 150,
-                    callback: () => {
-                        this.createPoisonBomb(this.boss.x, this.boss.y);
+                    callback: capturedBoss => {
+                        this.createPoisonBomb(capturedBoss.x, capturedBoss.y, capturedBoss);
                         // Add zigzag movement
                         bombCount++;
                         const zigzagAngle = angle + (Math.sin(bombCount * 0.5) * 0.8);
-                        this.boss.setVelocity(
+                        capturedBoss.setVelocity(
                             Math.cos(zigzagAngle) * speed,
                             Math.sin(zigzagAngle) * speed
                         );
                     },
                     repeat: 12, // More bombs for longer trail
                     callbackScope: this
-                });
+                }, true);
                 // End bombardment run after longer distance
-                this.time.delayedCall(2500, () => {
-                    this.boss.isBombarding = false;
-                    this.boss.bombardmentCount++;
-                    this.boss.setVelocity(0, 0);
+                this.bossDelayedCall(boss, 2500, capturedBoss => {
+                    capturedBoss.isBombarding = false;
+                    capturedBoss.bombardmentCount++;
+                    capturedBoss.setVelocity(0, 0);
                     if (this.nekrosBombTrailTimer) {
                         this.nekrosBombTrailTimer.destroy();
                     }
                     // Return to flying animation
-                    this.boss.play('nekros-fly');
+                    capturedBoss.play('nekros-fly');
                 });
             }
         } else {
@@ -57722,17 +57851,14 @@ class GameScene extends Phaser.Scene {
             this.boss.attackCooldown = 1500; // Much faster attacks
             this.boss.play('nekros-attack1');
             // Fire circular pattern of orbs
-            this.time.delayedCall(500, () => {
-                if (this.boss && this.boss.active) {
+            const boss = this.boss;
+            this.bossDelayedCall(boss, 500, capturedBoss => {
                     this.createOrbBarrage();
-                    this.boss.barrageFiredCount++;
-                    this.time.delayedCall(1000, () => {
-                        if (this.boss && this.boss.active) {
-                            this.boss.isFiringBarrage = false;
-                            this.boss.play('nekros-walk');
-                        }
+                    capturedBoss.barrageFiredCount++;
+                    this.bossDelayedCall(capturedBoss, 1000, activeBoss => {
+                        activeBoss.isFiringBarrage = false;
+                        activeBoss.play('nekros-walk');
                     });
-                }
             });
         }
         // Reduce cooldown
@@ -57740,14 +57866,15 @@ class GameScene extends Phaser.Scene {
             this.boss.attackCooldown -= 100;
         }
     }
-    createPoisonBomb(x, y) {
+    createPoisonBomb(x, y, boss = this.boss) {
         const bomb = this.physics.add.sprite(x, y, 'poison-spell');
         bomb.play('poison-spell-anim');
         bomb.setScale(0.8);
         bomb.setDepth(15);
         bomb.setTint(0x8B00FF); // Purple tint instead of green
         // Bomb drops to ground then explodes after delay
-        this.time.delayedCall(2000, () => {
+        this.ownBossCleanup(boss, () => { if (bomb.active) bomb.destroy(); });
+        this.bossDelayedCall(boss, 2000, capturedBoss => {
             if (bomb.active) {
                 // Create poison cloud
                 const cloud = this.physics.add.sprite(bomb.x, bomb.y, 'poison-spell');
@@ -57756,59 +57883,45 @@ class GameScene extends Phaser.Scene {
                 cloud.setAlpha(0.6);
                 cloud.setDepth(10);
                 cloud.setTint(0x8B00FF); // Purple tint
+                this.ownBossCleanup(capturedBoss, () => { if (cloud.active) cloud.destroy(); });
                 // Poison cloud damages and poisons player if touched - helper function
                 const applyPoison = (wizard) => {
                     if (!wizard.isPoisoned) {
                         wizard.isPoisoned = true;
                         wizard.setTint(0x00FF00);
+                        this.ownBossCleanup(capturedBoss, () => {
+                            if (wizard && wizard.active) {
+                                wizard.isPoisoned = false;
+                                wizard.clearTint();
+                            }
+                        });
                         // Apply poison damage over time
                         let poisonTicks = 5;
-                        const poisonTimer = this.time.addEvent({
+                        const poisonTimer = this.bossLoopEvent(capturedBoss, {
                             delay: 1000,
                             callback: () => {
                                 if (wizard.active && poisonTicks > 0) {
-                                    // Check if this is P1 or P2 for proper damage application
-                                    if (wizard === this.wizard) {
-                                        // Bypass invulnerability for DOT by checking manually
-                                        if (!this.godMode && !this.isPaused && !this.chestSelectionActive) {
-                                            this.damagePlayer(1);
-                                        }
-                                    } else if (wizard === this.wizard2) {
-                                        // P2 poison damage
-                                        if (!this.godMode && !this.isPaused && !this.chestSelectionActive) {
-                                            this.damagePlayer2(1);
-                                        }
-                                    }
+                                    this.damageBossTarget(wizard, 1, capturedBoss);
                                     poisonTicks--;
                                     if (poisonTicks <= 0) {
                                         wizard.isPoisoned = false;
                                         wizard.clearTint();
                                         poisonTimer.destroy();
                                     }
-                                    // Check for death and handle revives (only for player 1)
-                                    if (wizard === this.wizard && this.playerHealth <= 0) {
-                                        this.checkPlayerDeath();
-                                    } else if (wizard !== this.wizard && wizard.health <= 0) {
-                                        this.gameOver();
-                                    }
                                 }
                             },
                             repeat: 4
-                        });
+                        }, true);
                     }
                 };
-                // Add overlap for P1
-                this.physics.add.overlap(this.wizard, cloud, () => applyPoison(this.wizard), (wizard, cld) => {
-                    return this.validateCollision(wizard, cld);
-                });
-                // Add overlap for P2 in multiplayer
-                if (this.multiplayerEnabled && this.wizard2) {
-                    this.physics.add.overlap(this.wizard2, cloud, () => applyPoison(this.wizard2), (wizard, cld) => {
+                this.getActiveBossTargets().forEach(target => {
+                    const overlap = this.physics.add.overlap(target, cloud, () => applyPoison(target), (wizard, cld) => {
                         return this.validateCollision(wizard, cld);
                     });
-                }
+                    this.ownBossCleanup(capturedBoss, () => overlap.destroy());
+                });
                 // Cloud dissipates after 3 seconds
-                this.tweens.add({
+                this.bossTween(capturedBoss, {
                     targets: cloud,
                     alpha: 0,
                     scale: 3,
@@ -57820,6 +57933,7 @@ class GameScene extends Phaser.Scene {
         });
     }
     createOrbBarrage() {
+        const boss = this.boss;
         // Create more complex patterns based on boss health
         const healthPercent = this.boss.health / this.boss.maxHealth;
         let orbCount = 16; // Base number of orbs
@@ -57867,6 +57981,7 @@ class GameScene extends Phaser.Scene {
             orb.isEnemyProjectile = true;
             // Add to enemy projectiles group first
             this.enemyProjectiles.add(orb);
+            this.ownBossCleanup(boss, () => { if (orb.active) orb.destroy(); });
             // Ensure physics body is enabled
             orb.body.enable = true;
             orb.body.setSize(20, 20);
@@ -57880,14 +57995,15 @@ class GameScene extends Phaser.Scene {
                 orb.isHoming = true;
                 orb.homingStrength = 0.02;
                 // Update homing orbs
-                const homingTimer = this.time.addEvent({
+                const homingTimer = this.bossLoopEvent(boss, {
                     delay: 50,
                     callback: () => {
-                        if (orb && orb.active && this.wizard && this.wizard.active) {
+                        const target = this.getNearestActiveWizard(orb.x, orb.y);
+                        if (orb && orb.active && target && target.active) {
                             const currentAngle = Math.atan2(orb.body.velocity.y, orb.body.velocity.x);
                             const targetAngle = Phaser.Math.Angle.Between(
                                 orb.x, orb.y,
-                                this.wizard.x, this.wizard.y
+                                target.x, target.y
                             );
                             const newAngle = Phaser.Math.Angle.RotateTo(
                                 currentAngle, targetAngle, orb.homingStrength
@@ -57903,12 +58019,12 @@ class GameScene extends Phaser.Scene {
                         }
                     },
                     loop: true
-                });
+                }, true);
                 orb.homingTimer = homingTimer;
             }
             // Destroy after variable time based on pattern
             const lifetime = patternType === 2 ? 4000 : 3000; // Aimed bursts last longer
-            this.time.delayedCall(lifetime, () => {
+            this.bossDelayedCall(boss, lifetime, () => {
                 if (orb.active) {
                     if (orb.homingTimer) {
                         orb.homingTimer.destroy();
@@ -57919,6 +58035,7 @@ class GameScene extends Phaser.Scene {
         }
     }
     spawnBossHealthThresholdWave(threshold) {
+        const boss = this.boss;
         // Create dramatic warning effect
         const warningText = this.add.text(400, 150, `BOSS AT ${threshold}% HEALTH!\nENEMY REINFORCEMENTS INCOMING!`, {
             fontSize: '28px',
@@ -57970,19 +58087,20 @@ class GameScene extends Phaser.Scene {
         for (let i = 0; i < enemyCount; i++) {
             const angle = (Math.PI * 2 / enemyCount) * i;
             const distance = 150 + Math.random() * 100; // 150-250 pixels from boss
-            const enemyX = this.boss.x + Math.cos(angle) * distance;
-            const enemyY = this.boss.y + Math.sin(angle) * distance;
+            const enemyX = boss.x + Math.cos(angle) * distance;
+            const enemyY = boss.y + Math.sin(angle) * distance;
             // Spawn a basic enemy with dramatic entrance
-            this.time.delayedCall(i * 200, () => {
-                this.spawnThresholdEnemy(enemyX, enemyY);
+            this.bossDelayedCall(boss, i * 200, capturedBoss => {
+                this.spawnThresholdEnemy(enemyX, enemyY, capturedBoss);
             });
         }
     }
-    spawnThresholdEnemy(x, y) {
+    spawnThresholdEnemy(x, y, boss = this.boss) {
         // Create spawn warning effect first
         const spawnWarning = this.add.circle(x, y, 30, 0xff0000, 0.5);
         spawnWarning.setDepth(10);
-        this.tweens.add({
+        this.ownBossCleanup(boss, () => { if (spawnWarning.active) spawnWarning.destroy(); });
+        this.bossTween(boss, {
             targets: spawnWarning,
             scale: { from: 0, to: 2 },
             alpha: { from: 0.8, to: 0 },
@@ -58430,6 +58548,16 @@ class GameScene extends Phaser.Scene {
             this.handleSeaKingDeath(boss);
             return;
         }
+        if (!boss || boss.bossDeathHandled) return;
+        boss.bossDeathHandled = true;
+        if (this.bossEncounter && this.bossEncounter.bosses.has(boss)) {
+            BossCombatContract.claimCompletion(this.bossEncounter);
+        }
+        boss.isDying = true;
+        boss.health = 0;
+        boss.setVelocity(0, 0);
+        if (boss.body) boss.body.enable = false;
+        this.cancelBossEncounter(boss);
 
         // Play boss death sound
         if (this.cache.audio.exists('boss-death')) {
@@ -58555,7 +58683,8 @@ class GameScene extends Phaser.Scene {
             boss.isDead = true;
             boss.isDying = true;
             boss.isAttacking = false;
-            boss.setTexture('king-nothing-death');
+            boss.anims.stop();
+            boss.play('king-nothing-death');
         } else {
             boss.play('obelisk-death');
         }
@@ -58582,15 +58711,6 @@ class GameScene extends Phaser.Scene {
         });
         // Screen shake
         this.cameras.main.shake(1000, 0.02);
-        if (boss.isAmphibian || boss.enemyType === 'amphibian-boss') {
-            this.dropChest(boss.x, boss.y);
-            boss.destroy();
-            this.boss = null;
-            setTimeout(() => {
-                this.gameWon();
-            }, 2000);
-            return;
-        }
         let bossDeathComplete = false;
         const completeBossDeath = () => {
             if (bossDeathComplete) return;
@@ -58636,7 +58756,7 @@ class GameScene extends Phaser.Scene {
                 boss.isDemonSlime || boss.enemyType === 'demon-slime-boss' ||
                 boss.isNekros || boss.enemyType === 'nekros-boss' ||
                 boss.isKingNothing || boss.enemyType === 'king-nothing-boss') {
-                setTimeout(triggerVictory, 2000);
+                this.time.delayedCall(2000, triggerVictory);
             } else {
                 this.time.delayedCall(2000, triggerVictory);
             }
@@ -58647,18 +58767,20 @@ class GameScene extends Phaser.Scene {
             if (animation.key !== 'nekros-death' && animation.key !== 'archer-boss-death' &&
                 animation.key !== 'obelisk-death' && animation.key !== 'eyelor-death' &&
                 animation.key !== 'amphibian-heal' && animation.key !== 'frost-guardian-death' &&
-                animation.key !== 'demon-slime-death') {
+                animation.key !== 'demon-slime-death' && animation.key !== 'king-nothing-death') {
                 return;
             }
             completeBossDeath();
         });
         if (boss.isFrostGuardian || boss.enemyType === 'frost-guardian-boss' ||
             boss.isNekros || boss.enemyType === 'nekros-boss' ||
-            boss.isKingNothing || boss.enemyType === 'king-nothing-boss') {
-            setTimeout(() => {
+            boss.isKingNothing || boss.enemyType === 'king-nothing-boss' ||
+            boss.isDemonSlime || boss.enemyType === 'demon-slime-boss' ||
+            boss.enemyType === 'eyelor-boss' || boss.isAmphibian || boss.enemyType === 'amphibian-boss') {
+            this.time.delayedCall(3500, () => {
                 if (bossDeathComplete) return;
                 completeBossDeath();
-            }, 3500);
+            });
         }
     }
     gameWon() {
@@ -58869,19 +58991,19 @@ class GameScene extends Phaser.Scene {
             });
         }
         // Create King Nothing boss
-        const centerX = 400;
-        const centerY = 250;
+        const target = this.getNearestActiveWizard(this.wizard.x, this.wizard.y) || this.wizard;
+        const camera = this.cameras.main;
+        const centerX = target.x;
+        const centerY = Math.max(camera.worldView.y + 120, target.y - Math.min(260, camera.height * 0.35));
         // Create boss sprite
         this.boss = this.physics.add.sprite(centerX, centerY, 'king-nothing-run');
         this.boss.setScale(4);
-        this.boss.setTint(0x000000); // Black tint for void theme
+        this.boss.play('king-nothing-run');
         this.boss.isBoss = true;
         this.boss.isKingNothing = true;
         this.boss.knockbackResistance = 0.1; // Bosses resist 90% of knockback
         this.boss.enemyType = 'king-nothing-boss';
-        const density = localStorage.getItem('enemyDensity') || 'normal';
-        const healthMultiplier = density === 'low' ? 0.7 : density === 'normal' ? 0.5 : 1.0;
-        this.boss.maxHealth = Math.floor(8000 * healthMultiplier * this.getBossHealthTuningMultiplier());
+        this.boss.maxHealth = Math.floor(8000 * this.getBossDensityHealthMultiplier() * this.getBossHealthTuningMultiplier());
         this.boss.health = this.boss.maxHealth;
         this.boss.phase = 1;
         this.boss.isDying = false;
@@ -58891,23 +59013,31 @@ class GameScene extends Phaser.Scene {
         this.boss.voidZones = [];
         // Apply hitbox configuration or use defaults
         if (!this.applyHitboxConfig(this.boss, this.boss.enemyType)) {
-            this.boss.body.setSize(60, 80);
+            this.boss.body.setSize(45, 86);
+            this.boss.body.setOffset(58, 20);
         }
         this.boss.setCollideWorldBounds(false);
+        this.beginBossEncounter(this.boss);
         // Create crown above boss
         this.bossCrown = this.add.text(centerX, centerY - 80, '👑', {
             fontSize: '48px'
         });
         this.bossCrown.setOrigin(0.5);
         this.bossCrown.setDepth(11);
-        // Float animation for crown
+        // Float relative to the moving boss in both axes.
+        this.bossCrownBob = { offsetY: -80 };
         this.tweens.add({
-            targets: this.bossCrown,
-            y: centerY - 90,
+            targets: this.bossCrownBob,
+            offsetY: -90,
             duration: 2000,
             yoyo: true,
             repeat: -1,
-            ease: 'Sine.easeInOut'
+            ease: 'Sine.easeInOut',
+            onUpdate: () => {
+                if (this.bossCrown && this.boss && this.boss.active) {
+                    this.bossCrown.setPosition(this.boss.x, this.boss.y + this.bossCrownBob.offsetY);
+                }
+            }
         });
         // Crown rotation
         this.tweens.add({
@@ -58922,10 +59052,11 @@ class GameScene extends Phaser.Scene {
             this.bossNameText.setText('KING NOTHING');
         }
         // Boss behavior timer
-        this.bossAITimer = this.time.addEvent({
-            delay: 3000,
+        const king = this.boss;
+        this.bossAITimer = this.bossLoopEvent(king, {
+            delay: 1000 / this.speedMultiplier,
             callback: () => {
-                if (this.boss && this.boss.active && !this.boss.isDying) {
+                if (this.isBossEncounterActive(king)) {
                     this.updateKingNothingBoss();
                 }
             },
@@ -58938,7 +59069,7 @@ class GameScene extends Phaser.Scene {
         if (!this.boss || this.boss.isDying) return;
         // Update crown position
         if (this.bossCrown) {
-            this.bossCrown.x = this.boss.x;
+            this.bossCrown.setPosition(this.boss.x, this.boss.y + (this.bossCrownBob?.offsetY || -80));
         }
         if (this.bossHealthBar && this.boss.maxHealth > 0) {
             const healthPercentForBar = Math.max(0, this.boss.health / this.boss.maxHealth);
@@ -58947,24 +59078,28 @@ class GameScene extends Phaser.Scene {
         // Check phase transitions
         const healthPercent = this.boss.health / this.boss.maxHealth;
         if (this.boss.phase === 1 && healthPercent <= 0.66) {
+            this.cancelBossActions(this.boss);
+            this.boss.isAttacking = false;
+            this.boss.play('king-nothing-run');
             this.boss.phase = 2;
             this.setEnemySpeed(this.boss, 60); // Reduced by 20% from 75
             this.showBossPhaseText('PHASE II - THE VOID AWAKENS');
         } else if (this.boss.phase === 2 && healthPercent <= 0.33) {
+            this.cancelBossActions(this.boss);
+            this.boss.isAttacking = false;
+            this.boss.play('king-nothing-run');
             this.boss.phase = 3;
             this.setEnemySpeed(this.boss, 80); // Reduced by 20% from 100
             this.showBossPhaseText('PHASE III - EMBRACE NOTHINGNESS');
         }
         // Execute attacks based on phase
-        if (this.boss.attackCooldown <= 0) {
+        if (!this.boss.isAttacking && this.bossCooldownReady(this.boss, 'attack')) {
             this.executeKingNothingAttack();
-            this.boss.attackCooldown = 3000 - (this.boss.phase - 1) * 500;
-        } else {
-            this.boss.attackCooldown -= 100;
+            this.startBossCooldown(this.boss, 'attack', 3000 - (this.boss.phase - 1) * 500);
         }
         // Movement pattern
         const player = this.getNearestActiveWizard(this.boss.x, this.boss.y);
-        if (player) {
+        if (player && !this.boss.isAttacking) {
             // Float towards player slowly
             const angle = Phaser.Math.Angle.Between(
                 this.boss.x, this.boss.y,
@@ -58979,6 +59114,7 @@ class GameScene extends Phaser.Scene {
     }
     executeKingNothingAttack() {
         if (!this.boss || this.boss.isDying) return;
+        this.boss.attackCycleCount = (this.boss.attackCycleCount || 0) + 1;
         const attackChoice = Phaser.Math.Between(1, 3 + this.boss.phase - 1);
         switch(attackChoice) {
             case 1:
@@ -58999,37 +59135,41 @@ class GameScene extends Phaser.Scene {
         }
     }
     kingNothingVoidBarrage() {
+        const boss = this.boss;
+        this.playKingNothingAttack(boss, 'king-nothing-attack1', 900);
         // Fire void projectiles in spread pattern
         const projectileCount = 5 + (this.boss.phase - 1) * 2;
         const angleStep = Math.PI / (projectileCount + 1);
         for (let i = 0; i < projectileCount; i++) {
             const angle = -Math.PI/2 - angleStep * (projectileCount/2) + angleStep * (i + 1);
-            this.time.delayedCall(i * 100, () => {
-                if (!this.boss || this.boss.isDying) return;
+            this.bossDelayedCall(boss, i * 100, capturedBoss => {
                 const projectile = this.physics.add.sprite(
-                    this.boss.x,
-                    this.boss.y,
+                    capturedBoss.x,
+                    capturedBoss.y,
                     'void-orb'
                 );
                 projectile.setScale(2);
                 projectile.setTint(0x9900ff);
-                projectile.damage = 25 + (this.boss.phase - 1) * 10;
+                projectile.damage = 25 + (capturedBoss.phase - 1) * 10;
                 projectile.fromBoss = true;
-                const speed = (200 + (this.boss.phase - 1) * 50) * this.speedMultiplier;
+                const speed = (200 + (capturedBoss.phase - 1) * 50) * this.speedMultiplier;
                 projectile.setVelocity(
                     Math.cos(angle) * speed,
                     Math.sin(angle) * speed
                 );
                 this.enemyProjectiles.add(projectile);
+                this.ownBossCleanup(capturedBoss, () => { if (projectile.active) projectile.destroy(); });
                 // Auto-destroy
-                this.time.delayedCall(5000, () => {
+                this.bossDelayedCall(capturedBoss, 5000, () => {
                     if (projectile.active) projectile.destroy();
                 });
             });
         }
     }
     kingNothingVoidBeam() {
-        const player = this.getNearestActiveWizard(this.boss.x, this.boss.y);
+        const boss = this.boss;
+        this.playKingNothingAttack(boss, 'king-nothing-attack2', 1300);
+        const player = this.getNearestActiveWizard(boss.x, boss.y);
         if (!player) return;
         // Telegraph
         const telegraph = this.add.rectangle(
@@ -59046,77 +59186,89 @@ class GameScene extends Phaser.Scene {
         );
         telegraph.rotation = angle + Math.PI/2;
         // Fire beam after delay
-        this.time.delayedCall(1000, () => {
+        this.ownBossCleanup(boss, () => { if (telegraph.active) telegraph.destroy(); });
+        this.bossDelayedCall(boss, 1000, capturedBoss => {
             telegraph.destroy();
             const beam = this.add.rectangle(
-                this.boss.x,
-                this.boss.y,
+                capturedBoss.x,
+                capturedBoss.y,
                 40,
                 800,
                 0x9900ff
             );
             beam.rotation = angle + Math.PI/2;
             this.physics.add.existing(beam);
-            beam.damage = 40 + (this.boss.phase - 1) * 15;
+            beam.damage = 40 + (capturedBoss.phase - 1) * 15;
             beam.fromBoss = true;
             // Check collision
-            this.physics.add.overlap(beam, player, () => {
-                if (this.playerHit) {
-                    this.playerHit(beam.damage);
-                }
+            const overlap = this.physics.add.overlap(beam, player, () => {
+                this.damageBossTarget(player, beam.damage, capturedBoss);
             }, (b, p) => {
                 return this.validateCollision(b, p);
             });
+            this.ownBossCleanup(capturedBoss, () => {
+                if (beam.active) beam.destroy();
+                if (overlap.active) overlap.destroy();
+            });
             // Destroy beam
-            this.time.delayedCall(200, () => {
+            this.bossDelayedCall(capturedBoss, 200, () => {
                 beam.destroy();
             });
         });
     }
     kingNothingVoidPulse() {
+        const boss = this.boss;
+        this.playKingNothingAttack(boss, 'king-nothing-attack3', 1500);
         // Expanding void pulse
         const pulse = this.add.circle(this.boss.x, this.boss.y, 10, 0x9900ff, 0.8);
         pulse.setDepth(8);
-        this.tweens.add({
+        this.ownBossCleanup(boss, () => { if (pulse.active) pulse.destroy(); });
+        this.bossTween(boss, {
             targets: pulse,
             scaleX: 40,
             scaleY: 40,
             alpha: 0,
             duration: 1500,
             onUpdate: () => {
-                if (this.wizard) {
+                this.getActiveBossTargets().forEach(target => {
                     const distance = Phaser.Math.Distance.Between(
                         pulse.x, pulse.y,
-                        this.wizard.x, this.wizard.y
+                        target.x, target.y
                     );
                     const pulseRadius = pulse.scaleX * 10;
                     if (distance < pulseRadius && distance > pulseRadius - 20) {
-                        if (this.playerHit && !pulse.hasHit) {
-                            this.playerHit(30 + (this.boss.phase - 1) * 10);
-                            pulse.hasHit = true;
+                        pulse.hitTargets = pulse.hitTargets || new Set();
+                        if (!pulse.hitTargets.has(target)) {
+                            this.damageBossTarget(target, 30 + (boss.phase - 1) * 10, boss);
+                            pulse.hitTargets.add(target);
                         }
                     }
-                }
+                });
             },
             onComplete: () => pulse.destroy()
         });
     }
     kingNothingVoidZones() {
+        const boss = this.boss;
+        this.playKingNothingAttack(boss, 'king-nothing-attack2', 1200);
         const zoneCount = 3 + (this.boss.phase - 2);
         for (let i = 0; i < zoneCount; i++) {
-            const x = Phaser.Math.Between(100, 700);
-            const y = Phaser.Math.Between(100, 500);
+            const target = this.getNearestActiveWizard(boss.x, boss.y) || boss;
+            const x = target.x + Phaser.Math.Between(-250, 250);
+            const y = target.y + Phaser.Math.Between(-180, 180);
             // Telegraph
             const telegraph = this.add.circle(x, y, 60, 0x9900ff, 0.2);
-            this.time.delayedCall(1000, () => {
+            this.ownBossCleanup(boss, () => { if (telegraph.active) telegraph.destroy(); });
+            this.bossDelayedCall(boss, 1000, capturedBoss => {
                 telegraph.destroy();
                 const voidZone = this.add.circle(x, y, 60, 0x9900ff, 0.5);
                 this.physics.add.existing(voidZone);
                 voidZone.damage = 15;
                 voidZone.fromBoss = true;
-                this.boss.voidZones.push(voidZone);
+                capturedBoss.voidZones.push(voidZone);
+                this.ownBossCleanup(capturedBoss, () => { if (voidZone.active) voidZone.destroy(); });
                 // Pulse effect
-                this.tweens.add({
+                this.bossTween(capturedBoss, {
                     targets: voidZone,
                     scaleX: 1.2,
                     scaleY: 1.2,
@@ -59126,35 +59278,34 @@ class GameScene extends Phaser.Scene {
                     repeat: 10,
                     onComplete: () => {
                         voidZone.destroy();
-                        const index = this.boss.voidZones.indexOf(voidZone);
-                        if (index > -1) this.boss.voidZones.splice(index, 1);
+                        const index = capturedBoss.voidZones.indexOf(voidZone);
+                        if (index > -1) capturedBoss.voidZones.splice(index, 1);
                     }
                 });
                 // Damage check
-                if (this.wizard) {
-                    const damageTimer = this.time.addEvent({
+                if (this.getActiveBossTargets().length) {
+                    const damageTimer = this.bossLoopEvent(capturedBoss, {
                         delay: 500,
                         callback: () => {
                             if (!voidZone.active) {
                                 damageTimer.remove();
                                 return;
                             }
-                            const distance = Phaser.Math.Distance.Between(
-                                voidZone.x, voidZone.y,
-                                this.wizard.x, this.wizard.y
-                            );
-                            if (distance < 60 && this.playerHit) {
-                                this.playerHit(voidZone.damage);
-                            }
+                            this.getActiveBossTargets().forEach(target => {
+                                const distance = Phaser.Math.Distance.Between(voidZone.x, voidZone.y, target.x, target.y);
+                                if (distance < 60) this.damageBossTarget(target, voidZone.damage, capturedBoss);
+                            });
                         },
                         loop: true
-                    });
+                    }, true);
                 }
             });
         }
     }
     kingNothingUltimateVoid() {
         if (this.boss.phase !== 3) return;
+        const boss = this.boss;
+        this.playKingNothingAttack(boss, 'king-nothing-attack3', 2800);
         // Screen darkens
         const darkness = this.add.rectangle(400, 300, 800, 600, 0x000000, 0);
         darkness.setScrollFactor(0);
@@ -59175,17 +59326,23 @@ class GameScene extends Phaser.Scene {
         warningText.setScrollFactor(0);
         warningText.setDepth(51);
         // Create singularity
-        this.time.delayedCall(2000, () => {
+        this.ownBossCleanup(boss, () => {
+            if (darkness.active) darkness.destroy();
+            if (warningText.active) warningText.destroy();
+        });
+        this.bossDelayedCall(boss, 2000, capturedBoss => {
             warningText.destroy();
-            if (this.wizard) {
+            const target = this.getNearestActiveWizard(capturedBoss.x, capturedBoss.y);
+            if (target) {
                 const singularity = this.add.circle(
-                    this.wizard.x,
-                    this.wizard.y,
+                    target.x,
+                    target.y,
                     10,
                     0x9900ff
                 );
                 singularity.setDepth(52);
-                this.tweens.add({
+                this.ownBossCleanup(capturedBoss, () => { if (singularity.active) singularity.destroy(); });
+                this.bossTween(capturedBoss, {
                     targets: singularity,
                     scaleX: 20,
                     scaleY: 20,
@@ -59193,12 +59350,10 @@ class GameScene extends Phaser.Scene {
                     onComplete: () => {
                         const distance = Phaser.Math.Distance.Between(
                             singularity.x, singularity.y,
-                            this.wizard.x, this.wizard.y
+                            target.x, target.y
                         );
-                        if (distance < 200 && this.playerHit) {
-                            this.playerHit(60);
-                        }
-                        this.tweens.add({
+                        if (distance < 200) this.damageBossTarget(target, 60, capturedBoss);
+                        this.bossTween(capturedBoss, {
                             targets: singularity,
                             scaleX: 0,
                             scaleY: 0,
@@ -59211,6 +59366,16 @@ class GameScene extends Phaser.Scene {
                     }
                 });
             }
+        });
+    }
+    playKingNothingAttack(boss, animationKey, duration) {
+        if (!this.isBossEncounterActive(boss)) return;
+        boss.isAttacking = true;
+        boss.setVelocity(0, 0);
+        boss.play(animationKey);
+        this.bossDelayedCall(boss, duration, capturedBoss => {
+            capturedBoss.isAttacking = false;
+            capturedBoss.play('king-nothing-run');
         });
     }
     showBossPhaseText(text) {
@@ -60346,17 +60511,10 @@ class GameScene extends Phaser.Scene {
                 // After warning, create actual explosion damage
                 // This is where you'd add explosion effects and damage logic
                 this.cameras.main.shake(200, 0.01);
-                // Check for damage to players in radius
-                const distToP1 = Phaser.Math.Distance.Between(x, y, this.wizard.x, this.wizard.y);
-                if (distToP1 <= radius) {
-                    this.takeDamage(this.wizard, 30);
-                }
-                if (this.wizard2) {
-                    const distToP2 = Phaser.Math.Distance.Between(x, y, this.wizard2.x, this.wizard2.y);
-                    if (distToP2 <= radius) {
-                        this.takeDamage(this.wizard2, 30);
-                    }
-                }
+                this.getActiveBossTargets().forEach(target => {
+                    const distance = Phaser.Math.Distance.Between(x, y, target.x, target.y);
+                    if (distance <= radius) this.damageBossTarget(target, 30);
+                });
             }
         });
     }
@@ -61152,6 +61310,97 @@ if (typeof window !== 'undefined') {
         });
     };
 
+    window.runHomunculiCoreBossSmoke = async function runHomunculiCoreBossSmoke(options = {}) {
+        const stage = options.stage;
+        const configs = {
+            forest: { create: 'createBoss', enemyType: 'obelisk-boss', animation: 'obelisk-idle' },
+            cave: { create: 'createArcherBoss', enemyType: 'archer-boss', animation: 'archer-boss-walk' },
+            sand: { create: 'createSandBoss', enemyType: 'eyelor-boss', animation: 'eyelor-move' }
+        };
+        const config = configs[stage];
+        if (!config) throw new Error(`Unsupported core boss smoke stage: ${stage}`);
+        const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+        const waitFor = async (label, predicate, timeoutMs = 10000) => {
+            const startedAt = Date.now();
+            while (Date.now() - startedAt < timeoutMs) {
+                if (predicate()) return;
+                await wait(100);
+            }
+            throw new Error(`Timed out waiting for ${label}`);
+        };
+        const assert = (condition, message) => { if (!condition) throw new Error(message); };
+        const originalStorage = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            originalStorage[key] = localStorage.getItem(key);
+        }
+
+        try {
+            localStorage.clear();
+            localStorage.setItem('enemyDensity', 'normal');
+            await waitFor('Phaser game boot', () => typeof game !== 'undefined' && game && game.scene);
+            await waitFor('title scene', () => game.scene.getScene('TitleScene')?.scene?.isActive());
+            game.scene.stop('TitleScene');
+            game.scene.start('GameScene', {
+                stage,
+                p1Character: 'wizard',
+                multiplayerEnabled: false,
+                arcadeMode: false,
+                startElement: stage === 'sand' ? 'earth' : 'fire'
+            });
+            await waitFor(`${stage} GameScene`, () => {
+                const activeScene = game.scene.getScene('GameScene');
+                return activeScene?.scene?.isActive() && activeScene.stage === stage && activeScene.wizard;
+            });
+
+            const scene = game.scene.getScene('GameScene');
+            if (scene.dialogueManager?.active) scene.dialogueManager.close(true);
+            scene.gameStarted = true;
+            scene.physics.resume();
+            scene.time.timeScale = 1;
+            scene[config.create]();
+            await waitFor(`${stage} boss entry`, () => scene.boss?.active && scene.boss.enemyType === config.enemyType);
+            const boss = scene.boss;
+            assert(boss.anims?.currentAnim?.key === config.animation, `${stage} boss initial animation drifted`);
+            assert(scene.bossHealthBar?.active, `${stage} boss health bar missing`);
+
+            scene.godMode = false;
+            scene.invulnerable = false;
+            scene.playerInvulnerableUntil = 0;
+            scene.wizard.isInvulnerable = false;
+            scene.wizard.invulnerable = false;
+            const healthBefore = scene.playerHealth;
+            assert(scene.damageBossTarget(scene.wizard, 20, boss) === true, `${stage} canonical boss damage was rejected`);
+            assert(scene.playerHealth < healthBefore, `${stage} boss hit did not reduce real player health`);
+            scene.godMode = true;
+
+            let encounter = scene.bossEncounter;
+            if (stage === 'sand') {
+                scene.performEyelorProjectileBurst();
+                assert(boss.actionState === 'projectile', 'Eyelor projectile state did not enter its attack animation state');
+                assert(encounter.actionTimers.size > 0, 'Eyelor mid-attack ownership did not capture delayed work');
+            }
+            scene.handleBossDeath(boss);
+            assert(boss.bossDeathHandled === true, `${stage} boss death was not terminally claimed`);
+            if (encounter) {
+                assert(encounter.terminal === true, `${stage} encounter did not enter terminal state`);
+                assert(encounter.actionTimers.size === 0 && encounter.cleanups.size === 0, `${stage} encounter left late work or hazards`);
+            }
+            await wait(600);
+            if (stage === 'sand') {
+                assert(!scene.enemyProjectiles.children.entries.some(projectile => projectile?.active && projectile.fromBoss),
+                    'Eyelor spawned a late projectile after forced mid-attack death');
+            }
+            await waitFor(`${stage} boss victory`, () => scene.gameWonCalled === true, 9000);
+            scene.handleBossDeath(boss);
+            assert(scene.gameWonCalled === true, `${stage} victory did not remain exactly-once after duplicate death input`);
+            return { ok: true, stage, bossType: config.enemyType, healthLost: healthBefore - scene.playerHealth, terminal: true };
+        } finally {
+            localStorage.clear();
+            Object.entries(originalStorage).forEach(([key, value]) => localStorage.setItem(key, value));
+        }
+    };
+
     window.runHomunculiSwampBossSmoke = async function runHomunculiSwampBossSmoke() {
         const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
         const waitFor = async (label, predicate, timeoutMs = 10000) => {
@@ -61364,9 +61613,11 @@ if (typeof window !== 'undefined') {
                 scene.wizard.body.updateFromGameObject();
             }
 
+            const healthBeforeSlam = scene.playerHealth;
             await waitFor('Frost Guardian attack start', () => boss.isAttacking === true || Boolean(scene.frostGuardianLastSlamWarning), 8000);
-            assert(boss.attackCooldown <= 3000, 'Frost Guardian cooldown should be tracked in boss-timer time');
+            assert(boss.attackReadyAt > scene.time.now, 'Frost Guardian cooldown should use elapsed scene time');
             await waitFor('Frost Guardian attack cleanup', () => boss.isAttacking === false, 6000);
+            assert(scene.playerHealth < healthBeforeSlam, 'Frost Guardian slam did not reduce real player health');
             assertNoRendererErrors('Frost Guardian attack');
 
             scene.createIceWave();
@@ -61479,7 +61730,7 @@ if (typeof window !== 'undefined') {
             await waitFor('Sea Kings boss entry', () => Array.isArray(scene.seaKings) && scene.seaKings.length === 3 && scene.seaKings.every(king => king && king.active && king.isSeaKing));
 
             const kings = scene.seaKings.slice();
-            const expectedHealthPerKing = Math.floor(2000 * 0.5);
+            const expectedHealthPerKing = Math.floor(2000 * 0.5 * scene.getBossHealthTuningMultiplier());
             assert(scene.boss === kings[0], 'Sea Kings legacy boss reference should start on king 1');
             assert(scene.seaKingsTotalMaxHealth === expectedHealthPerKing * 3, 'Sea Kings total health tuning drifted');
             kings.forEach((king, index) => {
@@ -61493,6 +61744,13 @@ if (typeof window !== 'undefined') {
             assert(scene.bossNameText && scene.bossNameText.text === 'SEA KINGS', 'Sea Kings health label missing');
             assert(scene.bossAITimer && !scene.bossAITimer.paused, 'Sea Kings AI timer missing');
             assertNoRendererErrors('Sea Kings boss entry');
+
+            const attackDirections = ['down', 'up', 'right'];
+            kings.forEach((king, index) => {
+                scene.seaKingAttack(king, scene.wizard, attackDirections[index]);
+                assert(king.currentDirection === attackDirections[index], `Sea King ${index + 1} did not retain attack direction`);
+                assert(king.anims.currentAnim.frames.length === 12, `Sea King ${index + 1} attack did not traverse 12 valid frames`);
+            });
 
             scene.spawnOceanMinions();
             await waitFor('Ocean phase add spawn', () => {
@@ -61861,6 +62119,10 @@ if (typeof window !== 'undefined') {
             assert(scene.bossNameText && scene.bossNameText.text === 'KING NOTHING', 'King Nothing health label missing');
             assert(scene.bossCrown && scene.bossCrown.active, 'King Nothing crown missing');
             assert(scene.bossAITimer && !scene.bossAITimer.paused, 'King Nothing AI timer missing');
+            assert(boss.anims.currentAnim.key === 'king-nothing-run', 'King Nothing did not enter its run animation');
+            assert(boss.displayWidth < 1000 && boss.body.width > 0, 'King Nothing visual/body bounds are not aligned to a single frame');
+            assert(Phaser.Math.Distance.Between(boss.x, boss.y, scene.wizard.x, scene.wizard.y) < 400, 'King Nothing spawned outside the active player camera area');
+            assert(scene.bossCrown.x === boss.x && Math.abs(scene.bossCrown.y - boss.y) < 120, 'King Nothing crown is detached');
             assertNoRendererErrors('King Nothing boss entry');
 
             boss.attackCooldown = 9999;
@@ -61872,7 +62134,13 @@ if (typeof window !== 'undefined') {
             assert(boss.phase === 3, 'King Nothing did not enter phase 3 below 33% health');
             assertNoRendererErrors('King Nothing phase transitions');
 
+            scene.kingNothingVoidBarrage();
+            assert(boss.anims.currentAnim.key === 'king-nothing-attack1', 'King Nothing attack state did not play an attack animation');
+            const encounter = scene.bossEncounter;
+            assert(encounter.actionTimers.size > 0, 'King Nothing attack did not own its delayed callbacks');
             scene.handleBossDeath(boss);
+            assert(encounter.terminal === true && encounter.actionTimers.size === 0 && encounter.cleanups.size === 0,
+                'King Nothing forced mid-attack death left owned work or hazards');
             try {
                 await waitFor('King Nothing death cleanup', () => {
                     const gameOverScene = game.scene.getScene('GameOverScene');
