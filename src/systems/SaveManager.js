@@ -69,6 +69,18 @@ class SaveManager {
                 discoveredRecipes: [] // { inputs: ['fire', 'earth'], result: 'lava', discoveredAt: 1700000000000 }
             },
 
+            // Optional, non-power Resonant Triad discovery. Run loadouts never persist here.
+            discovery: {
+                disciplines: {}
+            },
+
+            triad: {
+                attunementSeen: false,
+                fusionCostSeen: false,
+                flexSeen: false,
+                reweaveSeen: false
+            },
+
             // Character unlocks
             characters: {
                 unlocked: ['wizard'] // Only wizard (Veiled Custodian/Alchemist) unlocked by default
@@ -109,7 +121,8 @@ class SaveManager {
                 totalDamageTaken: 0,
                 totalDamageDealt: 0,
                 favoriteSpell: null,
-                spellsCast: {} // { 'fireball': 123, 'lightning': 45 }
+                spellsCast: {}, // { 'fireball': 123, 'lightning': 45 }
+                disciplineRuns: {}
             }
         };
     }
@@ -541,6 +554,42 @@ class SaveManager {
                     result: recipe.result,
                     discoveredAt: recipe.discoveredAt || null
                 }))
+        };
+    }
+
+    /**
+     * Persist additive Resonant Triad discovery through the existing transactional save path.
+     * This records knowledge/stat attribution only and never stores run power or inventory.
+     */
+    recordTriadDiscovery(discipline, update = {}) {
+        const allowed = ['crucible', 'tempest', 'bastion', 'covenant'];
+        if (!this.currentSaveData || !allowed.includes(discipline)) return false;
+        this.migrateSaveData(this.currentSaveData);
+        const records = this.currentSaveData.discovery.disciplines;
+        const current = this.isPlainObject(records[discipline]) ? records[discipline] : {};
+        const next = {
+            attuned: Boolean(current.attuned || update.attuned),
+            signatureTriggered: Boolean(current.signatureTriggered || update.signatureTriggered),
+            wins: Math.max(0, Number(current.wins) || 0) + (update.win ? 1 : 0),
+            firstWinAt: current.firstWinAt || (update.win ? (update.at || Date.now()) : null),
+            bestMetric: Math.max(Number(current.bestMetric) || 0, Number(update.bestMetric) || 0)
+        };
+        records[discipline] = next;
+        const runRecords = this.currentSaveData.stats.disciplineRuns;
+        const run = this.isPlainObject(runRecords[discipline]) ? runRecords[discipline] : { runs: 0, wins: 0 };
+        if (update.runComplete) run.runs = Math.max(0, Number(run.runs) || 0) + 1;
+        if (update.win) run.wins = Math.max(0, Number(run.wins) || 0) + 1;
+        runRecords[discipline] = run;
+        return this.autoSave();
+    }
+
+    getTriadReadback() {
+        if (!this.currentSaveData) return { disciplines: {}, runs: {}, tutorial: {} };
+        const normalized = this.normalizeSaveData(this.currentSaveData);
+        return {
+            disciplines: this.cloneValue(normalized.discovery.disciplines),
+            runs: this.cloneValue(normalized.stats.disciplineRuns),
+            tutorial: this.cloneValue(normalized.triad)
         };
     }
 

@@ -8140,7 +8140,7 @@ class GameOverScene extends Phaser.Scene {
         this.retryData = data.retryData && typeof data.retryData === 'object'
             ? data.retryData
             : { stage: this.stage, p1Character: data.p1Character || 'wizard' };
-        this.releaseComplete = this.won && this.stage === 'castle' && !this.arcadeMode;
+        this.releaseComplete = this.won && this.stage === 'castle' && !this.arcadeMode && !this.buildSummary.legacyMayhem;
         this.persistenceFailed = false;
         this.primaryActionHandled = false;
 
@@ -8302,6 +8302,12 @@ class GameOverScene extends Phaser.Scene {
         lines.push(`${readback.stageIdentity}: ${readback.stageRoster.join(', ') || 'no roster data'}`);
 
         if (readback.won) {
+            if (readback.progressionSuppressed) {
+                lines.push('LEGACY MAYHEM: essence and recipes only — no clear, unlock, achievement, or best-time credit');
+                if (readback.newRecipeText) lines.push(`New recipe: ${readback.newRecipeText}`);
+                else lines.push(`Alchemy nudge: ${readback.alchemyNudge}`);
+                return lines;
+            }
             const clearText = readback.firstCompletion ? 'Stage cleared' : 'Stage cleared again';
             const bestTimeText = readback.bestTimeImproved ? ' | Best time updated' : '';
             lines.push(`${clearText}: ${readback.stageName}${bestTimeText}`);
@@ -8372,7 +8378,7 @@ class GameOverScene extends Phaser.Scene {
         }
 
         // Now check achievements after notification system is ready
-        if (this.achievementManager) {
+        if (this.achievementManager && !this.buildSummary.legacyMayhem) {
             const newAchievements = this.achievementManager.checkAchievements();
             if (newAchievements.length > 0) {
                 console.log(`🏆 Unlocked ${newAchievements.length} achievement(s)!`);
@@ -8768,6 +8774,8 @@ class GameOverScene extends Phaser.Scene {
             fontSize: endingActionLayout.fontSize,
             color: '#ffffff'
         }).setOrigin(0.5).setAlpha(0);
+        this.restartText = restartText;
+        this.menuText = menuText;
 
         // Show buttons after all animations complete
         this.time.delayedCall(delay + 500, () => {
@@ -8891,6 +8899,8 @@ class GameOverScene extends Phaser.Scene {
         }
 
         const saveData = this.saveManager.currentSaveData;
+        const legacyMayhem = Boolean(this.buildSummary && this.buildSummary.legacyMayhem);
+        const progressionWon = this.won && !legacyMayhem;
         const currentEntry = getStageProgressionEntry(this.stage);
         const stageId = getStageIdForProgressionEntry(currentEntry) || `${this.stage}-1`;
 
@@ -8912,14 +8922,14 @@ class GameOverScene extends Phaser.Scene {
         }
 
         // Check if this is first completion (before adding to completed list)
-        const isFirstCompletion = !saveData.stages.completedStages.includes(stageId);
+        const isFirstCompletion = progressionWon && !saveData.stages.completedStages.includes(stageId);
 
         // Add completed stage if not already in list (only on victory)
-        if (this.won && isFirstCompletion) {
+        if (isFirstCompletion) {
             saveData.stages.completedStages.push(stageId);
         }
 
-        if (this.won) {
+        if (progressionWon) {
             const nextEntry = getNextStageProgressionEntry(this.stage);
 
             if (currentEntry && !saveData.stages.unlockedWorlds.includes(currentEntry.worldId)) {
@@ -8942,24 +8952,26 @@ class GameOverScene extends Phaser.Scene {
         }
 
         const stageStats = saveData.stages.stageStats[stageId];
-        stageStats.attempts += 1;
+        if (!legacyMayhem) stageStats.attempts += 1;
 
         // Track deaths if player didn't win
-        if (!this.won) {
+        if (!this.won && !legacyMayhem) {
             stageStats.deaths = (stageStats.deaths || 0) + 1;
             saveData.stats.totalDeaths = (saveData.stats.totalDeaths || 0) + 1;
         }
 
         // Update best time if this is better (only on victory)
         const previousBestTime = stageStats.bestTime;
-        const bestTimeImproved = this.won && (!previousBestTime || this.survivalTime < previousBestTime);
+        const bestTimeImproved = progressionWon && (!previousBestTime || this.survivalTime < previousBestTime);
         if (bestTimeImproved) {
             stageStats.bestTime = this.survivalTime;
         }
 
         // Update global stats
-        saveData.stats.totalEnemiesDefeated += this.enemiesKilled;
-        saveData.stats.totalGoldCollected += this.itemsCollected;
+        if (!legacyMayhem) {
+            saveData.stats.totalEnemiesDefeated += this.enemiesKilled;
+            saveData.stats.totalGoldCollected += this.itemsCollected;
+        }
 
         // Award talent points (essence) based on performance
         // VICTORY: Base reward: 5 essence + bonuses
@@ -9048,7 +9060,8 @@ class GameOverScene extends Phaser.Scene {
             carryLine: buildSummary.carryLine || 'No build readback recorded',
             stageIdentity: stageProfile.identity,
             stageRoster: stageProfile.roster,
-            firstCompletion: this.won && isFirstCompletion,
+            firstCompletion: isFirstCompletion,
+            progressionSuppressed: legacyMayhem,
             essenceAwarded: totalEssence,
             essencePrevious: previousEssence,
             essenceTotal: saveData.talents.essence,
@@ -9061,6 +9074,21 @@ class GameOverScene extends Phaser.Scene {
             newRecipeText,
             alchemyNudge: stageProfile.nudge
         };
+
+        if (!legacyMayhem && buildSummary.resonantTriad && Array.isArray(buildSummary.triadPlayers)) {
+            const recordedDisciplines = new Set();
+            buildSummary.triadPlayers.forEach(player => {
+                if (!player || !player.discipline || recordedDisciplines.has(player.discipline)) return;
+                recordedDisciplines.add(player.discipline);
+                this.saveManager.recordTriadDiscovery(player.discipline, {
+                    attuned: true,
+                    signatureTriggered: Boolean(player.signaturesTriggered),
+                    runComplete: true,
+                    win: progressionWon,
+                    bestMetric: Number(player.signatureMetric) || 0
+                });
+            });
+        }
 
         console.log('[GameOverScene] ESSENCE SAVE:', {
             completedStage: stageId,
@@ -10416,6 +10444,12 @@ class RadialChargeMenu {
     swapElements(fromIndex, toIndex) {
         const element1 = this.player.chargeSlots[fromIndex];
         const element2 = this.player.chargeSlots[toIndex];
+
+        if (this.scene.buildDiversityV1) {
+            this.scene.performTriadInventoryGesture(this.playerNumber, fromIndex, toIndex, 'radial');
+            this.refresh();
+            return;
+        }
 
         // Check if both slots have elements (not null) - attempt fusion or tier-up
         if (element1 && element2) {
@@ -11971,8 +12005,25 @@ class GameScene extends Phaser.Scene {
     initSlotConfiguration() {
         // Get slot configuration from localStorage
         const slotConfig = localStorage.getItem('slotConfiguration') || 'standard';
+        const requestedTriad = localStorage.getItem('buildDiversityV1') === '1';
+        const triadSpeed = localStorage.getItem('speedMode') || 'frolic';
+        this.buildDiversityV1Requested = requestedTriad;
+        this.buildDiversityV1 = typeof ResonantTriad !== 'undefined' && ResonantTriad.isTriadAvailable({
+            flag: requestedTriad,
+            stage: this.stage,
+            speed: triadSpeed,
+            slotMode: slotConfig
+        });
+        this.legacyMayhem = requestedTriad && slotConfig === 'extended';
 
-        if (slotConfig === 'extended') {
+        if (this.buildDiversityV1) {
+            // Resonant Triad Standard: two Resonance channels, one Flex, pouch two.
+            this.MAX_ACTIVE_SLOTS = 3;
+            this.MAX_PASSIVE_SLOTS = 0;
+            this.MAX_POUCH_SLOTS = 2;
+            this.MAX_CHARGE_SLOTS = 3;
+            this.MAX_TOTAL_SLOTS = 5;
+        } else if (slotConfig === 'extended') {
             // Extended mode: 8 active / 8 passive / 8 pouch
             this.MAX_ACTIVE_SLOTS = 8;
             this.MAX_PASSIVE_SLOTS = 8;
@@ -12041,6 +12092,14 @@ class GameScene extends Phaser.Scene {
 
         // Add fullscreen toggle
         setupFullscreenKey(this);
+
+        if (this.legacyMayhem) {
+            this.legacyMayhemNotice = this.add.text(400, 574,
+                'LEGACY MAYHEM (8/8/8) — extra live slots • no Disciplines • no first-clear, unlock, achievement, or best-time credit', {
+                    fontSize: '11px', color: '#ffcf77', align: 'center',
+                    backgroundColor: '#160f08cc', padding: { x: 8, y: 5 }, wordWrap: { width: 760 }
+                }).setOrigin(0.5, 1).setScrollFactor(0).setDepth(2000);
+        }
 
         // Initialize achievement notification system if available
         const achievementManager = this.registry.get('achievementManager');
@@ -13248,7 +13307,9 @@ class GameScene extends Phaser.Scene {
             // Apply tier scaling
             const tierKey = element + '_' + slotIndex;
             const tierLevel = this.elementTiers.get(tierKey) || 1;
-            const tierDamageScale = this.tierScaling.damage[tierLevel - 1] || 1.0;
+            const tierDamageScale = this.buildDiversityV1 && typeof ResonantTriad !== 'undefined'
+                ? (ResonantTriad.TIER_VECTOR.damage[tierLevel - 1] || 1.0)
+                : (this.tierScaling.damage[tierLevel - 1] || 1.0);
             damage *= tierDamageScale;
 
             // Apply king multiplier (chess piece)
@@ -13261,8 +13322,14 @@ class GameScene extends Phaser.Scene {
             }
 
             // Apply catalyst damage bonus (+5% per catalyst, stacks multiplicatively)
-            if (this.catalystDamageBonus && this.catalystDamageBonus > 0) {
+            if (!this.buildDiversityV1 && this.catalystDamageBonus && this.catalystDamageBonus > 0) {
                 damage *= (1 + this.catalystDamageBonus);
+            }
+
+            if (this.buildDiversityV1 && typeof ResonantTriad !== 'undefined') {
+                const owner = this.currentSpellOwner || this.wizard;
+                const state = this.triadStates && this.triadStates[owner && (owner.playerNumber || 1)];
+                if (state) damage *= Math.pow(1 + ResonantTriad.PASSIVES.damage.perStack, state.passives.damage || 0);
             }
 
             return damage;
@@ -13494,7 +13561,9 @@ class GameScene extends Phaser.Scene {
             // Initialize P2 properties
             this.wizard2.charges = [];
             // Character-specific charge slots for P2
-            if (this.MAX_ACTIVE_SLOTS === 8) {
+            if (this.buildDiversityV1) {
+                this.wizard2.maxCharges = 3;
+            } else if (this.MAX_ACTIVE_SLOTS === 8) {
                 this.wizard2.maxCharges = 8; // Extended mode
             } else {
                 this.wizard2.maxCharges = (this.p2Character === 'orb') ? 4 :
@@ -13560,7 +13629,9 @@ class GameScene extends Phaser.Scene {
 
                 // Initialize P3 properties
                 this.wizard3.charges = [];
-                if (this.MAX_ACTIVE_SLOTS === 8) {
+                if (this.buildDiversityV1) {
+                    this.wizard3.maxCharges = 3;
+                } else if (this.MAX_ACTIVE_SLOTS === 8) {
                     this.wizard3.maxCharges = 8; // Extended mode
                 } else {
                     this.wizard3.maxCharges = (this.p3Character === 'orb') ? 4 :
@@ -13614,7 +13685,9 @@ class GameScene extends Phaser.Scene {
 
                 // Initialize P4 properties
                 this.wizard4.charges = [];
-                if (this.MAX_ACTIVE_SLOTS === 8) {
+                if (this.buildDiversityV1) {
+                    this.wizard4.maxCharges = 3;
+                } else if (this.MAX_ACTIVE_SLOTS === 8) {
                     this.wizard4.maxCharges = 8; // Extended mode
                 } else {
                     this.wizard4.maxCharges = (this.p4Character === 'orb') ? 4 :
@@ -14308,6 +14381,9 @@ class GameScene extends Phaser.Scene {
             this.radialChargeMenu4 = new RadialChargeMenu(this, this.wizard4, 4);
         }
         console.log('✅ Radial Charge Menus initialized for all players');
+        if (this.buildDiversityV1) {
+            this.initializeResonantTriadRuntime();
+        }
 
         // REMOVED: Level/XP text display - no longer needed with new wheel of fortune system
         // this.levelText = this.add.text(20, 20, `Level ${this.playerLevel}`, {
@@ -18557,6 +18633,19 @@ class GameScene extends Phaser.Scene {
             carryLine = `${equippedElements[0]} setup`;
         }
 
+        const triadPlayers = this.buildDiversityV1 && this.triadStates
+            ? Object.values(this.triadStates).filter(Boolean).map(state => ({
+                playerNumber: state.playerNumber,
+                character: state.character,
+                discipline: state.discipline,
+                channels: (state.channels || []).map(item => item ? { spell: item.spell, tier: item.tier } : null),
+                pouch: (state.pouch || []).map(item => item ? { spell: item.spell, tier: item.tier } : null),
+                reagents: Number(state.reagents) || 0,
+                signaturesTriggered: Number(state.signature && state.signature.triggers) || 0,
+                signatureMetric: Number(state.signature && state.signature.triggers) || 0
+            }))
+            : [];
+
         return {
             equippedElements,
             passivePicks,
@@ -18565,7 +18654,12 @@ class GameScene extends Phaser.Scene {
             fusionsUsed,
             topSpell,
             carryLine,
-            spellCasts: { ...(this.runSpellCasts || {}) }
+            spellCasts: { ...(this.runSpellCasts || {}) },
+            resonantTriad: Boolean(this.buildDiversityV1),
+            legacyMayhem: Boolean(this.legacyMayhem),
+            modeLabel: this.legacyMayhem ? 'Legacy Mayhem (8/8/8)' : (this.buildDiversityV1 ? 'Resonant Triad' : 'Classic'),
+            triadPlayers,
+            triadDecisionLog: this.triadDecisionLog ? this.triadDecisionLog.export() : null
         };
     }
 
@@ -19915,6 +20009,10 @@ class GameScene extends Phaser.Scene {
         }*/
         }
     update(time, delta) {
+        if (this.buildDiversityV1) {
+            this.updateTriadHUD();
+            this.updateTriadCharacterPerks();
+        }
         // Update dialogue manager
         if (this.dialogueManager) {
             this.dialogueManager.update();
@@ -20359,13 +20457,22 @@ class GameScene extends Phaser.Scene {
         // COUNTDOWN - Last 5 seconds before timer ends
         if (secondsRemaining <= 5 && secondsRemaining > 0 && !this.countdownActive && !this.bossSpawned) {
             this.startVictoryCountdown(secondsRemaining);
+            if (this.buildDiversityV1 && !this.triadRewardQueue.bossGatePending) {
+                this.triadRewardQueue = ResonantTriad.requestBossGate(this.triadRewardQueue);
+                this.triadBossGatePending = true;
+            }
         }
 
         // Boss fights are part of normal stage completions; arcade keeps fast stage rotation.
         const bossEnabled = !this.arcadeMode;
 
         if (minutes >= winMinutes && !this.bossSpawned && bossEnabled) {
-            this.spawnBoss();
+            if (this.buildDiversityV1 && (this.triadActiveEvent || this.triadRewardQueue.events.length > 0)) {
+                this.processTriadRewardQueue();
+            } else {
+                this.triadBossGatePending = false;
+                this.spawnBoss();
+            }
         }
         // When bosses are disabled (no talent or arcade mode), automatically win when time is up
         if (minutes >= winMinutes && !bossEnabled && !this.bossSpawned && !this.victorySequenceActive) {
@@ -23643,6 +23750,12 @@ class GameScene extends Phaser.Scene {
      * Attempt fusion in pause menu with essence cost
      */
     attemptFusionInPauseMenu(sourceIndex, targetIndex, sourceElement, targetElement) {
+        if (this.buildDiversityV1) {
+            const playerNumber = this.pauseMenuPlayer || 1;
+            this.performTriadInventoryGesture(playerNumber, sourceIndex, targetIndex, 'pause');
+            this.updatePauseMenuDisplay();
+            return;
+        }
         // Determine which player's inventory to modify
         const targetWizard = (this.pauseMenuPlayer === 2 && this.multiplayerEnabled && this.wizard2) ? this.wizard2 : this.wizard;
         const targetChargeSlots = targetWizard.chargeSlots || this.chargeSlots;
@@ -27988,6 +28101,9 @@ class GameScene extends Phaser.Scene {
      * Apply passive upgrade effect
      */
     applyPassiveUpgrade(upgradeKey) {
+        if (this.buildDiversityV1 && (upgradeKey === 'slotIncrease' || upgradeKey === 'passiveSlotIncrease')) {
+            return false;
+        }
         this.passiveUpgrades[upgradeKey]++;
 
         const definitions = this.getPassiveUpgradeDefinitions();
@@ -29567,6 +29683,11 @@ class GameScene extends Phaser.Scene {
      * Each stack increases projectile size by 10%
      */
     getSpellAreaMultiplier() {
+        if (this.buildDiversityV1 && this.triadStates) {
+            const owner = this.currentSpellOwner || this.wizard;
+            const state = this.triadStates[owner && (owner.playerNumber || 1)];
+            if (state) return 1 + (state.passives.area || 0) * ResonantTriad.PASSIVES.area.perStack;
+        }
         return 1 + (this.passiveUpgrades.spellArea * 0.1);
     }
 
@@ -29575,6 +29696,11 @@ class GameScene extends Phaser.Scene {
      * Each stack increases movement speed by 25%
      */
     getMoveSpeedMultiplier() {
+        if (this.buildDiversityV1 && this.triadStates && this.triadStates[1]) {
+            const state = this.triadStates[1];
+            const debtBoost = this.wizard && this.wizard.triadMoveBuffUntil > this.time.now ? 0.08 : 0;
+            return 1 + (state.passives.move || 0) * ResonantTriad.PASSIVES.move.perStack + debtBoost;
+        }
         return 1 + (this.passiveUpgrades.moveSpeed * 0.25);
     }
 
@@ -29650,6 +29776,9 @@ class GameScene extends Phaser.Scene {
             if (willRevive) {
                 // PHOENIX REVIVE!
                 this.playerHealth = Math.floor(this.maxHealth * 0.25);
+                if (this.buildDiversityV1 && this.triadStates && this.triadStates[1]) {
+                    this.applyTriadStateToWizard(1, ResonantTriad.bankEscrow(this.triadStates[1]));
+                }
 
                 // Show health bars again
                 if (this.wizardHealthBar) {
@@ -32096,6 +32225,10 @@ class GameScene extends Phaser.Scene {
         if (!wizard || !expansion || expansion.isDestroying || !expansion.active) {
             return;
         }
+        if (this.buildDiversityV1) {
+            this.safeDestroyCollectible(expansion);
+            return;
+        }
         // Mark as being collected (don't set isDestroying - let safeDestroyCollectible do it)
         expansion.active = false;
         // Check if player already has 8 charge slots
@@ -32179,6 +32312,7 @@ class GameScene extends Phaser.Scene {
     }
     hitEnemy(wizard, enemy, isP2 = false, playerNumber = isP2 ? 2 : 1) {
         const targetWizard = wizard;
+        if (this.buildDiversityV1 && this.triggerTriadPhaseContact(playerNumber)) return;
         const playerHealth = playerNumber === 1 ? this.playerHealth : targetWizard.health;
         const isInvulnerable = playerNumber === 1 ? this.invulnerable : targetWizard.invulnerable;
         // Check if player is invulnerable, dead, or game is paused/in chest selection
@@ -34033,9 +34167,9 @@ class GameScene extends Phaser.Scene {
         if (projectile.element === 'lightning' && enemy.wet && enemy.wetEndTime && this.time.now < enemy.wetEndTime) {
             damage *= 2;
             }
-        // 10x damage for holy hitting undead enemies
+        // Holy keeps only its bounded 1.25x undead flavour under Resonant Triad.
         if (projectile.element === 'holy' && enemy.isUndead) {
-            damage *= 10;
+            damage *= this.buildDiversityV1 ? 1.25 : 10;
             // Show special damage effect for holy vs undead
             const holyBurst = this.add.circle(
                 enemy.x,
@@ -34078,7 +34212,11 @@ class GameScene extends Phaser.Scene {
         // Debug: Log state before damage
         if (enemy.enemyType === 'nekros-boss') {
             }
+        if (this.buildDiversityV1 && projectile.triadOutputCoefficient) {
+            damage *= projectile.triadOutputCoefficient;
+        }
         enemy.health -= damage;
+        if (this.buildDiversityV1) this.applyTriadProjectileHit(projectile, enemy, damage);
 
         // Play impact sound based on element type
         if (projectile.element === 'lightning') {
@@ -34135,7 +34273,7 @@ class GameScene extends Phaser.Scene {
         this.applyKnockback(enemy, projectile.x, projectile.y, knockbackStrength);
 
         // Grim's lifesteal ability - heal for 5% of damage dealt + 2% per lifesteal upgrade
-        if (this.wizard.characterType === 'grim' && damage > 0) {
+        if (!this.buildDiversityV1 && this.wizard.characterType === 'grim' && damage > 0) {
             const baseLifesteal = 0.05; // 5% base lifesteal
             const upgradeLifesteal = (this.passiveUpgrades.lifesteal || 0) * 0.02; // +2% per upgrade
             const totalLifesteal = baseLifesteal + upgradeLifesteal;
@@ -34815,12 +34953,12 @@ class GameScene extends Phaser.Scene {
                 enemy.poisonTimer = null;
             }
             // Apply poison damage over time
-            let poisonTicks = 3;
+            let poisonTicks = this.buildDiversityV1 ? 10 : 3;
             enemy.poisonTimer = this.time.addEvent({
                 delay: 500,
                 callback: () => {
                     if (enemy.active && !enemy.isDying && enemy.poisoned) {
-                        enemy.health -= projectile.poisonDamage / 3;
+                        enemy.health -= projectile.poisonDamage / (this.buildDiversityV1 ? 10 : 3);
                         enemy.setTint(0x00ff00);
                         this.time.delayedCall(100, () => {
                             if (enemy.active && !enemy.isDying) enemy.setTint(0x00ff00);
@@ -35721,6 +35859,11 @@ class GameScene extends Phaser.Scene {
 
         // Check if this is a level up orb - tier up all elements for this player
         if (jewel.isLevelUpOrb) {
+            if (this.buildDiversityV1) {
+                // Triad depth is transactional and owner-bound; global tier orbs are inert.
+                this.safeDestroyCollectible(jewel);
+                return;
+            }
             // Level up all elements held by this wizard
             this.levelUpAllElements(wizard);
 
@@ -35864,7 +36007,7 @@ class GameScene extends Phaser.Scene {
                                    (this.wizard3 && this.wizard3.health > 0) ? this.wizard3 :
                                    (this.wizard4 && this.wizard4.health > 0) ? this.wizard4 : null;
 
-            if (milestonePlayer) {
+            if (milestonePlayer && !this.buildDiversityV1) {
                 const earlyCatalystCount = this.getEarlyCatalystMilestone(this.playerLevel);
                 if (earlyCatalystCount > 0) {
                     for (let i = 0; i < earlyCatalystCount; i++) {
@@ -36030,7 +36173,7 @@ class GameScene extends Phaser.Scene {
                 console.log('🎯 LEVEL 40: +2400 XP requirement');
             }
             // Unlock charge slot every 10 levels
-            if (this.playerLevel % 10 === 0 && this.maxCharges < 8) {
+            if (!this.buildDiversityV1 && this.playerLevel % 10 === 0 && this.maxCharges < 8) {
                 this.maxCharges++;
                 this.updateChargeUI();
                 // Visual feedback for slot unlock - use milestonePlayer if available
@@ -36052,7 +36195,9 @@ class GameScene extends Phaser.Scene {
                 }
             }
             // Show level up reward selection - alternate between players in multiplayer
-            if (!this.chestSelectionActive && !this.chestOpening) {
+            if (this.buildDiversityV1) {
+                this.enqueueTriadLevelEvent(this.playerLevel);
+            } else if (!this.chestSelectionActive && !this.chestOpening) {
                 // Determine which player gets this level up reward
                 let levelUpWizard = this.wizard; // Default to P1
 
@@ -36123,6 +36268,7 @@ class GameScene extends Phaser.Scene {
                 });
             }
         }
+        if (this.buildDiversityV1) this.processTriadRewardQueue();
         // Update UI (optional - old charge UI disabled in favor of radial menu)
         if (this.levelText) {
             this.levelText.setText(`Level ${this.playerLevel}`);
@@ -36214,6 +36360,7 @@ class GameScene extends Phaser.Scene {
     }
 
     dropCatalyst(x, y) {
+        if (this.buildDiversityV1) return null;
         // Create collectible catalyst sprite (like a coin/jewel)
         const catalyst = this.physics.add.sprite(x, y, 'catalyst-orb');
         catalyst.setDepth(25);
@@ -36259,6 +36406,30 @@ class GameScene extends Phaser.Scene {
     collectCatalyst(wizard, catalyst) {
         // Extra safety check
         if (!wizard || !catalyst || !catalyst.active || !catalyst.isCatalyst || catalyst.isDestroying) {
+            return;
+        }
+
+        if (this.buildDiversityV1) {
+            if (!catalyst.isTriadReagent) return;
+            const collector = wizard.playerNumber || 1;
+            if (collector !== catalyst.ownerPlayerNumber) {
+                this.triadDecisionLog.record('reagent_non_owner_rejected', {
+                    ownerPlayerNumber: catalyst.ownerPlayerNumber,
+                    collectorPlayerNumber: collector,
+                    level: catalyst.reagentLevel
+                }, this.survivalTime || 0);
+                return;
+            }
+            const result = ResonantTriad.grantMilestoneReagent(this.triadStates[collector], catalyst.reagentLevel, {
+                collectorPlayerNumber: collector
+            });
+            if (result.ok) this.applyTriadStateToWizard(collector, result.state);
+            this.triadDecisionLog.record('reagent_pickup', {
+                ownerPlayerNumber: collector,
+                level: catalyst.reagentLevel,
+                status: result.entry && result.entry.status
+            }, this.survivalTime || 0);
+            this.safeDestroyCollectible(catalyst);
             return;
         }
 
@@ -36357,6 +36528,25 @@ class GameScene extends Phaser.Scene {
         orb.active = false;
         // Track items collected
         this.itemsCollected++;
+
+        if (this.buildDiversityV1) {
+            const playerNumber = wizard.playerNumber || 1;
+            if (orb.element === 'mind' || !ResonantTriad.ENABLED_SPELLS.includes(orb.element)) {
+                this.safeDestroyCollectible(orb);
+                return;
+            }
+            const result = this.performTriadTransaction(playerNumber, { type: 'acquire', spell: orb.element }, 'pickup');
+            if (result.ok) {
+                this.safeDestroyCollectible(orb);
+            } else {
+                orb.active = true;
+                orb.isDestroying = false;
+                this.time.delayedCall(2000, () => {
+                    if (orb && orb.active && !orb.isDestroying) this.safeDestroyCollectible(orb);
+                });
+            }
+            return;
+        }
 
         // DEBUG: Log slot count before collection
         console.log(`🔍 BEFORE collecting ${orb.element}: chargeSlots.length = ${wizard.chargeSlots ? wizard.chargeSlots.length : 'undefined'}`);
@@ -36621,6 +36811,9 @@ class GameScene extends Phaser.Scene {
         // capture: const casterWizard = this.currentSpellOwner || this.wizard;
         // at the start to ensure callbacks use the correct player.
         this.recordRunSpellCast(element);
+        const triadActorSnapshot = this.buildDiversityV1 && this.projectiles && this.projectiles.children
+            ? new Set(this.projectiles.children.entries)
+            : null;
 
         // Build charges array from chargeSlots (filter out nulls for legacy code compatibility)
         const charges = this.chargeSlots ? this.chargeSlots.filter(slot => slot !== null) : [];
@@ -36811,6 +37004,10 @@ class GameScene extends Phaser.Scene {
         } else if (linkedElements.length === 4) {
             // Four element combo
             this.fireFourElementCombo(linkedElements);
+        }
+        if (this.buildDiversityV1) {
+            const owner = this.currentSpellOwner || this.wizard;
+            this.annotateTriadSpellActors(owner && (owner.playerNumber || 1), slotIndex, element, triadActorSnapshot);
         }
     }
     fireElementProjectile() {
@@ -40994,7 +41191,9 @@ class GameScene extends Phaser.Scene {
         if (!enemy || !enemy.active) return;
         // Apply mud status - greatly improved slow effect
         enemy.muddy = true;
-        const mudDuration = 12000; // Increased from 5s to 12s (140% longer)
+        const mudDuration = this.buildDiversityV1
+            ? ((enemy.isBoss || enemy.isObeliskBoss) ? 400 : 3000)
+            : 12000;
         enemy.muddyEndTime = this.time.now + mudDuration;
         enemy.mudSlowFactor = 0.2; // Increased from 30% to 80% speed reduction (enemies move at 20% speed)
         // Visual effect - brown tint
@@ -41468,7 +41667,9 @@ class GameScene extends Phaser.Scene {
         // Get slot buffs
         const slotBuff = this.slotBuffs[slotIndex] || { damageMultiplier: 1, speedMultiplier: 1 };
         // Apply tier damage scaling
-        const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
+        const tierDamageScale = this.buildDiversityV1
+            ? (ResonantTriad.TIER_VECTOR.damage[elementTier - 1] || 1.0)
+            : (this.tierScaling.damage[elementTier - 1] || 1.0);
 
         // Check for chess piece modifiers (same as mud spell)
         let hasJoker = false;
@@ -42871,7 +43072,9 @@ class GameScene extends Phaser.Scene {
     }
     createGravitySpell(elementTier = 1) {
         // Apply tier damage scaling only
-        const tierDamageScale = this.tierScaling.damage[elementTier - 1] || 1.0;
+        const tierDamageScale = this.buildDiversityV1
+            ? (ResonantTriad.TIER_VECTOR.damage[elementTier - 1] || 1.0)
+            : (this.tierScaling.damage[elementTier - 1] || 1.0);
         // Calculate position behind player based on facing direction
         const direction = this.wizard.lastDirection || 'down';
         const distance = 200; // Distance behind player (doubled from 100)
@@ -42965,7 +43168,9 @@ class GameScene extends Phaser.Scene {
                     if (dist < damageRadius && !damagedEnemies.has(enemy)) {
                         // Calculate 30% of max health as damage, scaled by tier
                         const maxHealth = enemy.maxHealth || enemy.health; // Use maxHealth if available
-                        const damage = Math.ceil(maxHealth * 0.3 * tierDamageScale); // 30% of max health scaled by tier
+                        const damage = this.buildDiversityV1
+                            ? Math.ceil(8 * tierDamageScale * (enemy.isBoss || enemy.isObeliskBoss ? 0.9 : 1))
+                            : Math.ceil(maxHealth * 0.3 * tierDamageScale);
                         enemy.health -= damage;
                         damagedEnemies.add(enemy);
                         // Visual effect - dark purple tint
@@ -45326,9 +45531,14 @@ class GameScene extends Phaser.Scene {
             this.lifeSpellCooldown = false;
         });
         // Life element - heals the wizard over time
-        const healDuration = 8000; // 8 seconds of healing
-        const healInterval = 500; // Heal every 0.5 seconds
-        const healAmount = 3; // HP per tick
+        const healDuration = this.buildDiversityV1 ? 6000 : 8000;
+        const healInterval = this.buildDiversityV1 ? 1000 : 500;
+        const lifeState = this.buildDiversityV1 && this.triadStates
+            ? this.triadStates[((this.currentSpellOwner || this.wizard).playerNumber || 1)]
+            : null;
+        const lifeEntry = lifeState && ResonantTriad.findSpell(lifeState, 'life');
+        const lifeCoefficient = lifeEntry && lifeEntry.ref === 'flex' ? ResonantTriad.FLEX_COEFFICIENT : 1;
+        const healAmount = this.buildDiversityV1 ? Math.max(1, Math.floor(this.maxHealth * 0.01 * lifeCoefficient)) : 3;
         // Visual effect - create healing aura around wizard
         const healAura = this.add.circle(this.wizard.x, this.wizard.y, 40, 0xff6666, 0.3);
         healAura.setDepth(4);
@@ -48476,7 +48686,7 @@ class GameScene extends Phaser.Scene {
                 // Reset XP to 0 after level up
                 this.playerXP = 0;
                 // Unlock charge slot every 10 levels
-                if (this.playerLevel % 10 === 0 && this.maxCharges < 8) {
+                if (!this.buildDiversityV1 && this.playerLevel % 10 === 0 && this.maxCharges < 8) {
                     this.maxCharges++;
                     this.updateChargeUI();
                     // Visual feedback for slot unlock
@@ -49863,7 +50073,667 @@ class GameScene extends Phaser.Scene {
             this.showChestRewards(null, wizard);
         }
     }
+    getPlayerByNumber(playerNumber) {
+        if (playerNumber === 1) return this.wizard || null;
+        if (playerNumber === 2) return this.wizard2 || null;
+        if (playerNumber === 3) return this.wizard3 || null;
+        if (playerNumber === 4) return this.wizard4 || null;
+        return null;
+    }
+
+    getJoinedPlayerNumbers() {
+        const numbers = [];
+        for (let playerNumber = 1; playerNumber <= 4; playerNumber++) {
+            if (this.getPlayerByNumber(playerNumber)) numbers.push(playerNumber);
+        }
+        return numbers;
+    }
+
+    initializeResonantTriadRuntime() {
+        if (!this.buildDiversityV1 || typeof ResonantTriad === 'undefined') return;
+        this.triadRunSeed = Number(localStorage.getItem('resonantTriadSeed')) ||
+            ResonantTriad.hashString(`${this.stage}:${Date.now()}:${this.p1Character || 'wizard'}`);
+        this.triadTransactionSequence = 0;
+        this.triadTargetSequence = 0;
+        this.triadStates = {};
+        this.triadRewardQueue = ResonantTriad.createRewardQueue(this.getJoinedPlayerNumbers());
+        this.triadDecisionLog = new ResonantTriad.DecisionLog({
+            stage: this.stage,
+            seed: this.triadRunSeed,
+            characters: this.getJoinedPlayerNumbers().map(number => this.getPlayerByNumber(number).characterType),
+            playerCount: this.getJoinedPlayerNumbers().length,
+            mode: 'standard',
+            speed: this.speedMode || localStorage.getItem('speedMode') || 'frolic',
+            startedAt: 0
+        });
+        this.runDecisionLog = this.triadDecisionLog.events;
+        this.triadActiveEvent = null;
+        this.triadModalObjects = [];
+        this.triadLastHudUpdate = 0;
+
+        this.getJoinedPlayerNumbers().forEach(playerNumber => {
+            const wizard = this.getPlayerByNumber(playerNumber);
+            wizard.maxCharges = 3;
+            wizard.initialMaxCharges = 3;
+            wizard.chargeSlots = (wizard.chargeSlots || []).slice(0, 3);
+            while (wizard.chargeSlots.length < 3) wizard.chargeSlots.push(null);
+            wizard.elementPouch = (wizard.elementPouch || []).slice(0, 2);
+            while (wizard.elementPouch.length < 2) wizard.elementPouch.push(null);
+            wizard.chargeLastFireTimes = new Array(3).fill(0);
+            const startElement = wizard.chargeSlots.find(spell => ResonantTriad.PRIMARY_SPELLS.includes(spell)) ||
+                localStorage.getItem('startElement') || 'fire';
+            this.triadStates[playerNumber] = ResonantTriad.createPlayerState({
+                playerNumber,
+                character: wizard.characterType,
+                startElement: ResonantTriad.PRIMARY_SPELLS.includes(startElement) ? startElement : 'fire'
+            });
+        });
+        this.maxCharges = 3;
+        this.initialMaxCharges = 3;
+        this.MAX_ACTIVE_SLOTS = 3;
+        this.MAX_CHARGE_SLOTS = 3;
+        this.MAX_POUCH_SLOTS = 2;
+        this.chargeSlots = this.wizard.chargeSlots;
+        this.elementPouch = this.wizard.elementPouch;
+        this.createTriadHUD();
+        this.triadDecisionLog.record('run_start', {
+            enabledSpells: ResonantTriad.ENABLED_SPELLS.length,
+            deferredSpells: ResonantTriad.DEFERRED_SPELLS.length,
+            featureFlag: true
+        });
+    }
+
+    syncTriadStateFromWizard(playerNumber) {
+        const wizard = this.getPlayerByNumber(playerNumber);
+        let state = this.triadStates && this.triadStates[playerNumber];
+        if (!wizard || !state) return state;
+        const runtimeSlots = (wizard.chargeSlots || []).slice(0, 3);
+        const runtimePouch = (wizard.elementPouch || []).slice(0, 2);
+        const runtimeSpells = [...runtimeSlots, ...runtimePouch].filter(spell => ResonantTriad.ENABLED_SPELLS.includes(spell));
+        if (!runtimeSpells.length) return state;
+        const seen = new Set();
+        const makeItem = (spell, index) => {
+            if (!ResonantTriad.ENABLED_SPELLS.includes(spell) || seen.has(spell)) return null;
+            seen.add(spell);
+            const tierMap = wizard.elementTiers || this.elementTiers || new Map();
+            return ResonantTriad.createItem(spell, tierMap.get(`${spell}_${index}`) || 1);
+        };
+        const channels = runtimeSlots.map((spell, index) => makeItem(spell, index));
+        while (channels.length < 3) channels.push(null);
+        const pouch = runtimePouch.map((spell, index) => makeItem(spell, index + 3));
+        while (pouch.length < 2) pouch.push(null);
+        if (channels.some(Boolean)) {
+            state.channels = channels;
+            state.pouch = pouch;
+        }
+        return state;
+    }
+
+    applyTriadStateToWizard(playerNumber, state, previousState = null) {
+        const wizard = this.getPlayerByNumber(playerNumber);
+        if (!wizard || !state) return;
+        if (previousState) {
+            ['r1', 'r2', 'flex'].forEach((ref, index) => {
+                const before = previousState.channels[index];
+                const after = state.channels[index];
+                if (before && (!after || before.spell !== after.spell)) {
+                    this.purgeTriadSpellSource(playerNumber, index, before.spell);
+                    wizard.chargeLastFireTimes[index] = this.time.now;
+                }
+            });
+        }
+        wizard.maxCharges = 3;
+        wizard.initialMaxCharges = 3;
+        wizard.chargeSlots = state.channels.map(item => item ? item.spell : null);
+        wizard.elementPouch = state.pouch.map(item => item ? item.spell : null);
+        wizard.charges = wizard.chargeSlots.filter(Boolean);
+        wizard.elementTiers = new Map();
+        state.channels.forEach((item, index) => { if (item) wizard.elementTiers.set(`${item.spell}_${index}`, item.tier); });
+        state.pouch.forEach((item, index) => { if (item) wizard.elementTiers.set(`${item.spell}_${index + 3}`, item.tier); });
+        wizard.catalystCount = state.reagents;
+        wizard.triadDiscipline = state.discipline;
+        const baseMaxHealth = wizard.triadBaseMaxHealth || wizard.maxHealth || 200;
+        wizard.triadBaseMaxHealth = baseMaxHealth;
+        const upgradedMaxHealth = Math.round(baseMaxHealth * (1 + (state.passives.health || 0) * ResonantTriad.PASSIVES.health.perStack));
+        if (upgradedMaxHealth > wizard.maxHealth) wizard.health = Math.min(upgradedMaxHealth, (wizard.health || baseMaxHealth) + (upgradedMaxHealth - wizard.maxHealth));
+        wizard.maxHealth = upgradedMaxHealth;
+        if (playerNumber === 1) {
+            this.maxHealth = upgradedMaxHealth;
+            this.playerMaxHealth = upgradedMaxHealth;
+            this.playerHealth = Math.min(upgradedMaxHealth, wizard.health || this.playerHealth);
+            this.passiveUpgrades.revive = state.passives.revive || 0;
+        }
+        this.triadStates[playerNumber] = state;
+        if (playerNumber === 1) {
+            this.chargeSlots = wizard.chargeSlots;
+            this.elementPouch = wizard.elementPouch;
+            this.elementTiers = wizard.elementTiers;
+            this.charges = wizard.charges;
+        }
+        const radial = this[`radialChargeMenu${playerNumber === 1 ? '' : playerNumber}`];
+        if (radial && radial.refresh) radial.refresh();
+        this.updateTriadHUD(true);
+    }
+
+    triadRefFromIndex(index) {
+        if (index === 0) return 'r1';
+        if (index === 1) return 'r2';
+        if (index === 2) return 'flex';
+        if (index === 3) return 'p0';
+        if (index === 4) return 'p1';
+        return null;
+    }
+
+    purgeTriadSpellSource(playerNumber, slotIndex, spell) {
+        if (this.projectiles && this.projectiles.children) {
+            this.projectiles.children.entries.slice().forEach(projectile => {
+                if (!projectile || !projectile.active) return;
+                const owner = projectile.firedByPlayer || 1;
+                if (owner === playerNumber && (projectile.slotIndex === slotIndex || projectile.element === spell)) {
+                    this.safeDestroyProjectile(projectile);
+                }
+            });
+        }
+        ['firePools', 'waterOrbs', 'activeFlames', 'orbitingOrbs'].forEach(key => {
+            if (!Array.isArray(this[key])) return;
+            this[key] = this[key].filter(entity => {
+                if (!entity || !entity.active) return false;
+                const owner = entity.firedByPlayer || entity.ownerPlayerNumber || 1;
+                if (owner === playerNumber && (entity.slotIndex === slotIndex || entity.element === spell)) {
+                    if (entity.destroy) entity.destroy();
+                    return false;
+                }
+                return true;
+            });
+        });
+    }
+
+    performTriadTransaction(playerNumber, transaction, route = 'reward') {
+        const state = this.syncTriadStateFromWizard(playerNumber);
+        if (!state) return { ok: false, reason: 'PLAYER_NOT_FOUND' };
+        const previousState = ResonantTriad.clone(state);
+        const tx = { ...transaction };
+        tx.id = tx.id || `${this.triadRunSeed}:${playerNumber}:${route}:${++this.triadTransactionSequence}`;
+        const result = ResonantTriad.commitTransaction(state, tx);
+        this.triadDecisionLog.record(result.ok ? 'choice_commit' : 'choice_failure', {
+            ownerPlayerNumber: playerNumber,
+            route,
+            transactionId: tx.id,
+            action: tx.type,
+            reason: result.reason || null,
+            cost: result.cost || 0,
+            before: ResonantTriad.economicSnapshot(previousState),
+            after: result.ok ? ResonantTriad.economicSnapshot(result.state) : ResonantTriad.economicSnapshot(previousState)
+        }, this.survivalTime || 0);
+        if (!result.ok) return result;
+        this.applyTriadStateToWizard(playerNumber, result.state, previousState);
+        if (result.recipeDiscovery && tx.type === 'fusion') {
+            const inputA = ResonantTriad.getAt(previousState, tx.a);
+            const inputB = ResonantTriad.getAt(previousState, tx.b);
+            if (inputA && inputB) this.recordAlchemyRecipe(inputA.spell, inputB.spell, result.result);
+        }
+        this.runFusionCount += tx.type === 'fusion' || tx.type === 'omniform' ? 1 : 0;
+        return result;
+    }
+
+    performTriadInventoryGesture(playerNumber, fromIndex, toIndex, route) {
+        const state = this.syncTriadStateFromWizard(playerNumber);
+        const fromRef = this.triadRefFromIndex(fromIndex);
+        const toRef = this.triadRefFromIndex(toIndex);
+        if (!state || !fromRef || !toRef || fromRef === toRef) return false;
+        const from = ResonantTriad.getAt(state, fromRef);
+        const to = ResonantTriad.getAt(state, toRef);
+        const fusion = from && to && ResonantTriad.getCanonicalFusion(from.spell, to.spell);
+        const transaction = from && to
+            ? (fusion ? { type: 'fusion', a: fromRef, b: toRef, destination: toRef } : { type: 'swap', a: fromRef, b: toRef })
+            : { type: 'swap', a: fromRef, b: toRef };
+        const result = this.performTriadTransaction(playerNumber, transaction, route);
+        const wizard = this.getPlayerByNumber(playerNumber);
+        const message = result.ok
+            ? (transaction.type === 'fusion' ? `${result.result.toUpperCase()} ${result.resultTier}` : 'LOADOUT UPDATED')
+            : this.getTriadFailureCopy(result.reason, state.reagents);
+        const text = this.add.text(wizard.x, wizard.y - 54, message, {
+            fontSize: '16px', color: result.ok ? '#f1e8b8' : '#ff8b7a', fontStyle: 'bold',
+            stroke: '#101218', strokeThickness: 4, align: 'center', wordWrap: { width: 300 }
+        }).setOrigin(0.5).setDepth(2002);
+        this.tweens.add({ targets: text, y: text.y - 28, alpha: 0, duration: 1500, onComplete: () => text.destroy() });
+        return result.ok;
+    }
+
+    performTriadDirectTier(playerNumber, ref, route = 'pause') {
+        return this.performTriadTransaction(playerNumber, { type: 'tierUp', ref }, route);
+    }
+
+    performTriadReweave(playerNumber, discipline, route = 'pause') {
+        return this.performTriadTransaction(playerNumber, { type: 'reweave', discipline }, route);
+    }
+
+    performTriadOmniform(playerNumber, a, b, resultSpell, route = 'pause') {
+        return this.performTriadTransaction(playerNumber, { type: 'omniform', a, b, result: resultSpell }, route);
+    }
+
+    getTriadFailureCopy(reason, reagentCount = 0) {
+        if (reason === 'NEED_REAGENTS') return ResonantTriad.COPY.needReagents(reagentCount);
+        if (reason === 'RESULT_TIER_III' || reason === 'DUPLICATE_TIER_III') return ResonantTriad.COPY.resultTierThree;
+        if (reason === 'NO_LEGAL_SLOT' || reason === 'REPLACEMENT_REQUIRED') return ResonantTriad.COPY.unavailable;
+        if (reason === 'ZERO_CASTER') return 'UNAVAILABLE — AT LEAST ONE CHANNEL MUST KEEP CASTING.';
+        if (reason === 'NO_CANONICAL_RECIPE') return 'NO RECIPE IN HELD SPELLS';
+        return String(reason || 'TRANSACTION FAILED').replaceAll('_', ' ');
+    }
+
+    annotateTriadSpellActors(playerNumber, slotIndex, spell, beforeActors = null) {
+        if (!this.buildDiversityV1 || !this.projectiles || !this.projectiles.children) return;
+        const before = beforeActors || new Set();
+        this.projectiles.children.entries.forEach(actor => {
+            if (!actor || !actor.active || before.has(actor)) return;
+            actor.firedByPlayer = playerNumber;
+            actor.slotIndex = Number.isInteger(actor.slotIndex) ? actor.slotIndex : slotIndex;
+            actor.element = actor.element || spell;
+            actor.triadSourceRef = this.triadRefFromIndex(actor.slotIndex);
+            actor.triadOutputCoefficient = actor.slotIndex === 2 ? ResonantTriad.FLEX_COEFFICIENT : 1;
+        });
+    }
+
+    applyTriadProjectileHit(projectile, enemy, triggeringDamage) {
+        const playerNumber = projectile.firedByPlayer || 1;
+        const state = this.triadStates && this.triadStates[playerNumber];
+        const spell = projectile.element;
+        const spellData = typeof ResonantTriad !== 'undefined' && ResonantTriad.SPELLS[spell];
+        if (!state || !state.discipline || !spellData) return null;
+        const channel = projectile.triadSourceRef || this.triadRefFromIndex(projectile.slotIndex);
+        if (!channel || channel.startsWith('p')) return null;
+        if (!enemy.triadTargetId) enemy.triadTargetId = `E${++this.triadTargetSequence}`;
+        const bridgeTechniques = {
+            crucible: 'Backdraft', tempest: 'Rainwire', bastion: 'Cold Anvil', covenant: 'Ashen Vow'
+        };
+        const bridge = channel === 'flex'
+            ? state.techniques.includes(bridgeTechniques[state.discipline])
+            : ResonantTriad.isBridge(spell, state.discipline);
+        const result = ResonantTriad.applySignatureHit(state, {
+            now: this.time.now,
+            targetId: enemy.triadTargetId,
+            source: `${playerNumber}:${projectile.slotIndex}:${spell}`,
+            channel,
+            bridge,
+            tags: spellData.tags,
+            damage: triggeringDamage,
+            wet: Boolean(enemy.wet && (!enemy.wetEndTime || this.time.now < enemy.wetEndTime)),
+            consumeRipe: true,
+            isBoss: Boolean(enemy.isBoss || enemy.isObeliskBoss),
+            targetMaxHealth: enemy.maxHealth || enemy.health || 0
+        });
+        this.triadStates[playerNumber] = result.state;
+        if (result.damage > 0 && enemy.active && !enemy.isDying) {
+            enemy.health -= result.damage;
+            this.damageDealt += result.damage;
+        }
+        if (result.healFraction > 0) this.healTriadPlayer(playerNumber, result.healFraction, 'HARVEST');
+        if (result.triggered) {
+            const wizard = this.getPlayerByNumber(playerNumber);
+            const maxHealth = playerNumber === 1 ? this.maxHealth : wizard.maxHealth;
+            const health = playerNumber === 1 ? this.playerHealth : wizard.health;
+            const perk = ResonantTriad.applyCharacterSignaturePerk(result.state, true, this.time.now, health / maxHealth);
+            this.triadStates[playerNumber] = perk.state;
+            if (perk.healFraction) this.healTriadPlayer(playerNumber, perk.healFraction, 'DEBT');
+            if (perk.moveBuff) wizard.triadMoveBuffUntil = this.time.now + perk.moveBuffMs;
+            this.showTriadSignatureEffect(playerNumber, enemy, result.label, result.staggerResult);
+            this.triadDecisionLog.record('signature_trigger', {
+                ownerPlayerNumber: playerNumber, discipline: state.discipline, label: result.label,
+                damage: result.damage, stagger: result.stagger, boss: Boolean(enemy.isBoss || enemy.isObeliskBoss)
+            }, this.survivalTime || 0);
+            const saveManager = this.registry.get('saveManager');
+            if (saveManager && typeof saveManager.getTriadReadback === 'function') {
+                const readback = saveManager.getTriadReadback();
+                const record = readback.disciplines && readback.disciplines[state.discipline];
+                if (!record || !record.signatureTriggered) {
+                    saveManager.recordTriadDiscovery(state.discipline, { attuned: true, signatureTriggered: true });
+                }
+            }
+        }
+        if (result.staggerResult && result.staggerResult.triggered) {
+            enemy.triadStaggeredUntil = this.time.now + result.staggerResult.interruptMs;
+            if (enemy.setVelocity) enemy.setVelocity(0, 0);
+        }
+        this.updateTriadHUD(true);
+        return result;
+    }
+
+    healTriadPlayer(playerNumber, fraction, label) {
+        const wizard = this.getPlayerByNumber(playerNumber);
+        if (!wizard) return;
+        const maxHealth = playerNumber === 1 ? this.maxHealth : wizard.maxHealth;
+        const amount = Math.max(1, Math.floor(maxHealth * fraction));
+        if (playerNumber === 1) {
+            this.playerHealth = Math.min(maxHealth, this.playerHealth + amount);
+            wizard.health = this.playerHealth;
+            this.updateHealthBar();
+        } else {
+            wizard.health = Math.min(maxHealth, wizard.health + amount);
+            this.updateWizardHealthBar();
+        }
+        this.showDamageNumber(wizard.x, wizard.y - 28, `${label} +${amount}`, '#9cffb5');
+    }
+
+    showTriadSignatureEffect(playerNumber, enemy, label, staggerResult) {
+        const colors = { KILN: 0xff7a2f, CONDUCT: 0x43d9ff, SHATTER: 0xe1e6ef, HARVEST: 0xc568ff };
+        const ring = this.add.circle(enemy.x, enemy.y, 14, 0x000000, 0)
+            .setStrokeStyle(4, colors[label] || 0xffffff, 0.95).setDepth(310);
+        const text = this.add.text(enemy.x, enemy.y - 38,
+            staggerResult && staggerResult.triggered ? `${label} • STAGGER` : label, {
+                fontSize: '15px', color: '#ffffff', fontStyle: 'bold', stroke: '#08090c', strokeThickness: 4
+            }).setOrigin(0.5).setDepth(311);
+        this.tweens.add({ targets: ring, scale: 3.4, alpha: 0, duration: 350, onComplete: () => ring.destroy() });
+        this.tweens.add({ targets: text, y: text.y - 22, alpha: 0, duration: 700, onComplete: () => text.destroy() });
+    }
+
+    updateTriadCharacterPerks() {
+        if (!this.triadStates) return;
+        this.getJoinedPlayerNumbers().forEach(playerNumber => {
+            const wizard = this.getPlayerByNumber(playerNumber);
+            const state = this.triadStates[playerNumber];
+            if (!wizard || !state || state.character !== 'blip') return;
+            const velocity = wizard.body && wizard.body.velocity;
+            const moving = Boolean(velocity && Math.hypot(velocity.x, velocity.y) > 15);
+            const phase = ResonantTriad.updatePhaseStep(state, { now: this.time.now, moving, contact: false });
+            this.triadStates[playerNumber] = phase.state;
+        });
+    }
+
+    triggerTriadPhaseContact(playerNumber) {
+        const state = this.triadStates && this.triadStates[playerNumber];
+        const wizard = this.getPlayerByNumber(playerNumber);
+        if (!state || !wizard) return false;
+        const phase = ResonantTriad.updatePhaseStep(state, { now: this.time.now, moving: true, contact: true });
+        this.triadStates[playerNumber] = phase.state;
+        if (!phase.triggered) return false;
+        wizard.invulnerable = true;
+        wizard.invulnerableUntil = this.time.now + phase.invulnerabilityMs;
+        const flex = state.channels[2];
+        if (flex) this.spellCooldowns.set(`${flex.spell}_2`, 0);
+        this.triadDecisionLog.record('phase_step', { ownerPlayerNumber: playerNumber }, this.survivalTime || 0);
+        return true;
+    }
+
+    createTriadHUD() {
+        if (!this.buildDiversityV1) return;
+        this.triadHud = {};
+        this.getJoinedPlayerNumbers().forEach((playerNumber, index) => {
+            const x = index % 2 === 0 ? 10 : 790;
+            const y = index < 2 ? 8 : 520;
+            const originX = index % 2 === 0 ? 0 : 1;
+            const bg = this.add.rectangle(x, y, 300, 68, 0x11151c, 0.82).setOrigin(originX, 0).setScrollFactor(0).setDepth(890);
+            bg.setStrokeStyle(2, 0xb8a77c, 0.8);
+            const text = this.add.text(x + (originX ? -10 : 10), y + 7, '', {
+                fontSize: '12px', color: '#f5f0dd', lineSpacing: 2, align: originX ? 'right' : 'left',
+                stroke: '#080a0e', strokeThickness: 2
+            }).setOrigin(originX, 0).setScrollFactor(0).setDepth(891);
+            this.triadHud[playerNumber] = { bg, text };
+        });
+        this.updateTriadHUD(true);
+    }
+
+    updateTriadHUD(force = false) {
+        if (!this.buildDiversityV1 || !this.triadHud) return;
+        const now = this.time ? this.time.now : 0;
+        if (!force && now - this.triadLastHudUpdate < 150) return;
+        this.triadLastHudUpdate = now;
+        this.getJoinedPlayerNumbers().forEach(playerNumber => {
+            const state = this.triadStates[playerNumber];
+            const wizard = this.getPlayerByNumber(playerNumber);
+            const hud = this.triadHud[playerNumber];
+            if (!state || !wizard || !hud) return;
+            const health = playerNumber === 1 ? this.playerHealth : wizard.health;
+            const maxHealth = playerNumber === 1 ? this.maxHealth : wizard.maxHealth;
+            const discipline = state.discipline ? ResonantTriad.DISCIPLINES[state.discipline] : null;
+            const signatureLabel = discipline ? discipline.name : 'SPARK';
+            const online = state.discipline && state.channels[0] && state.channels[1];
+            const signatureTargets = Object.values(state.signature.targets || {});
+            const meter = state.discipline === 'crucible' ? Math.max(0, ...signatureTargets.map(target => target.heat || 0)) + '/5'
+                : state.discipline === 'bastion' ? Math.max(0, ...signatureTargets.map(target => target.break || 0)) + '/6'
+                : state.discipline === 'covenant' ? Math.max(0, ...signatureTargets.map(target => target.decay || 0)) + '/5'
+                : state.discipline === 'tempest' ? `${state.signature.tempestWindow.count || 0}/4`
+                : '';
+            const slot = item => item ? `${item.spell[0].toUpperCase()}${item.tier}` : '—';
+            hud.text.setText([
+                `P${playerNumber}  ♥${Math.max(0, Math.ceil(health || 0))}/${Math.ceil(maxHealth || 200)}  LV${this.playerLevel || 0}  ◆${state.reagents}  ↻${state.rerollsRemaining}  ◇${state.reweavesRemaining}`,
+                `${signatureLabel}  ${online ? `●● ONLINE  ${meter}` : `${state.channels.slice(0, 2).filter(Boolean).length}/2 FORMING`}`,
+                `R1 ${slot(state.channels[0])}   R2 ${slot(state.channels[1])}   F ${slot(state.channels[2])}`
+            ]);
+            hud.bg.setStrokeStyle(2, discipline ? discipline.color : 0xb8a77c, 0.9);
+        });
+    }
+
+    enqueueTriadLevelEvent(level) {
+        if (!this.buildDiversityV1 || this.bossSpawned || this.triadBossGatePending) return;
+        const living = this.getJoinedPlayerNumbers().filter(playerNumber => {
+            const wizard = this.getPlayerByNumber(playerNumber);
+            return playerNumber === 1 ? this.playerHealth > 0 : wizard && wizard.health > 0;
+        });
+        this.triadRewardQueue = ResonantTriad.enqueueThreshold(this.triadRewardQueue, level, living);
+        this.triadDecisionLog.record('reward_enqueued', {
+            level,
+            queueDepth: this.triadRewardQueue.events.length,
+            event: ResonantTriad.clone(this.triadRewardQueue.events[this.triadRewardQueue.events.length - 1])
+        }, this.survivalTime || 0);
+        if (ResonantTriad.REAGENTS.milestones.includes(level)) {
+            this.getJoinedPlayerNumbers().forEach(playerNumber => this.dropTriadReagent(playerNumber, level));
+        }
+    }
+
+    dropTriadReagent(playerNumber, level) {
+        const wizard = this.getPlayerByNumber(playerNumber);
+        const isDead = !wizard || (playerNumber === 1 ? this.playerHealth <= 0 : wizard.health <= 0);
+        if (isDead) {
+            const result = ResonantTriad.grantMilestoneReagent(this.triadStates[playerNumber], level, { dead: true });
+            if (result.ok) this.applyTriadStateToWizard(playerNumber, result.state);
+            return null;
+        }
+        const angle = (playerNumber - 1) * (Math.PI / 2);
+        const orb = this.physics.add.sprite(wizard.x + Math.cos(angle) * 34, wizard.y + Math.sin(angle) * 34, 'catalyst-orb');
+        orb.setDepth(155).setScale(0.14);
+        orb.isCatalyst = true;
+        orb.isTriadReagent = true;
+        orb.ownerPlayerNumber = playerNumber;
+        orb.reagentLevel = level;
+        if (orb.body) orb.body.setCircle(40);
+        const ring = this.add.circle(orb.x, orb.y, 15, 0x000000, 0).setStrokeStyle(3, [0x61d7ff, 0xff8b8b, 0x9cff8b, 0xffd36a][playerNumber - 1]).setDepth(154);
+        orb.ownerRing = ring;
+        orb.on('destroy', () => { if (ring && ring.active) ring.destroy(); });
+        this.fusionCatalysts.add(orb);
+        this.tweens.add({ targets: [orb, ring], y: orb.y - 7, duration: 700, yoyo: true, repeat: -1 });
+        setTimeout(() => {
+            if (!orb || !orb.active || orb.isDestroying) return;
+            const result = ResonantTriad.grantMilestoneReagent(this.triadStates[playerNumber], level, { autoBank: true });
+            if (result.ok) this.applyTriadStateToWizard(playerNumber, result.state);
+            this.triadDecisionLog.record('reagent_auto_bank', { ownerPlayerNumber: playerNumber, level, status: result.entry && result.entry.status }, this.survivalTime || 0);
+            this.safeDestroyCollectible(orb);
+        }, ResonantTriad.REAGENTS.autoBankMs);
+        return orb;
+    }
+
+    processTriadRewardQueue() {
+        if (!this.buildDiversityV1 || this.triadActiveEvent || this.chestSelectionActive || !this.triadRewardQueue.events.length) return;
+        const next = ResonantTriad.dequeueReward(this.triadRewardQueue);
+        this.triadRewardQueue = next.queue;
+        this.triadActiveEvent = next.event;
+        if (next.event.kind === 'ATTUNEMENT') {
+            this.triadAttunementPlayers = this.getJoinedPlayerNumbers();
+            this.showTriadAttunement(this.triadAttunementPlayers[0]);
+        } else {
+            this.showTriadReward(next.event);
+        }
+    }
+
+    clearTriadModal() {
+        if (this.triadDisconnectTimer) {
+            clearTimeout(this.triadDisconnectTimer);
+            this.triadDisconnectTimer = null;
+        }
+        (this.triadModalObjects || []).forEach(object => { if (object && object.destroy) object.destroy(); });
+        this.triadModalObjects = [];
+        this.chestUI = null;
+    }
+
+    finishTriadEvent() {
+        this.clearTriadModal();
+        this.chestSelectionActive = false;
+        this.chestOpening = false;
+        this.triadActiveEvent = null;
+        this.menuControllingPlayer = null;
+        this.resumeGame('chest');
+        setTimeout(() => this.processTriadRewardQueue(), 30);
+    }
+
+    createTriadModal(header, subtitle, cards, columns = 3) {
+        this.clearTriadModal();
+        this.chestSelectionActive = true;
+        this.chestCursorIndex = 0;
+        if (!this.isPaused) this.pauseGame('chest');
+        const bg = this.add.rectangle(400, 300, 800, 600, 0x080b10, 0.93).setScrollFactor(0).setDepth(1920).setInteractive();
+        const title = this.add.text(400, 55, header, { fontSize: '25px', color: '#fff4d6', fontStyle: 'bold', align: 'center', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5).setScrollFactor(0).setDepth(1921);
+        const copy = this.add.text(400, 90, subtitle, { fontSize: '13px', color: '#c5cad5', align: 'center', wordWrap: { width: 710 } }).setOrigin(0.5).setScrollFactor(0).setDepth(1921);
+        const buttons = [];
+        cards.forEach((card, index) => {
+            const row = Math.floor(index / columns);
+            const col = index % columns;
+            const cardWidth = columns === 2 ? 286 : 188;
+            const cardHeight = columns === 2 ? 132 : 248;
+            const gap = columns === 2 ? 18 : 14;
+            const startX = 400 - ((columns - 1) * (cardWidth + gap)) / 2;
+            const x = startX + col * (cardWidth + gap);
+            const y = columns === 2 ? 195 + row * 155 : 300;
+            const container = this.add.container(x, y).setScrollFactor(0).setDepth(1922);
+            const cardBg = this.add.rectangle(0, 0, cardWidth, cardHeight, 0x171c25, 1).setStrokeStyle(index === 0 ? 3 : 2, index === 0 ? 0xffdc72 : (card.color || 0x596170)).setInteractive({ useHandCursor: true });
+            const badge = this.add.text(0, -cardHeight / 2 + 20, card.badge || '', { fontSize: '11px', color: '#ffdc72', fontStyle: 'bold' }).setOrigin(0.5);
+            const name = this.add.text(0, -cardHeight / 2 + 48, card.title, { fontSize: columns === 2 ? '16px' : '15px', color: '#ffffff', fontStyle: 'bold', align: 'center', wordWrap: { width: cardWidth - 18 } }).setOrigin(0.5);
+            const body = this.add.text(0, columns === 2 ? 19 : 20, card.copy || '', { fontSize: columns === 2 ? '12px' : '11px', color: '#cbd1dc', align: 'center', wordWrap: { width: cardWidth - 18 }, lineSpacing: 3 }).setOrigin(0.5);
+            const footer = this.add.text(0, cardHeight / 2 - 20, card.footer || '', { fontSize: '10px', color: '#9da9b8', align: 'center', wordWrap: { width: cardWidth - 18 } }).setOrigin(0.5);
+            container.add([cardBg, badge, name, body, footer]);
+            const button = { container, bg: cardBg, type: 'triad', action: card.action };
+            buttons.push(button);
+            cardBg.on('pointerdown', () => {
+                if ((this.menuControllingPlayer || 1) === 1) card.action();
+            });
+            cardBg.on('pointerover', () => {
+                buttons.forEach((other, otherIndex) => other.bg.setStrokeStyle(otherIndex === index ? 3 : 2, otherIndex === index ? 0xffdc72 : 0x596170));
+                this.chestCursorIndex = index;
+            });
+        });
+        const hint = this.add.text(400, 566, 'OWNER: ← → FOCUS  •  A / CLICK CONFIRM  •  Y REROLL', { fontSize: '11px', color: '#8791a1' }).setOrigin(0.5).setScrollFactor(0).setDepth(1921);
+        this.triadModalObjects = [bg, title, copy, hint, ...buttons.map(button => button.container)];
+        this.triadCurrentModalCards = cards;
+        this.chestUI = { bg, title, controlHint: hint, buttons, mainMenu: true, chest: null, triadModal: true };
+        if (this.triadDisconnectTimer) clearTimeout(this.triadDisconnectTimer);
+        if ((this.menuControllingPlayer || 1) > 1) {
+            this.triadDisconnectTimer = setTimeout(() => {
+                if (!this.chestUI || !this.chestUI.triadModal) return;
+                const controller = (this.playerControllers || []).find(entry => entry.playerNumber === this.menuControllingPlayer);
+                const pad = controller && this.input.gamepad ? this.input.gamepad.getPad(controller.padIndex) : null;
+                if (!pad || !pad.connected) this.triadAutoPickCurrent('AUTO_DISCONNECT');
+            }, 15000);
+        }
+    }
+
+    showTriadAttunement(playerNumber) {
+        const state = this.syncTriadStateFromWizard(playerNumber);
+        if (!state) { this.finishTriadEvent(); return; }
+        this.menuControllingPlayer = playerNumber;
+        const cards = Object.keys(ResonantTriad.DISCIPLINES).map(discipline => {
+            const data = ResonantTriad.DISCIPLINES[discipline];
+            const heldFit = ResonantTriad.heldEntries(state).filter(entry => ResonantTriad.isFit(entry.item.spell, discipline)).length;
+            return {
+                title: `${data.name}  •  ${data.verbs}`,
+                badge: `P${playerNumber} ATTUNEMENT`, color: data.color, copy: data.trigger,
+                footer: heldFit ? `${heldFit} held spell${heldFit === 1 ? '' : 's'} fit` : `Imprint required • max 2`,
+                action: () => {
+                    const result = ResonantTriad.attune(state, discipline, { seed: this.triadRunSeed });
+                    if (!result.ok) return;
+                    this.applyTriadStateToWizard(playerNumber, result.state, state);
+                    this.triadDecisionLog.record('attunement', { ownerPlayerNumber: playerNumber, discipline, imprints: result.imprints }, this.survivalTime || 0);
+                    const saveManager = this.registry.get('saveManager');
+                    if (saveManager && typeof saveManager.getTriadReadback === 'function') {
+                        const readback = saveManager.getTriadReadback();
+                        const record = readback.disciplines && readback.disciplines[discipline];
+                        if (!record || !record.attuned) saveManager.recordTriadDiscovery(discipline, { attuned: true });
+                    }
+                    const index = this.triadAttunementPlayers.indexOf(playerNumber);
+                    const nextPlayer = this.triadAttunementPlayers[index + 1];
+                    if (nextPlayer) this.showTriadAttunement(nextPlayer);
+                    else this.finishTriadEvent();
+                }
+            };
+        });
+        this.createTriadModal(`P${playerNumber} — ATTUNE YOUR TRIAD — LEVEL 4`, 'Two channels learn one Discipline. Flex stays free. You may Reweave once.', cards, 2);
+    }
+
+    showTriadReward(event) {
+        const playerNumber = event.ownerPlayerNumber;
+        const state = this.syncTriadStateFromWizard(playerNumber);
+        if (!state) { this.finishTriadEvent(); return; }
+        this.menuControllingPlayer = playerNumber;
+        const offers = ResonantTriad.generateOffers(state, event, { seed: this.triadRunSeed });
+        this.triadCurrentOffers = offers;
+        this.triadDecisionLog.record('offers', { ownerPlayerNumber: playerNumber, level: event.level, seedCursor: event.seedCursor, offers: offers.map(offer => offer.title) }, this.survivalTime || 0);
+        const cards = offers.map(offer => ({
+            badge: offer.category,
+            title: offer.title,
+            copy: offer.copy || '',
+            footer: offer.transaction.type === 'fusion' ? `◆${ResonantTriad.REAGENTS.fusionCost}` : 'PREVIEW = COMMIT',
+            color: offer.category === 'FIT' ? 0xffb347 : offer.category === 'BRIDGE' ? 0x5ed9ff : 0x9be28f,
+            action: () => {
+                const result = this.performTriadTransaction(playerNumber, offer.transaction, 'reward');
+                if (!result.ok) return;
+                this.finishTriadEvent();
+            }
+        }));
+        const discipline = state.discipline ? ResonantTriad.DISCIPLINES[state.discipline].name : 'SPARK';
+        this.createTriadModal(`P${playerNumber} — ${discipline} REWARD — LEVEL ${event.level}`, event.kind === 'SPARK' ? 'PAIR / DEEPEN / SURVIVE — shape the spark before Attunement.' : 'Choose one legal action. FIT deepens, BRIDGE adapts, WILD survives.', cards, 3);
+    }
+
+    triadRerollCurrentOffers() {
+        if (!this.triadActiveEvent || !this.triadCurrentOffers) return false;
+        const playerNumber = this.triadActiveEvent.ownerPlayerNumber;
+        const state = this.triadStates[playerNumber];
+        if (!state || !state.discipline) return false;
+        const reroll = ResonantTriad.rerollOffers(state, this.triadActiveEvent, this.triadCurrentOffers, this.triadRunSeed);
+        if (!reroll.ok) return false;
+        this.triadStates[playerNumber] = reroll.state;
+        this.triadDecisionLog.record('reroll', { ownerPlayerNumber: playerNumber, discarded: this.triadCurrentOffers.map(offer => offer.title), replacements: reroll.offers.map(offer => offer.title) }, this.survivalTime || 0);
+        this.showTriadReward({ ...this.triadActiveEvent, seedCursor: this.triadActiveEvent.seedCursor + 1 });
+        return true;
+    }
+
+    triadAutoPickCurrent(reason = 'AUTO_DISCONNECT') {
+        if (!this.chestUI || !this.chestUI.triadModal || !this.chestUI.buttons.length) return false;
+        let index = 0;
+        if (this.triadCurrentOffers) {
+            const state = this.triadStates[this.menuControllingPlayer];
+            const forming = state && (!state.channels[0] || !state.channels[1]);
+            if (forming) index = this.triadCurrentOffers.findIndex(offer => offer.category === 'FIT');
+            else {
+                index = this.triadCurrentOffers.findIndex(offer => offer.category === 'WILD');
+                if (index < 0) index = this.triadCurrentOffers.findIndex(offer => offer.category === 'BRIDGE');
+            }
+        } else if (this.triadAttunementPlayers) {
+            const state = this.triadStates[this.menuControllingPlayer];
+            let best = -1;
+            Object.keys(ResonantTriad.DISCIPLINES).forEach((discipline, candidateIndex) => {
+                const fit = ResonantTriad.heldEntries(state).filter(entry => ResonantTriad.isFit(entry.item.spell, discipline)).length;
+                if (fit > best) { best = fit; index = candidateIndex; }
+            });
+        }
+        if (index < 0) index = 0;
+        this.triadDecisionLog.record(reason, { ownerPlayerNumber: this.menuControllingPlayer, selectedIndex: index }, this.survivalTime || 0);
+        const button = this.chestUI.buttons[index];
+        if (button && button.action) button.action();
+        return Boolean(button);
+    }
+
     showChestRewards(chest, levelingWizard = null) {
+        if (this.buildDiversityV1 && !this.initialElementSelection) {
+            this.processTriadRewardQueue();
+            return;
+        }
         // Initialize arrays if they don't exist
         if (!this.charges) {
             this.charges = [];
@@ -52808,10 +53678,12 @@ class GameScene extends Phaser.Scene {
             if (this.menuControllingPlayer === 1) {
                 // P1 controls - keyboard only
                 pad = null; // Disable gamepad input
-            } else if (this.menuControllingPlayer === 2) {
-                // P2 controls - gamepad only
+            } else {
+                // P2-P4 rewards are controlled only by the assigned owner's pad.
                 allowKeyboard = false;
-                pad = this.input.gamepad.getPad(this.p2ControllerIndex);
+                const controller = (this.playerControllers || []).find(entry => entry.playerNumber === this.menuControllingPlayer);
+                const padIndex = controller ? controller.padIndex : (this.menuControllingPlayer === 2 ? this.p2ControllerIndex : this.menuControllingPlayer - 2);
+                pad = this.input.gamepad.getPad(padIndex);
             }
         }
         // Check for input using the same pattern as StageSelectScene
@@ -52832,6 +53704,9 @@ class GameScene extends Phaser.Scene {
             (pad && pad.buttons[0] && pad.buttons[0].pressed && !this.prevChestConfirm);
         const switchModeJustPressed = (allowKeyboard && Phaser.Input.Keyboard.JustDown(this.tabKey)) ||
             (pad && pad.buttons[2] && pad.buttons[2].pressed && !this.prevChestSwitch);
+        const rerollJustPressed = (allowKeyboard && this.input.keyboard && Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey('Y'))) ||
+            (pad && pad.buttons[3] && pad.buttons[3].pressed && !this.prevChestReroll);
+        if (this.chestUI.triadModal && rerollJustPressed) this.triadRerollCurrentOffers();
         // Handle main menu selection for new chest system
         if (this.chestUI && this.chestUI.mainMenu) {
             // Navigate left
@@ -52866,7 +53741,9 @@ class GameScene extends Phaser.Scene {
             if (confirmJustPressed) {
                 const selectedReward = this.chestUI.buttons[this.chestCursorIndex];
                 if (selectedReward && selectedReward.type) {
-                    if (this.initialElementSelection && selectedReward.element) {
+                    if (this.chestUI.triadModal && selectedReward.action) {
+                        selectedReward.action();
+                    } else if (this.initialElementSelection && selectedReward.element) {
                         // For initial element selection, directly select the element
                         this.selectChestElement(selectedReward.element, null, this.chestUI.bg, this.chestUI.title, this.chestUI.controlHint, this.chestUI.buttons);
                     } else {
@@ -53065,6 +53942,7 @@ class GameScene extends Phaser.Scene {
         this.prevChestDpadDown = pad && pad.buttons[13] && pad.buttons[13].pressed;
         this.prevChestConfirm = pad && pad.buttons[0] && pad.buttons[0].pressed;
         this.prevChestSwitch = pad && pad.buttons[2] && pad.buttons[2].pressed;
+        this.prevChestReroll = pad && pad.buttons[3] && pad.buttons[3].pressed;
     }
     handleElementSelectionController() {
         if (!this.elementSelectionUI) return;
@@ -60976,6 +61854,177 @@ const config = {
 };
 
 if (typeof window !== 'undefined') {
+    window.runHomunculiResonantTriadSmoke = async function runHomunculiResonantTriadSmoke(options = {}) {
+        const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+        const waitFor = async (label, predicate, timeoutMs = 15000) => {
+            const started = Date.now();
+            while (Date.now() - started < timeoutMs) {
+                if (predicate()) return predicate();
+                await wait(50);
+            }
+            throw new Error(`Timed out waiting for ${label}`);
+        };
+        const mode = options.mode || 'reward';
+        const stage = options.stage || 'forest';
+        localStorage.setItem('slotConfiguration', mode === 'legacy-mayhem' ? 'extended' : 'standard');
+        localStorage.setItem('speedMode', 'frolic');
+        localStorage.setItem('resonantTriadSeed', String(options.seed || 424242));
+        localStorage.setItem('buildDiversityV1', mode === 'feature-off' ? '0' : '1');
+
+        const existing = game.scene.getScene('GameScene');
+        const expectsTriad = mode !== 'feature-off' && mode !== 'legacy-mayhem';
+        const expectsLegacyMayhem = mode === 'legacy-mayhem';
+        if (!existing || !existing.scene || !existing.scene.isActive() || existing.stage !== stage ||
+            Boolean(existing.buildDiversityV1) !== expectsTriad || Boolean(existing.legacyMayhem) !== expectsLegacyMayhem ||
+            (existing.playerCount || 1) !== (options.twoPlayer ? 2 : 1)) {
+            game.scene.stop('GameScene');
+            game.scene.start('GameScene', {
+                stage,
+                p1Character: options.character || 'wizard',
+                multiplayerEnabled: options.twoPlayer === true,
+                p2Joined: options.twoPlayer === true,
+                playerCount: options.twoPlayer ? 2 : 1,
+                p2Character: options.twoPlayer ? 'grim' : null,
+                p2ControllerIndex: 0,
+                playerControllers: options.twoPlayer ? [{ playerNumber: 2, padIndex: 0, inputType: 'gamepad' }] : [],
+                startElement: options.startElement || 'fire'
+            });
+        }
+        const scene = await waitFor('Resonant Triad GameScene', () => {
+            const candidate = game.scene.getScene('GameScene');
+            return candidate && candidate.scene && candidate.scene.isActive() && candidate.wizard && candidate.radialChargeMenu ? candidate : null;
+        });
+        await waitFor('stage title completion', () => scene.gameStarted === true || (scene.dialogueManager && scene.dialogueManager.active), 8000);
+        if (scene.dialogueManager && scene.dialogueManager.active) scene.dialogueManager.close();
+        await waitFor('live gameplay after stage title', () => scene.gameStarted === true, 2000);
+        scene.wheelOfFortuneActive = false;
+        scene.initialElementSelection = false;
+
+        if (mode === 'legacy-mayhem') {
+            if (scene.buildDiversityV1 || !scene.legacyMayhem) throw new Error('Legacy Mayhem did not disable Triad runtime');
+            if (scene.MAX_ACTIVE_SLOTS !== 8 || scene.MAX_PASSIVE_SLOTS !== 8 || scene.MAX_POUCH_SLOTS !== 8) {
+                throw new Error('Legacy Mayhem did not preserve 8/8/8 slots');
+            }
+            if (!scene.legacyMayhemNotice || !scene.legacyMayhemNotice.active) throw new Error('Legacy Mayhem restriction label missing');
+            const isolatedSaveManager = new SaveManager();
+            isolatedSaveManager.currentSaveData = isolatedSaveManager.getEmptySaveData();
+            const before = JSON.parse(JSON.stringify(isolatedSaveManager.currentSaveData));
+            const gameOver = new GameOverScene();
+            Object.assign(gameOver, {
+                saveManager: isolatedSaveManager, stage: 'forest', won: true, survivalTime: 600000,
+                enemiesKilled: 300, itemsCollected: 40, levelReached: 20, damageDealt: 5000,
+                alchemyDiscoveries: [], buildSummary: { legacyMayhem: true, resonantTriad: false }
+            });
+            gameOver.updateSaveData();
+            const after = isolatedSaveManager.currentSaveData;
+            if (after.stages.completedStages.length !== before.stages.completedStages.length ||
+                after.characters.unlocked.length !== before.characters.unlocked.length ||
+                after.stages.stageStats['forest-1'].attempts !== 0 || after.stages.stageStats['forest-1'].bestTime !== null) {
+                throw new Error('Legacy Mayhem wrote forbidden progression');
+            }
+            if (after.talents.essence <= before.talents.essence) throw new Error('Legacy Mayhem did not retain essence');
+            return { ok: true, mode, stage, featureEnabled: false, legacyMayhem: true, slots: [8, 8, 8] };
+        }
+        if (mode === 'feature-off') {
+            if (scene.buildDiversityV1) throw new Error('Feature-off smoke entered Triad runtime');
+            return { ok: true, mode, stage, featureEnabled: false, slots: scene.wizard.chargeSlots.length };
+        }
+        if (!scene.buildDiversityV1 || !scene.triadStates || !scene.triadStates[1]) throw new Error('Triad runtime did not initialize');
+        if (scene.wizard.chargeSlots.length !== 3 || scene.wizard.elementPouch.length !== 2) throw new Error('Triad slot budget mismatch');
+        scene.clearTriadModal();
+        scene.chestSelectionActive = false;
+        scene.chestOpening = false;
+        scene.triadActiveEvent = null;
+        scene.menuControllingPlayer = null;
+        if (scene.triadSmokeBanner && scene.triadSmokeBanner.active) scene.triadSmokeBanner.destroy();
+        scene.triadSmokeBanner = null;
+        if (scene.isPaused) scene.resumeGame('chest');
+
+        const discipline = options.discipline || 'crucible';
+        if (scene.triadStates[1].discipline !== discipline) {
+            const fresh = ResonantTriad.createPlayerState({
+                playerNumber: 1, character: options.character || 'wizard', startElement: options.startElement || 'fire'
+            });
+            const attuned = ResonantTriad.attune(fresh, discipline, { seed: scene.triadRunSeed });
+            if (!attuned.ok) throw new Error(`Smoke attunement failed: ${attuned.reason}`);
+            scene.applyTriadStateToWizard(1, attuned.state, scene.triadStates[1]);
+        }
+        if (mode === 'attunement') {
+            scene.triadStates[1] = ResonantTriad.createPlayerState({ playerNumber: 1, character: options.character || 'wizard', startElement: options.startElement || 'fire' });
+            scene.triadActiveEvent = { level: 4, kind: 'ATTUNEMENT', ownerPlayerNumber: null, seedCursor: 4 };
+            scene.triadAttunementPlayers = scene.getJoinedPlayerNumbers();
+            scene.showTriadAttunement(1);
+        } else if (mode === 'reward' || mode === 'two-player') {
+            const owner = mode === 'two-player' && scene.wizard2 ? 2 : 1;
+            if (owner === 2 && !scene.triadStates[2].discipline) {
+                const p2 = ResonantTriad.attune(scene.triadStates[2], 'tempest', { seed: scene.triadRunSeed });
+                scene.applyTriadStateToWizard(2, p2.state, scene.triadStates[2]);
+            }
+            const event = { level: 7, kind: 'REWARD', ownerPlayerNumber: owner, seedCursor: 7 };
+            scene.triadActiveEvent = event;
+            scene.showTriadReward(event);
+        } else if (mode === 'full-pouch') {
+            const full = ResonantTriad.clone(scene.triadStates[1]);
+            full.channels = [ResonantTriad.createItem('fire', 2), ResonantTriad.createItem('lava'), ResonantTriad.createItem('water')];
+            full.pouch = [ResonantTriad.createItem('earth'), ResonantTriad.createItem('air')];
+            full.reagents = 1;
+            scene.applyTriadStateToWizard(1, full);
+            scene.createTriadModal('P1 — CRUCIBLE LOOM', 'Inventory preview is atomic. Nothing is spent until confirm.', [{
+                badge: 'FUSION WARNING', title: 'NEED 2 REAGENTS',
+                copy: 'You have 1. Nothing will be spent.\nPOUCH FULL — choose one spell to discard. No refund.',
+                footer: 'SIGNATURE OFFLINE — next FIT fills R2', color: 0xff7a2f, action: () => {}
+            }], 2);
+        } else if (mode === 'signature' || mode === 'boss-stagger') {
+            const target = scene.enemies.children.entries.find(enemy => enemy && enemy.active) || scene.createEnemy('mushroom', scene.wizard.x + 130, scene.wizard.y);
+            const enemy = target && target.active ? target : scene.enemies.children.entries.find(candidate => candidate && candidate.active);
+            if (enemy) scene.showTriadSignatureEffect(1, enemy,
+                discipline === 'crucible' ? 'KILN' : discipline === 'tempest' ? 'CONDUCT' : discipline === 'bastion' ? 'SHATTER' : 'HARVEST',
+                mode === 'boss-stagger' ? { triggered: true } : null);
+            const banner = scene.add.text(400, 126,
+                mode === 'boss-stagger' ? 'BOSS STAGGER 100/100\n2.0s INTERRUPT • 6s LOCK' : `${ResonantTriad.DISCIPLINES[discipline].name} ONLINE • SIGNATURE TRIGGERED`, {
+                    fontSize: mode === 'boss-stagger' ? '15px' : '18px', color: '#fff4d6', fontStyle: 'bold',
+                    align: 'center', lineSpacing: 3, stroke: '#000000', strokeThickness: 4,
+                    wordWrap: { width: 650 }
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(1900);
+            scene.triadSmokeBanner = banner;
+            scene.time.delayedCall(3000, () => {
+                if (banner.active) banner.destroy();
+                if (scene.triadSmokeBanner === banner) scene.triadSmokeBanner = null;
+            });
+        } else if (mode === 'post-run') {
+            scene.createTriadModal('P1 — CRUCIBLE • WIN • FOREST', '10:00 + BOSS 1:14', [{
+                badge: 'RUN ATTRIBUTION', title: 'LAVA II • 38% DAMAGE',
+                copy: '41 Kilns • 4 boss staggers\nFire → Crucible → Lava → Meteor',
+                footer: 'NEW: First Crucible win • Lava recipe', color: 0xff7a2f, action: () => {}
+            }], 2);
+        } else if (mode === 'death-retry') {
+            const buildSummary = scene.buildRunBuildSummary();
+            const retryData = scene.getRetryData();
+            scene.scene.start('GameOverScene', {
+                survivalTime: 245000, enemiesKilled: 91, itemsCollected: 37, level: 9,
+                elementsDiscovered: 4, damageDealt: 12400, alchemyDiscoveries: [],
+                buildSummary, won: false, stage, arcadeMode: false, retryData
+            });
+            const gameOver = await waitFor('Triad death/retry GameOverScene', () => {
+                const candidate = game.scene.getScene('GameOverScene');
+                return candidate && candidate.scene && candidate.scene.isActive() && candidate.restartText ? candidate : null;
+            });
+            if (!gameOver.retryData || gameOver.retryData.stage !== stage || gameOver.retryData.triadStates) {
+                throw new Error('Retry payload retained run-local Triad state');
+            }
+            if (gameOver.restartText) gameOver.restartText.setAlpha(1);
+            if (gameOver.menuText) gameOver.menuText.setAlpha(1);
+            return { ok: true, mode, stage, featureEnabled: true, retryStage: gameOver.retryData.stage, runLocalReset: true };
+        }
+        scene.updateTriadHUD(true);
+        await wait(250);
+        return {
+            ok: true, mode, stage, discipline, featureEnabled: true,
+            players: scene.getJoinedPlayerNumbers(), channels: scene.triadStates[1].channels.length,
+            pouch: scene.triadStates[1].pouch.length, canvas: Boolean(document.querySelector('canvas'))
+        };
+    };
+
     window.runHomunculiFirstRunSmoke = async function runHomunculiFirstRunSmoke() {
         const originalStorage = {};
         for (let i = 0; i < localStorage.length; i++) {

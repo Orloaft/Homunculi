@@ -1,5 +1,6 @@
 const { app, BrowserWindow, Menu, globalShortcut } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 // Enable hardware acceleration and WebGL
 app.commandLine.appendSwitch('enable-webgl');
@@ -27,12 +28,13 @@ const isOceanBossSmokeRun = process.env.HOMUNCULI_OCEAN_BOSS_SMOKE === '1';
 const isLavaBossSmokeRun = process.env.HOMUNCULI_LAVA_BOSS_SMOKE === '1';
 const isGraveBossSmokeRun = process.env.HOMUNCULI_GRAVE_BOSS_SMOKE === '1';
 const isCastleBossSmokeRun = process.env.HOMUNCULI_CASTLE_BOSS_SMOKE === '1';
+const isTriadSmokeRun = process.env.HOMUNCULI_TRIAD_SMOKE === '1';
 const coreBossSmokeStage = process.env.HOMUNCULI_CORE_BOSS_SMOKE_STAGE;
 const isCoreBossSmokeRun = ['forest', 'cave', 'sand'].includes(coreBossSmokeStage);
 let smokeFailed = false;
 
 function finishSmoke(exitCode, reason) {
-  if ((!isSmokeRun && !isFirstRunSmokeRun && !isProgressionSmokeRun && !isFeelSmokeRun && !isStageLiveSmokeRun && !isCoreBossSmokeRun && !isSwampBossSmokeRun && !isSnowBossSmokeRun && !isOceanBossSmokeRun && !isLavaBossSmokeRun && !isGraveBossSmokeRun && !isCastleBossSmokeRun) || app.isQuitting) return;
+  if ((!isSmokeRun && !isFirstRunSmokeRun && !isProgressionSmokeRun && !isFeelSmokeRun && !isStageLiveSmokeRun && !isCoreBossSmokeRun && !isSwampBossSmokeRun && !isSnowBossSmokeRun && !isOceanBossSmokeRun && !isLavaBossSmokeRun && !isGraveBossSmokeRun && !isCastleBossSmokeRun && !isTriadSmokeRun) || app.isQuitting) return;
   app.isQuitting = true;
   console.log(`[smoke] ${reason}`);
   app.exit(exitCode);
@@ -65,7 +67,7 @@ function createWindow() {
   // Load the game
   mainWindow.loadFile(path.join(__dirname, '..', 'index.html'));
 
-  if (isSmokeRun || isFirstRunSmokeRun || isProgressionSmokeRun || isFeelSmokeRun || isStageLiveSmokeRun || isCoreBossSmokeRun || isSwampBossSmokeRun || isSnowBossSmokeRun || isOceanBossSmokeRun || isLavaBossSmokeRun || isGraveBossSmokeRun || isCastleBossSmokeRun) {
+  if (isSmokeRun || isFirstRunSmokeRun || isProgressionSmokeRun || isFeelSmokeRun || isStageLiveSmokeRun || isCoreBossSmokeRun || isSwampBossSmokeRun || isSnowBossSmokeRun || isOceanBossSmokeRun || isLavaBossSmokeRun || isGraveBossSmokeRun || isCastleBossSmokeRun || isTriadSmokeRun) {
     mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
       smokeFailed = true;
       finishSmoke(1, `load failed ${errorCode}: ${errorDescription} (${validatedURL})`);
@@ -91,7 +93,53 @@ function createWindow() {
     mainWindow.webContents.once('did-finish-load', () => {
       setTimeout(async () => {
         if (!smokeFailed) {
-          if (isFirstRunSmokeRun || isProgressionSmokeRun || isFeelSmokeRun || isStageLiveSmokeRun || isCoreBossSmokeRun || isSwampBossSmokeRun || isSnowBossSmokeRun || isOceanBossSmokeRun || isLavaBossSmokeRun || isGraveBossSmokeRun || isCastleBossSmokeRun) {
+          if (isTriadSmokeRun) {
+            try {
+              const artifactRoot = process.env.HOMUNCULI_TRIAD_ARTIFACT_ROOT ||
+                '/home/orlovboros/artifacts/managers/homunculi/resonant-triad-implementation';
+              fs.mkdirSync(artifactRoot, { recursive: true });
+              const proofs = [
+                { name: 'forest-attunement-desktop', width: 1200, height: 800, options: { mode: 'attunement', stage: 'forest' } },
+                { name: 'forest-fit-bridge-wild-desktop', width: 1200, height: 800, options: { mode: 'reward', stage: 'forest', discipline: 'crucible' } },
+                { name: 'forest-full-pouch-warning-narrow', width: 640, height: 800, options: { mode: 'full-pouch', stage: 'forest' } },
+                { name: 'forest-crucible-signature', width: 1200, height: 800, options: { mode: 'signature', stage: 'forest', discipline: 'crucible' } },
+                { name: 'forest-tempest-signature', width: 1200, height: 800, options: { mode: 'signature', stage: 'forest', discipline: 'tempest', startElement: 'water' } },
+                { name: 'castle-bastion-dense-narrow', width: 640, height: 800, options: { mode: 'signature', stage: 'castle', discipline: 'bastion', startElement: 'earth' } },
+                { name: 'castle-covenant-signature', width: 1200, height: 800, options: { mode: 'signature', stage: 'castle', discipline: 'covenant', startElement: 'arcane' } },
+                { name: 'castle-boss-stagger', width: 1200, height: 800, options: { mode: 'boss-stagger', stage: 'castle', discipline: 'bastion', startElement: 'earth' } },
+                { name: 'forest-two-player-owner-ui', width: 1200, height: 800, options: { mode: 'two-player', stage: 'forest', twoPlayer: true } },
+                { name: 'forest-death-retry-narrow', width: 640, height: 800, options: { mode: 'death-retry', stage: 'forest' } },
+                { name: 'forest-post-run-summary-narrow', width: 640, height: 800, options: { mode: 'post-run', stage: 'forest' } },
+                { name: 'forest-legacy-mayhem-narrow', width: 640, height: 800, options: { mode: 'legacy-mayhem', stage: 'forest' } },
+                { name: 'forest-feature-off', width: 1200, height: 800, options: { mode: 'feature-off', stage: 'forest' } }
+              ];
+              const results = [];
+              for (const proof of proofs) {
+                mainWindow.setSize(proof.width, proof.height);
+                await new Promise(resolve => setTimeout(resolve, 150));
+                const result = await mainWindow.webContents.executeJavaScript(`window.runHomunculiResonantTriadSmoke(${JSON.stringify(proof.options)})`);
+                if (!result || !result.ok) throw new Error(`${proof.name} failed`);
+                mainWindow.show();
+                mainWindow.webContents.invalidate();
+                await new Promise(resolve => setTimeout(resolve, proof.options.mode === 'death-retry' ? 3500 : 500));
+                const image = await mainWindow.webContents.capturePage();
+                fs.writeFileSync(path.join(artifactRoot, `${proof.name}.png`), image.toPNG());
+                results.push(result);
+              }
+              mainWindow.setSize(640, 800);
+              const grayscaleKey = await mainWindow.webContents.insertCSS('canvas { filter: grayscale(1) !important; }');
+              await mainWindow.webContents.executeJavaScript(`window.runHomunculiResonantTriadSmoke(${JSON.stringify({ mode: 'signature', stage: 'castle', discipline: 'bastion', startElement: 'earth' })})`);
+              mainWindow.webContents.invalidate();
+              await new Promise(resolve => setTimeout(resolve, 500));
+              const grayscale = await mainWindow.webContents.capturePage();
+              fs.writeFileSync(path.join(artifactRoot, 'castle-bastion-grayscale-narrow.png'), grayscale.toPNG());
+              await mainWindow.webContents.removeInsertedCSS(grayscaleKey);
+              finishSmoke(0, `resonant triad shipped-page proof verified ${JSON.stringify(results)}`);
+            } catch (error) {
+              smokeFailed = true;
+              finishSmoke(1, `resonant triad verification error: ${error && error.stack ? error.stack : error}`);
+            }
+          } else if (isFirstRunSmokeRun || isProgressionSmokeRun || isFeelSmokeRun || isStageLiveSmokeRun || isCoreBossSmokeRun || isSwampBossSmokeRun || isSnowBossSmokeRun || isOceanBossSmokeRun || isLavaBossSmokeRun || isGraveBossSmokeRun || isCastleBossSmokeRun) {
             try {
               const liveStage = isSwampLiveSmokeRun
                 ? 'swamp'
