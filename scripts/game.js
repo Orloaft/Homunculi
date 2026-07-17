@@ -8222,6 +8222,61 @@ class GameOverScene extends Phaser.Scene {
         return `${this.formatElementDisplayName(buildSummary.topSpell.element)} (${buildSummary.topSpell.casts} casts)`;
     }
 
+    formatTriadRecipeDiscovery(recipeKey) {
+        if (typeof recipeKey !== 'string') return null;
+        const [ingredients, result] = recipeKey.split('=');
+        if (!ingredients || !result) return null;
+        const inputs = ingredients.split('+').filter(Boolean);
+        if (inputs.length !== 2) return null;
+        return `${inputs.map(element => this.formatElementDisplayName(element)).join(' + ')} -> ${this.formatElementDisplayName(result)}`;
+    }
+
+    getTriadChoiceTrail(playerNumber, decisionLog) {
+        const events = decisionLog && Array.isArray(decisionLog.events) ? decisionLog.events : [];
+        const labels = [];
+        events.forEach(event => {
+            if (!event || Number(event.ownerPlayerNumber) !== playerNumber) return;
+            let label = null;
+            if (event.type === 'attunement') label = 'attuned';
+            else if (event.type === 'choice_commit') {
+                const actions = {
+                    acquire: 'acquired', fusion: 'fused', omniform: 'omniformed',
+                    tierUp: 'tiered', reweave: 'reweaved', discard: 'discarded'
+                };
+                label = actions[event.action] || 'committed';
+            } else if (event.type === 'reagent_pickup' || event.type === 'reagent_auto_bank') {
+                label = 'banked reagent';
+            }
+            if (label && labels[labels.length - 1] !== label) labels.push(label);
+        });
+        return labels.slice(-2).join(' -> ') || 'no recorded choices';
+    }
+
+    getTriadPostRunReadbackLines(buildSummary) {
+        if (!buildSummary || buildSummary.resonantTriad !== true || !Array.isArray(buildSummary.triadPlayers)) {
+            return [];
+        }
+
+        const players = buildSummary.triadPlayers
+            .filter(player => player && Number.isInteger(player.playerNumber) && player.playerNumber > 0 &&
+                typeof player.discipline === 'string' && player.discipline.length > 0)
+            .sort((a, b) => a.playerNumber - b.playerNumber);
+        if (players.length === 0) return [];
+
+        const lines = ['RESONANT TRIAD ATTRIBUTION'];
+        players.forEach(player => {
+            const signatures = Math.max(0, Number(player.signaturesTriggered) || 0);
+            const metric = Math.max(0, Number(player.signatureMetric) || 0);
+            const reagents = Math.max(0, Number(player.reagents) || 0);
+            const discovery = Array.isArray(player.recipeDiscoveries)
+                ? player.recipeDiscoveries.map(recipe => this.formatTriadRecipeDiscovery(recipe)).filter(Boolean).slice(-1)[0]
+                : null;
+            lines.push(`P${player.playerNumber} ${this.formatElementDisplayName(player.discipline)} | Signatures: ${signatures} | Metric: ${metric} | Reagents: ${reagents}`);
+            lines.push(`  Trail: ${this.getTriadChoiceTrail(player.playerNumber, buildSummary.triadDecisionLog)} | Discovery: ${discovery || 'none recorded'}`);
+        });
+        return lines;
+    }
+
     getStageReadbackProfile(stage) {
         const profiles = {
             forest: {
@@ -8292,14 +8347,18 @@ class GameOverScene extends Phaser.Scene {
         if (!readback) return [];
 
         const lines = [];
+        const triadLines = this.getTriadPostRunReadbackLines(readback.buildSummary);
         lines.push(`Essence banked: +${readback.essenceAwarded} (${readback.essenceTotal} total)`);
         lines.push(`${readback.outcomeLabel}: ${readback.durationText} | Level ${readback.levelReached}`);
         lines.push(`Run shape: ${readback.enemiesKilled} defeated | ${readback.itemsCollected} pickups`);
         lines.push(`Equipped: ${this.formatBuildList(readback.equippedElements)}`);
-        lines.push(`Passives: ${this.formatPassiveBuildSummary(readback.buildSummary)}`);
+        if (triadLines.length === 0) lines.push(`Passives: ${this.formatPassiveBuildSummary(readback.buildSummary)}`);
         lines.push(`Fusions: ${readback.fusionCount} made | ${this.formatBuildList(readback.fusionsUsed, 'none equipped')}`);
-        lines.push(`Top spell: ${this.formatTopSpell(readback.buildSummary)} | Carried by: ${readback.carryLine}`);
-        lines.push(`${readback.stageIdentity}: ${readback.stageRoster.join(', ') || 'no roster data'}`);
+        if (triadLines.length === 0) {
+            lines.push(`Top spell: ${this.formatTopSpell(readback.buildSummary)} | Carried by: ${readback.carryLine}`);
+            lines.push(`${readback.stageIdentity}: ${readback.stageRoster.join(', ') || 'no roster data'}`);
+        }
+        lines.push(...triadLines);
 
         if (readback.won) {
             if (readback.progressionSuppressed) {
@@ -8336,23 +8395,24 @@ class GameOverScene extends Phaser.Scene {
         const lines = this.getRunRewardReadbackLines();
         if (lines.length === 0) return delay;
 
-        const panel = this.add.rectangle(400, 205, 670, 250, 0x10101a, 0.9);
+        const triadReadback = this.getTriadPostRunReadbackLines(this.runRewardReadback.buildSummary).length > 0;
+        const panel = this.add.rectangle(400, triadReadback ? 245 : 205, 670, triadReadback ? 400 : 250, 0x10101a, 0.9);
         panel.setStrokeStyle(2, this.won ? 0x44ffff : 0x8888ff);
         panel.setAlpha(0);
         panel.setDepth(80);
 
-        const title = this.add.text(400, 94, this.won ? 'RUN REWARDS RECORDED' : 'RUN ATTEMPT RECORDED', {
+        const title = this.add.text(400, triadReadback ? 48 : 94, this.won ? 'RUN REWARDS RECORDED' : 'RUN ATTEMPT RECORDED', {
             fontSize: '18px',
             color: this.won ? '#44ffff' : '#aaaaff',
             fontStyle: 'bold'
         }).setOrigin(0.5).setAlpha(0).setDepth(81);
 
-        const details = this.add.text(400, 118, lines.join('\n'), {
-            fontSize: '13px',
+        const details = this.add.text(400, triadReadback ? 72 : 118, lines.join('\n'), {
+            fontSize: triadReadback ? '14px' : '13px',
             color: '#ffffff',
             align: 'center',
             lineSpacing: 1,
-            wordWrap: { width: 630 }
+            wordWrap: { width: triadReadback ? 680 : 630 }
         }).setOrigin(0.5, 0).setAlpha(0).setDepth(81);
 
         this.runRewardReadbackText = details;
@@ -18642,7 +18702,8 @@ class GameScene extends Phaser.Scene {
                 pouch: (state.pouch || []).map(item => item ? { spell: item.spell, tier: item.tier } : null),
                 reagents: Number(state.reagents) || 0,
                 signaturesTriggered: Number(state.signature && state.signature.triggers) || 0,
-                signatureMetric: Number(state.signature && state.signature.triggers) || 0
+                signatureMetric: Number(state.signature && state.signature.triggers) || 0,
+                recipeDiscoveries: Array.isArray(state.recipeDiscoveries) ? state.recipeDiscoveries.slice() : []
             }))
             : [];
 
@@ -61871,6 +61932,82 @@ if (typeof window !== 'undefined') {
         localStorage.setItem('resonantTriadSeed', String(options.seed || 424242));
         localStorage.setItem('buildDiversityV1', mode === 'feature-off' ? '0' : '1');
 
+        if (mode === 'post-run') {
+            // This proof must use the shipped results scene. A BattleScene modal can
+            // remain alive after a retry has already switched scenes, producing a
+            // successful smoke result with a stale Game Over capture.
+            const buildSummary = {
+                equippedElements: ['fire', 'lava'],
+                passivePicks: ['rook'],
+                passiveUpgrades: ['damage x1'],
+                fusionCount: 2,
+                fusionsUsed: ['lava', 'storm'],
+                topSpell: { element: 'lava', casts: 38 },
+                carryLine: 'lava cast volume',
+                spellCasts: { lava: 38, storm: 21 },
+                resonantTriad: true,
+                legacyMayhem: false,
+                modeLabel: 'Resonant Triad',
+                triadPlayers: [
+                    {
+                        playerNumber: 1, character: 'wizard', discipline: 'crucible',
+                        channels: [{ spell: 'fire', tier: 2 }, { spell: 'lava', tier: 2 }, null],
+                        pouch: [{ spell: 'earth', tier: 1 }, null], reagents: 2,
+                        signaturesTriggered: 4, signatureMetric: 4,
+                        recipeDiscoveries: ['earth+fire=lava']
+                    },
+                    {
+                        playerNumber: 2, character: 'grim', discipline: 'tempest',
+                        channels: [{ spell: 'water', tier: 2 }, { spell: 'storm', tier: 1 }, null],
+                        pouch: [{ spell: 'air', tier: 1 }, null], reagents: 1,
+                        signaturesTriggered: 3, signatureMetric: 3,
+                        recipeDiscoveries: ['air+water=ice']
+                    }
+                ],
+                triadDecisionLog: {
+                    version: 1,
+                    events: [
+                        { type: 'attunement', ownerPlayerNumber: 1, discipline: 'crucible' },
+                        { type: 'choice_commit', ownerPlayerNumber: 1, action: 'fusion' },
+                        { type: 'attunement', ownerPlayerNumber: 2, discipline: 'tempest' },
+                        { type: 'choice_commit', ownerPlayerNumber: 2, action: 'acquire' }
+                    ]
+                }
+            };
+            await waitFor('Triad post-run Phaser boot', () => {
+                const title = game.scene.getScene('TitleScene');
+                return title && title.scene && title.scene.isActive() ? title : null;
+            });
+            game.scene.stop('GameOverScene');
+            const smokeSaveManager = new SaveManager();
+            smokeSaveManager.currentSaveData = smokeSaveManager.getEmptySaveData();
+            smokeSaveManager.currentSlot = 0;
+            game.registry.set('saveManager', smokeSaveManager);
+            game.scene.start('GameOverScene', {
+                survivalTime: 600000, enemiesKilled: 184, itemsCollected: 42, level: 12,
+                elementsDiscovered: 6, damageDealt: 28400,
+                alchemyDiscoveries: [{ inputs: ['earth', 'fire'], result: 'lava' }],
+                buildSummary, won: true, stage, arcadeMode: false,
+                retryData: { stage, p1Character: 'wizard', p2Character: 'grim', playerCount: 2 }
+            });
+            const gameOver = await waitFor('Triad post-run GameOverScene', () => {
+                const candidate = game.scene.getScene('GameOverScene');
+                return candidate && candidate.scene && candidate.scene.isActive() ? candidate : null;
+            });
+            await waitFor('visible Triad post-run attribution', () =>
+                gameOver.runRewardReadbackText && gameOver.runRewardReadbackText.alpha >= 0.95, 10000);
+            const readbackText = gameOver.runRewardReadbackText ? gameOver.runRewardReadbackText.text || '' : '';
+            if (!readbackText.includes('RESONANT TRIAD ATTRIBUTION') ||
+                !readbackText.includes('P1 Crucible') || !readbackText.includes('P2 Tempest') ||
+                !readbackText.includes('Discovery: Earth + Fire -> Lava') || gameOver.runRewardReadbackText.alpha < 0.95) {
+                throw new Error(`Triad post-run attribution not visibly rendered: ${readbackText}`);
+            }
+            if (!gameOver.scene.isActive() || (game.scene.getScene('GameScene').scene && game.scene.getScene('GameScene').scene.isActive())) {
+                throw new Error('Triad post-run proof did not remain on GameOverScene');
+            }
+            return { ok: true, mode, stage, featureEnabled: true, scene: 'GameOverScene', players: 2, triadReadback: true };
+        }
+
         const existing = game.scene.getScene('GameScene');
         const expectsTriad = mode !== 'feature-off' && mode !== 'legacy-mayhem';
         const expectsLegacyMayhem = mode === 'legacy-mayhem';
@@ -61991,12 +62128,6 @@ if (typeof window !== 'undefined') {
                 if (banner.active) banner.destroy();
                 if (scene.triadSmokeBanner === banner) scene.triadSmokeBanner = null;
             });
-        } else if (mode === 'post-run') {
-            scene.createTriadModal('P1 — CRUCIBLE • WIN • FOREST', '10:00 + BOSS 1:14', [{
-                badge: 'RUN ATTRIBUTION', title: 'LAVA II • 38% DAMAGE',
-                copy: '41 Kilns • 4 boss staggers\nFire → Crucible → Lava → Meteor',
-                footer: 'NEW: First Crucible win • Lava recipe', color: 0xff7a2f, action: () => {}
-            }], 2);
         } else if (mode === 'death-retry') {
             const buildSummary = scene.buildRunBuildSummary();
             const retryData = scene.getRetryData();

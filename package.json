@@ -15,6 +15,7 @@
     "test:boss-contract": "node scripts/test-boss-contract.js",
     "test:web-release-blockers": "node scripts/test-web-release-blockers.js",
     "test:resonant-triad": "node scripts/test-resonant-triad.js",
+    "test:triad-post-run": "node scripts/test-triad-post-run-readback.js",
     "smoke:prod": "npm run compile && HOMUNCULI_SMOKE=1 electron --no-sandbox --disable-gpu .",
     "smoke:first-run": "npm run compile && HOMUNCULI_FIRST_RUN_SMOKE=1 electron --no-sandbox --disable-gpu .",
     "smoke:progression": "npm run compile && HOMUNCULI_PROGRESSION_SMOKE=1 electron --no-sandbox --disable-gpu .",

@@ -96,22 +96,14 @@ function createWindow() {
           if (isTriadSmokeRun) {
             try {
               const artifactRoot = process.env.HOMUNCULI_TRIAD_ARTIFACT_ROOT ||
-                '/home/orlovboros/artifacts/managers/homunculi/resonant-triad-implementation';
+                '/home/orlovboros/artifacts/managers/homunculi/resonant-triad-post-run-fix';
               fs.mkdirSync(artifactRoot, { recursive: true });
+              // Stage 1's prior screenshots remain archived in their original
+              // evidence directory. This corrective run is intentionally focused
+              // on the shipped post-run surface it is replacing as proof.
               const proofs = [
-                { name: 'forest-attunement-desktop', width: 1200, height: 800, options: { mode: 'attunement', stage: 'forest' } },
-                { name: 'forest-fit-bridge-wild-desktop', width: 1200, height: 800, options: { mode: 'reward', stage: 'forest', discipline: 'crucible' } },
-                { name: 'forest-full-pouch-warning-narrow', width: 640, height: 800, options: { mode: 'full-pouch', stage: 'forest' } },
-                { name: 'forest-crucible-signature', width: 1200, height: 800, options: { mode: 'signature', stage: 'forest', discipline: 'crucible' } },
-                { name: 'forest-tempest-signature', width: 1200, height: 800, options: { mode: 'signature', stage: 'forest', discipline: 'tempest', startElement: 'water' } },
-                { name: 'castle-bastion-dense-narrow', width: 640, height: 800, options: { mode: 'signature', stage: 'castle', discipline: 'bastion', startElement: 'earth' } },
-                { name: 'castle-covenant-signature', width: 1200, height: 800, options: { mode: 'signature', stage: 'castle', discipline: 'covenant', startElement: 'arcane' } },
-                { name: 'castle-boss-stagger', width: 1200, height: 800, options: { mode: 'boss-stagger', stage: 'castle', discipline: 'bastion', startElement: 'earth' } },
-                { name: 'forest-two-player-owner-ui', width: 1200, height: 800, options: { mode: 'two-player', stage: 'forest', twoPlayer: true } },
-                { name: 'forest-death-retry-narrow', width: 640, height: 800, options: { mode: 'death-retry', stage: 'forest' } },
-                { name: 'forest-post-run-summary-narrow', width: 640, height: 800, options: { mode: 'post-run', stage: 'forest' } },
-                { name: 'forest-legacy-mayhem-narrow', width: 640, height: 800, options: { mode: 'legacy-mayhem', stage: 'forest' } },
-                { name: 'forest-feature-off', width: 1200, height: 800, options: { mode: 'feature-off', stage: 'forest' } }
+                { name: 'forest-post-run-summary-desktop', width: 1200, height: 800, options: { mode: 'post-run', stage: 'forest', twoPlayer: true } },
+                { name: 'forest-post-run-summary-narrow', width: 640, height: 800, options: { mode: 'post-run', stage: 'forest', twoPlayer: true } }
               ];
               const results = [];
               for (const proof of proofs) {
@@ -126,14 +118,6 @@ function createWindow() {
                 fs.writeFileSync(path.join(artifactRoot, `${proof.name}.png`), image.toPNG());
                 results.push(result);
               }
-              mainWindow.setSize(640, 800);
-              const grayscaleKey = await mainWindow.webContents.insertCSS('canvas { filter: grayscale(1) !important; }');
-              await mainWindow.webContents.executeJavaScript(`window.runHomunculiResonantTriadSmoke(${JSON.stringify({ mode: 'signature', stage: 'castle', discipline: 'bastion', startElement: 'earth' })})`);
-              mainWindow.webContents.invalidate();
-              await new Promise(resolve => setTimeout(resolve, 500));
-              const grayscale = await mainWindow.webContents.capturePage();
-              fs.writeFileSync(path.join(artifactRoot, 'castle-bastion-grayscale-narrow.png'), grayscale.toPNG());
-              await mainWindow.webContents.removeInsertedCSS(grayscaleKey);
               finishSmoke(0, `resonant triad shipped-page proof verified ${JSON.stringify(results)}`);
             } catch (error) {
               smokeFailed = true;
